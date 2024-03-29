@@ -1,0 +1,74 @@
+V2.3.0 (March 13, 2021)
+	- Refactor Spell, Emote, and <Typing> application
+	- Better UI depiction of when the "Enable ChatBubbles" toggle means everything is off
+	- Better hover-help descriptions for Typing Indicator
+	- Added the ability to turn off spells/emotes for a chat type, but leave the chat type on
+		- This means it can still toggle <Typing> tag without doing a spell or emote now
+	- Redid some of the defaults, making a lot of the less likely to be used 0 (disabled spell/emote) instead of just the chat bubble spell
+
+----------------------------------------
+
+V2.2.1 (June 28, 2020) (Released March 11, 2021)
+	- Code optimization in new character set-up
+	- TOC Bump to 8.3
+
+----------------------------------------
+
+V2.2.0 (March 20, 2020)
+	- Added <Typing> support, requires Epsilon addon dependency (Cred: Gardener for <Typing> itself)
+		- Toggleable via /cb settings menu, default enabled
+	- Fixed some logic ideas, added redundancy to avoid sometimes not removing the emotes/spells/indicator.
+	
+----------------------------------------
+
+V2.1.0 (July 24, 2018)
+	- Added Emote Functionality (Use a Negative Number in the Text Box to have it sent as an emote instead of spell).
+	- Added Emote Presets to Preset Dropdown Menus
+	- Updated Useful Spells list with Emotes - Made it look neater too.
+	- Now uses ".aura X self" for spells to avoid hitting other people with the spell.
+	- Added Hover-over Help Text ToolTips in some areas.
+	- Fixed Debug CheckBox HitRectInsets.
+
+----------------------------------------
+
+V2.0.2 (Sep. 14, 2017)
+	- Modified chat filter to turn off on the last message of phase info or main phase.
+
+----------------------------------------
+
+V2.0.1 (Sep. 7, 2017)
+	- Modified Commands check - now escapes the check and returns to default chat handling if you put in two command characters (.!?/) in a row.
+		- i.e., start a message with "..Hello!" before would trigger as a command, when it's not. Now properly displays it's correct chat bubble as according to your settings for whatever chat type you are currently in.
+
+----------------------------------------
+
+v2.0.0 (Sep. 1, 2017)
+	- Introduced Addon Options Menu (via Interface -> Addons, or simply "/cb command")
+	- Introduced ability to toggle which chats activate a ChatBubble
+		- Can specify whatever spell you want in the Spell ID box, or choose a preset spell from the known good ones
+		- Can specify if you just want to use the 'Say' spell for all chat types (i.e. so all are just a normal Chat Bubble)
+	- Added Toggle for allowing chat bubble when typing in a .?!/ command
+	- Added Toggle for allowing chat bubble when typing with '(' as first character ((OOC Chat))
+	- Added Toggle for allowing links in chat (Default: Off [stops showing Chat Bubble if link is put into the editbox])
+	- Fixed CSTACK OVERFLOW errors (Thanks Chase for pointing out the error, dumb me)
+	- Automatically detect if you're in a phase or not on login, and every time you enter and exit a phase, changing modes to avoid casting the spell on others (This will be updated later to be better once Epsilon adds in further support for ".aura X self", which will eliminate the entire need for phase checking and switching between .aura and .cast, and solves issues with .cast, on some spells, casting on other people - Not a problem if you use the recommended spells though, as they are self-cast only anyway)
+	- Works through /reload
+	- Works through loading screens
+
+----------------------------------------
+
+v1.1.0 (Aug. 28, 2017) (UNRELEASED)
+	- New Feature: Diverse Aura's Mode (Red "!" for YELL, Golden "!" for EMOTE, ChatBubble for SAY)
+		- Toggle with "/cb multi" or "/cb diverse" (default: off)
+	
+----------------------------------------
+
+v1.0.0 (Aug. 17, 2017) 
+	- Release Build (See Forum for Features)
+	
+----------------------------------------
+
+v0.0.1 (July, 2017)
+	- Initial Concept - Leaked Alpha
+	
+----------------------------------------

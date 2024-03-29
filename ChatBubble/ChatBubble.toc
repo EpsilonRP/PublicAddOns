@@ -1,0 +1,13 @@
+## Interface: 80300
+## Title: |cffFFD700ChatBubble
+## Author: MindScape
+## Version: 2.3.0
+## Notes: Allows you to use a multitude of typing indicators, such as <Typing>, chat bubbles, and character animations.
+## Dependencies: Epsilon
+## DefaultState: Enabled
+## SavedVariablesPerCharacter: chatBubbleOptions
+## X-Date: March 13, 2021
+## X-Credits: MindScape
+## X-MostRecentChanges: See Changelog.txt
+
+ChatBubble.lua
