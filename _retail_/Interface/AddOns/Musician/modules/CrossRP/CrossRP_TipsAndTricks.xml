@@ -1,0 +1,37 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.blizzard.com/wow/ui/">
+	<Frame name="MusicianCrossRP_TipsAndTricks" inherits="MusicianTipsAndTricksTemplate">
+		<Frames>
+
+			<Button name="$parentOKButton" parentKey="okButton" inherits="MusicianTipsAndTricksOkButtonTemplate">
+				<Anchors>
+					<Anchor point="BOTTOM" y="10" />
+				</Anchors>
+			</Button>
+
+			<Frame name="$parentImage" parentKey="image" inherits="MusicianImageTemplate">
+				<Anchors>
+					<Anchor point="BOTTOM" y="10" relativePoint="TOP" relativeTo="$parentOKButton" />
+				</Anchors>
+				<Size>
+					<AbsDimension x="512" y="256" />
+				</Size>
+			</Frame>
+
+			<Frame name="$parentOverlayText" parentKey="overlayText">
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentTitle" relativePoint="BOTTOM" />
+					<Anchor point="BOTTOM" y="-80" relativeTo="$parentImage" relativePoint="TOP" />
+					<Anchor point="LEFT" x="30" />
+					<Anchor point="RIGHT" x="-30" />
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="$parentText" parentKey="text" inherits="GameFontHighlightLarge" justifyH="CENTER" justifyV="MIDDLE" setallpoints="true" />
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+	</Frame>
+</Ui>

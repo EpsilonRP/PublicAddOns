@@ -1,0 +1,6 @@
+## Interface: 90207
+## Title: !Cross Faction
+## Notes: Allows cross faction addon communication.
+## Author: Chase
+## Version: 1.0
+CrossFaction.lua

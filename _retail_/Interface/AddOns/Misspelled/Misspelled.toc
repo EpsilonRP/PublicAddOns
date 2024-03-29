@@ -1,0 +1,37 @@
+## Interface: 90207
+
+## X-Curse-Project-ID: 19114
+## X-Curse-Project-Name: Misspelled - Chat Spellchecker
+## X-Curse-Repository-ID: wow/misspelled/mainline
+## X-Website: https://www.curseforge.com/wow/addons/misspelled
+## X-WoWI-ID: 13493
+
+## Title: Misspelled
+## Version: 1.8.10
+## Author: Nate (Nathan Pieper)
+## Notes: Misspelled watches your chat, flagging missplled words, and offering correctly spelled suggestions.
+## eMail: nrpieper@gmail.com
+## X-Email: nrpieper@gmail.com
+## X-Category: Chat
+## DefaultState: Enabled
+## OptionalDeps: LibStub, CallbackHandler-1.0, Ace3
+## X-Embeds: LibStub, CallbackHandler-1.0, Ace3
+## SavedVariables: Misspelled_DB
+
+
+embeds.xml
+Localization\Includes.xml
+
+UTF8\utf8data.lua
+UTF8\utf8.lua
+
+Dict\Dic_enUS.lua
+Dict\Dic_enGB.lua
+Dict\Dic_deDE.lua
+Dict\Dic_esES.lua
+Dict\Dic_frFR.lua
+Dict\Dic_itIT.lua
+Dict\Dic_ruRU.lua
+WordDict.lua
+Misspelled.lua
+Misspelled.xml

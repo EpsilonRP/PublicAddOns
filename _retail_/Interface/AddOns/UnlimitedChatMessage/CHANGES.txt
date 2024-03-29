@@ -1,0 +1,33 @@
+------------------------------------------------------------------------
+r76 | zwixx | 2020-10-13 16:36:07 +0000 (Tue, 13 Oct 2020) | 1 line
+Changed paths:
+   M /trunk/core.lua
+
+* Configurations are now more visible
+------------------------------------------------------------------------
+r75 | zwixx | 2020-10-13 16:32:34 +0000 (Tue, 13 Oct 2020) | 1 line
+Changed paths:
+   M /trunk/UnlimitedChatMessage.toc
+
+* Bump Version
+------------------------------------------------------------------------
+r74 | zwixx | 2019-09-26 16:46:38 +0000 (Thu, 26 Sep 2019) | 1 line
+Changed paths:
+   M /trunk
+
+* GutIgnore
+------------------------------------------------------------------------
+r73 | zwixx | 2019-09-26 16:46:31 +0000 (Thu, 26 Sep 2019) | 1 line
+Changed paths:
+   M /trunk/core.lua
+   M /trunk/locales/enUS.lua
+
+* Es werden nun an Emotegrenzen mit < oder * diese auf die n�chste Nachricht kopiert
+------------------------------------------------------------------------
+r72 | zwixx | 2019-09-26 16:46:23 +0000 (Thu, 26 Sep 2019) | 1 line
+Changed paths:
+   M /trunk/UnlimitedChatMessage.toc
+
+TOC update
+------------------------------------------------------------------------
+

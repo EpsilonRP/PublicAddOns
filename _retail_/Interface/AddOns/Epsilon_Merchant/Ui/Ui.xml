@@ -1,0 +1,32 @@
+<Ui>
+  <!-- Frames -->
+  <Button name="Epsilon_MerchantCursorOverlay" parent="UIParent" frameStrata="BACKGROUND" setAllPoints="true" hidden="true" enableMouse="true">
+	<Scripts>
+		<OnLoad>
+			self:RegisterForClicks("LeftButtonUp","RightButtonUp");
+		</OnLoad>
+		<OnShow>
+			Epsilon_MerchantRefreshItemButtons()
+		</OnShow>
+		<OnHide>
+			self:SetScript("OnUpdate", nil)
+			Epsilon_MerchantFrame.choosingItem = false;
+			Epsilon_MerchantItemEditor.choosingItem = false;
+			for i = 1, #Epsilon_MerchantFrame.ItemButtons do
+				Epsilon_MerchantFrame.ItemButtons[i]:Hide()
+			end
+		</OnHide>
+		<OnClick>
+			if button == "RightButton" then
+				ClearCursor()
+				self:Hide()
+			end
+		</OnClick>
+	</Scripts>
+  </Button>
+  
+  <Include file="Ui\MerchantFrame.xml"/>
+  <Include file="Ui\ItemEditor.xml"/>
+  <Include file="Ui\MerchantEditor.xml"/>
+  <Include file="Ui\SoundPicker.xml"/>
+</Ui>

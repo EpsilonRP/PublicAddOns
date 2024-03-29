@@ -1,0 +1,8 @@
+## Interface: 80300
+## Title: EasyCopy
+## Notes: Provides an easy method to copy chat lines directly from the chat box, as well as optional time-stamps on each message.
+## Author: bitbiter & DJScias
+## Version: 5.0.2
+## SavedVariables: ECVars
+## X-Changes: TOC Bump to 8.3
+EasyCopy.xml

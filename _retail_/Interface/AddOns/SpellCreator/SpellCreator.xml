@@ -1,0 +1,142 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd" xmlns="http://www.blizzard.com/wow/ui/">
+
+	<!-- Load Libraries -->
+	<Include file="Libs/Libs.xml" />
+
+	<Frame name="SCForgeFrameTemplate" inherits="PortraitFrameTemplate" virtual="true">
+		<Frames>
+			<Frame name="$parentInset" parentKey="Inset" useParentLevel="true" inherits="InsetFrameTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="4" y="-60" />
+					<Anchor point="BOTTOMRIGHT" x="-6" y="26" />
+				</Anchors>
+			</Frame>
+		</Frames>
+		<Layers>
+			<Layer level="BACKGROUND" textureSubLevel="-2">
+				<Texture name="$parentCornerTL" parentKey="CornerTL" file="Interface\Transmogrify\Textures.png">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="-2" y="-8"/>
+					</Anchors>
+					<TexCoords left="0.00781250" right="0.50781250" top="0.00195313" bottom="0.12695313"/>
+				</Texture>
+				<Texture name="$parentCornerTR" parentKey="CornerTR" file="Interface\Transmogrify\Textures.png">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="0" y="-8"/>
+					</Anchors>
+					<TexCoords left="0.00781250" right="0.50781250" top="0.38476563" bottom="0.50781250"/>
+				</Texture>
+				<Texture name="$parentCornerBL" parentKey="CornerBL" file="Interface\Transmogrify\Textures.png">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="-2" y="16"/>
+					</Anchors>
+					<TexCoords left="0.00781250" right="0.50781250" top="0.25781250" bottom="0.38085938"/>
+				</Texture>
+				<Texture name="$parentCornerBR" parentKey="CornerBR" file="Interface\Transmogrify\Textures.png">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" x="0" y="16"/>
+					</Anchors>
+					<TexCoords left="0.00781250" right="0.50781250" top="0.13085938" bottom="0.25390625"/>
+				</Texture>
+			</Layer>
+			<Layer level="BACKGROUND" textureSubLevel="1">
+				<Texture>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.TitleBg"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.TitleBg"/>
+					</Anchors>
+					<Color r="0.302" g="0.102" b="0.204" a="1"/>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Frame>
+
+	<Script file="Constants.lua"/>
+	<Script file="Localization.lua"/>
+	<Script file="Logging.lua"/>
+	<Script file="Cmd.lua"/>
+	<Script file="Permissions.lua"/>
+	<Script file="Serializer.lua"/>
+	<Script file="Vault.lua"/>
+
+	<Script file="UI/UI.lua"/>
+	<Script file="UI/Gems.lua"/>
+	<Script file="UI/Icons.lua"/>
+
+	<Script file="UI/Dropdown.lua"/>
+
+	<Script file="Utils/Utils.lua"/>
+	<Script file="Utils/Aura.lua"/>
+	<Script file="Utils/ChatLinkCache.lua"/>
+	<Script file="Utils/Data.lua"/>
+	<Script file="Utils/Debug.lua"/>
+	<Script file="Utils/HookLib.lua"/>
+	<Script file="Utils/HTML.lua"/>
+	<Script file="Utils/InputHelper.lua"/>
+	<Script file="Utils/NineSlice.lua"/>
+	<Script file="Utils/UIHelpers.lua"/>
+	<Script file="Utils/StringSubs.lua"/>
+	<Script file="Utils/Tooltip.lua"/>
+
+	<Script file="Comms.lua"/>
+
+	<Script file="Actions/Actions.lua"/>
+	<Script file="Actions/ConditionsData.lua"/>
+	<Script file="Actions/Data_Scripts.lua"/>
+	<Script file="Actions/Data.lua"/>
+	<Script file="Actions/Cooldowns.lua"/>
+	<Script file="Actions/Execute.lua"/>
+	<Script file="Actions/Hotkeys.lua"/>
+
+	<Script file="Gossip.lua"/>
+	<Script file="SavedVariables.lua"/>
+	<Script file="ProfileFilter.lua"/>
+	<Script file="VaultFilter.lua"/>
+
+	<Script file="UI/NineSliceTemplates.lua"/>
+
+	<Script file="UI/ActionButtons.lua"/>
+	<Script file="UI/Animation.lua"/>
+	<Script file="UI/Castbar.lua"/>
+	<Script file="UI/ChatLink.lua"/>
+	<Script file="UI/ConditionsEditor.lua"/>
+	<Script file="UI/DataSalvager.lua"/>
+	<Script file="UI/ImportExport.lua"/>
+	<Include file="UI/ItemTextBookFrame.xml"/>
+	<Script file="UI/LoadSpellFrame.lua"/>
+	<Include file="UI/MainFrame/Init.xml" />
+	<Include file="UI/IconPicker.xml" />
+	<Script file="UI/Models.lua"/>
+	<Script file="UI/MinimapButton.lua"/>
+	<Script file="UI/Popups.lua"/>
+	<Script file="UI/Portrait.lua"/>
+	<Script file="UI/ProfileFilterMenu.lua"/>
+	<Script file="UI/SimpleHTMLEditor.lua"/>
+
+	<Include file="UI/Quickcast/Init.xml" />
+	<Include file="UI/SparkPopups/SparkPopups.xml" />
+	<Include file="UI/ItemIntegration/Init.xml" />
+
+	<Include file="UI/WelcomeUI/Init.xml" />
+
+	<Script file="UI/SpellRowAction.lua"/>
+	<Script file="UI/SpellRow.lua"/>
+	<Script file="UI/SpellLoadRowContextMenu.lua"/>
+	<Script file="UI/SpellLoadRow.lua"/>
+	<Script file="UI/SpellVaultFrame.lua"/>
+	<Script file="UI/Options.lua"/>
+
+	<Include file="UI/SpellBookUI.xml"/>
+	<Script file="UI/SpellBookUI.lua"/>
+
+	<Script file="SpellCreator.lua"/>
+	<Script file="API.lua"/>
+	<Script file="Slash.lua"/>
+
+	<Script file="Integrations/OPie.lua"/>
+	<Script file="Integrations/TRP3e.lua"/>
+</Ui>

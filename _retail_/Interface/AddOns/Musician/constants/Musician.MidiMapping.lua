@@ -1,0 +1,252 @@
+--- MIDI mappings for instruments and percussions
+-- @module Musician.MidiMapping
+
+local Percussion = Musician.MIDI_PERCUSSIONS
+local Instrument = Musician.MIDI_INSTRUMENTS
+
+-- General MIDI instrument ID mapping to internal instrument ID
+Musician.MIDI_INSTRUMENT_MAPPING = {
+	-- Piano
+	[Instrument.AcousticGrandPiano] = "piano",
+	[Instrument.BrightAcousticPiano] = "piano",
+	[Instrument.ElectricGrandPiano] = "piano",
+	[Instrument.HonkyTonkPiano] = "piano",
+	[Instrument.ElectricPiano1] = "piano",
+	[Instrument.ElectricPiano2] = "piano",
+	[Instrument.Harpsichord] = "harp",
+	[Instrument.Clavi] = "harp",
+
+	-- Chromatic Percussion
+	[Instrument.Celesta] = "dulcimer",
+	[Instrument.Glockenspiel] = "dulcimer",
+	[Instrument.MusicBox] = "harp",
+	[Instrument.Vibraphone] = "dulcimer",
+	[Instrument.Marimba] = "dulcimer",
+	[Instrument.Xylophone] = "dulcimer",
+	[Instrument.TubularBells] = "dulcimer",
+	[Instrument.Dulcimer] = "dulcimer",
+
+	-- Organ
+	[Instrument.DrawbarOrgan] = "accordion",
+	[Instrument.PercussiveOrgan] = "accordion",
+	[Instrument.RockOrgan] = "accordion",
+	[Instrument.ChurchOrgan] = "accordion",
+	[Instrument.ReedOrgan] = "accordion",
+	[Instrument.Accordion] = "accordion",
+	[Instrument.Harmonica] = "accordion",
+	[Instrument.TangoAccordion] = "accordion",
+
+	-- Guitar
+	[Instrument.AcousticGuitarNylon] = "lute",
+	[Instrument.AcousticGuitarSteel] = "lute",
+	[Instrument.ElectricGuitarJazz] = "clean_guitar",
+	[Instrument.ElectricGuitarClean] = "clean_guitar",
+	[Instrument.ElectricGuitarMuted] = "clean_guitar",
+	[Instrument.OverdrivenGuitar] = "distortion_guitar",
+	[Instrument.DistortionGuitar] = "distortion_guitar",
+	[Instrument.Guitarharmonics] = "distortion_guitar",
+
+	-- Bass
+	[Instrument.AcousticBass] = "lute",
+	[Instrument.ElectricBassFinger] = "bass_guitar",
+	[Instrument.ElectricBassPick] = "bass_guitar",
+	[Instrument.FretlessBass] = "bass_guitar",
+	[Instrument.SlapBass1] = "bass_guitar",
+	[Instrument.SlapBass2] = "bass_guitar",
+	[Instrument.SynthBass1] = "bass_guitar",
+	[Instrument.SynthBass2] = "bass_guitar",
+
+	-- Strings
+	[Instrument.Violin] = "fiddle",
+	[Instrument.Viola] = "fiddle",
+	[Instrument.Cello] = "viola_da_gamba",
+	[Instrument.Contrabass] = "viola_da_gamba",
+	[Instrument.TremoloStrings] = "fiddle",
+	[Instrument.PizzicatoStrings] = "lute",
+	[Instrument.OrchestralHarp] = "harp",
+	[Instrument.Timpani] = "war_drum",
+
+	-- Ensemble
+	[Instrument.StringEnsemble1] = "fiddle",
+	[Instrument.StringEnsemble2] = "fiddle",
+	[Instrument.SynthStrings1] = "fiddle",
+	[Instrument.SynthStrings2] = "fiddle",
+	[Instrument.ChoirAahs] = "male_voice",
+	[Instrument.VoiceOohs] = "female_voice",
+	[Instrument.SynthVoice] = "female_voice",
+	[Instrument.OrchestraHit] = "lute",
+
+	-- Brass
+	[Instrument.Trumpet] = "trumpet",
+	[Instrument.Trombone] = "sackbut",
+	[Instrument.Tuba] = "war_horn",
+	[Instrument.MutedTrumpet] = "trumpet",
+	[Instrument.FrenchHorn] = "war_horn",
+	[Instrument.BrassSection] = "trumpet",
+	[Instrument.SynthBrass1] = "trumpet",
+	[Instrument.SynthBrass2] = "trumpet",
+
+	-- Reed
+	[Instrument.SopranoSax] = "clarinet",
+	[Instrument.AltoSax] = "clarinet",
+	[Instrument.TenorSax] = "bassoon",
+	[Instrument.BaritoneSax] = "bassoon",
+	[Instrument.Oboe] = "clarinet",
+	[Instrument.EnglishHorn] = "clarinet",
+	[Instrument.Bassoon] = "bassoon",
+	[Instrument.Clarinet] = "clarinet",
+
+	-- Pipe
+	[Instrument.Piccolo] = "recorder",
+	[Instrument.Flute] = "recorder",
+	[Instrument.Recorder] = "recorder",
+	[Instrument.PanFlute] = "recorder",
+	[Instrument.BlownBottle] = "recorder",
+	[Instrument.Shakuhachi] = "recorder",
+	[Instrument.Whistle] = "recorder",
+	[Instrument.Ocarina] = "recorder",
+
+	-- Synth Lead
+	[Instrument.Lead1Square] = "clarinet",
+	[Instrument.Lead2Sawtooth] = "fiddle",
+	[Instrument.Lead3Calliope] = "recorder",
+	[Instrument.Lead4Chiff] = "recorder",
+	[Instrument.Lead5Charang] = "recorder",
+	[Instrument.Lead6Voice] = "female_voice",
+	[Instrument.Lead7Fifths] = "fiddle",
+	[Instrument.Lead8BassLead] = "lute",
+
+	-- Synth Pad
+	[Instrument.Pad1Newage] = "lute",
+	[Instrument.Pad2Warm] = "fiddle",
+	[Instrument.Pad3Polysynth] = "fiddle",
+	[Instrument.Pad4Choir] = "female_voice",
+	[Instrument.Pad5Bowed] = "fiddle",
+	[Instrument.Pad6Metallic] = "fiddle",
+	[Instrument.Pad7Halo] = "fiddle",
+	[Instrument.Pad8Sweep] = "fiddle",
+
+	-- Synth Effects
+	[Instrument.FX1Rain] = "dulcimer",
+	[Instrument.FX2Soundtrack] = "dulcimer",
+	[Instrument.FX3Crystal] = "dulcimer",
+	[Instrument.FX4Atmosphere] = "dulcimer",
+	[Instrument.FX5Brightness] = "dulcimer",
+	[Instrument.FX6Goblins] = "dulcimer",
+	[Instrument.FX7Echoes] = "dulcimer",
+	[Instrument.FX8SciFi] = "dulcimer",
+
+	-- Ethnic
+	[Instrument.Sitar] = "harp",
+	[Instrument.Banjo] = "lute",
+	[Instrument.Shamisen] = "lute",
+	[Instrument.Koto] = "harp",
+	[Instrument.Kalimba] = "dulcimer",
+	[Instrument.Bagpipe] = "bagpipe",
+	[Instrument.Fiddle] = "fiddle",
+	[Instrument.Shanai] = "bagpipe",
+
+	-- Percussive
+	[Instrument.TinkleBell] = "lute",
+	[Instrument.Agogo] = "dulcimer",
+	[Instrument.SteelDrums] = "dulcimer",
+	[Instrument.Woodblock] = "woodblock",
+	[Instrument.TaikoDrum] = "war_drum",
+	[Instrument.MelodicTom] = "war_drum",
+	[Instrument.SynthDrum] = "war_drum",
+	[Instrument.ReverseCymbal] = "tambourine_shake",
+
+	-- Sound Effects
+	[Instrument.GuitarFretNoise] = "none",
+	[Instrument.BreathNoise] = "none",
+	[Instrument.Seashore] = "none",
+	[Instrument.BirdTweet] = "none",
+	[Instrument.TelephoneRing] = "none",
+	[Instrument.Helicopter] = "none",
+	[Instrument.Applause] = "none",
+	[Instrument.Gunshot] = "none",
+
+	-- Percussions
+	[Instrument.StandardKit] = "percussions",
+	[Instrument.RoomKit] = "percussions",
+	[Instrument.PowerKit] = "drumkit",
+	[Instrument.ElectronicKit] = "drumkit",
+	[Instrument.TR808Kit] = "drumkit",
+	[Instrument.JazzKit] = "percussions",
+	[Instrument.BrushKit] = "percussions",
+	[Instrument.OrchestraKit] = "percussions",
+	[Instrument.SoundFXKit] = "none",
+	[Instrument.MT32Kit] = "percussions",
+
+	-- None
+	[Instrument.None] = "none",
+}
+
+-- General MIDI percussion ID mapping to internal percussion instrument ID
+-- Used for the traditional percussions set
+Musician.MIDI_PERCUSSION_MAPPING = {
+	[Percussion.Laser] = "none",
+	[Percussion.Whip] = "none",
+	[Percussion.ScratchPush] = "frame_drum_roll_1",
+	[Percussion.ScratchPull] = "frame_drum_roll_2",
+	[Percussion.StickClick] = "sticks",
+	[Percussion.SquareClick] = "misc_hit",
+	[Percussion.MetronomeClick] = "woodblock_low",
+	[Percussion.MetronomeBell] = "woodblock_hi",
+	[Percussion.AcousticBassDrum] = "frame_drum_kick_1",
+	[Percussion.BassDrum1] = "frame_drum_kick_2",
+	[Percussion.SideStick] = "cajon_hit",
+	[Percussion.AcousticSnare] = "frame_drum_snare_1",
+	[Percussion.HandClap] = "clap",
+	[Percussion.ElectricSnare] = "frame_drum_snare_2",
+	[Percussion.LowFloorTom] = "bodhran_6",
+	[Percussion.ClosedHiHat] = "tambourine_short",
+	[Percussion.HighFloorTom] = "bodhran_5",
+	[Percussion.PedalHiHat] = "tambourine_long",
+	[Percussion.LowTom] = "bodhran_4",
+	[Percussion.OpenHiHat] = "tambourine_shake",
+	[Percussion.LowMidTom] = "bodhran_3",
+	[Percussion.HiMidTom] = "bodhran_2",
+	[Percussion.CrashCymbal1] = "riq_hit_1",
+	[Percussion.HighTom] = "bodhran_1",
+	[Percussion.RideCymbal1] = "riq_shake_1",
+	[Percussion.ChineseCymbal] = "riq_hit_3",
+	[Percussion.RideBell] = "riq_hit_4",
+	[Percussion.Tambourine] = "tambourine_long",
+	[Percussion.SplashCymbal] = "riq_hit_5",
+	[Percussion.Cowbell] = "woodblock_low",
+	[Percussion.CrashCymbal2] = "riq_hit_2",
+	[Percussion.Vibraslap] = "frame_drum_roll_3",
+	[Percussion.RideCymbal2] = "riq_shake_2",
+	[Percussion.HiBongo] = "djembe_hi_1",
+	[Percussion.LowBongo] = "djembe_hi_2",
+	[Percussion.MuteHiConga] = "djembe_muted",
+	[Percussion.OpenHiConga] = "djembe_hi_3",
+	[Percussion.LowConga] = "djembe_bass",
+	[Percussion.HighTimbale] = "frame_drum_timbale_1",
+	[Percussion.LowTimbale] = "frame_drum_timbale_2",
+	[Percussion.HighAgogo] = "woodblock_hi",
+	[Percussion.LowAgogo] = "woodblock_low",
+	[Percussion.Cabasa] = "shaker",
+	[Percussion.Maracas] = "shaker",
+	[Percussion.ShortWhistle] = "none",
+	[Percussion.LongWhistle] = "none",
+	[Percussion.ShortGuiro] = "frame_drum_hit",
+	[Percussion.LongGuiro] = "frame_drum_roll_3",
+	[Percussion.Claves] = "claves",
+	[Percussion.HiWoodBlock] = "woodblock_hi",
+	[Percussion.LowWoodBlock] = "woodblock_low",
+	[Percussion.MuteCuica] = "metallic_1",
+	[Percussion.OpenCuica] = "metallic_2",
+	[Percussion.MuteTriangle] = "none",
+	[Percussion.OpenTriangle] = "none",
+	[Percussion.Shaker] = "shaker",
+	[Percussion.SleighBell] = "sleigh_bells",
+	[Percussion.BellTree] = "sleigh_bells_shake",
+	[Percussion.Castanets] = "clap",
+	[Percussion.SurduDeadStroke] = "barbarian_frame_drum_dead_stroke",
+	[Percussion.Surdu] = "barbarian_frame_drum",
+	[Percussion.SnareDrumRod] = "none",
+	[Percussion.OceanDrum] = "none",
+	[Percussion.SnareDrumBrush] = "none",
+}

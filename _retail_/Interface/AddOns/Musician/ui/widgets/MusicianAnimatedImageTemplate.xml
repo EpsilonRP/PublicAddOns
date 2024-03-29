@@ -1,0 +1,13 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Animated image -->
+	<Script file="MusicianAnimatedImageTemplate.lua" />
+	<Frame name="MusicianAnimatedImageTemplate" inherits="MusicianImageTemplate" virtual="true">
+		<Scripts>
+			<OnLoad inherit="prepend" function="MusicianAnimatedImageTemplate_OnLoad" />
+			<OnShow inherit="prepend" function="MusicianAnimatedImageTemplate_OnShow" />
+			<OnUpdate function="MusicianAnimatedImageTemplate_OnUpdate" />
+		</Scripts>
+	</Frame>
+</Ui>

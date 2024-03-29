@@ -1,0 +1,237 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+  
+  <!-- Template for the sound buttons in the sound selector. -->
+  <Button name="Epsilon_MerchantSoundPickerButtonTemplate" virtual="true">
+		<Size x="230" y="16"/>
+		<Frames>
+			<Button parentKey="playButton">
+				<Size x="18" y="18"/>
+				<Anchors>
+					<Anchor point="LEFT" x="5" y="0"/>
+				</Anchors>
+				<NormalTexture file="Interface/Buttons/UI-SpellbookIcon-NextPage-Up"/>
+				<PushedTexture file="Interface/Buttons/UI-SpellbookIcon-NextPage-Down"/>
+				<DisabledTexture file="Interface/Buttons/UI-SpellbookIcon-NextPage-Disabled"/>
+				<HighlightTexture file="Interface/Buttons/UI-Common-MouseHilight" alphaMode="ADD"/>
+				<Scripts>
+					<OnClick>
+						Epsilon_MerchantSoundPicker_TestSound( self:GetParent() )
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Layers>
+			<Layer level="BORDER">
+				<FontString name="$parentName" inherits="GameFontHighlightSmall" justifyH="LEFT">
+					<Size x="190" y="14"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.playButton" relativePoint="RIGHT" x="1" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad>
+				self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+			</OnLoad>
+			<OnClick>
+				Epsilon_MerchantSoundPickerButton_OnClick(self, button);
+			</OnClick>
+		</Scripts>
+		<HighlightTexture name="$parentHighlight" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD">
+			<Size x="210" y="16"/>
+			<Anchors>
+				<Anchor point="TOPLEFT" x="5" y="-2"/>
+			</Anchors>
+		</HighlightTexture>
+	</Button>
+	
+	<Button name="Epsilon_MerchantSoundPickerBindButtonTemplate" inherits="UIMenuButtonStretchTemplate" text="(Not Bound)" virtual="true">
+		<Size x="150" y="18"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Label" inherits="GameFontNormalSmall" justifyH="right">
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="Epsilon_MerchantSoundPicker" x="8" />
+						<Anchor point="BOTTOM" y="4" />
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnShow>
+				self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+			</OnShow>
+			<OnEnter>
+				GameTooltip:SetOwner( self, "ANCHOR_RIGHT" )
+				GameTooltip_SetTitle( GameTooltip, self.title )
+				GameTooltip:AddLine( self.description, 1, 0.81, 0, true )
+				GameTooltip:AddLine( "&lt;Left Click to Bind>|n&lt;Right Click to Unbind>", 0.7, 0.7, 0.7, true )
+				GameTooltip:Show()
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide()
+			</OnLeave>
+			<OnClick>
+				if button == "LeftButton" then
+					Epsilon_MerchantSoundPicker_BindSound( self )
+				elseif button == "RightButton" then
+					Epsilon_MerchantSoundPicker_UnbindSound( self )
+				end
+			</OnClick>
+		</Scripts>
+	</Button>
+  
+    <Frame name="Epsilon_MerchantSoundPicker" parent="GossipFrame" hidden="true" inherits="SimplePanelTemplate" frameStrata="DIALOG" toplevel="true">
+		<Size x="256" y="380"/>
+		<Anchors>
+		  <Anchor point="LEFT" relativePoint="RIGHT"/>
+		</Anchors>
+		
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString inherits="GameFontNormal" justifyH="center" text="NPC Sounds">
+					<Anchors>
+					  <Anchor point="TOP" x="0" y="-12"/> 
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		
+		<Scripts>
+		  <OnLoad>
+			Epsilon_MerchantSoundPicker_OnLoad(self);
+		  </OnLoad>
+		</Scripts>
+		<Frames>
+		
+		  <!-- Search/filter box. -->
+		  <EditBox parentKey="search" inherits="SearchBoxTemplate">
+			<Size x="240" y="8" />
+			<Anchors>
+			  <Anchor point="TOP" x="0" y="-32" />
+			</Anchors>
+			<Scripts>
+			  <OnTextChanged>
+				SearchBoxTemplate_OnTextChanged(self);
+				Epsilon_MerchantSoundPicker_FilterChanged()
+			  </OnTextChanged>
+			  <OnEscapePressed function="EditBox_ClearFocus"/>
+			</Scripts>
+		  </EditBox>
+		 
+		  <Button name="$parentCloseButton" inherits="MagicButtonTemplate" text="Close">
+			<Size x="100" y="22"/>
+			<Anchors>
+				<Anchor point="BOTTOMRIGHT"/>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					Epsilon_MerchantSoundPicker_Close()
+				</OnClick>
+			</Scripts>
+		  </Button>
+		  
+		  <Button name="Epsilon_MerchantSoundPickerButton1" inherits="Epsilon_MerchantSoundPickerButtonTemplate" id="1">
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantSoundPicker" x="2" y="-51"/>
+			</Anchors>
+		  </Button>
+		  
+		  <Button name="Epsilon_MerchantSoundPickerGreetingSound" parentKey="greetingSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
+			<Anchors>
+				<Anchor point="TOPRIGHT" x="-8" y="-285"/>
+			</Anchors>
+			 <KeyValues>
+				<KeyValue key="soundType" value="greeting" type="string"/>
+				<KeyValue key="title" value="Greeting" type="string"/>
+				<KeyValue key="description" value="This sound plays when a player speaks with this NPC.|n|n|cFF00ADEFTip:|r|cFFFFFFFF Try using a 'VendorNPCGreetings' sound.|r" type="string"/>
+			 </KeyValues>
+			 <Scripts>
+				<OnLoad>
+					self.Label:SetText( "Greeting" )
+				</OnLoad>
+			</Scripts>
+		  </Button>
+		  
+		  <Button name="Epsilon_MerchantSoundPickerOnClickSound" parentKey="onclickSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
+			<Anchors>
+				<Anchor point="TOP" relativeKey="$parent.greetingSound" y="-16"/>
+			</Anchors>
+			<KeyValues>
+				<KeyValue key="soundType" value="onclick" type="string"/>
+				<KeyValue key="title" value="On Click" type="string"/>
+				<KeyValue key="description" value="This sound plays when a player targets this NPC.|n|n|cFF00ADEFTip:|r|cFFFFFFFF Try using an 'NPCGreetings' sound.|r" type="string"/>
+			 </KeyValues>
+			 <Scripts>
+				<OnLoad>
+					self.Label:SetText( "On Click" )
+				</OnLoad>
+			</Scripts>
+		  </Button>
+		  
+		  <Button name="Epsilon_MerchantSoundPickerBuyItemSound" parentKey="buyitemSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
+			<Anchors>
+				<Anchor point="TOP" relativeKey="$parent.onclickSound" y="-16"/>
+			</Anchors>
+			<KeyValues>
+				<KeyValue key="soundType" value="buyitem" type="string"/>
+				<KeyValue key="title" value="Purchase" type="string"/>
+				<KeyValue key="description" value="This sound plays when a player buys an item from this NPC.|n|n|cFF00ADEFTip:|r|cFFFFFFFF Try using a 'Thank You' sound.|r" type="string"/>
+			 </KeyValues>
+			 <Scripts>
+				<OnLoad>
+					self.Label:SetText( "Purchase" )
+				</OnLoad>
+			</Scripts>
+		  </Button>
+		  
+		  <Button name="Epsilon_MerchantSoundPickerFarewellSound" parentKey="farewellSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
+			<Anchors>
+				<Anchor point="TOP" relativeKey="$parent.buyitemSound" y="-16"/>
+			</Anchors>
+			<KeyValues>
+				<KeyValue key="soundType" value="farewell" type="string"/>
+				<KeyValue key="title" value="Farewell" type="string"/>
+				<KeyValue key="description" value="This sound plays when a player stop speaking with this NPC.|n|n|cFF00ADEFTip:|r|cFFFFFFFF Try using an 'NPCFarewells' sound.|r" type="string"/>
+			 </KeyValues>
+			 <Scripts>
+				<OnLoad>
+					self.Label:SetText( "Farewell" )
+				</OnLoad>
+			</Scripts>
+		  </Button>
+		  
+		  <!-- Area for icon selector. -->
+		  <ScrollFrame name="$parentScrollFrame" inherits="FauxScrollFrameTemplate">
+			<Size x="256" y="226"/>
+			<Anchors>
+				<Anchor point="TOPRIGHT" relativeTo="Epsilon_MerchantSoundPicker" relativePoint="TOPRIGHT" x="-33" y="-53"/>
+			</Anchors>
+			<Scripts>
+				<OnVerticalScroll>
+					FauxScrollFrame_OnVerticalScroll(self, offset, 16, Epsilon_MerchantSoundPicker_Update);
+				</OnVerticalScroll>
+			</Scripts>
+			<Layers>
+				<Layer level="BORDER">
+					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+						<Size x="31" y="205"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="-2" y="5"/>
+						</Anchors>
+						<TexCoords left="0" right="0.484375" top="0" bottom="0.8"/>
+					</Texture>
+					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+						<Size x="31" y="106"/>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="-2" y="-2"/>
+						</Anchors>
+						<TexCoords left="0.515625" right="1.0" top="0" bottom="0.4140625"/>
+					</Texture>
+				</Layer>
+			</Layers>
+		  </ScrollFrame>
+		</Frames>
+	</Frame>
+</Ui>

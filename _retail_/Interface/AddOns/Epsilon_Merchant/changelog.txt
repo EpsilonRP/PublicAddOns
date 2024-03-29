@@ -1,0 +1,32 @@
+### 1.5
+- Temporarily disabled CanMerchantRepair() until I feel like implementing that...
+- Fixed an issue where Portrait Frames weren't displaying correctly.
+- Fixed a dead prompt for items with nonrefundable costs.
+
+### 1.4
+- Fixed an issue where buyback prices were not matching the vendor's sell prices.
+- Item tooltips now display the correct sell price when speaking to a given vendor.
+- Fixed an issue where vendors had extraneous empty pages beyond the size of their sale inventory.
+- You can now choose to display a Portrait Frame for your vendor which appears alongside the Merchant Frame and can be customised with a short greeting.
+- You can now add a "Purchase" sound to NPCs which will play when a player purchases an item from the vendor.
+- Added a "Remove Vendor" button inline with the vendor Gossip option for ease of use.
+- Implemented various additional chat message filtres to reduce chat spam and better streamline the user experience.
+- Fixed an issue where NPC "Greeting" and "On Click" sounds could overlap.
+- You can now set a currency cost for vendor items. Any in-game item (even forged items) is valid.
+- The money counter at the bottom of the Merchant Frame will dynamically update based on the currencies accepted by the given vendor.
+- Fixed an issue where manually adding items to a vendor sometimes produced an "invalid item id" error.
+- Removed an unused confirmation prompt for items with prices above a certain threshold.
+
+### 1.3
+- New version to bypass the temporary addon ban.
+
+### 1.2
+- Fixed an issue where excessive addon calls were crashing some users when they interact with a gossip NPC.
+- Added a new sound picker to streamline NPC sound assignment.
+- You can now add an "On Click" sound to NPCs in addition to "Greeting" and "Farewell."
+
+### 1.1
+- Fixed an issue where non-vendor NPCs weren't playing their greeting/farewell sounds.
+
+### 1.0
+- No changes! :)

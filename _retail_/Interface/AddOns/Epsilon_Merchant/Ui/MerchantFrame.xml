@@ -1,0 +1,1017 @@
+<Ui>
+  <!-- Item Button Dummy Frame -->
+	
+  <Button name="Epsilon_MerchantItemButtonDummyTemplate" registerForClicks="LeftButtonUp, RightButtonUp" virtual="true">
+	<Size x="37" y="37"/>
+	<Scripts>
+		<OnShow>
+			self:SetFrameLevel(10000)
+		</OnShow>
+		<OnClick>
+			if button == "LeftButton" then
+				local _, itemCount, _, _, _, _, _, _, _, itemID = GetContainerItemInfo(self:GetParent():GetParent():GetID(), self:GetParent():GetID());
+				if itemID and itemCount then
+					if Epsilon_MerchantFrame.choosingItem then
+						Epsilon_MerchantAddItem( itemID, itemCount )
+					elseif Epsilon_MerchantItemEditor.choosingItem then
+						Epsilon_MerchantItemEditorChooseCurrency( itemID )
+						ResetCursor()
+						Epsilon_MerchantCursorOverlay:Hide()
+					end
+					PlaySound( 83 )
+				end
+			elseif button == "RightButton" then
+				ResetCursor()
+				Epsilon_MerchantCursorOverlay:Hide()
+			end
+		</OnClick>
+		<OnEnter>
+			ContainerFrameItemButton_OnEnter(self:GetParent());
+		</OnEnter>
+		<OnLeave>
+			ContainerFrameItemButton_OnLeave(self:GetParent());
+		</OnLeave>
+	</Scripts>
+	<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+  </Button>
+  
+  <!-- Item Template -->
+  
+  <Frame name="Epsilon_MerchantItemTemplate" virtual="true">
+		<Size x="153" y="44"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="$parentSlotTexture" file="Interface\Buttons\UI-EmptySlot">
+					<Size x="64" y="64"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="-13" y="13"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentNameFrame" file="Interface\MerchantFrame\UI-Merchant-LabelSlots">
+					<Size x="128" y="78"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-9" y="-18"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Name" name="$parentName" inherits="GameFontNormalSmall" text="Item Name" justifyH="LEFT">
+					<Size x="100" y="30"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-5" y="7"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<ItemButton parentKey="ItemButton" name="$parentItemButton">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						if ( IsModifiedClick() ) then
+							Epsilon_MerchantItemButton_OnModifiedClick(self, button);
+						else
+							Epsilon_MerchantItemButton_OnClick(self, button);
+						end
+					</OnClick>
+					<OnLoad>
+						Epsilon_MerchantItemButton_OnLoad(self);
+					</OnLoad>
+					<OnDragStart>
+						Epsilon_MerchantItemButton_OnClick(self, "LeftButton");
+					</OnDragStart>
+					<OnEnter>
+						Epsilon_MerchantItemButton_OnEnter(self, motion);
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+						if self:GetID() ~= 0 then
+							ResetCursor();
+						end
+						Epsilon_MerchantFrame.itemHover = nil;
+					</OnLeave>
+					<OnHide>
+						if ( self.hasStackSplit == 1 ) then
+							StackSplitFrame:Hide();
+						end
+					</OnHide>
+				</Scripts>
+			</ItemButton>
+			<Button parentKey="RemoveButton" name="$parentRemoveButton" frameLevel="5" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.ItemButton" relativePoint="TOPRIGHT" x="6" y="6"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Remove Item", 1, 1, 1)
+						GameTooltip:AddLine("Remove this item from the vendor.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						PlaySound(83)
+						Epsilon_MerchantRemoveItem(self:GetParent().ItemButton:GetID())
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-GroupLoot-Pass-Up"/>
+				<HighlightTexture file="Interface\Buttons\UI-GroupLoot-Pass-Highlight" alphaMode="ADD"/>
+				<PushedTexture file="Interface\Buttons\UI-GroupLoot-Pass-Down"/>
+			</Button>
+			<!-- <Button parentKey="RestockButton" name="$parentRestockButton" frameLevel="5" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeKey="$parent.ItemButton" relativePoint="BOTTOMLEFT" x="-6" y="-6"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<Texture parentKey="Icon" file="Interface\Buttons\UI-RefreshButton">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnMouseDown>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
+					</OnMouseDown>
+					<OnMouseUp>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
+					</OnMouseUp>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine("|TInterface/Buttons/UI-RefreshButton:12|t Restock Item", 1, 1, 1)
+						GameTooltip:AddLine("Restock this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						PlaySound(83)
+						StaticPopup_Show("EPSILON_MERCHANT_RESTOCK_ITEM", nil, nil, self:GetParent().ItemButton:GetID())
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			</Button> -->
+			<Button parentKey="EditButton" name="$parentPriceButton" frameLevel="5" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ItemButton" relativePoint="BOTTOMRIGHT" x="6" y="-6"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BORDER" textureSubLevel="5">
+						<Texture parentKey="Icon" file="Interface\Buttons\UI-OptionsButton">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnMouseDown>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
+					</OnMouseDown>
+					<OnMouseUp>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
+					</OnMouseUp>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine("|TInterface/Buttons/UI-OptionsButton:12|t Edit Item", 1, 1, 1)
+						GameTooltip:AddLine("Edit the price, stack size, and amount available of this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						PlaySound(83)
+						Epsilon_MerchantItemEditor_Open()
+						Epsilon_MerchantItemEditor_LoadItem( self:GetParent().ItemButton.slotID )
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Frame name="$parentMoneyFrame" inherits="SmallMoneyFrameTemplate">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parentNameFrame" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="2" y="31"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						SmallMoneyFrame_OnLoad(self);
+						MoneyFrame_SetType(self, "STATIC");
+						MoneyFrame_SetMaxDisplayWidth(self, 100);
+					</OnLoad>
+				</Scripts>
+			</Frame>
+			<Frame name="$parentAltCurrencyFrame" inherits="SmallAlternateCurrencyFrameTemplate" hidden="true">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parentNameFrame" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="2" y="31"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						for i = 1, 3 do
+							_G[self:GetName().."Item"..i]:SetScript("OnEnter", function(self)
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:SetItemByID( self.itemID );
+								GameTooltip:Show();
+							end);
+							_G[self:GetName().."Item"..i]:SetScript("OnLeave", function()
+								GameTooltip:Hide();
+							end);
+						end
+					</OnLoad>
+				</Scripts>
+			</Frame>
+		</Frames>
+	</Frame>
+	
+	<!-- Merchant Frame -->
+	
+	<Frame name="Epsilon_MerchantFrame" toplevel="true" parent="UIParent" movable="true" enableMouse="true" hidden="true" inherits="ButtonFrameTemplate">
+		<Anchors>
+			<Anchor point="TOPLEFT" x="16" y="-116"/>
+		</Anchors>
+		<Size x="336" y="444"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="Epsilon_MerchantFramePortrait">
+                    <Size x="60" y="60"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="7" y="-6"/>
+                    </Anchors>
+                </Texture>
+				<Texture name="Epsilon_MerchantBuybackBG" >
+					<Color r="1" g="1" b="1" a=".2"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantFrame" x="7" y="-60"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantFrame" x="-7" y="26"/>
+					</Anchors>
+				</Texture>
+            </Layer>
+			<Layer level="BORDER">
+				 <FontString name="Epsilon_MerchantNameText" inherits="GameFontNormal" text="Epsilon_Merchant Name">
+					<Anchors>
+						<Anchor point="TOP" relativeTo="Epsilon_MerchantFrame" relativePoint="TOP" x="0" y="-5"/>
+					</Anchors>
+				</FontString>
+				<FontString name="Epsilon_MerchantPageText" inherits="GameFontNormal" text="Page">
+					<Size x="104" y="0"/>
+					<Anchors>
+						<Anchor point="BOTTOM" x="0" y="86"/>
+					</Anchors>
+				</FontString>
+				<FontString name="Epsilon_MerchantRepairText" inherits="GameFontHighlightSmall" text="REPAIR_ITEMS">
+				  <Anchors>
+					<Anchor point="BOTTOMLEFT" x="16" y="40"/>
+				  </Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture name="Epsilon_MerchantFrameBottomLeftBorder" file="Interface\MerchantFrame\UI-Merchant-BottomBorder">
+					<Size x="256" y="61"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="1" y="26"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="0" bottom="0.4765625"/>
+				</Texture>
+				<Texture name="Epsilon_MerchantFrameBottomRightBorder" file="Interface\MerchantFrame\UI-Merchant-BottomBorder">
+					<Size x="76" y="61"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="Epsilon_MerchantFrameBottomLeftBorder" relativePoint="RIGHT"/>
+					</Anchors>
+					<TexCoords left="0" right="0.296875" top="0.4765625" bottom="0.953125"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="EditMerchantButton" name="$parentEditMerchantButton">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantFramePortrait" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<Texture parentKey="Icon" file="Interface\Buttons\UI-OptionsButton">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Animations>
+					<AnimationGroup parentKey="Hover" looping="REPEAT">
+						<Rotation startDelay="0" smoothing="NONE" childKey="Icon" duration="2" order="1" degrees="360">
+							<Origin point="CENTER"/>
+						</Rotation>
+					</AnimationGroup>
+				</Animations>
+				<Scripts>
+					<OnMouseDown>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
+					</OnMouseDown>
+					<OnMouseUp>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
+					</OnMouseUp>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText( "Edit Vendor", 1, 1, 1 );
+						GameTooltip:AddLine("Edit the settings for this vendor.", 1.0, 0.81, 0.0, true);
+						GameTooltip:Show();
+						self.Hover:Play();
+					</OnEnter>
+					<OnClick>
+						Epsilon_MerchantEditor_Load()
+						Epsilon_MerchantEditor_Open()
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+						self.Hover:Stop();
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Frame name="Epsilon_MerchantItem1" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="11" y="-69"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem2" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem1" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem3" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem1" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem4" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem3" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem5" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem3" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem6" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem5" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem7" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem5" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem8" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem7" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem9" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem7" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem10" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem9" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem11" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem9" relativePoint="BOTTOMLEFT" x="0" y="-15"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantItem12" inherits="Epsilon_MerchantItemTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem11" relativePoint="TOPRIGHT" x="12" y="0"/>
+				</Anchors>
+			</Frame>
+			<Button name="Epsilon_MerchantRepairAllButton">
+				<Size x="36" y="36"/>
+				<Anchors>
+				  <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" x="172" y="11"/>
+				</Anchors>
+				<Layers>
+				  <Layer level="BORDER">
+					<Texture name="Epsilon_MerchantRepairAllIcon" file="Interface\MerchantFrame\UI-Merchant-RepairIcons">
+					  <TexCoords left="0.28125" right="0.5625" top="0" bottom="0.5625"/>
+					</Texture>
+				  </Layer>
+				</Layers>
+				<Scripts>
+				  <OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					local repairAllCost, canRepair = GetRepairAllCost();
+					if ( canRepair and (repairAllCost > 0) ) then
+					  GameTooltip:SetText(REPAIR_ALL_ITEMS);
+					  SetTooltipMoney(GameTooltip, repairAllCost);
+					  local personalMoney = GetMoney();
+					  if(repairAllCost > personalMoney) then
+						GameTooltip:AddLine(GUILDBANK_REPAIR_INSUFFICIENT_FUNDS, RED_FONT_COLOR:GetRGB());
+					  end
+					end
+					GameTooltip:Show();
+				  </OnEnter>
+				  <OnLeave function="GameTooltip_Hide"/>
+				  <OnClick>
+					RepairAllItems();
+					PlaySound(SOUNDKIT.ITEM_REPAIR);
+					GameTooltip:Hide();
+				  </OnClick>
+				  <OnEvent>
+					local _, canRepair = GetRepairAllCost();
+					if ( not canRepair ) then
+					  SetDesaturation(Epsilon_MerchantRepairAllIcon, true);
+					  self:Disable();
+					else
+					  SetDesaturation(Epsilon_MerchantRepairAllIcon, false);
+					  self:Enable();
+					end
+				  </OnEvent>
+				  <OnLoad>
+					self:RegisterEvent("UPDATE_INVENTORY_DURABILITY");
+				  </OnLoad>
+				</Scripts>
+				<PushedTexture file="Interface\Buttons\UI-Quickslot-Depress"/>
+				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+			  </Button>
+			<Button name="Epsilon_MerchantRepairItemButton">
+				<Size x="36" y="36"/>
+				<Anchors>
+				  <Anchor point="RIGHT" relativeTo="Epsilon_MerchantRepairAllButton" relativePoint="LEFT" x="-2" y="0"/>
+				</Anchors>
+				<Layers>
+				  <Layer level="BORDER">
+					<Texture file="Interface\MerchantFrame\UI-Merchant-RepairIcons">
+					  <TexCoords left="0" right="0.28125" top="0" bottom="0.5625"/>
+					</Texture>
+				  </Layer>
+				</Layers>
+				<Scripts>
+				  <OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:SetText(REPAIR_AN_ITEM);
+				  </OnEnter>
+				  <OnLeave function="GameTooltip_Hide"/>
+				  <OnClick>
+					-- TODO
+				  </OnClick>
+				</Scripts>
+				<PushedTexture file="Interface\Buttons\UI-Quickslot-Depress"/>
+				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+		  </Button>
+			<Frame name="Epsilon_MerchantBuyBackItem">	
+				<Size x="153" y="37"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem10" relativePoint="BOTTOMLEFT" x="0" y="-53"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parentSlotTexture" file="Interface\Buttons\UI-EmptySlot">
+							<Size x="64" y="64"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="-13" y="13"/>
+							</Anchors>
+						</Texture>
+						<Texture name="$parentNameFrame" file="Interface\MerchantFrame\UI-Merchant-LabelSlots">
+							<Size x="128" y="64"/>
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-9" y="-10"/>
+							</Anchors>
+						</Texture>
+						<FontString parentKey="Name" name="$parentName" inherits="GameFontNormalSmall" text="Item Name" justifyH="LEFT">
+							<Size x="90" y="30"/>
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-5" y="10"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<ItemButton parentKey="ItemButton" name="$parentItemButton">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent"/>
+						</Anchors>
+						<Scripts>
+							<OnLoad function="Epsilon_MerchantItemBuybackButton_OnLoad"/>
+							<OnClick function="Epsilon_MerchantItemBuybackButton_OnClick"/>
+							<OnEnter>
+								if #EPSILON_ITEM_BUYBACK > 0 then
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:SetItemByID( EPSILON_ITEM_BUYBACK[1]["itemID"] );
+									if (CanAffordMerchantItem(self:GetID()) == false) then
+										SetCursor("BUY_ERROR_CURSOR");
+									else
+										SetCursor("BUY_CURSOR");
+									end
+								end
+							</OnEnter>
+							<OnLeave function="GameTooltip_HideResetCursor"/>
+						</Scripts>
+					</ItemButton>
+					<Frame name="$parentMoneyFrame" inherits="SmallMoneyFrameTemplate">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentNameFrame" relativePoint="BOTTOMLEFT" x="0" y="25"/>
+						</Anchors>
+						<Scripts>
+							<OnLoad>
+								SmallMoneyFrame_OnLoad(self);
+								MoneyFrame_SetType(self, "STATIC");
+							</OnLoad>
+						</Scripts>
+					</Frame>
+				</Frames>
+			</Frame>
+			<Frame name="Epsilon_MerchantExtraCurrencyInset" inherits="InsetFrameTemplate" useParentLevel="true">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="4" y="4"/>
+					<Anchor point="TOPRIGHT" relativePoint="BOTTOMLEFT" x="169" y="27"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantExtraCurrencyBg" inherits="ThinGoldEdgeTemplate" >
+				<Size x="120" y="30"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativePoint="BOTTOMLEFT" x="166" y="25"/>
+					<Anchor point="BOTTOMLEFT" x="7" y="6"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantMoneyInset" inherits="InsetFrameTemplate" useParentLevel="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="BOTTOMRIGHT" x="-171" y="27"/>
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-5" y="4"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantMoneyBg" inherits="ThinGoldEdgeTemplate" >
+				<Size x="120" y="30"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativePoint="BOTTOMRIGHT" x="-7" y="25"/>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="-166" y="6"/>
+				</Anchors>
+			</Frame>
+			<Frame name="Epsilon_MerchantMoneyFrame" inherits="SmallMoneyFrameTemplate">
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantFrame" relativePoint="BOTTOMRIGHT" x="-6" y="10"/>
+				</Anchors>
+			</Frame>
+			<Button name="Epsilon_MerchantPrevPageButton">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="Epsilon_MerchantFrame" relativePoint="BOTTOMLEFT" x="25" y="96"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<FontString inherits="GameFontNormal" justifyH="LEFT" text="PREV">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="Epsilon_MerchantPrevPageButton" relativePoint="RIGHT"/>
+							</Anchors>
+						</FontString>
+						<Texture file="Interface\Buttons\UI-PageButton-Background">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick function="Epsilon_MerchantPrevPageButton_OnClick"/>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Up"/>
+				<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Down"/>
+				<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Disabled"/>
+				<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+			</Button>
+			<Button name="Epsilon_MerchantNextPageButton">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="Epsilon_MerchantFrame" relativePoint="BOTTOMLEFT" x="310" y="96"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<FontString inherits="GameFontNormal" justifyH="RIGHT" text="NEXT">
+							<Anchors>
+								<Anchor point="RIGHT" relativeTo="Epsilon_MerchantNextPageButton" relativePoint="LEFT" x="-3" y="0"/>
+							</Anchors>
+						</FontString>
+						<Texture file="Interface\Buttons\UI-PageButton-Background">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick function="Epsilon_MerchantNextPageButton_OnClick"/>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Up"/>
+				<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Down"/>
+				<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Disabled"/>
+				<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+			</Button>
+			<Button name="Epsilon_MerchantFrameAddItemButton" text="Add Item" inherits="MagicButtonTemplate" hidden="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="64" y="-32"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						StaticPopup_Show("EPSILON_MERCHANT_ADD_ITEM", nil, nil, self)
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button name="Epsilon_MerchantFrameRemoveItemButton" text="Remove Item" inherits="MagicButtonTemplate" hidden="true">
+				<Size x="100" y="22"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="Epsilon_MerchantFrameAddItemButton" relativePoint="RIGHT"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						StaticPopup_Show("EPSILON_MERCHANT_REMOVE_ITEM", nil, nil, self)
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button name="Epsilon_MerchantFrameTab1" inherits="CharacterFrameTabButtonTemplate" id="1" text="MERCHANT">
+				<Anchors>
+					<Anchor point="CENTER" relativePoint="BOTTOMLEFT" x="50" y="-15"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText("", 1.0,1.0,1.0 );
+					</OnEnter>
+					<OnLeave function="GameTooltip_Hide"/>
+					<OnClick>
+						PlaySound( 841 )
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						Epsilon_MerchantFrame_Update();
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button name="Epsilon_MerchantFrameTab2" inherits="CharacterFrameTabButtonTemplate" id="2" text="BUYBACK">
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="Epsilon_MerchantFrameTab1" relativePoint="RIGHT" x="-16" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText("", 1.0,1.0,1.0 );
+					</OnEnter>
+					<OnLeave function="GameTooltip_Hide"/>
+					<OnClick>
+						PlaySound( 841 )
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						Epsilon_MerchantFrame_Update();
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnHide function="Epsilon_MerchantFrame_OnHide"/>
+			<OnLoad function="Epsilon_MerchantFrame_OnLoad"/>
+			<OnShow function="Epsilon_MerchantFrame_OnShow"/>
+			<OnEvent function="Epsilon_MerchantFrame_OnEvent"/>
+			<OnUpdate function="Epsilon_MerchantFrame_OnUpdate"/>
+			<OnMouseUp>
+				if ( Epsilon_MerchantFrame.refundItem ) then
+					if ( ContainerFrame_GetExtendedPriceString(Epsilon_MerchantFrame.refundItem, Epsilon_MerchantFrame.refundItemEquipped)) then
+						-- a confirmation dialog has been shown
+						return;
+					end
+				end
+				PickupMerchantItem(0);
+			</OnMouseUp>
+			<OnReceiveDrag>
+				Epsilon_MerchantItemButton_OnClick(self, "LeftButton");
+			</OnReceiveDrag>
+			<OnMouseWheel function="Epsilon_MerchantFrame_OnMouseWheel"/>
+		</Scripts>
+	</Frame>
+	
+	<PlayerModel name="Epsilon_MerchantModel" mixin="ModelFrameMixin">
+		<Size x="198" y="230"/>
+		<Frames>
+		  <KeyValues>
+			<KeyValue key="normalIntensity" value="0.75" type="number"/>
+			<KeyValue key="highlightIntensity" value="1.2" type="number"/>
+		  </KeyValues>
+		  <Anchors>
+			<Anchor point="TOPLEFT" x="0" y="0"/>
+			<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+		  </Anchors>
+		</Frames>
+		<Layers>
+		  <Layer level="BACKGROUND">
+			<Texture name="Epsilon_MerchantNPCModelBg" inherits="QuestPortrait-MrBrownstone">
+			  <Anchors>
+				<Anchor point="TOPLEFT"/>
+			  </Anchors>
+			</Texture>
+		  </Layer>
+		  <Layer level="OVERLAY" textureSubLevel="-1">
+			<Texture name="Epsilon_MerchantNPCModelShadowOverlay" file="Interface\TalentFrame\PetTalent-ShadowOverlay" setAllPoints="true">
+			  <TexCoords left="0.00000000" right="0.537109375" top="0" bottom="0.791015625"/>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelTopBg" inherits="QuestPortrait-StoneSwirls-Top">
+			  <Anchors>
+				<Anchor point="TOPLEFT" y="16"/>
+			  </Anchors>
+			</Texture>
+		  </Layer>
+		  <Layer level="OVERLAY">
+			<Texture name="Epsilon_MerchantNPCModelBotLeftCorner" inherits="UI-Frame-BotCornerLeft" parentKey="BorderBottomLeft">
+			  <Anchors>
+				<Anchor point="BOTTOMLEFT" x="-5" y="-5"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelBotRightCorner" inherits="UI-Frame-BotCornerRight" parentKey="BorderBottomRight">
+			  <Anchors>
+				<Anchor point="BOTTOMRIGHT" x="2" y="-5"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelTopBorder" inherits="_UI-Frame-TitleTile" parentKey="BorderTop">
+			  <Anchors>
+				<Anchor point="TOPLEFT" x="-1" y="20"/>
+				<Anchor point="TOPRIGHT" x="1" y="20"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelBottomBorder" inherits="_UI-Frame-Bot" parentKey="BorderBottom">
+			  <Anchors>
+				<Anchor point="BOTTOMLEFT" relativeTo="Epsilon_MerchantNPCModelBotLeftCorner" relativePoint="BOTTOMRIGHT" y="0"/>
+				<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelBotRightCorner" relativePoint="BOTTOMLEFT" y="0"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelLeftBorder" inherits="!UI-Frame-LeftTile" parentKey="BorderLeft">
+			  <Anchors>
+				<Anchor point="TOPLEFT" x="-5"/>
+				<Anchor point="BOTTOMLEFT" relativeTo="Epsilon_MerchantNPCModelBotLeftCorner" relativePoint="TOPLEFT"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelRightBorder" inherits="!UI-Frame-RightTile" parentKey="BorderRight">
+			  <Anchors>
+				<Anchor point="TOPRIGHT" x="3"/>
+				<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelBotRightCorner" relativePoint="TOPRIGHT" x="1"/>
+			  </Anchors>
+			</Texture>
+		  </Layer>
+		  <Layer level="OVERLAY" textureSubLevel="1">
+			<Texture name="Epsilon_MerchantNPCModelNameplate" inherits="QuestPortrait-Nameplate">
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="12"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCModelBlankNameplate" inherits="QuestPortrait-Divider_noname">
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="12"/>
+			  </Anchors>
+			</Texture>
+			<FontString name="Epsilon_MerchantNPCModelNameText" inherits="GameFontNormal">
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantNPCModelNameplate" x="22" y="-12"/>
+				<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelNameplate" x="-22" y="12"/>
+			  </Anchors>
+			</FontString>
+		  </Layer>
+		  <Layer level="OVERLAY" textureSubLevel="2">
+			<Texture name="Epsilon_MerchantNPCCornerTopLeft" inherits="QuestPortrait-Corner_UL">
+			  <Anchors>
+				<Anchor point="TOPLEFT" x="-6" y="24"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCCornerTopRight" inherits="QuestPortrait-Corner_UR">
+			  <Anchors>
+				<Anchor point="TOPRIGHT" x="7" y="24"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCCornerBottomLeft" inherits="QuestPortrait-Corner_BL">
+			  <Anchors>
+				<Anchor point="BOTTOMLEFT" x="-6" y="-26"/>
+			  </Anchors>
+			</Texture>
+			<Texture name="Epsilon_MerchantNPCCornerBottomRight" inherits="QuestPortrait-Corner_BR">
+			  <Anchors>
+				<Anchor point="BOTTOMRIGHT" x="7" y="-26"/>
+			  </Anchors>
+			</Texture>
+		  </Layer>
+		</Layers>
+		<Frames>
+		  <Frame name="Epsilon_MerchantNPCModelNameTooltipFrame" enableMouse="true">
+			<Anchors>
+			  <Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantNPCModelNameText" x="0" y="0"/>
+			  <Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelNameText" x="0" y="0"/>
+			</Anchors>
+			<Scripts>
+			  <OnEnter>
+				if ( Epsilon_MerchantNPCModelNameText:IsTruncated() ) then
+				  GameTooltip:SetOwner(self, "ANCHOR_TOP");
+				  GameTooltip:SetText(Epsilon_MerchantNPCModelNameText:GetText());
+				end
+			  </OnEnter>
+			  <OnLeave>
+				GameTooltip:Hide();
+			  </OnLeave>
+			</Scripts>
+		  </Frame>
+		  <Frame name="Epsilon_MerchantNPCModelTextFrame" hidden="true" useParentLevel="true">
+			<Size x="198" y="64"/>
+			<Anchors>
+			  <Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantNPCModelNameplate" relativePoint="BOTTOMLEFT" y="12"/>
+			</Anchors>
+			<Layers>
+			  <Layer level="BACKGROUND">
+				<Texture name="Epsilon_MerchantNPCModelTextFrameBg" inherits="QuestPortrait-MrBrownstone">
+				  <Size x="197" y="64"/>
+				  <TexCoords left="0.00390625" right="0.77343750" top="0.00195313" bottom="0.126953125"/>
+				</Texture>
+			  </Layer>
+			  <Layer level="OVERLAY">
+				<Texture name="Epsilon_MerchantNPCModelTextBotLeftCorner" inherits="UI-Frame-BotCornerLeft" parentKey="BorderBottomLeft">
+				  <Anchors>
+					<Anchor point="BOTTOMLEFT" x="-5" y="-5"/>
+				  </Anchors>
+				</Texture>
+				<Texture name="Epsilon_MerchantNPCModelTextBotRightCorner" inherits="UI-Frame-BotCornerRight" parentKey="BorderBottomRight">
+				  <Anchors>
+					<Anchor point="BOTTOMRIGHT" x="2" y="-5"/>
+				  </Anchors>
+				</Texture>
+				<Texture name="Epsilon_MerchantNPCModelTextBottomBorder" inherits="_UI-Frame-Bot" parentKey="BorderBottom">
+				  <Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="Epsilon_MerchantNPCModelTextBotLeftCorner" relativePoint="BOTTOMRIGHT" y="0"/>
+					<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelTextBotRightCorner" relativePoint="BOTTOMLEFT" y="0"/>
+				  </Anchors>
+				</Texture>
+				<Texture name="Epsilon_MerchantNPCModelTextLeftBorder" inherits="!UI-Frame-LeftTile" parentKey="BorderLeft">
+				  <Anchors>
+					<Anchor point="TOPLEFT" x="-5"/>
+					<Anchor point="BOTTOMLEFT" relativeTo="Epsilon_MerchantNPCModelTextBotLeftCorner" relativePoint="TOPLEFT"/>
+				  </Anchors>
+				</Texture>
+				<Texture name="Epsilon_MerchantNPCModelTextRightBorder" inherits="!UI-Frame-RightTile" parentKey="BorderRight">
+				  <Anchors>
+					<Anchor point="TOPRIGHT" x="3"/>
+					<Anchor point="BOTTOMRIGHT" relativeTo="Epsilon_MerchantNPCModelTextBotRightCorner" relativePoint="TOPRIGHT" x="1"/>
+				  </Anchors>
+				</Texture>
+			  </Layer>
+			</Layers>
+			<Frames>
+			  <ScrollFrame name="Epsilon_MerchantNPCModelTextScrollFrame" inherits="UIPanelScrollFrameTemplate" useParentLevel="true">
+				<Anchors>
+				  <Anchor point="TOPLEFT" x="10" y="-6"/>
+				  <Anchor point="BOTTOMRIGHT" x="-10" y="10"/>
+				</Anchors>
+				<Scripts>
+				  <OnLoad>
+					self.scrollBarHideable = 1;
+					ScrollFrame_OnLoad(self);
+					self.ScrollBar:SetThumbTexture("");
+					ScrollFrame_OnScrollRangeChanged(self);
+					self.ScrollBar:SetPoint("TOPLEFT", self, "TOPRIGHT", -12, -16);
+					self.ScrollBar:SetPoint("BOTTOMLEFT", self, "BOTTOMRIGHT", -12, 16);
+				  </OnLoad>
+				</Scripts>
+				<ScrollChild>
+				  <Frame name="Epsilon_MerchantNPCModelTextScrollChildFrame">
+					<Size x="178" y="0"/>
+					<Layers>
+					  <Layer level="ARTWORK">
+						<FontString name="Epsilon_MerchantNPCModelText" inherits="GameFontHighlight" justifyH="LEFT" justifyV="TOP">
+						  <Size x="178" y="0"/>
+						  <Anchors>
+							<Anchor point="TOPLEFT"/>
+						  </Anchors>
+						  <Color r="0.96875" g="0.8984375" b="0.578125"/>
+						</FontString>
+					  </Layer>
+					</Layers>
+				  </Frame>
+				</ScrollChild>
+			  </ScrollFrame>
+			</Frames>
+			<Scripts>
+			  <OnShow>
+				Epsilon_MerchantNPCCornerBottomLeft:SetPoint("BOTTOMLEFT", self, -6, -6);
+				Epsilon_MerchantNPCCornerBottomRight:SetPoint("BOTTOMRIGHT", self, 7, -6);
+			  </OnShow>
+			  <OnHide>
+				Epsilon_MerchantNPCCornerBottomLeft:SetPoint("BOTTOMLEFT", Epsilon_MerchantModel, -6, -29);
+				Epsilon_MerchantNPCCornerBottomRight:SetPoint("BOTTOMRIGHT", Epsilon_MerchantModel, 7, -29);
+			  </OnHide>
+			</Scripts>
+		  </Frame>
+		</Frames>
+	</PlayerModel>
+	
+	<!-- Extra Gossip Button -->
+	
+	<Button name="GossipTitleButtonAddVendor" parent="GossipFrame" inherits="GossipTitleButtonTemplate" hidden="true">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="GossipGreetingText" relativePoint="BOTTOMLEFT">
+				<Offset>
+					<AbsDimension x="-10" y="-20"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+		<Size>
+			<AbsDimension x="300" y="16"/>
+		</Size>
+		<Scripts>
+			<OnLoad>
+				self:SetText("Make this NPC a vendor.")
+				_G[self:GetName() .. "GossipIcon"]:SetTexture("Interface/GossipFrame/VendorGossipIcon")
+				self:SetAlpha(0.5);
+				self:RegisterEvent("GOSSIP_SHOW")
+			</OnLoad>
+			<OnClick>
+				local guid = UnitGUID("target")
+				local unitType, _, _, _, _, id, _ = strsplit("-", guid)
+				Epsilon_MerchantFrame.merchantID = id;
+				Epsilon_MerchantFrame.addingVendor = true;
+				SendChatMessage( ".phase forge npc gossip option add I want to browse your goods.", "GUILD" );
+				SendChatMessage( ".phase forge npc gossip option icon "..GetNumGossipOptions().." 1", "GUILD" );
+				self:Hide();
+			</OnClick>
+			<OnEvent>
+				if GetNumGossipOptions() == 0 then
+					self:SetPoint("TOPLEFT", GossipGreetingText, "BOTTOMLEFT", -10, -20)
+				else
+					self:SetPoint("TOPLEFT", _G["GossipTitleButton"..GetNumGossipOptions()], "BOTTOMLEFT", 0, -3)
+				end
+			</OnEvent>
+		</Scripts>
+	</Button>
+	
+	<Button name="GossipTitleButtonRemoveVendor" parent="GossipFrame" hidden="true">
+		<Size x="16" y="16"/>
+		<Anchors>
+			<Anchor point="RIGHT" relativeTo="GossipGreetingText" relativePoint="RIGHT">
+				<Offset>
+					<AbsDimension x="0" y="0"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				self:RegisterEvent("GOSSIP_SHOW")
+			</OnLoad>
+			<OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+				GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Remove Vendor", 1, 1, 1)
+				GameTooltip:AddLine("Delete this NPC's vendor options permanently.|n|n|cFF00ADEFTip:|r|cFFFFFFFF You may need to reopen the Gossip Frame for changes to take effect.", 1.0, 0.81, 0.0, true)
+				GameTooltip:Show()
+			</OnEnter>
+			<OnClick>
+				PlaySound(83)
+				StaticPopup_Show("EPSILON_MERCHANT_DELETE_VENDOR", nil, nil, self);
+			</OnClick>
+			<OnLeave>
+				GameTooltip:Hide()
+			</OnLeave>
+			<OnEvent>
+				if not C_Epsilon.IsOfficer() then self:Hide(); return end
+				for i = 1, GetNumGossipOptions() do
+					titleButton = _G["GossipTitleButton" .. i];
+					titleButtonText = _G["GossipTitleButton" .. i]:GetText();
+					if titleButtonText == "I want to browse your goods." then
+						self:SetPoint("RIGHT", titleButton, "RIGHT", -8, 0);
+						self:SetFrameLevel(10000)
+						break
+					end
+				end
+			</OnEvent>
+		</Scripts>
+		<NormalTexture file="Interface\Buttons\UI-GroupLoot-Pass-Up"/>
+		<HighlightTexture file="Interface\Buttons\UI-GroupLoot-Pass-Highlight" alphaMode="ADD"/>
+		<PushedTexture file="Interface\Buttons\UI-GroupLoot-Pass-Down"/>
+	</Button>
+	
+	<Button name="$parentEditSoundsButton" parent="GossipFrame" text="Edit Sounds" inherits="MagicButtonTemplate" hidden="true">
+		<Size x="90" y="24"/>
+		<Anchors>
+			<Anchor point="TOPLEFT" x="64" y="-32"/>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				Epsilon_MerchantSoundPicker_Open()
+			</OnClick>
+		</Scripts>
+	</Button>
+</Ui>

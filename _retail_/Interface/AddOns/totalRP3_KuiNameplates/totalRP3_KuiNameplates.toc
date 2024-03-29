@@ -1,0 +1,9 @@
+## Interface: 80200
+## Author: Ellypse (@EllypseCelwe)
+## Version: 1.4.3
+## Title: Total RP 3: Kui |cff9966ffNameplates|r module
+## Notes: Adds Total RP 3 customizations to Kui|cff9966ffNameplates|r.
+## Dependencies: totalRP3, Kui_Nameplates_Core
+## X-Curse-Project-ID: 103217
+
+totalRP3_KuiNameplates.xml

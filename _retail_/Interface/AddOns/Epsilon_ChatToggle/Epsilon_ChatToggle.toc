@@ -1,0 +1,10 @@
+## Interface: 90207
+## Title: Epsilon Chat Toggle
+## Author: Iyadriel
+## Version: 0.1.0
+## Notes: Adds a button to the chat frame to toggle announce channels.
+## DefaultState: Enabled
+## SavedVariables: Epsilon_ChatToggle_Account
+## SavedVariablesPerCharacter: Epsilon_ChatToggle_Character
+
+ChatToggle.lua

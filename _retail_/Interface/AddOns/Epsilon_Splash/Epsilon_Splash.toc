@@ -1,0 +1,10 @@
+## Interface: 90207
+## Title: Epsilon Splash Screen
+## Author: MindScape
+## Version: 2.0
+## Notes: Adds Custom Splash Screen for Epsilon Feature Updates
+## SavedVariables: Epsilon_Splash
+## DefaultState: Enabled
+## X-Date: March 22, 2024
+
+Epsilon_Splash.xml

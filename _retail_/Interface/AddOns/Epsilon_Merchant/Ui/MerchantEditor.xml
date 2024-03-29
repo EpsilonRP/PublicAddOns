@@ -1,0 +1,108 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+ 
+  <!-- Merchant editor frame. -->
+  
+  <Frame name="Epsilon_MerchantEditor" frameStrata="DIALOG" hidden="true" parent="UIParent" inherits="SimplePanelTemplate" toplevel="true">>
+    <Size x="256" y="280"/>
+    <Anchors>
+      <Anchor point="LEFT" relativeTo="Epsilon_MerchantFrame" relativePoint="RIGHT" x="0" y="0" />
+    </Anchors>
+    
+    <Scripts>
+      <OnLoad>
+		if self.NineSlice then
+			self.NineSlice:SetFrameLevel(1)
+		end
+      </OnLoad>
+      <OnShow>
+        
+        -- opening sound
+        PlaySound(839)
+      </OnShow>
+    </Scripts>
+	
+	<Layers>
+		<Layer level="OVERLAY">
+			<FontString parentKey="headerText" inherits="GameFontNormal" justifyH="center" text="Edit Vendor">
+				<Anchors>
+				  <Anchor point="TOP" x="0" y="-12"/> 
+				</Anchors>
+			</FontString>
+		</Layer>
+	</Layers>
+    
+    <Frames>
+	
+	  <CheckButton name="$parentEnableGreeting" parentKey="enableGreeting" inherits="UICheckButtonTemplate">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeKey="$parent.Inset" relativePoint="TOPLEFT" x="6" y="-6"/>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				_G[self:GetName().."Text"]:SetText("Enable Greeting Portrait");
+			</OnLoad>
+			<OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				GameTooltip:AddLine("Enable Portrait", 1, 1, 1)
+				GameTooltip:AddLine("Display a Portrait Frame for your vendor on the Merchant Frame.", 1.0, 0.81, 0.0, true)
+				GameTooltip:Show();
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide();						
+			</OnLeave>
+		</Scripts>
+	  </CheckButton>
+	  
+	  <ScrollFrame parentKey="greeting" inherits="InputScrollFrameTemplate">
+		<Size x="220" y="160"/>
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeKey="$parent.enableGreeting" relativePoint="BOTTOMLEFT" x="6" y="-24"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString name="$parentScriptTitle" inherits="GameFontNormalLeft" justifyH="left" text="Greeting">
+					<Size x="150" y="12"/>
+					<Anchors>
+					  <Anchor point="TOPLEFT" x="0" y="20"/> 
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<KeyValues>
+			<KeyValue key="maxLetters" value="500" type="number"/>
+			<KeyValue key="instructions" value="Choose a short greeting that will appear on the vendor's Portrait Frame.|n|nThe following markup is also supported:|n- $n and $p both reference the player's in-game name.|n- $c is used to reference the player's in-game class.|n- $r is used to reference the player's in-game race.|n- $Gx:y; is used to reference the player's in-game sex, where x represents the male term and y represents the female term. These two terms can be changed to anything."/>
+			<KeyValue key="hideCharCount" value="false" type="boolean"/>
+		</KeyValues>
+		<Scripts>
+			<OnLoad>
+				InputScrollFrame_OnLoad(self);
+			</OnLoad>
+		</Scripts>
+		</ScrollFrame>
+		
+	  <Button parentKey="closeButton" inherits="MagicButtonTemplate" text="Close">
+		<Size x="100" y="22"/>
+		<Anchors>
+			<Anchor point="BOTTOMRIGHT"/>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				Epsilon_MerchantEditor_Close()
+			</OnClick>
+		</Scripts>
+	  </Button>
+	  <Button parentKey="saveButton" inherits="MagicButtonTemplate" text="Save">
+		<Size x="100" y="22"/>
+		<Anchors>
+			<Anchor point="RIGHT" relativeKey="$parent.closeButton" relativePoint="LEFT"/>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				Epsilon_MerchantEditor_Save()
+			</OnClick>
+		</Scripts>
+	  </Button>
+    </Frames>
+  </Frame>
+  
+</Ui>

@@ -1,0 +1,17 @@
+## Interface: 80300
+## Title: Epsilon Merchant
+## Author: Skylar
+## Notes: Adds NPC vendor integration.
+## Version: 1.5
+## Dependencies: Epsilon
+## SavedVariables: Epsilon_Merchant
+
+Libs\Embeds.xml
+
+Epsilon_Merchant.lua
+MerchantFrame.lua
+ItemEditor.lua
+MerchantEditor.lua
+SoundList.lua
+SoundPicker.lua
+Ui/Ui.xml

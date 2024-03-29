@@ -1,0 +1,11 @@
+## Interface: 90207
+## Title: Epsilon AddOn Launcher
+## Author: MindScape
+## Version: 1.0
+## Notes: Mini-Map Icon to open various Epsilon AddOns
+## DefaultState: Enabled
+## SavedVariables: Epsilon_Launcher_DB
+## OptionalDeps: ObjectMover, SpellCreator, Gobviewer
+## X-Changes: 
+
+Epsilon_Launcher.xml

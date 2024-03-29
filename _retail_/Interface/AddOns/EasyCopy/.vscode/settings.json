@@ -1,0 +1,32 @@
+{
+    "Lua.diagnostics.globals": [
+        "NAME",
+        "SlashCmdList",
+        "ChatFrameMenuButton",
+        "QuickJoinToastButton",
+        "ChatFrame1ButtonFrame",
+        "ChatFrame2ButtonFrame",
+        "ChatFrame3ButtonFrame",
+        "ChatFrame4ButtonFrame",
+        "ChatFrame5ButtonFrame",
+        "ChatFrame6ButtonFrame",
+        "ChatFrame7ButtonFrame",
+        "ChatFrame1",
+        "ChatFrame2",
+        "ChatFrame3",
+        "ChatFrame4",
+        "ChatFrame5",
+        "ChatFrame6",
+        "ChatFrame7",
+        "UIDropDownMenu_AddButton",
+        "ACTIVE_CHAT_EDIT_BOX",
+        "DEFAULT_CHAT_FRAME",
+        "ReloadUI",
+        "ChatEdit_UpdateHeader",
+        "ChatEdit_ActivateChat",
+        "UIDropDownMenu_Initialize",
+        "ToggleDropDownMenu",
+        "LAST_ACTIVE_CHAT_EDIT_BOX",
+        "FCF_StopAlertFlash"
+    ]
+}

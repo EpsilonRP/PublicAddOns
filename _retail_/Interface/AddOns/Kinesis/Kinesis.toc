@@ -1,0 +1,9 @@
+## Interface: 80300
+## Title: Kinesis
+## Author: MindScape
+## Version: 1.0.1
+## Notes: Enables Shift-Sprint & 'Creative Mode' style flight toggle options. Use '/kinesis' or '/kn' in-game for settings.
+## SavedVariables: KinesisOptions
+## SavedVariablesPerCharacter: KinesisCharOptions
+
+Kinesis.xml

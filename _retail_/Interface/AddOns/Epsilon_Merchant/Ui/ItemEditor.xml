@@ -1,0 +1,303 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+ 
+  <!-- Item editor frame. -->
+  
+  <Frame name="Epsilon_MerchantItemEditor" frameStrata="DIALOG" hidden="true" parent="UIParent" inherits="SimplePanelTemplate" toplevel="true">>
+    <Size x="256" y="280"/>
+    <Anchors>
+      <Anchor point="LEFT" relativeTo="Epsilon_MerchantFrame" relativePoint="RIGHT" x="0" y="0" />
+    </Anchors>
+    
+    <Scripts>
+      <OnLoad>
+		if self.NineSlice then
+			self.NineSlice:SetFrameLevel(1)
+		end
+      </OnLoad>
+      <OnShow>
+        
+        -- opening sound
+        PlaySound(839)
+      </OnShow>
+    </Scripts>
+	
+	<Layers>
+		<Layer level="BACKGROUND">
+			<Texture name="$parentSlotTexture" file="Interface\Buttons\UI-EmptySlot">
+				<Size x="64" y="64"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="6" y="-38"/>
+				</Anchors>
+			</Texture>
+			<FontString inherits="GameFontNormalLeft" justifyH="left" text="Preview:">
+				<Size x="150" y="12"/>
+				<Anchors>
+				  <Anchor point="BOTTOMLEFT" relativeTo="$parentSlotTexture" relativePoint="TOPLEFT" x="12" y="-8"/> 
+				</Anchors>
+			</FontString>
+			<Texture name="$parentNameFrame" file="Interface\MerchantFrame\UI-Merchant-LabelSlots">
+				<Size x="128" y="78"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-9" y="-18"/>
+				</Anchors>
+			</Texture>
+			<FontString parentKey="Name" name="$parentName" inherits="GameFontNormalSmall" justifyH="LEFT">
+				<Size x="100" y="30"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentSlotTexture" relativePoint="RIGHT" x="-5" y="7"/>
+				</Anchors>
+			</FontString>
+		</Layer>
+		<Layer level="ARTWORK">
+			<Texture parentKey="itemIcon">
+				<Size x="38" y="38"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentSlotTexture" relativePoint="TOPLEFT" x="12" y="-12"/> 
+				</Anchors>
+			</Texture>
+		</Layer>
+		<Layer level="ARTWORK" textureSubLevel="1">
+			<FontString parentKey="itemCount" inherits="NumberFontNormal" justifyH="RIGHT">
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.itemIcon">
+						<Offset>
+							<AbsDimension x="-5" y="2"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+		</Layer>
+		<Layer level="OVERLAY">
+			<FontString parentKey="headerText" inherits="GameFontNormal" justifyH="center" text="Edit Item">
+				<Anchors>
+				  <Anchor point="TOP" x="0" y="-12"/> 
+				</Anchors>
+			</FontString>
+		</Layer>
+	</Layers>
+    
+    <Frames>
+	  <Frame name="$parentMoneyFrame" inherits="SmallMoneyFrameTemplate">
+		<Anchors>
+			<Anchor point="BOTTOMLEFT" relativeTo="$parentNameFrame" relativePoint="BOTTOMLEFT">
+				<Offset>
+					<AbsDimension x="2" y="31"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				SmallMoneyFrame_OnLoad(self);
+				MoneyFrame_SetType(self, "STATIC");
+				MoneyFrame_SetMaxDisplayWidth(self, 100);
+			</OnLoad>
+		</Scripts>
+	  </Frame>
+
+	  <EditBox name="$parentItemPrice" parentKey="itemPrice" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+		<Size x="100" y="12"/> 
+		<Anchors>
+		  <Anchor point="TOPLEFT" relativeKey="$parent.itemIcon" relativePoint="BOTTOMLEFT" x="2" y="-32"/> 
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString name="$parentItemPriceTitle" inherits="GameFontNormalLeft" justifyH="left" text="Price">
+					<Size x="150" y="12"/>
+					<Anchors>
+					  <Anchor point="TOPLEFT" x="0" y="15"/> 
+					</Anchors>
+				</FontString>
+		  </Layer>
+		</Layers>
+		<Scripts> 
+		  <OnLoad>
+			self:SetAutoFocus( false )
+			self:SetTextColor( 1, 1, 1 )
+			self:SetNumeric( true )
+		  </OnLoad>
+		  <OnEnter>
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:AddLine("Price", 1, 1, 1)
+			GameTooltip:AddLine("Set the price for this item, in copper.|n|n|cFF00ADEFTip:|r|cFFFFFFFF1|TInterface/MONEYFRAME/UI-GoldIcon:0|t is equal to 100|TInterface/MONEYFRAME/UI-SilverIcon:0|t is equal to 10,000|TInterface/MONEYFRAME/UI-CopperIcon:0|t.|r", 1.0, 0.81, 0.0, true)
+			GameTooltip:Show()
+		  </OnEnter>
+		  <OnLeave>
+			GameTooltip:Hide()
+		  </OnLeave>
+		  <OnEditFocusLost>
+			local price = tonumber( self:GetText() )
+			if not( price and price ~= "" and type( price ) == "number" and price &lt; 1000000000000 and price > 0 ) then
+				price = 0;
+				self:SetText( price )
+			end
+			MoneyFrame_Update( Epsilon_MerchantItemEditorMoneyFrame, price );
+		  </OnEditFocusLost>
+		  <OnEscapePressed function="EditBox_ClearFocus"/>
+		  <OnEnterPressed function="EditBox_ClearFocus"/>
+		</Scripts>
+	  </EditBox>
+	  
+	  <Slider name="$parentStackCount" parentKey="stackCount" inherits="OptionsSliderTemplate" orientation="HORIZONTAL" enableMouse="true">
+		<Size x="100" y="20"/>
+		<Anchors>
+		  <Anchor point="LEFT" relativeKey="$parent.itemPrice" relativePoint="RIGHT" x="14" y="0" />
+		</Anchors>
+		
+		<Scripts>
+			<OnValueChanged>
+				Epsilon_MerchantItemEditorStackCount_OnValueChanged( self, value, userInput )
+			</OnValueChanged>
+		</Scripts>
+	  </Slider>
+	  
+	  <Button name="$parentCurrency" inherits="QuestItemTemplate">
+		<Anchors>
+		  <Anchor point="TOPLEFT" relativeKey="$parent.itemPrice" relativePoint="BOTTOMLEFT" x="0" y="-32"/> 
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+			  <FontString inherits="GameFontNormalLeft" justifyH="center" text="Required Currency:">
+				<Anchors>
+				   <Anchor point="TOPLEFT" x="0" y="18"/> 
+				</Anchors>
+			  </FontString>
+		  </Layer>
+		</Layers>
+		<Frames>
+			<Button name="$parentChooseButton" parentKey="chooseButton" inherits="UIPanelButtonTemplate" text="Choose Item">
+				<Size x="120" y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						OpenAllBags()
+						Epsilon_MerchantFrame.choosingItem = false;
+						Epsilon_MerchantItemEditor.choosingItem = true;
+						Epsilon_MerchantCursorOverlay:Show()
+						Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
+							SetCursor("CAST_CURSOR")
+						end)
+						PlaySound( 83 )
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("Choose Item", 1, 1, 1)
+						GameTooltip:AddLine("Choose an item to use as a currency required to purchase this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();						
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Button name="$parentRemoveButton" parentKey="removeButton">
+				<Size x="42" y="42"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.chooseButton" relativePoint="RIGHT" x="-8" y="-2"/>
+				</Anchors>
+				<HitRectInsets>
+					<AbsInset left="9" right="7" top="-7" bottom="10"/>
+				</HitRectInsets>
+				<NormalTexture file="Interface\Buttons\CancelButton-Up"/>
+				<PushedTexture file="Interface\Buttons\CancelButton-Down"/>
+				<HighlightTexture file="Interface\Buttons\CancelButton-Highlight" alphaMode="ADD"/>
+				<Scripts>
+					<OnClick>
+						Epsilon_MerchantItemEditorCurrency.itemID = nil;
+						SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency, "Interface/Icons/inv_misc_questionmark");
+						Epsilon_MerchantItemEditorCurrencyName:SetText( "" );
+						Epsilon_MerchantItemEditorCurrencyAmount:SetText( "0" );
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Remove Item", 1, 1, 1)
+						GameTooltip:AddLine("Remove the required currency from this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();						
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<EditBox name="$parentAmount" parentKey="amount" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+				<Size x="40" y="12"/> 
+				<Anchors>
+				  <Anchor point="TOPRIGHT" relativeKey="$parent.chooseButton" relativePoint="BOTTOMRIGHT" x="0" y="-6"/> 
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString inherits="GameFontNormalLeft" justifyH="left" text="Amount:">
+							<Anchors>
+							  <Anchor point="RIGHT" relativePoint="LEFT" x="-10" y="0"/> 
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts> 
+				  <OnLoad>
+					self:SetAutoFocus( false )
+					self:SetTextColor( 1, 1, 1 )
+					self:SetMaxLetters( 4 )
+				  </OnLoad>
+				  <OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+					GameTooltip:AddLine("Amount", 1, 1, 1)
+					GameTooltip:AddLine("Set the amount of this currency required to buy this item.", 1.0, 0.81, 0.0, true)
+					GameTooltip:Show()
+				  </OnEnter>
+				  <OnLeave>
+					GameTooltip:Hide()
+				  </OnLeave>
+				  <OnEditFocusGained>
+					self.lastValue = tonumber(self:GetText()) or 1;
+				  </OnEditFocusGained>
+				  <OnEditFocusLost>
+					self:HighlightText(0, 0)
+					if self:GetText()=="" then
+						self:SetText(self.lastValue)
+					end
+					if not tonumber(self:GetText()) then
+						self:SetText(self.lastValue)
+					elseif tonumber(self:GetText()) > 9999 or tonumber(self:GetText()) &lt; 1 then
+						self:SetText(self.lastValue)
+					end
+				  </OnEditFocusLost>
+				  <OnEscapePressed function="EditBox_ClearFocus"/>
+				  <OnEnterPressed function="EditBox_ClearFocus"/>
+				</Scripts>
+			</EditBox>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self.Icon:SetTexture("Interface/Icons/Inv_misc_questionmark")
+			</OnLoad>
+		</Scripts>
+	  </Button>
+		
+	  <Button parentKey="closeButton" inherits="MagicButtonTemplate" text="Close">
+		<Size x="100" y="22"/>
+		<Anchors>
+			<Anchor point="BOTTOMRIGHT"/>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				Epsilon_MerchantItemEditor_Close()
+			</OnClick>
+		</Scripts>
+	  </Button>
+	  <Button parentKey="saveButton" inherits="MagicButtonTemplate" text="Save">
+		<Size x="100" y="22"/>
+		<Anchors>
+			<Anchor point="RIGHT" relativeKey="$parent.closeButton" relativePoint="LEFT"/>
+		</Anchors>
+		<Scripts>
+			<OnClick>
+				Epsilon_MerchantItemEditor_SaveItem()
+			</OnClick>
+		</Scripts>
+	  </Button>
+    </Frames>
+  </Frame>
+  
+</Ui>

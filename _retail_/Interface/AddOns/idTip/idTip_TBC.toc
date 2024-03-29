@@ -1,0 +1,12 @@
+## Interface: 20504
+## Title: idTip
+## Version: 11
+## Notes: Adds IDs to the ingame tooltips
+## Author: silverwind, ItsJustMeChris
+## SavedVariables: IDTIP_CONFIG
+libs/LibStub.lua
+lib/shared.lua
+lib/settings.lua
+lib/helpers.lua
+clients/shared.lua
+clients/classic.lua

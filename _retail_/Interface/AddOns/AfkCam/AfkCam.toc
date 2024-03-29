@@ -1,0 +1,6 @@
+## Interface: 70000
+## Author: ubermike
+## Title: AfkCam
+## Notes: Rotates the game camera around your character when you go AFK.
+## Version: 7.0.3
+AfkCam.lua

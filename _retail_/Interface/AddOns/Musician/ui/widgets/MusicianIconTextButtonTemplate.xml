@@ -1,0 +1,31 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Standard button with text and icon -->
+	<Script file="MusicianIconTextButtonTemplate.lua" />
+	<Button name="MusicianIconTextButtonTemplate" inherits="UIPanelButtonTemplate" virtual="true">
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString name="$parentIcon" parentKey="icon" inherits="MusicianFontIconsNormal" justifyh="LEFT">
+					<Size x="32" y="32" />
+					<Anchors>
+						<Anchor point="LEFT" relativePoint="LEFT" relativeTo="$parent" x="10" />
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<ButtonText name="$parentText" parentKey="Text">
+			<Anchors>
+				<Anchor point="CENTER" x="8" />
+			</Anchors>
+		</ButtonText>
+		<Scripts>
+			<OnEnter inherit="append" function="MusicianIconTextButtonTemplate_OnEnter" />
+			<OnLeave inherit="append" function="MusicianIconTextButtonTemplate_OnLeave" />
+			<OnEnable inherit="append" function="MusicianIconTextButtonTemplate_OnEnable" />
+			<OnDisable inherit="append" function="MusicianIconTextButtonTemplate_OnDisable" />
+			<OnMouseDown inherit="prepend" function="MusicianIconTextButtonTemplate_OnMouseDown" />
+			<OnMouseUp inherit="prepend" function="MusicianIconTextButtonTemplate_OnMouseUp" />
+		</Scripts>
+	</Button>
+</Ui>

@@ -1,0 +1,103 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.blizzard.com/wow/ui/">
+
+	<Script file="MusicianFrame.lua" />
+
+	<Frame name="MusicianFrame" inherits="MusicianDialogTemplateNoAnchor">
+
+		<Size x="320" y="160" />
+
+		<Layers>
+			<Layer level="BACKGROUND">
+				<FontString name="$parentTitle" inherits="GameFontNormal">
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-15" />
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+
+		<Frames>
+
+			<Button name="$parentTrackEditorButton" parentKey="trackEditorButton" inherits="MusicianIconTextButtonTemplate">
+				<Size x="70" y="22" />
+				<Anchors>
+					<Anchor point="TOPLEFT" x="10" y="-10" relativePoint="TOPLEFT" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentLinkButton" parentKey="linkButton" inherits="MusicianIconTextButtonTemplate">
+				<Size x="70" y="22" />
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-10" y="-10" relativePoint="TOPRIGHT" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentTestButton" parentKey="testButton" inherits="MusicianIconTextProgressBarButtonTemplate">
+				<Size x="120" y="22" />
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="10" y="10" relativePoint="BOTTOMLEFT" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentPlayButton" parentKey="playButton" inherits="MusicianIconTextProgressBarButtonTemplate">
+				<Size x="120" y="22" />
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-10" y="10" relativePoint="BOTTOMRIGHT" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentBandPlayButton" parentKey="bandPlayButton" inherits="MusicianBandPlayButtonTemplate" hidden="true">
+				<Anchors>
+					<Anchor point="BOTTOM" y="10" />
+				</Anchors>
+			</Button>
+
+			<ScrollFrame name="$parentScrollFrame" parentKey="scrollFrame">
+				<Size x="290" y="90" />
+				<Anchors>
+					<Anchor point="TOPLEFT" x="15" y="-36" relativePoint="TOPLEFT" />
+				</Anchors>
+
+				<ScrollChild>
+					<EditBox name="MusicianFrameSource" multiLine="true" autoFocus="false" countInvisibleLetters="false">
+						<Size x="290" y="90" />
+						<FontString inherits="GameFontHighlightSmall" />
+					</EditBox>
+				</ScrollChild>
+			</ScrollFrame>
+
+			<Frame name="$parentTextBackground" inherits="MusicianEditBoxBackdropTemplate">
+				<Size x="300" y="99" />
+				<Anchors>
+					<Anchor point="TOP" y="-31" relativePoint="TOP" />
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture name="$parentLoadingProgressBar" alphaMode="ADD">
+							<Size x="290" y="3" />
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="5" y="3" relativePoint="BOTTOMLEFT" />
+							</Anchors>
+							<Color a="1" r="1" g="1" b="1" />
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+
+			<Button name="$parentClearButton" parentKey="clearButton" inherits="MusicianIconButtonTemplate">
+				<Size x="24" y="24" />
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-5" y="5" relativePoint="BOTTOMRIGHT" relativeTo="$parentTextBackground" />
+				</Anchors>
+				<ButtonText name="$parentText" parentKey="Text">
+					<Anchors>
+						<Anchor point="CENTER" x="1" y="-1" />
+					</Anchors>
+				</ButtonText>
+			</Button>
+
+		</Frames>
+	</Frame>
+</Ui>

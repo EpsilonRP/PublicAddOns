@@ -1,0 +1,10 @@
+## Interface: 90207
+## Title: Spell List v1.5.31478 (Epsilon v1.03)
+## Version: 1.5.31478
+## Author: SDPhantom
+## SavedVariables: SpellList_Options
+
+## Notes: Spell List (Epsilon Edition) 
+
+SpellList.lua
+SpellList.xml

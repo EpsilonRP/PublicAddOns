@@ -1,0 +1,98 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns="http://www.blizzard.com/wow/ui/">
+
+	<Script file="MusicianKeyboardConfig.lua" />
+
+	<!-- Keyboard key template -->
+
+	<Button name="MusicianKeyboardConfigKeyTemplate" inherits="UIMenuButtonStretchTemplate" virtual="true">
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="background" name="$parentBackground">
+					<Size x="34" y="20" />
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+					<Color a="1" r="0.1" g="0.1" b="0.1" />
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnClick function="MusicianKeyboardConfigKeyTemplate_OnClick" />
+			<OnLoad inherit="prepend" function="MusicianKeyboardConfigKeyTemplate_OnLoad" />
+			<OnSizeChanged function="MusicianKeyboardConfigKeyTemplate_OnSizeChanged" />
+		</Scripts>
+		<NormalFont style="GameFontHighlight" />
+		<DisabledFont style="GameFontDisable" />
+		<HighlightFont style="GameFontHighlight" />
+		<HighlightTexture file="Interface\AddOns\Musician\ui\textures\button-glow.blp" alphaMode="ADD" alpha=".2">
+			<TexCoords top=".2" left=".2" right=".8" bottom=".8" />
+		</HighlightTexture>
+	</Button>
+
+
+	<!-- Main frame -->
+
+	<Frame name="MusicianKeyboardConfig" inherits="MusicianDialogTemplate" enableKeyboard="true">
+
+		<Size x="800" y="400" />
+
+		<Frames>
+			<Frame name="$parentKeyboard" parentKey="keyboard">
+				<Anchors>
+					<Anchor point="TOP" y="-85" relativePoint="TOP" relativeTo="$parent" />
+				</Anchors>
+			</Frame>
+
+			<Button name="$parentStartOverButton" parentKey="startOverButton" inherits="UIPanelButtonTemplate">
+				<Size x="150" y="20" />
+				<Anchors>
+					<Anchor point="RIGHT" x="-10" y="40" relativePoint="BOTTOM" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentSaveButton" parentKey="saveButton" inherits="UIPanelButtonTemplate">
+				<Size x="150" y="20" />
+				<Anchors>
+					<Anchor point="LEFT" x="10" y="40" relativePoint="BOTTOM" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentNextKeyButton" parentKey="nextKeyButton" inherits="MusicianIconButtonTemplate" hidden="true">
+				<Size x="24" y="24" />
+				<Anchors>
+					<Anchor point="LEFT" x="-3" relativePoint="RIGHT" />
+				</Anchors>
+			</Button>
+
+			<Button name="$parentClearKeyButton" parentKey="clearKeyButton" inherits="UIPanelButtonTemplate" hidden="true" text="x">
+				<Size x="24" y="24" />
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="8" y="8" relativePoint="TOPRIGHT" />
+				</Anchors>
+			</Button>
+		</Frames>
+
+		<Layers>
+			<Layer level="BACKGROUND">
+				<FontString name="$parentTitle" parentKey="title" inherits="GameFontNormalLarge">
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset>
+								<AbsDimension x="0" y="-22" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+
+				<FontString name="$parentHint" parentKey="hint" inherits="GameFontNormal" justifyH="CENTER" justifyV="CENTER">
+					<Size y="50" />
+					<Anchors>
+						<Anchor point="BOTTOM" relativePoint="TOP" relativeTo="$parentKeyboard" />
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>
