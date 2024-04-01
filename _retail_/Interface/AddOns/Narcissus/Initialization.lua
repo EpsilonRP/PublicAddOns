@@ -283,7 +283,7 @@ do
 	local isDF = (tonumber(expansionID) or 1) >= 10;
 	
     local function IsDragonflight()
-        return isDF
+        return false
     end
 
     addon.IsDragonflight = IsDragonflight;
