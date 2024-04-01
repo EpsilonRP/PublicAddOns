@@ -4,7 +4,6 @@ local MT = MacroToolkit
 MT.skinned = {}
 
 function MT:Skin(frame)
-	if true then return end -- disabled for now
 	if not IsAddOnLoaded("ElvUI") then return end
 	if MT.db.profile.noskin then return end
 	if not MT.skinned[frame:GetName()] then
@@ -14,14 +13,13 @@ function MT:Skin(frame)
 end
 
 function MT:LoadElvSkin(frame)
-	if true then return end -- disabled for now
 	local E, L, V, P, G, _ = unpack(ElvUI)
 	local S = E:GetModule("Skins")
 
 	if E.private.skins.blizzard.enable ~= true or E.private.skins.blizzard.macro ~= true then return end
 	local buttons
 
-	if frame == MacroToolkitFrame then
+	if frame == MacroToolkitFrame then	
 		S:HandleCloseButton(MacroToolkitFrameCloseButton)
 		S:HandleScrollBar(MacroToolkitButtonScrollScrollBar)
 		S:HandleScrollBar(MacroToolkitScrollFrameScrollBar)
@@ -73,8 +71,8 @@ function MT:LoadElvSkin(frame)
 		MacroToolkitSelMacroButton:StyleButton(true)
 		MacroToolkitSelMacroButton:GetNormalTexture():SetTexture(nil)
 		MacroToolkitSelMacroButton:SetTemplate("Default")
-		MacroToolkitSelMacroButton.Icon:SetTexCoord(unpack(E.TexCoords))
-		MacroToolkitSelMacroButton.Icon:SetInside()
+		MacroToolkitSelMacroButtonIcon:SetTexCoord(unpack(E.TexCoords))
+		MacroToolkitSelMacroButtonIcon:SetInside()
 		MacroToolkitLimit:ClearAllPoints()
 		MacroToolkitLimit:SetPoint("BOTTOM", MacroToolkitTextBg, 0, -12)
 		buttons = {"MacroToolkitSave", "MacroToolkitCancel", "MacroToolkitDelete", "MacroToolkitNew", "MacroToolkitExit", "MacroToolkitEdit",
@@ -82,7 +80,7 @@ function MT:LoadElvSkin(frame)
 		"MacroToolkitRestore", "MacroToolkitClear",	"MacroToolkitShare", "MacroToolkitCustom", "MacroToolkitExtend", "MacroToolkitOpen", "MacroToolkitConditions",
 		"MacroToolkitOptionsButton", "MacroToolkitMacroBox", "MacroToolkitBind"}
 	end
-
+	
 	if frame == MacroToolkitScriptFrame then
 		S:HandleCloseButton(MacroToolkitScriptFrameCloseButton)
 		S:HandleScrollBar(MacroToolkitScriptScrollScrollBar)
@@ -110,7 +108,7 @@ function MT:LoadElvSkin(frame)
 		MacroToolkitScriptErrorBg:SetPoint("BOTTOMLEFT", 7, 31)
 		buttons = {"MacroToolkitScriptExit", "MacroToolkitScriptDelete", "MacroToolkitScriptSave"}
 	end
-
+	
 	if frame == MacroToolkitBuilderFrame then
 		S:HandleCloseButton(MacroToolkitBuilderFrameCloseButton)
 		MacroToolkitBuilderFrame:StripTextures()
@@ -120,7 +118,7 @@ function MT:LoadElvSkin(frame)
 		MacroToolkitBuilderInsert:SetPoint("RIGHT", MacroToolkitBuilderCancel, "LEFT", -4, 0)
 		buttons = {"MacroToolkitBuilderCancel", "MacroToolkitBuilderInsert"}
 	end
-
+	
 	if frame == MacroToolkitCopyFrame then
 		S:HandleCloseButton(MacroToolkitCopyFrameCloseButton)
 		S:HandleScrollBar(MacroToolkitCScrollFrameScrollBar)
@@ -134,11 +132,11 @@ function MT:LoadElvSkin(frame)
 		MacroToolkitCSelMacroButton:StyleButton(true)
 		MacroToolkitCSelMacroButton:GetNormalTexture():SetTexture(nil)
 		MacroToolkitCSelMacroButton:SetTemplate("Default")
-		MacroToolkitCSelMacroButton.Icon:SetTexCoord(unpack(E.TexCoords))
-		MacroToolkitCSelMacroButton.Icon:SetInside()
+		MacroToolkitCSelMacroButtonIcon:SetTexCoord(unpack(E.TexCoords))
+		MacroToolkitCSelMacroButtonIcon:SetInside()
 		buttons = {"MacroToolkitCExit", "MacroToolkitCopy"}
 	end
-
+	
 	if frame == MacroToolkitPopup then
 		S:HandleCheckBox(MacroToolkitSpellCheck)
 		--S:HandleScrollBar(MacroToolkitPopupScrollScrollBar)
@@ -171,14 +169,14 @@ function MT:LoadElvSkin(frame)
 			end)
 		buttons = {"MacroToolkitPopupOk", "MacroToolkitPopupCancel", "MacroToolkitPopupGoLarge"}
 	end
-
+	
 	if frame == MacroToolkitBindingFrame then
 		S:HandleCheckBox(MacroToolkitBindingFrame.profile)
 		MacroToolkitBindingFrame:StripTextures()
 		MacroToolkitBindingFrame:SetTemplate("Transparent")
 		buttons = {"MacroToolkitBindButton1", "MacroToolkitBindButton2", "MacroToolkitBindingCancel", "MacroToolkitBindingOk", "MacroToolkitUnbind"}
 	end
-
+	
 	if frame == MacroToolkitRestoreFrame then
 		MacroToolkitRestoreFrame:StripTextures()
 		MacroToolkitRestoreFrame:SetTemplate("Transparent")
@@ -189,7 +187,7 @@ function MT:LoadElvSkin(frame)
 			end)
 		buttons = {"MacroToolkitRestoreRestore", "MacroToolkitRestoreCancel", "MacroToolkitRestoreDelete"}
 	end
-
+	
 	if frame == MacroToolkitSharePopup then
 		MacroToolkitSharePopup:StripTextures()
 		MacroToolkitSharePopup:SetTemplate("Transparent")
@@ -206,7 +204,7 @@ function MT:LoadElvSkin(frame)
 		"MacroToolkitCustom", "MacroToolkitScriptExit", "MacroToolkitScriptDelete", "MacroToolkitScriptSave", "MacroToolkitExtend",
 		"MacroToolkitOpen", "MacroToolkitConditions", "MacroToolkitBuilderCancel", "MacroToolkitBuilderInsert", "MacroToolkitOptionsButton",
 		"MacroToolkitMacroBox", "MacroToolkitShareOK", "MacroToolkitShareCancel", "MacroToolkitBindButton1", "MacroToolkitBindButton2",
-		"MacroToolkitBindingCancel", "MacroToolkitBindingOk", "MacroToolkitUnbind", "MacroToolkitBind", "MacroToolkitCExit", "MacroToolkitCopy",
+		"MacroToolkitBindingCancel", "MacroToolkitBindingOk", "MacroToolkitUnbind", "MacroToolkitBind", "MacroToolkitCExit", "MacroToolkitCopy", 
 	}
 ]]--
 	if buttons then
@@ -226,15 +224,13 @@ function MT:LoadElvSkin(frame)
 			local pt = _G[format("MacroToolkitPopupButton%dIcon", i)]
 			if b then
 				b:StripTextures()
-				b:CreateBackdrop('Default')
 				b:StyleButton(true)
-				--b:SetTemplate("Default", true)
+				b:SetTemplate("Default", true)
 			end
 			if c then
 				c:StripTextures()
-				c:CreateBackdrop('Default')
 				c:StyleButton(true)
-				--c:SetTemplate("Default", true)
+				c:SetTemplate("Default", true)
 			end
 			if t then
 				t:SetTexCoord(unpack(E.TexCoords))
@@ -246,9 +242,8 @@ function MT:LoadElvSkin(frame)
 			end
 			if pb then
 				pb:StripTextures()
-				pb:CreateBackdrop('Default')
 				pb:StyleButton(true)
-				--pb:SetTemplate("Default")
+				pb:SetTemplate("Default")					
 			end
 			if pt then
 				pt:SetTexCoord(unpack(E.TexCoords))

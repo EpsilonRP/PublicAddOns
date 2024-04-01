@@ -11,18 +11,16 @@ local BreakUpLargeNumbers, DeleteCursorItem, GetContainerNumSlots, UnitAura, Get
 local UseContainerItem, SetCVar, SetRaidTarget, PlaySound, HideUIPanel = UseContainerItem, SetCVar, SetRaidTarget, PlaySound, HideUIPanel
 local PanelTemplates_GetSelectedTab, StaticPopup_Show, SpellBook_GetSpellBookSlot = PanelTemplates_GetSelectedTab, StaticPopup_Show, SpellBook_GetSpellBookSlot
 local CreateFrame, GetBindingText, InCombatLockdown, CursorHasMacro, GetCursorInfo, ClearCursor = CreateFrame, GetBindingText, InCombatLockdown, CursorHasMacro, GetCursorInfo, ClearCursor
-local exFormat = "%s%s%s [btn:1]%s LeftButton 1;[btn:2]%s RightButton 1;[btn:3]%s MiddleButton 1;[btn:4]%s Button4 1;[btn:5]%s Button5 1"
+local exFormat = "%s%s%s [btn:1]%s LeftButton;[btn:2]%s RightButton;[btn:3]%s MiddleButton;[btn:4]%s Button4;[btn:5]%s Button5"
 
 -- GLOBALS: ChatEdit_InsertLink StaticPopupDialogs SpellBookFrame MacroToolkitText MacroToolkitEnterText MacroToolkitFauxText MacroToolkitSelMacroName MacroToolkitSelBg MacroToolkitDelete
 -- GLOBALS: MacroToolkitExtend MacroToolkitShorten MacroToolkitSelMacroButton MacroToolkitLimit MacroToolkitEdit MacroToolkitCopy GameTooltip MacroToolkitBind MacroToolkitConditions
--- GLOBALS: MacroToolkitShare MacroToolkitClear MacroToolkitBackup MacroToolkitBrokerIcon MacroToolkitNew MacroToolkitCSelMacroName MacroToolkitSelMacroButton.Icon MacroToolkitCText
--- GLOBALS: MacroToolkitCFauxText MacroToolkitCSelMacroButton MacroToolkitCSelMacroButton.Icon MacroToolkitBrokerButton MacroToolkitCopyButton MacroToolkitDB MacroToolkitButton1Name
+-- GLOBALS: MacroToolkitShare MacroToolkitClear MacroToolkitBackup MacroToolkitBrokerIcon MacroToolkitNew MacroToolkitCSelMacroName MacroToolkitSelMacroButtonIcon MacroToolkitCText
+-- GLOBALS: MacroToolkitCFauxText MacroToolkitCSelMacroButton MacroToolkitCSelMacroButtonIcon MacroToolkitBrokerButton MacroToolkitCopyButton MacroToolkitDB MacroToolkitButton1Name
 -- GLOBALS: MacroToolkitErrors MacroToolkitErrorIcon DEFAULT_CHAT_FRAME SendChatMessage SlashCmdList MacroFrame MacroDeleteButton TradeSkillLinkButton MacroToolkitFauxScrollFrame
 -- GLOBALS: MacroToolkitErrorBg MacroToolkitErrorScrollFrame ChatEdit_GetActiveWindow MacroFrameText ShowCloak ShowingCloak ShowHelm ShowingHelm CanEjectPassengerFromSeat
 -- GLOBALS: EjectPassengerFromSeat UIErrorsFrame SetMapToCurrentZone VehicleExit GetPlayerMapPosition SummonRandomCritter C_MountJournal ToggleDropDownMenu TradeSkillLinkDropDown
 -- GLOBALS: GetTradeSkillListLink LoadAddOn ShowMacroFrame IsAddOnLoaded
-
-local NUM_MACROS_PER_ROW = 6
 
 MT.Spells = {}
 MT.orphans = {}
@@ -161,9 +159,9 @@ function MT:eventHandler(this, event, arg1, ...)
 		MT:CreateSecureFrames()
 		--upgrade extended macro variables
 		MT:CorrectExtendedMacros()
-
+		
 		if #MT.db.global.extra > 0 then
-			for i, e in pairs(MT.db.global.extra) do
+			for i, e in pairs(MT.db.global.extra) do 
 				if i < 1000 then
 					--upgrade macro numbering for WoD
 					MT.global.extra[tostring(tonumber(i) * 10)] = MT.global.extra[i]
@@ -210,7 +208,7 @@ function MT:eventHandler(this, event, arg1, ...)
 		end
 		--if #MT.db.global.extended > 0 then
 		if countTables(MT.db.global.extended) > 0 then
-			for i, e in pairs(MT.db.global.extended) do
+			for i, e in pairs(MT.db.global.extended) do 
 				_G[format("MTSB%d", i)]:SetAttribute("macrotext", e.body)
 				_G[format("MTSB%d", i)]:SetAttribute("dynamic", MT:IsDynamic(i))
 				MT:UpdateIcon(_G[format("MTSB%d", i)])
@@ -218,7 +216,7 @@ function MT:eventHandler(this, event, arg1, ...)
 		end
 		--if #MT.db.char.extended > 0 then
 		if countTables(MT.db.char.extended) > 0 then
-			for i, e in pairs(MT.db.char.extended) do
+			for i, e in pairs(MT.db.char.extended) do 
 				_G[format("MTSB%d", i)]:SetAttribute("macrotext", e.body)
 				_G[format("MTSB%d", i)]:SetAttribute("dynamic", MT:IsDynamic(i))
 				MT:UpdateIcon(_G[format("MTSB%d", i)])
@@ -236,7 +234,7 @@ function MT:eventHandler(this, event, arg1, ...)
 				local d = StaticPopupDialogs.MACROTOOLKIT_DELETEBACKUP
 				d.text = format(L["Macro Toolkit has found %d orphaned macros. Restore?"], #MT.orphans)
 				d.OnAccept = function()
-					for _, m in ipairs(MT.orphans) do
+					for _, m in ipairs(MT.orphans) do 
 						DEFAULT_CHAT_FRAME:AddMessage(format("|cff99cce6%s:|r%s", L["Restoring macro"], MT.db.char.extended[tostring(m)].name))
 						MT:ExtendMacro(false, MT.db.char.extended[tostring(m)].body, tostring(m), true)
 					end
@@ -248,10 +246,7 @@ function MT:eventHandler(this, event, arg1, ...)
 		end
 		--if #MT.db.global.extra > 0 then
 		if countTables(MT.db.global.extra) > 0 then
-			for i, e in pairs(MT.db.global.extra) do
-
-				_G[format("MTSB%d", i)]:SetAttribute("macrotext", e.body)
-			end
+			for i, e in pairs(MT.db.global.extra) do _G[format("MTSB%d", i)]:SetAttribute("macrotext", e.body) end
 		end
 		if not MT.db.profile.usecolours then MacroToolkitFauxScrollFrame:Hide() end
 		if not MT.db.profile.viserrors then
@@ -265,7 +260,7 @@ function MT:eventHandler(this, event, arg1, ...)
 		if countTables(MT.db.char.brokers) > 0 then
 			for b, d in pairs(MT.db.char.brokers) do MT:CreateBrokerObject(b, d.label) end
 		end
-
+		
 		if MacroToolkit.db.profile.useiconlib == true then
 			--Try loading the data addon
 			loaded, reason = LoadAddOn("MacroToolkitIcons")
@@ -354,8 +349,8 @@ function MT:DoMTMacroCommand(command, parameters)
 		SetMapToCurrentZone()
 		local x, y = GetPlayerMapPosition("player")
 		print(format("%.1f %.1f", x*100, y*100))
-	elseif command == "mttc" then ShowCloak(not ShowingCloak())
-	elseif command == "mtth" then ShowHelm(not ShowingHelm())
+	--elseif command == "mttc" then ShowCloak(not ShowingCloak())
+	--elseif command == "mtth" then ShowHelm(not ShowingHelm())
 	elseif command == "mtep" then for seat = 1,2 do if CanEjectPassengerFromSeat(seat) then EjectPassengerFromSeat(seat) end end
 	elseif command == "mtsg" then
 		local GetContainerItemInfo, GetItemInfo, UseContainerItem, cash = GetContainerItemInfo, GetItemInfo, UseContainerItem, 0
@@ -553,14 +548,9 @@ function MT:ExtendMacro(save, macrobody, idx, exists)
 	local showtooltip = select(3, string.find(body, "(#showtooltip.-)\n"))
 	local show = select(3, string.find(body, "(#show .-)\n"))
 	showtooltip = checktooltip(showtooltip, body)
-	if showtooltip then
-		local characterLimit, longestExtendedMacroLength, newLineLength = 255, 143, 1
-		local showtooltipLimit = (characterLimit - longestExtendedMacroLength - newLineLength)
-		if strlenutf8(showtooltip) > showtooltipLimit then
-			StaticPopupDialogs["MACROTOOLKIT_TOOLONG"].text = format(
-				L["Macro Toolkit can only handle tooltip commands up to a maximum of %d characters. Your tooltip will not work as expected unless you shorten it"],
-				showtooltipLimit
-			)
+	if showtooltip then 
+		if strlenutf8(showtooltip) > 113 then
+			StaticPopupDialogs["MACROTOOLKIT_TOOLONG"].text = L["Macro Toolkit can only handle tooltip commands up to a maximum of 113 characters. Your tooltip will not work as expected unless you shorten it"]
 			StaticPopup_Show("MACROTOOLKIT_TOOLONG")
 			showtooltip = nil
 		end
@@ -596,7 +586,7 @@ end
 function MT:CorrectExtendedMacros()
 	--if MT.db.profile.extendedcorrected then return end
 	--MT.db.profile.extendedcorrected = true
-
+	
 	cleanMacros()
 	--fix macros
 	for m = 1, _G.MAX_ACCOUNT_MACROS + _G.MAX_CHARACTER_MACROS do
@@ -611,19 +601,9 @@ function MT:CorrectExtendedMacros()
 				local newbody = format(exFormat, showtooltip, show, MT.click, b, b, b, b, b)
 				EditMacro(m, nil, nil, newbody)
 			end
-			-- upgrade for the 10.0.0 /click workaround - updated to 10.0.2 pain
-			if string.find(body, format("%s %sMTSBP?%%d+", MT.click, '%[btn:1%]')) then
-				local b = format("MTSB%d", string.match(body, "MTSBP?(%d+)"))
-				local showtooltip = select(3, string.find(body, "(#showtooltip.-)\n"))
-				local show = select(3, string.find(body, "(#show .-)\n"))
-				if showtooltip then showtooltip = format("%s\n", showtooltip) else showtooltip = "" end
-				if show then show = format("%s\n", show) else show = "" end
-				local newbody = format(exFormat, showtooltip, show, MT.click, b, b, b, b, b)
-				EditMacro(m, nil, nil, newbody)
-			end
 		end
 	end
-
+	
 	--fix bindings
 	if MT.db.global.extra then
 		for i, b in pairs(MT.db.global.extra) do
@@ -639,7 +619,7 @@ end
 
 local function unextend(body)
 	local mbody = select(3, GetMacroInfo(MTF.selectedMacro))
-	local mindex = select(3, string.find(mbody, "MTSBP?(%d+)"))
+	local mindex = select(3, string.find(mbody, "MTSB(%d+)"))
 	local securebutton = _G[format("MTSB%d", mindex)]
 	MT:DeleteExtended(mindex)
 	securebutton:SetAttribute("macrotext", "")
@@ -723,7 +703,7 @@ function MT:MacroFrameUpdate()
 	local selectedName, selectedBody, selectedIcon
 	local tab = PanelTemplates_GetSelectedTab(MTF)
 	local exmacros = {}
-
+	
 	numMacros = (MTF.macroBase == 0) and numAccountMacros or numCharacterMacros
 	if MT.MTCF then if MT.MTCF:IsShown() then tab = 4 end end
 	if tab == 3 then
@@ -758,18 +738,18 @@ function MT:MacroFrameUpdate()
 		end
 	end
 	local maxMacroButtons = (tab == 4) and _G.MAX_CHARACTER_MACROS or max(_G.MAX_ACCOUNT_MACROS, _G.MAX_CHARACTER_MACROS)
-	--local fsize = select(2, MacroToolkitButton1Name:GetFont())
+	local fsize = select(2, MacroToolkitButton1Name:GetFont())
 	local font = LSM:Fetch(LSM.MediaType.FONT, MT.db.profile.fonts.mifont)
 	local k1, k2
 	local bname = (tab == 4) and "MacroToolkitCButton" or "MacroToolkitButton"
-
+	
 	for i = 1, maxMacroButtons do
 		macroButtonName = format("%s%d", bname, i)
 		macroButton = _G[macroButtonName]
-		macroIcon = macroButton.Icon --_G[format("%sIcon", macroButtonName)]
+		macroIcon = _G[format("%sIcon", macroButtonName)]
 		macroName = _G[format("%sName", macroButtonName)]
 		macroUnbound = _G[format("%sUnbound", macroButtonName)]
-		macroName:SetFont(font, MT.db.profile.fonts.misize, "")
+		macroName:SetFont(font, MT.db.profile.fonts.misize)
 		--macroButton:SetChecked(false)
 		if i <= MTF.macroMax then
 			if i <= numMacros then
@@ -778,8 +758,7 @@ function MT:MacroFrameUpdate()
 					local em = exmacros[i]
 					if em then
 						if em.texture then	-- ticket 76
-							texture = tonumber(em.texture) or format("Interface\\Icons\\%s", em.texture)
-							name, body = em.name, em.body
+							name, texture, body = em.name, format("Interface\\Icons\\%s", em.texture), em.body
 							local commandName = format("CLICK MTSB%d:LeftButton", em.index)
 							k1, k2 = GetBindingKey(commandName)
 							if not (k1 or k2) then macroUnbound:Show() end
@@ -788,8 +767,7 @@ function MT:MacroFrameUpdate()
 					end
 				elseif tab == 4 then
 					local em = exmacros[i]
-					texture = tonumber(em.texture) or format("Interface\\Icons\\%s", em.texture)
-					name, body = em.name, em.body
+					name, texture, body = em.name, format("Interface\\Icons\\%s", em.texture), em.body
 				else name, texture, body = GetMacroInfo(MTF.macroBase + i) end
 				macroIcon:SetTexture(texture)
 				macroName:SetText(name)
@@ -802,9 +780,8 @@ function MT:MacroFrameUpdate()
 					macroButton:SetChecked(true)
 					if tab < 4 then MacroToolkitSelMacroName:SetText(name)
 					else MacroToolkitCSelMacroName:SetText(name) end
-					local _, _, index = string.find(body, "MTSB(%d+)")
-					local _, _, proxyIndex = string.find(body, "MTSBP(%d+)")
-					index = index or proxyIndex
+					--body = body or ""
+					local s, e, index = string.find(body, "MTSB(%d+)")
 					if index then
 						body = MT:GetExtendedBody(index, tab)
 						MacroToolkitText.extended = true
@@ -836,7 +813,7 @@ function MT:MacroFrameUpdate()
 						MacroToolkitFauxText:SetText(m)
 						MT:UpdateErrors(e)
 						MacroToolkitSelMacroButton:SetID(i)
-						MacroToolkitSelMacroButton.Icon:SetTexture(texture)
+						MacroToolkitSelMacroButtonIcon:SetTexture(texture)
 						if MT.MTPF then
 							if type(texture) == "number" then
 								MT.MTPF.selectedIconTexture = texture
@@ -852,7 +829,7 @@ function MT:MacroFrameUpdate()
 						MacroToolkitCText:SetText(body)
 						MacroToolkitCFauxText:SetText(m)
 						MacroToolkitCSelMacroButton:SetID(i)
-						MacroToolkitCSelMacroButton.Icon:SetTexture(texture)
+						MacroToolkitCSelMacroButtonIcon:SetTexture(texture)
 					end
 					if MT.db.profile.broker then
 						local result, cmd = _G.ERR_NOT_IN_COMBAT, ""
@@ -914,7 +891,7 @@ function MT:MacroFrameUpdate()
 		MacroToolkitConditions:Disable()
 		MacroToolkitBrokerIcon:Hide()
 	end
-
+	
 	--Update New Button
 	if numMacros < MTF.macroMax then MacroToolkitNew:Enable()
 	else MacroToolkitNew:Disable() end
@@ -951,46 +928,23 @@ function MT:MacroFrameUpdate()
 		MacroToolkitShare:Disable()
 		MacroToolkitBind:Disable()
 	end
-
+	
 	if numMacros > 0 then MacroToolkitClear:Enable()
 	else MacroToolkitClear:Disable() end
 end
 
-function MT:ContainerOnLoad(container)
-	local maxMacroButtons = (container:GetName() == "MacroToolkitCButtonContainer") and _G.MAX_CHARACTER_MACROS or max(_G.MAX_ACCOUNT_MACROS, _G.MAX_CHARACTER_MACROS)
-	local bname = (container:GetName() == "MacroToolkitCButtonContainer") and "MacroToolkitCButton" or "MacroToolkitButton"
-	local OnDragStart = function(button) if not InCombatLockdown() then PickupMacro(MTF.macroBase + button:GetID()) end end
-	local OnClick = function(button, btn) self:MacroButtonOnClick(button, btn) end
+function MT:ContainerOnLoad(this)
 	local button
-	local buttonWidth = 45
-	local buttonsPerRow = container:GetWidth() / buttonWidth
+	local maxMacroButtons = (this:GetName() == "MacroToolkitCButtonContainer") and _G.MAX_CHARACTER_MACROS or max(_G.MAX_ACCOUNT_MACROS, _G.MAX_CHARACTER_MACROS)
+	local bname = (this:GetName() == "MacroToolkitCButtonContainer") and "MacroToolkitCButton" or "MacroToolkitButton"
 	for i = 1, maxMacroButtons do
-		button = CreateFrame("CheckButton", format("%s%d", bname, i), container, "MacroToolkitButtonTemplate")
-		button:SetScript("OnClick", OnClick)
-		button:SetScript("OnDragStart", OnDragStart)
+		button = CreateFrame("CheckButton", format("%s%d", bname, i), this, "MacroToolkitButtonTemplate,BackdropTemplate")
+		button:SetScript("OnClick", function(this, button) MT:MacroButtonOnClick(this, button) end)
+		button:SetScript("OnDragStart", function(this) if not InCombatLockdown() then PickupMacro(MTF.macroBase + this:GetID()) end end)
 		button:SetID(i)
-	end
-	self:RepositionContainerButtons(container)
-end
-
-function MT:RepositionContainerButtons(container)
-	local maxMacroButtons = (container:GetName() == "MacroToolkitCButtonContainer") and _G.MAX_CHARACTER_MACROS or max(_G.MAX_ACCOUNT_MACROS, _G.MAX_CHARACTER_MACROS)
-	local bname = (container:GetName() == "MacroToolkitCButtonContainer") and "MacroToolkitCButton" or "MacroToolkitButton"
-	local buttonWidth = 49
-	local oldButtonsPerRow = container.buttonsPerRow
-	local buttonsPerRow = math.max(6, math.floor((container:GetWidth() + 5) / buttonWidth))
-	if buttonsPerRow == oldButtonsPerRow then return end
-	container.buttonsPerRow = buttonsPerRow
-	for i = 1, maxMacroButtons do
-		local button = _G[format("%s%d", bname, i)]
-		button:ClearAllPoints()
-		if i == 1 then
-			button:SetPoint("TOPLEFT", container, "TOPLEFT", 6, -6)
-		elseif mod(i, buttonsPerRow) == 1 then
-			button:SetPoint("TOP", _G[format("%s%d", bname, i - buttonsPerRow)], "BOTTOM", 0, -10)
-		else
-			button:SetPoint("LEFT", _G[format("%s%d", bname, i - 1)], "RIGHT", 13, 0)
-		end
+		if i == 1 then button:SetPoint("TOPLEFT", this, "TOPLEFT", 6, -6)
+		elseif mod(i, _G.NUM_MACROS_PER_ROW) == 1 then button:SetPoint("TOP", _G[format("%s%d", bname, i - _G.NUM_MACROS_PER_ROW)], "BOTTOM", 0, -10)
+		else button:SetPoint("LEFT", _G[format("%s%d", bname, i - 1)], "RIGHT", 13, 0) end
 	end
 end
 

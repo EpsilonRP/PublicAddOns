@@ -14,5 +14,4 @@
 	<Script file="copyframe.lua"/>
 	<Script file="elvskin.lua"/>
 	<Script file="macrobroker.lua"/>
-	<Script file="showtooltipMock.lua"/>
 </Ui>
