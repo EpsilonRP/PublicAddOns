@@ -1,4 +1,4 @@
-## Interface: 80300
+## Interface: 90207
 ## Title: EasyCopy
 ## Notes: Provides an easy method to copy chat lines directly from the chat box, as well as optional time-stamps on each message.
 ## Author: bitbiter & DJScias
