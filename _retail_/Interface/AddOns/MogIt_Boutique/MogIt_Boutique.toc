@@ -1,0 +1,18 @@
+## Interface: 60000
+## Title: MogIt_|cFF87CEFABoutique|r
+## Notes: Sets module for MogIt
+## Author: Tactica (Trollbane US) & SannaSK (Bronzebeard US)
+## Notes: A MogIt module that displays |cFF87CEFAall|r the transmog sets!
+## Version: 1.0
+## LoadOnDemand: 1
+## RequiredDeps: MogIt
+## X-MogItModuleVersion: 2
+## X-Curse-Packaged-Version: 2.1.2
+## X-Curse-Project-Name: MogIt_Boutique
+## X-Curse-Project-ID: mogit_boutique
+
+MogIt_Boutique.lua
+Cloth.lua
+Leather.lua
+Mail.lua
+Plate.lua
