@@ -7,8 +7,9 @@ function UnitFactionGroup(unit, name)
 end
 
 UnitFullNameOld = UnitFullName
+local realmname = select(2, UnitFullName("player"))
 function UnitFullName(unit)
-	return (UnitFullNameOld(unit)), GetRealmName()
+	return (UnitFullNameOld(unit)), realmname
 end
 
 SLASH_CFACT1, SLASH_CFACT2 = '/cf', '/crossfaction'; -- 3.
