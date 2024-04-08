@@ -4,7 +4,7 @@
 ## Version: v3.9.7
 ## SavedVariables: MogItDB, MogItWishlist
 ## OptionalDeps: DataStore_Containers
-## Notes: Transmogrification Assistant, edited for EpsilonWoW
+## Notes: Transmogrification Assistant, edited for Epsilon
 ## Notes-frFR: Transmogrification Assistante
 ## Notes-deDE: Transmogrifikation Assistentin
 ## Notes-esES: Asistente de transfiguración
