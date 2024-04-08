@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.blizzard.com/wow/ui/" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+
+<!--RESOURCES FIRST-->
+<Script file="GLink_Resources.lua"/>
+<Script file="GLink_Main.lua"/>
+
+
+<Script file="GLink_GUI.lua"/>
+<!--<Script file="GLink_Debug.lua"/>-->
+
+<Script file="GLink_Toggle.lua"/>
+
+
+<Include file="utils\Utils.xml"/>
+<Include file="interface\GLink_Elements.xml"/>
+
+</Ui>

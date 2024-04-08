@@ -1,0 +1,15 @@
+## Interface: 80300
+## Title: EpsilonLib
+## Notes: Various functions and methods for use when developing addons for Epsilon.
+## Author: Gardener
+## SavedVariables: storedData, storedProgress
+## Version: 0.1
+
+EpsilonLib.lua
+EpsilonLib.xml
+
+Lib\Lib.xml
+Templates\Templates.xml
+API\API.xml
+
+API\MathU\MathU.xml
