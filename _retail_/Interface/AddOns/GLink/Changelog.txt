@@ -1,0 +1,172 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+Date system: DD/MM/YYYY
+
+# Version History
+
+##	07/05/2016 - 0.0.5
+##	08/05/2016 - 0.1.0
+##	03/07/2016 - 0.1.5
+##	08/01/2017 - 0.3.0
+##	20/01/2017 - 0.3.5
+##	26/02/2017 - 0.4.0
+##	28/05/2018 - 0.5.0
+##	12/06/2018 - 0.5.5
+##	04/07/2018 - 0.6.0
+##	09/07/2018 - 0.6.5
+##	10/07/2018 - 0.7.0
+##	25/07/2018 - 0.7.5
+##	28/02/2019 - 0.8.0
+##	03/04/2019 - 0.8.5
+##  20/04/2019 - 0.9.0
+##  10/07/2019 - 0.9.5
+##  09/08/2019 - 0.9.6
+##  18/10/2019 - 0.9.7
+##  19/10/2019 - 0.9.8
+##  02/11/2019 - 0.9.9
+##  14/11/2019 - 1.0.0
+##  14/02/2020 - 1.0.6
+##  22/02/2020 - 1.1.0
+##  28/02/2020 - 1.1.2
+
+## [Unreleased]
+
+## [0.0.5] - 07/05/2016
+### Added 
++ Hyperlinks for lookup results: item, object, creature, tele, spell.
+
+## [0.1.0] - 08/05/2016
+### Added
++ Gobject near hyperlinks.
+
+### Changed
+* Fixed colour leaking in hyperlinks.
+
+## [Released on Epsilon (Cataclysm)]
+
+## 0.1.5 - 03/07/2016
+### Added
++ Copy URL hyperlink.
++ nnyellow there.
+
+## 0.1.7 - 04/07/2016
+### Hotfix
++ Added more URL TLDs.
+
+## [0.3.0] -  08/01/2017
+### Changes
+* Bugfixes.
+
+## [0.3.5] - 20/01/2017
+### Changes
+* Bugfixes.
+
+## [0.4.0] - 26/02/2017
+### Added
++ BIMG.lua
+
+## [0.5.0] - 28/05/2018
+### Changes
+* Altered pattern matching sequence for various strings.
+
+## [0.5.5] - 12/06/2018
+### Changes
+* Updated code for tooltip hover.
+
+## [0.6.0] - 04/07/2018
+### Changes
+* Updated regex patterns to match Epsilon System Messages.
+
+## [0.6.5] - 09/07/2018
+## [Released on Epsilon (Legion)]
+### Added
++ Copy GUID hyperlink.
+
+## [0.7.0] - 10/07/2018
+### Changes
+* Various improvents to code.
+* Updated Copy GUID to extend to NPCs.
+
+## [0.7.5] - 25/07/2018
+### Changes
+* Various improvements and bugfixes.
+
+## [0.8.0] - 28/02/2019
+### Changes
+* Various improvements and bugfixes.
+
+## [0.8.5] - 03/04/2019
+### Added
++ Made this changelog lol
++ Pattern matches and Hyperlinks for command: phase forge npc list.
++ Pattern matches for updated creature spawn system message.
++ Fixed issue where NPC's were being seen as objects.
+
+## [0.9.0] - 20/04/2019
+### Changes
+* Fixed issue where AddOn module was concealing .npc near results.
+
+### Added
++ Added relevant Hyperlinks to npc near results.
+
+## [0.9.5] - 10/07/2019
+### Changes
+* Fixed issue with [Delete] hyperlink when deleting objects listed in .gobject near.
+
+## [0.9.6] - 09/08/2019
+### Added
++ Spawn and Delete Hyperlinks for phase forge NPCs.
+
+## [0.9.7] - 18/10/2019
+### Changed
+* Updated to recognise recent gobject select message change.
+* All Select, Delete, Go hyperlinks now use an objects GUID to perform their functions, rather than entryID.
+* Temporarily removed Copy Coordinates button from gobject select results.
+
+## [0.9.8] - 19/10/2019
+### Added
++ Hyperlinks to .lookup emote results
+
+## [0.9.9] - 02/11/2019
+### Added
++ Copy Coordinates and Teleport hyperlinks have been added to gobject select again.
+
+### Changed
+* Whenever you enter the world through .teleport or logging in, your client queries .gps to grab your coordinates.
+
+*** GLink RE-DONE ***
+
+
+## [1.0.0] - 8/11/2019
+### Changed
+* Started rewriting addon.
+* Changed colours to match Epsilons.
+
+### Added
++ Addon now loops through big array of commands to match and apply useful hyperlinks for.
+
+## [1.0.2] - 13/11/2019
+### Added
++ Each hyperlink sort has multiple patterns to match for, which is done in a specific order to find and return the right hyperlinks.
+
+## [1.0.6] - 14/02/2020
+### Changed
+*Rewrote GLink completely.
+
+### Added
++ gobject blueprint hyperlinks.
++ 735.5 specific updates.
+
+## [1.1.0] - 22/02/2020
+### Added
++ [Phase Port] hyperlinks for phase tele list results.
+
+### Changed
+* GLink Chat Filter now uses dedicated GetCommand function to return appropriate ID, IDType and Hyperlinks.
+
+## [1.1.2] - 28/02/2020
+### Added
++ Added ability to change link colour
+
+### Changed
+* item tooltips no longer show if you have 'clickable item links' turned off.

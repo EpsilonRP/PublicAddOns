@@ -1,0 +1,2 @@
+addonName, GLink = ...;
+

@@ -1,0 +1,480 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<ScrollFrame name="EpsilonHybridScrollFrameTemplate" inherits="BasicHybridScrollFrameTemplate" virtual="true">
+		<Anchors>
+			<Anchor point="TOPLEFT" x="5" y="-3"/>
+			<Anchor point="BOTTOMRIGHT" x="-20" y="3"/>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				local parent = self:GetParent():GetParent()
+				local scrollBar = self.scrollBar
+				scrollBar:ClearAllPoints()
+				scrollBar:SetPoint("LEFT", self, "RIGHT")
+				scrollBar:SetPoint("TOP", parent, 0, -18)
+				scrollBar:SetPoint("BOTTOM", parent, 0, 16)
+				scrollBar.doNotHide = true
+				local backdropInfo =
+				{
+					bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					tile = true,
+					tileEdge = true,
+					tileSize = 8,
+					edgeSize = 8,
+					insets = { left = 1, right = 1, top = 1, bottom = 1 },
+				}
+
+				scrollBar.backdrop = CreateFrame("Frame", nil, scrollBar, "BackdropTemplate")
+				scrollBar.backdrop:SetBackdrop(backdropInfo)
+			</OnLoad>
+		</Scripts>
+	</ScrollFrame>
+	<Button name="EpsilonButtonTemplate" virtual="true">
+		<Size y="20"/>
+		<Anchors>
+			<Anchor point="LEFT"/>
+			<Anchor point="RIGHT"/>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				self:RegisterForClicks("LeftButtonUp");
+			</OnLoad>
+			<OnClick>
+				self:GetParent():GetParent().selected = self.entry
+				PlaySoundFile("igMainMenuOptionCheckBoxOn");
+			</OnClick>
+			<OnLeave function="GameTooltip_Hide"/>
+		</Scripts>
+		<HighlightTexture setAllPoints="true" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD"/>
+	</Button>
+	<Button name="EpsilonTwoButtonTemplate" inherits="EpsilonButtonTemplate" virtual="true">
+		<Layers>
+			<Layer level="BORDER">
+				<FontString name="$parentLeft" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="false" parentKey="left">
+					<Anchors>
+						<Anchor point="LEFT"/>
+						<Anchor point="RIGHT" relativePoint="CENTER"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentRight" inherits="GameFontHighlightSmall" justifyH="LEFT" wordwrap="false" parentKey="right">
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/>
+						<Anchor point="RIGHT"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Button>
+	<Button name="EpsilonThreeButtonTemplate" inherits ="EpsilonButtonTemplate" virtual="true">
+		<Layers>
+			<Layer level="BORDER">
+				<FontString name="$parentLeft" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="false" parentKey="left">
+					<Size x="100"/>
+					<Anchors>
+						<Anchor point="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentRight" inherits="GameFontHighlightSmall" justifyH="LEFT" wordwrap="false" parentKey="right">
+					<Size x="100"/>
+					<Anchors>
+						<Anchor point="RIGHT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentMiddle" inherits="GameFontHighlightSmall" justifyH="LEFT" wordwrap="false" parentKey="middle">
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/>
+						<Anchor point="RIGHT" relativeTo="$parentRight" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Button>
+	<Button name="EpsilonFiveButtonTemplate" inherits ="EpsilonButtonTemplate" virtual="true">
+		<Layers>
+			<Layer level="BORDER">
+				<FontString name="$parentLeft" inherits="GameFontNormalSmall" justifyH="CENTER" wordwrap="false" parentKey="left">
+					<Size x="50"/>
+					<Anchors>
+						<Anchor point="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentZ" inherits="GameFontNormalSmall" justifyH="CENTER" wordwrap="false" parentKey="z">
+					<Size x="50"/>
+					<Anchors>
+						<Anchor point="RIGHT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentY" inherits="GameFontNormalSmall" justifyH="CENTER" wordwrap="false" parentKey="y">
+					<Size x="50"/>
+					<Anchors>
+						<Anchor point="RIGHT" relativeTo="$parentZ" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentX" inherits="GameFontNormalSmall" justifyH="CENTER" wordwrap="false" parentKey="x">
+					<Size x="50"/>
+					<Anchors>
+						<Anchor point="RIGHT" relativeTo="$parentY" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentMain" inherits="GameFontHighlightSmall" justifyH="LEFT" wordwrap="false" parentKey="main">
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/>
+						<Anchor point="RIGHT" relativeTo="$parentX" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Button>
+	<CheckButton name="EpsilonCheckBoxTemplate" virtual="true">
+			<Size x="20" y="20"/>
+			<Layers>
+				<Layer level="ARTWORK">
+					<FontString name="$parentText" inherits="GameFontHighlightSmall" parentKey="text">
+						<Anchors>
+							<Anchor point="LEFT" relativePoint="RIGHT" x="1" y="1"/>
+						</Anchors>
+					</FontString>
+				</Layer>
+			</Layers>
+			<Scripts>
+				<OnClick>
+					if ( self:GetChecked() ) then
+						PlaySoundFile("igMainMenuOptionCheckBoxOff");
+					else
+						PlaySoundFile("igMainMenuOptionCheckBoxOn");
+					end
+				</OnClick>
+			</Scripts>
+			<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
+			<PushedTexture file="Interface\Buttons\UI-CheckBox-Down"/>
+			<HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD"/>
+			<CheckedTexture file="Interface\Buttons\UI-CheckBox-Check"/>
+			<DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled"/>
+	</CheckButton>
+	<Frame name="EpsilonInputScrollTemplate" virtual="true">
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="$parentTopLeft" file="Interface\Common\Common-Input-Border-TL">
+					<Size x="8" y="8"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTopRight" file="Interface\Common\Common-Input-Border-TR">
+					<Size x="8" y="8"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTop" file="Interface\Common\Common-Input-Border-T">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTopLeft" relativePoint="TOPRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentTopRight" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottomLeft" file="Interface\Common\Common-Input-Border-BL">
+					<Size x="8" y="8"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottomRight" file="Interface\Common\Common-Input-Border-BR">
+					<Size x="8" y="8"/>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottom" file="Interface\Common\Common-Input-Border-B">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentBottomLeft" relativePoint="TOPRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomRight" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentLeft" file="Interface\Common\Common-Input-Border-L">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTopLeft" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomLeft" relativePoint="TOPRIGHT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentRight" file="Interface\Common\Common-Input-Border-R">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTopRight" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomRight" relativePoint="TOPRIGHT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentMiddle" file="Interface\Common\Common-Input-Border-M">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentLeft" relativePoint="TOPRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentRight" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<ScrollFrame name="$parentScrollFrame" inherits="UIPanelScrollFrameTemplate" parentKey="ScrollFrame">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent" relativePoint="TOPLEFT" x="6" y="-6"/>
+					<Anchor point="BOTTOMRIGHT" relativeTo="$parent" relativePoint="BOTTOMRIGHT" x="0" y="6"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						local scrollBar = self.ScrollBar
+						scrollBar:ClearAllPoints();
+						scrollBar:SetPoint("TOPLEFT", self, "TOPRIGHT", -18, -10);
+						scrollBar:SetPoint("BOTTOMLEFT", self, "BOTTOMRIGHT", -18, 8);
+						_G[self:GetName().."ScrollBarScrollDownButton"]:SetPoint("TOP", scrollBar, "BOTTOM", 0, 4);
+						_G[self:GetName().."ScrollBarScrollUpButton"]:SetPoint("BOTTOM", scrollBar, "TOP", 0, -4);
+						self.scrollBarHideable = 1;
+						scrollBar:Hide();
+					</OnLoad>
+					<OnMouseDown>
+						self.EditBox:SetFocus();
+					</OnMouseDown>
+					<OnVerticalScroll>
+						self.EditBox:SetHitRectInsets(0, 0, offset, self:GetBottom() - self.EditBox:GetBottom())
+					</OnVerticalScroll>
+				</Scripts>
+				<ScrollChild>
+					<EditBox name="$parentEditBox" multiLine="true" autoFocus="false" parentKey="EditBox">
+						<Size x="1" y="1"/>
+						<Scripts>
+							<OnTabPressed>
+								self:SetFocus();
+							</OnTabPressed>
+							<OnTextChanged>
+								ScrollingEdit_OnTextChanged(self, self:GetParent());
+							</OnTextChanged> 
+							<OnCursorChanged function="ScrollingEdit_OnCursorChanged"/>
+							<OnUpdate>
+								local parent = self:GetParent()
+								self:SetWidth(parent.ScrollBar:GetLeft() - self:GetLeft())
+								self:SetScript("OnUpdate", function(self)
+									ScrollingEdit_OnUpdate(self, elapsed, self:GetParent());
+								end)
+							</OnUpdate>
+							<OnEscapePressed>
+								self:ClearFocus();
+							</OnEscapePressed>
+						</Scripts>
+						<FontString inherits="ChatFontNormal"/>
+					</EditBox>
+				</ScrollChild>
+			</ScrollFrame>
+		</Frames>
+	</Frame>
+	<Frame name="PhaseInfo" hidden="true" parent="UIParent" enableMouse="true" movable="true">
+		<Size x="338" y="424"/>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+		<Layers>
+			<Layer level="BORDER">
+				<Texture parentKey="BottomLeftCorner" file="Interface\QuestionFrame\Question-Main">
+					<Size x="169" y="158"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+					</Anchors>
+					<TexCoords left="0.00195313" right="0.333984375" top="0.30468750" bottom="0.61328125"/>
+				</Texture>
+				<Texture parentKey="BottomRightCorner" file="Interface\QuestionFrame\Question-Main">
+					<Size x="169" y="158"/>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.4921875" right="0.82226563" top="0.30468750" bottom="0.61328125"/>
+				</Texture>
+				<Texture parentKey="TopLeftCorner" file="Interface\QuestionFrame\Question-Main">
+					<Size x="169" y="158"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0.00195313" right="0.333984375" top="0.61718750" bottom="0.92578125"/>
+				</Texture>
+				<Texture parentKey="TopRightCorner" file="Interface\QuestionFrame\Question-Main">
+					<Size x="169" y="158"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="-1"/>
+					</Anchors>
+					<TexCoords left="0.4921875" right="0.82031250" top="0.61718750" bottom="0.92578125"/>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="-1">
+				<Texture parentKey="LeftBorder" file="Interface\QuestionFrame\Question-VTile" vertTile="true" >
+					<Size x="93" y="256"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.TopLeftCorner" relativePoint="BOTTOMLEFT" x="2"/>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.BottomLeftCorner" relativePoint="TOPLEFT" x="2"/>
+					</Anchors>
+					<TexCoords left="0.00390625" right="0.36718750" top="0.00000000" bottom="1.00000000"/>
+				</Texture>
+				<Texture parentKey="RightBorder" file="Interface\QuestionFrame\Question-VTile" vertTile="true" >
+					<Size x="94" y="256"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.TopRightCorner" relativePoint="BOTTOMRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BottomRightCorner" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.37500000" right="0.74218750" top="0.00000000" bottom="1.00000000"/>
+				</Texture>
+			</Layer>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="BG" file="Interface\QuestionFrame\question-background" vertTile="true" horizTile="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="20" y="-20"/>
+						<Anchor point="BOTTOMRIGHT" x="-20" y="20"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-10" y="-10"/>
+				</Anchors>
+			</Button>
+			<ScrollFrame parentKey="scroll">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="50" y="-50"/>
+					<Anchor point="BOTTOMRIGHT" x="-50" y="50"/>
+				</Anchors>
+				<Frames>
+					<Slider inherits="MinimalHybridScrollBarTemplate" parentKey="scrollBar">
+						<Scripts>
+							<OnValueChanged>
+								local parent = self:GetParent()
+								parent:SetVerticalScroll(value)
+								HybridScrollFrame_UpdateButtonStates(parent, value)
+							</OnValueChanged>
+							<OnLoad>
+								self:SetPoint("TOP", self:GetParent():GetParent().CloseButton, "BOTTOM", 0, -17)
+								self:SetPoint("BOTTOM", self:GetParent())
+								self.trackBG:Hide()
+								self:GetParent().stepSize = 30
+								self:GetParent().buttonHeight = 90
+							</OnLoad>
+						</Scripts>
+					</Slider>
+				</Frames>
+				<ScrollChild>
+					<SimpleHTML setAllPoints="true" parentKey="html">
+						<Size y="100"/>
+						<FontString inherits="GameFontHighlight"/>
+						<FontStringHeader1 inherits="GameFontNormalHuge"/>
+						<FontStringHeader2 inherits="GameFontNormalLarge"/>
+						<FontStringHeader3 inherits="GameFontNormal"/>
+						<Scripts>
+							<OnLoad>
+								local width = self:GetWidth()
+								self:ClearAllPoints()
+								self:SetWidth(width)
+							</OnLoad>
+						</Scripts>
+					</SimpleHTML>
+				</ScrollChild>
+				<Scripts>
+					<OnMouseWheel function="HybridScrollFrame_OnMouseWheel"/>
+				</Scripts>
+			</ScrollFrame>
+		</Frames>
+		<Scripts>
+			<OnShow>
+				PlaySoundFile("igSpellBookOpen");
+			</OnShow>
+			<OnHide>
+				PlaySoundFile("igSpellBookClose");
+			</OnHide>
+			<OnLoad>
+				self:SetAttribute("UIPanelLayout-area", "left")
+				self:SetAttribute("UIPanelLayout-defined", true)
+				self:SetAttribute("UIPanelLayout-enabled", true)
+				self:SetAttribute("UIPanelLayout-pushable", 3)
+				self:SetAttribute("UIPanelLayout-whileDead", true)
+				self:SetAttribute("UIPanelLayout-width", self:GetWidth())
+				self:RegisterForDrag("LeftButton")
+			</OnLoad>
+			<OnDragStart>
+				if not self.isLocked then
+					self:StartMoving()
+				end
+			</OnDragStart>
+			<OnDragStop>
+				self:StopMovingOrSizing()
+			</OnDragStop>
+		</Scripts>
+	</Frame>
+	<!--
+	<Button name="Epsilon_MinimapButton" parent="Minimap" movable="true" enableMouse="true">
+		<Size>
+			<AbsDimension x="33" y="33" />
+		</Size>
+		<Anchors>
+			<Anchor point="TOPLEFT" />
+		</Anchors>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="Epsilon_MinimapButton_Icon" file="Interface/addons/epsilon/Epsilon_Icon">
+					<Size>
+						<AbsDimension x="21" y="21" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="7" y="-6" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
+					<Size>
+						<AbsDimension x="56" y="56" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" />
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame name="Epsilon_MinimapButton_DraggingFrame" hidden="true">
+				<Scripts>
+					<OnUpdate>
+						local xpos, ypos = GetCursorPosition()
+						local xmin, ymin = Minimap:GetLeft(), Minimap:GetBottom()
+						xpos, ypos = xmin-xpos/UIParent:GetScale()+70, ypos/UIParent:GetScale()-ymin-70
+						MinimapPos = math.deg(math.atan2(ypos,xpos))
+						Epsilon_MinimapButton:SetPoint("TOPLEFT", "Minimap", "TOPLEFT", 52-(80*cos(MinimapPos)), (80*sin(MinimapPos))-52)
+					</OnUpdate>
+				</Scripts>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self:RegisterForClicks("LeftButtonUp","RightButtonUp")
+				self:RegisterForDrag("LeftButton","RightButton")
+			</OnLoad>
+			<OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+				GameTooltip:SetText("Epsilon")
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide()
+			</OnLeave>
+			<OnDragStart>
+				self:LockHighlight()
+				Epsilon_MinimapButton_DraggingFrame:Show()
+			</OnDragStart>
+			<OnDragStop>
+				self:UnlockHighlight()
+				Epsilon_MinimapButton_DraggingFrame:Hide()
+				EpsilonMiniMapSavePos()
+			</OnDragStop>
+			<OnClick>
+				SlashCmdList.PHASE()
+			</OnClick>
+		</Scripts>
+		<HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD" />
+	</Button>
+	-->
+</Ui>

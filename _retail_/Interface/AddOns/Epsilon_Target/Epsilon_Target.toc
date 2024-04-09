@@ -1,0 +1,11 @@
+## Interface: 90207
+## Title: Epsilon Target
+## Author: Gardener
+## Notes: Do stuff to player target
+## Version: 1.0
+## X-Website: https://epsilonwow.net/
+## Dependencies: EpsilonLib
+
+
+Epsilon_Target.lua
+Epsilon_TargetSpells.lua

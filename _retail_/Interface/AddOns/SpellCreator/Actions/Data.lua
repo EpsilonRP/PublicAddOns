@@ -16,7 +16,7 @@ local cprint = Logging.cprint
 local eprint = Logging.eprint
 local Tooltip = ns.Utils.Tooltip
 
-local commaDelimitedText = "Comma delimited, use \"quotes\" around any text that has a comma in it."
+local commaDelimitedText = "Comma delimited, use \"quotes\" around any text that has a comma."
 local commonUnitIDs = "Common UnitIDs: 'player', 'target', 'cursor', 'mouseover', 'partyN' (where N = number 1,2,3,4 for which party member)"
 
 local toBoolean = Utils.Data.toBoolean
@@ -42,6 +42,12 @@ local parseArgsWrapper = function(string)
 		return
 	end
 	return argTable, numArgs
+end
+
+local function getArgs(string)
+	local argsTable, numArgs = parseArgsWrapper(string)
+	if not argsTable then error("Error Parsing String to Args (Are you missing a \" ?)") end
+	return unpack(argsTable, 1, numArgs)
 end
 
 local maxBackupsPerChar = 3
@@ -93,40 +99,40 @@ local ACTION_TYPE = {
 	AddRandomItem = "AddRandomItem",
 
 	-- SECURE Actions
-	secCast = "secCast",                                  --Copy of /cast
-	secCastID = "secCastID",                              --CastSpellByID
-	secStopCasting = "secStopCasting",                    --StopSpellCasting
+	secCast = "secCast",                --Copy of /cast
+	secCastID = "secCastID",            --CastSpellByID
+	secStopCasting = "secStopCasting",  --StopSpellCasting
 
-	secUseItem = "secUseItem",                            --UseItemByName
+	secUseItem = "secUseItem",          --UseItemByName
 
-	secTarget = "secTarget",                              --TargetUnit
-	secAssist = "secAssist",                        --AssistUnit
+	secTarget = "secTarget",            --TargetUnit
+	secAssist = "secAssist",            --AssistUnit
 
-	secClearTarg = "secClearTarg",                          -- ClearTarget
-	secTargLEnemy = "secTargLEnemy",                  -- TargetLastEnemy
-	secTargLFriend = "secTargLFriend",                -- TargetLastFriend
-	secTargLTarg = "secTargLTarg",                -- TargetLastTarget
-	secTargNAny = "secTargNAny",                      -- TargetNearest
-	secTargNEnemy = "secTargNEnemy",            -- TargetNearestEnemy
+	secClearTarg = "secClearTarg",      -- ClearTarget
+	secTargLEnemy = "secTargLEnemy",    -- TargetLastEnemy
+	secTargLFriend = "secTargLFriend",  -- TargetLastFriend
+	secTargLTarg = "secTargLTarg",      -- TargetLastTarget
+	secTargNAny = "secTargNAny",        -- TargetNearest
+	secTargNEnemy = "secTargNEnemy",    -- TargetNearestEnemy
 	secTargNEnPlayer = "secTargNEnPlayer", -- TargetNearestEnemyPlayer
-	secTargNFriend = "secTargNFriend",          -- TargetNearestFriend
+	secTargNFriend = "secTargNFriend",  -- TargetNearestFriend
 	secTargNFrPlayer = "secTargNFrPlayer", -- TargetNearestFriendPlayer
-	secTargNParty = "secTargNParty", -- TargetNearestPartyMember
-	secTargNRaid = "secTargNRaid",  -- TargetNearestRaidMember
+	secTargNParty = "secTargNParty",    -- TargetNearestPartyMember
+	secTargNRaid = "secTargNRaid",      -- TargetNearestRaidMember
 
-	secFocus = "secFocus",                              -- FocusUnit
-	secClearFocus = "secClearFocus",                      -- ClearFocus
+	secFocus = "secFocus",              -- FocusUnit
+	secClearFocus = "secClearFocus",    -- ClearFocus
 
-	FollowUnit = "FollowUnit",                            -- FollowUnit
-	StopFollow = "StopFollow",                            -- FollowUnit
-	ToggleRun = "ToggleRun",                              -- ToggleRun
-	ToggleAutoRun = "ToggleAutoRun",                      -- ToggleAutoRun
-	StartAutoRun = "StartAutoRun",                      -- StartAutoRun
-	StopAutoRun = "StopAutoRun",                      -- StopAutoRun
+	FollowUnit = "FollowUnit",          -- FollowUnit
+	StopFollow = "StopFollow",          -- FollowUnit
+	ToggleRun = "ToggleRun",            -- ToggleRun
+	ToggleAutoRun = "ToggleAutoRun",    -- ToggleAutoRun
+	StartAutoRun = "StartAutoRun",      -- StartAutoRun
+	StopAutoRun = "StopAutoRun",        -- StopAutoRun
 
-	RunMacro = "RunMacro",                                -- RunMacro
-	RunMacroText = "RunMacroText",                        -- RunMacroText
-	StopMacro = "StopMacro",                              -- StopMacro
+	RunMacro = "RunMacro",              -- RunMacro
+	RunMacroText = "RunMacroText",      -- RunMacroText
+	StopMacro = "StopMacro",            -- StopMacro
 
 
 	-- Camera Actions
@@ -209,11 +215,18 @@ local ACTION_TYPE = {
 	BoxPromptCommandNoInput = "BoxPromptCommandNoInput",
 	OpenSendMail = "OpenSendMail",
 	SendMail = "SendMail",
+	TalkingHead = "TalkingHead",
+	UnitPowerBar = "UnitPowerBar",
 
 	HideMostUI = "HideMostUI",
 	UnhideMostUI = "UnhideMostUI",
 	FadeOutMainUI = "FadeOutMainUI",
 	FadeInMainUI = "FadeInMainUI",
+
+	HideNames = "HideNames",
+	ShowNames = "ShowNames",
+	ToggleNames = "ToggleNames",
+	RestoreNames = "RestoreNames",
 
 	-- Location Actions
 	SaveARCLocation = "SaveARCLocation",
@@ -502,21 +515,6 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.AddRandomItem] = scriptAction("Add Random Item", {
 		command = function(vars)
-			--[[
-			-- Item Format Method (space delimit): itemID:bonusIDs+amount,weight
-			local itemsTable = { strsplit(" ", vars) }
-			local finalItems = {}
-			for i = 1, #itemsTable do
-				local v = itemsTable[i]
-				local item = {}
-				local weight
-				item.entry, item.bonus, item.amount, weight = v:match("(%d*)%:?(%d*)%+?(%d*)%,?(%d*)")
-				if not weight or weight == "" then weight = 1 end
-				table.insert(finalItems, { tonumber(weight), item })
-			end
-			local randomItem = ns.Utils.Data.getRandomWeightedArg(finalItems)
-			cmd(("additem %s %s %s"):format(randomItem.entry, randomItem.amount and randomItem.amount or "1", randomItem.bonus and randomItem.bonus or ""))
-			--]]
 			-- Item Format Method (comma delimit): itemID amount bonusIDs+weight
 			local itemsTable = { strsplit(",", vars) }
 			local finalItems = {}
@@ -882,7 +880,12 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.ArcSaveFromPhase] = scriptAction("Save ArcSpell (Phase)", {
 		command = function(data)
-			local commID, vocal = strsplit(",", data, 2)
+			--local commID, vocal = strsplit(",", data, 2)
+			--local args, numArgs = parseArgsWrapper(data)
+			--if not args then return end
+			local success, commID, vocal = pcall(getArgs, data)
+			if not success then return end
+
 			if vocal and (vocal == "false" or vocal == "nil" or vocal == "0") then vocal = nil end
 			if vocal and vocal == "true" then vocal = true end
 			ARC.PHASE:SAVE(commID, vocal)
@@ -897,6 +900,7 @@ local actionTypeData = {
 	[ACTION_TYPE.ArcImport] = scriptAction("Import ArcSpell", {
 		command = function(data)
 			local importString, vocal = strsplit(",", data, 2)
+			vocal = strtrim(vocal)
 			if vocal and (vocal == "false" or vocal == "nil" or vocal == "0") then vocal = nil end
 			if vocal and vocal == "true" then vocal = true end
 			ns.UI.ImportExport.importSpell(importString, vocal)
@@ -910,8 +914,18 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.ArcCastbar] = scriptAction("Show Castbar", {
 		command = function(data)
-			local length, text, iconPath, channeled, showIcon, showShield = strsplit(",", data, 6)
-			if length then length = strtrim(length) end
+			--local length, text, iconPath, channeled, showIcon, showShield = strsplit(",", data, 6)
+
+			--[[
+			--local args, numArgs = parseArgsWrapper(data)
+			if not args then return end
+			local length, text, iconPath, channeled, showIcon, showShield = unpack(args)
+			--]]
+			local success, length, text, iconPath, channeled, showIcon, showShield = pcall(getArgs, data)
+			if not success then return end
+
+			if length then length = tonumber(strtrim(length)) end
+			if not length then return error("Arcanum Action Usage (Show Castbar): Requires valid length number.") end
 			if text then text = strtrim(text) end
 			if iconPath then iconPath = { ["icon"] = strtrim(iconPath) } end
 			if channeled then channeled = toBoolean(strtrim(channeled)) end
@@ -922,7 +936,8 @@ local actionTypeData = {
 		description =
 		"Show a custom Arcanum Castbar with your own settings & duration.\n\rSyntax: duration, [title, [iconPath/FileID, [channeled (true/false), [showIcon (true/false), [showShield (true/false)]]]]]\n\rDuration is the only required input.",
 		dataName = "Castbar Settings",
-		inputDescription = "Syntax: duration, [title, [iconPath/FileID, [channeled (true/false), [showIcon (true/false), [showShield (true/false)]]]]]\n\rDuration is the only required input.",
+		inputDescription = "Syntax: duration, [title, [iconPath/FileID, [channeled (true/false), [showIcon (true/false), [showShield (true/false)]]]]]\n\rDuration is the only required input. " ..
+			commaDelimitedText,
 		example = Tooltip.genContrastText("5, Cool Spell!, 1, true, true, false") ..
 			" will show a Castbar for 5 seconds, named 'Cool Spell!', with a gem icon, but no shield frame.\n\r" ..
 			Tooltip.genTooltipText("lpurple", "Icon ID's " .. Tooltip.genContrastText("1 - " .. ns.UI.Icons.getNumCustomIcons()) .. " can be used for Arcanum's custom Icons."),
@@ -1043,18 +1058,14 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.ErrorMsg] = scriptAction("UI Message", {
 		command = function(msg)
-			local args, numArgs = parseArgsWrapper(msg)
+			--[[
+			--local args, numArgs = parseArgsWrapper(msg)
 			if not args then return end
 			local text, r, g, b, voiceID, soundKitID = unpack(args)
-
-			--[[
-			local success, text, r, g, b, voiceID, soundKitID = pcall(function(val) return unpack(parseStringToArgs(val)) end, msg)
-			if not success then
-				ns.Logging.eprint("UI Message Action Failed: Error Parsing String to Args (Are you missing a \" ?)")
-				ns.Logging.dprint(text)
-				return
-			end
 			--]]
+
+			local success, text, r, g, b, voiceID, soundKitID = pcall(getArgs, msg)
+			if not success then return end
 
 			ns.Logging.uiErrorMessage(text, r, g, b, voiceID, soundKitID)
 		end,
@@ -1095,6 +1106,41 @@ local actionTypeData = {
 		revertDesc = "Fades the UI out.",
 		revert = function(vars) UIFrameFadeOut(UIParent, tonumber(vars), UIParent:GetAlpha(), 0) end,
 	}),
+	--
+
+	--HideNametags = "HideNametags",
+	--ShowNametags = "ShowNametags",
+	--ToggleNametags = "ToggleNametags",
+	[ACTION_TYPE.HideNames] = scriptAction("Hide Names", {
+		command = function() ns.Actions.Data_Scripts.nametags.Disable() end,
+		description = "Hides names above NPCs & Players.\n\r" ..
+			Tooltip.genContrastText("Please use Revert or Restore Names once done, to ensure you are restoring the original settings!"),
+
+		revertDesc = "Restores your non-Arcanum-modified name settings.",
+		revert = function() ns.Actions.Data_Scripts.nametags.Restore() end,
+	}),
+	[ACTION_TYPE.ShowNames] = scriptAction("Show Names", {
+		command = function() ns.Actions.Data_Scripts.nametags.Enable() end,
+		description = "Shows names above NPCs & Players.\n\r" ..
+			Tooltip.genContrastText("Please use Revert or Restore Names once done, to ensure you are restoring the original settings!"),
+
+		revertDesc = "Restores your non-Arcanum-modified name settings.",
+		revert = function() ns.Actions.Data_Scripts.nametags.Restore() end,
+	}),
+	[ACTION_TYPE.ToggleNames] = scriptAction("Toggle Names", {
+		command = function() ns.Actions.Data_Scripts.nametags.Toggle() end,
+		description = "Toggles names above NPCs & Players.\n\r" ..
+			Tooltip.genContrastText("Please use Restore Names once done, to ensure you are restoring the original settings!"),
+
+		revertDesc = "Toggles names again (NOT A RESTORE - This is still another override).",
+		revert = function() ns.Actions.Data_Scripts.nametags.Restore() end,
+	}),
+	[ACTION_TYPE.RestoreNames] = scriptAction("Restore Names", {
+		command = function() ns.Actions.Data_Scripts.nametags.Restore() end,
+		description = "Restores your non-Arcanum-modified name settings.",
+	}),
+
+
 	[ACTION_TYPE.BoxMsg] = scriptAction("Popup Box Message", {
 		command = function(msg)
 			ns.UI.Popups.showCustomGenericConfirmation({
@@ -1111,11 +1157,22 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptCommand] = scriptAction("Command Input Prompt", {
 		command = function(msg)
-			local description, okayText, cancText, command = strsplit(",", msg, 4)
+			--local description, okayText, cancText, command = strsplit(",", msg, 4)
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			--[[
+			--local args, numArgs = parseArgsWrapper(msg)
+			if not args then return end
+			local description, okayText, cancText, command = unpack(args)
+			--]]
+			local success, description, okayText, cancText, command = pcall(getArgs, msg)
+			if not success then return end
+
 			if not cancText and not command then command = okayText end
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
-			if cancText == "nil" then cancText = false end
+			if cancText == "false" then cancText = false end
+			--if cancText == "nil" then cancText = false end
 			command = strtrim(command)
 			ns.UI.Popups.showCustomGenericInputBox({
 				callback = function(input)
@@ -1139,11 +1196,23 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptScript] = scriptAction("Script Input Prompt", {
 		command = function(msg)
-			local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
+			--local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
+
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			--[[
+			--local args, numArgs = parseArgsWrapper(msg)
+			if not args then return end
+			local description, okayText, cancText, scriptString = unpack(args)
+			--]]
+			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg)
+			if not success then return end
+
 			if not cancText and not scriptString then scriptString = okayText end
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
-			if cancText == "nil" then cancText = false end
+			if cancText == "false" then cancText = false end
+			--if cancText == "nil" then cancText = false end
 			scriptString = strtrim(scriptString):gsub("@input", "userInput")
 			local scriptTest, errorMessageTest = loadstring(scriptString)
 			if scriptTest and not errorMessageTest then
@@ -1184,11 +1253,24 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptCommandNoInput] = scriptAction("Command Run Prompt", {
 		command = function(msg)
-			local description, okayText, cancText, command = strsplit(",", msg, 4)
+			--local description, okayText, cancText, command = strsplit(",", msg, 4)
+
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			--[[
+			--local args, numArgs = parseArgsWrapper(msg)
+			if not args then return end
+			local description, okayText, cancText, command = unpack(args)
+			--]]
+			local success, description, okayText, cancText, command = pcall(getArgs, msg)
+			if not success then return end
+
 			if not cancText and not command then command = okayText end
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
-			if cancText == "nil" then cancText = false end
+			if cancText == "false" then cancText = false end
+			--if cancText == "nil" then cancText = false end
+
 			command = strtrim(command)
 			ns.UI.Popups.showCustomGenericConfirmation({
 				callback = function()
@@ -1209,11 +1291,25 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptScriptNoInput] = scriptAction("Script Run Prompt", {
 		command = function(msg)
-			local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
+			--local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
+
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			--[[
+			--local args, numArgs = parseArgsWrapper(msg)
+			if not args then return end
+			local description, okayText, cancText, scriptString = unpack(args)
+			--]]
+
+			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg)
+			if not success then return end
+
 			if not cancText and not scriptString then scriptString = okayText end
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
-			if cancText == "nil" then cancText = false end
+			if cancText == "false" then cancText = false end
+			--if cancText == "nil" then cancText = false end
+
 			scriptString = strtrim(scriptString)
 			local script, errorMessage = loadstring(scriptString)
 			if script and not errorMessage then
@@ -1240,17 +1336,14 @@ local actionTypeData = {
 	[ACTION_TYPE.OpenSendMail] = scriptAction("Open Mail", {
 		command = function(vars)
 			--local to, subject, body = unpack(parseStringToArgs(vars))
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local to, subject, body = unpack(args, 1, 3)
-
-			--[[
-			local success, to, subject, body = pcall(function(val) return unpack(parseStringToArgs(val)) end, vars)
-
-			if not success then
-				eprint("Error in pcall Parsing Open Mail Args. Check your 'Open Mail' action input formatting."); return
-			end
 			--]]
+			local success, to, subject, body = pcall(getArgs, vars)
+			if not success then return end
+
 			local callback = function()
 				Scripts.mail.openMailCallback(to, subject, body)
 			end
@@ -1271,15 +1364,14 @@ local actionTypeData = {
 	[ACTION_TYPE.SendMail] = scriptAction("Send Mail", {
 		command = function(vars)
 			--local to, subject, body = unpack(parseStringToArgs(vars))
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local to, subject, body = unpack(args, 1, 3)
-
-			--[[
-			local success, to, subject, body = pcall(function(val) return unpack(parseStringToArgs(val)) end, vars)
-
-			if not to and subject and body then return Logging.eprint("Error in Send Mail Action: Requires to, subject, and body...") end
 			--]]
+
+			local success, to, subject, body = pcall(getArgs, vars)
+			if not success then return end
 
 			local callback = function()
 				Scripts.mail.sendMailCallback(to, subject, body)
@@ -1298,6 +1390,78 @@ local actionTypeData = {
 		inputDescription = "the name of who to send the mail, the subject, and the body text. All three are required.\n\r" .. commaDelimitedText,
 		example = [[Mindscape, "Arcanum Rocks, Woo!", "Dude, I can send you mail automatically now, nice."]],
 		revert = nil,
+		doNotDelimit = true,
+	}),
+	-- TalkingHead = "TalkingHead"
+	[ACTION_TYPE.TalkingHead] = scriptAction("Send Talking Head", {
+		command = function(vars)
+			--local args, numArgs = parseArgsWrapper(vars)
+			--if not args then return end
+			--local message, name, displayID, sound, textureKit, chatType, timeout = unpack(args, 1, numArgs)
+			local success, message, name, displayID, sound, textureKit, chatType, timeout = pcall(getArgs, vars)
+			if not success then return end
+
+			if not message and name and displayID then return end
+			message = tostring(message);
+			name = tostring(name) or "Unknown";
+			displayID = tonumber(displayID) or 0;
+			sound = tonumber(sound) or nil;
+			timeout = tonumber(timeout) or nil;
+
+			SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, sound, chatType, timeout);
+		end,
+		description =
+		"Displays a Talking Head frame with customizable options.",
+		dataName = "message, title, displayID [, soundKitID, textureKit, chatType]",
+		inputDescription =
+			"Syntax: message, title, displayID [, soundKitID, textureKit, chatType, timeout]\n\r" ..
+			commaDelimitedText .. "Only message, title, and displayID are required; leave an option blank to skip it.\n\r" ..
+			"Available Texture Kits:" ..
+			Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() ..
+			table.concat({ "Normal", "Neutral", "Epsilon", "Horde", "Alliance" }, "|r, " .. Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup()) .. "|r\n\r" ..
+			"Available Chat Types:" ..
+			Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() ..
+			table.concat({ "SAY", "WHISPER", "YELL", "EMOTE", "NONE" }, "|r, " .. Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup()) .. "|r\n\r",
+		example = [["Message text goes here.", John Doe, 21, , Normal, SAY, 10]],
+		revert = nil,
+		doNotDelimit = true,
+	}),
+	-- UnitPowerBar = "UnitPowerBar"
+	[ACTION_TYPE.UnitPowerBar] = scriptAction("Show UnitPowerBar", {
+		command = function(vars)
+			local success, powerValue, minPower, maxPower, textureKit, powerName, powerTooltip, r, g, b, onFinished, isPercentage, flashEnabled = pcall(getArgs, vars)
+			if not success then return end
+
+			if not powerValue and minPower and maxPower then
+				SCForge_UnitPowerBar:Hide()
+				return
+			end
+			powerValue = tonumber(powerValue);
+			minPower = tonumber(minPower) or 0;
+			maxPower = tonumber(maxPower) or 100;
+			textureKit = textureKit or "WoWUI"; -- no tostrings, need to allow nil so we can default if nil (instead of giving string 'nil')
+			powerName = powerName or "";
+			powerTooltip = powerTooltip or nil;
+			local colour;
+			if tonumber(r) and tonumber(g) and tonumber(b) then
+				colour = { r, g, b };
+			end
+
+			SCForge_UnitPowerBar:ApplyTextures(textureKit, powerName, powerTooltip, powerValue, colour, onFinished, isPercentage, flashEnabled);
+			SCForge_UnitPowerBar:SetMinMaxPower(minPower, maxPower);
+			SCForge_UnitPowerBar:Show();
+		end,
+		description =
+		"Displays a UnitPowerBar frame with customizable options (see input syntax for help).",
+		dataName = "powerValue, minPower, maxPower, [textureKit, powerName, powerTooltip, r, g, b, onFinished, isPercentage, flashEnabled]",
+		inputDescription =
+			"Syntax: powerValue, minPower, maxPower, [textureKit, powerName, powerTooltip, r, g, b, onFinished, isPercentage, flashEnabled].\n\r" ..
+			commaDelimitedText .. "\nOnly powerValue, minPower, and maxPower are required.\n\rAvailable Texture Kits: " ..
+			Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() ..
+			table.concat(ns.UI.TalkingHead.TalkingHead.availablePowerBars, "|r, " .. Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup()) .. "|r\n\rTexture Kit names are case sensitive.",
+		example = [[10, 0, 100, Azerite, Borrowed Power, "Don't worry - you'll get it back eventually!", 1, 1, 1, nil, false, false]],
+		revertDesc = "Hides the UnitPowerBar frame.",
+		revert = function() SCForge_UnitPowerBar:Hide(); end,
 		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.TRP3e_Item_QuickImport] = scriptAction("TRP3e Import Item", {
@@ -1329,9 +1493,13 @@ local actionTypeData = {
 	[ACTION_TYPE.TRP3e_Cast_showCastingBar] = scriptAction("TRP3e Castbar", {
 		command = function(vars)
 			--local duration, interruptMode, soundID, castText = unpack(parseStringToArgs(vars))
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local duration, interruptMode, soundID, castText = unpack(args, 1, 4)
+			--]]
+			local success, duration, interruptMode, soundID, castText = pcall(getArgs, vars)
+			if not success then return end
 
 			if not duration then return end
 			TRP3_API.extended.showCastingBar(tonumber(duration), tonumber(interruptMode), nil, tonumber(soundID), castText)
@@ -1417,9 +1585,14 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.QCBookStyle] = scriptAction("Change Book Style", {
 		command = function(vars)
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local bookName, styleName = unpack(args, 1, 2)
+			--]]
+			local success, bookName, styleName = pcall(getArgs, vars)
+			if not success then return end
+
 			ns.UI.Quickcast.Book.changeBookStyle(strtrim(bookName), strtrim(styleName))
 		end,
 		description = "Change a Quickcast Book's Style to another style, either by using the style name or ID.",
@@ -1432,9 +1605,13 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.QCBookSwitchPage] = scriptAction("Switch Page", {
 		command = function(vars)
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local bookName, pageNumber = unpack(args, 1, 2)
+			--]]
+			local success, bookName, pageNumber = pcall(getArgs, vars)
+			if not success then return end
 
 			ns.UI.Quickcast.Book.setPageInBook(strtrim(bookName), strtrim(pageNumber))
 		end,
@@ -1448,9 +1625,14 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.QCBookNewBook] = scriptAction("New Book", {
 		command = function(vars)
-			local args = parseArgsWrapper(vars)
+			--[[
+			--local args = parseArgsWrapper(vars)
 			if not args then return end
 			local bookName, styleName = unpack(args, 1, 2)
+			--]]
+			local success, bookName, styleName = pcall(getArgs, vars)
+			if not success then return end
+
 			ns.UI.Quickcast.Quickcast.API.NewBook(strtrim(bookName), strtrim(styleName))
 		end,
 		description = "Create a new Quickcast Book, with an optional default style set.",
@@ -1462,7 +1644,7 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.QCBookNewPage] = scriptAction("Add Page to Book", {
 		command = function(vars)
-			local args, numArgs = parseArgsWrapper(vars)
+			local args, numArgs = parseArgsWrapper(vars) -- need to keep using the parseArgsWrapper here because we want the table
 			if not args then return end
 			local spells
 			local success, spellTable = nil, {}
@@ -1492,7 +1674,7 @@ local actionTypeData = {
 	[ACTION_TYPE.QCBookAddSpell] = scriptAction("Add Spell to Book/Page", {
 		command = function(vars)
 			--local bookName, pageNumber, commID = AceConsole:GetArgs(vars, 3)
-			local args, numArgs = parseArgsWrapper(vars)
+			local args, numArgs = parseArgsWrapper(vars) -- need to keep using the parseArgsWrapper here because we want the table
 			if not args then return end
 			local spells
 			local success, spellTable = nil, {}
@@ -1977,7 +2159,16 @@ local actionTypeData = {
 	[ACTION_TYPE.Kinesis_SprintEmoteAll] = scriptAction("Enable Sprint Emote", {
 		command = function(vars)
 			if not Kinesis then return end
-			local movetype, val = strsplit(",", vars)
+			--local movetype, val = strsplit(",", vars)
+
+			--[[
+			--local args = parseArgsWrapper(vars)
+			if not args then return end
+			local movetype, val = unpack(args)
+			--]]
+			local success, movetype, val = pcall(getArgs, vars)
+			if not success then return end
+
 			movetype = strtrim(string.lower(movetype))
 			if movetype == "walk" or movetype == "ground" then
 				Kinesis.Sprint.Emotes.SetEmoteTriggerWalk(onToBoolean(val))
@@ -2025,7 +2216,16 @@ local actionTypeData = {
 	[ACTION_TYPE.Kinesis_SprintSpellAll] = scriptAction("Enable Sprint Spell", {
 		command = function(vars)
 			if not Kinesis then return end
-			local movetype, val = strsplit(",", vars)
+			--local movetype, val = strsplit(",", vars)
+
+			--[[
+			--local args = parseArgsWrapper(vars)
+			if not args then return end
+			local movetype, val = unpack(args)
+			--]]
+			local success, movetype, val = pcall(getArgs, vars)
+			if not success then return end
+
 			movetype = strtrim(string.lower(movetype))
 			if movetype == "walk" or movetype == "ground" then
 				Kinesis.Sprint.Spells.SetSpellTriggerWalk(onToBoolean(val))
@@ -2310,7 +2510,7 @@ local actionTypeData = {
 	-- secTargNAny = "secTargNAny",                      -- TargetNearest([reverse]) #protected
 	[ACTION_TYPE.secTargNAny] = scriptAction("Target Nearest (Any)", {
 		command = function(vars)
-			RunPrivileged("TargetNearest("..vars..")")
+			RunPrivileged("TargetNearest(" .. vars .. ")")
 		end,
 		description =
 		"Targets the nearest thing to you.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2327,7 +2527,7 @@ local actionTypeData = {
 	-- secTargNEnemy = "secTargNEnemy",            -- TargetNearestEnemy([reverse]) #protected - Selects the nearest enemy as the current target.
 	[ACTION_TYPE.secTargNEnemy] = scriptAction("Target Nearest (Enemy)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestEnemy("..vars..")")
+			RunPrivileged("TargetNearestEnemy(" .. vars .. ")")
 		end,
 		description =
 		"Selects the nearest enemy as the current target.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2344,7 +2544,7 @@ local actionTypeData = {
 	-- TargetNearestEnemyPlayer = "TargetNearestEnemyPlayer", -- TargetNearestEnemyPlayer([reverse]) #protected - Selects the nearest enemy player as the current target.
 	[ACTION_TYPE.secTargNEnPlayer] = scriptAction("Target Nearest (Enemy Player)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestEnemyPlayer("..vars..")")
+			RunPrivileged("TargetNearestEnemyPlayer(" .. vars .. ")")
 		end,
 		description =
 		"Selects the nearest enemy player as the current target.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2361,7 +2561,7 @@ local actionTypeData = {
 	-- TargetNearestFriend = "TargetNearestFriend",          -- TargetNearestFriend([reverse]) #protected - Targets the nearest friendly unit.
 	[ACTION_TYPE.secTargNFriend] = scriptAction("Target Nearest (Friend)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestFriend("..vars..")")
+			RunPrivileged("TargetNearestFriend(" .. vars .. ")")
 		end,
 		description =
 		"Targets the nearest friendly unit.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2378,7 +2578,7 @@ local actionTypeData = {
 	-- TargetNearestFriendPlayer = "TargetNearestFriendPlayer", -- TargetNearestFriendPlayer([reverse]) #protected - Selects the nearest friendly player as the current target.
 	[ACTION_TYPE.secTargNFrPlayer] = scriptAction("Target Nearest (Friendly Player)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestFriendPlayer("..vars..")")
+			RunPrivileged("TargetNearestFriendPlayer(" .. vars .. ")")
 		end,
 		description =
 		"Selects the nearest friendly player as the current target.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2395,7 +2595,7 @@ local actionTypeData = {
 	-- TargetNearestPartyMember = "TargetNearestPartyMember", -- TargetNearestPartyMember([reverse]) #protected - Selects the nearest Party member as the current target.
 	[ACTION_TYPE.secTargNParty] = scriptAction("Target Nearest (Party)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestPartyMember("..vars..")")
+			RunPrivileged("TargetNearestPartyMember(" .. vars .. ")")
 		end,
 		description =
 		"Selects the nearest Party member as the current target.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2412,7 +2612,7 @@ local actionTypeData = {
 	-- TargetNearestRaidMember = "TargetNearestRaidMember",  -- TargetNearestRaidMember([reverse]) #protected - Selects the nearest Raid member as the current target.
 	[ACTION_TYPE.secTargNRaid] = scriptAction("Target Nearest (Raid)", {
 		command = function(vars)
-			RunPrivileged("TargetNearestRaidMember("..vars..")")
+			RunPrivileged("TargetNearestRaidMember(" .. vars .. ")")
 		end,
 		description =
 		"Selects the nearest Raid member as the current target.\nOptional flag to reverse the targetting order (selecting furthest instead of nearest).",
@@ -2430,12 +2630,13 @@ local actionTypeData = {
 	-- FocusUnit = "FocusUnit",                              -- FocusUnit([name]) #protected - Sets the focus target.
 	[ACTION_TYPE.secFocus] = scriptAction("Set Focus", {
 		command = function(vars)
-			RunPrivileged("FocusUnit('"..vars.."')")
+			RunPrivileged("FocusUnit('" .. vars .. "')")
 		end,
 		description =
 		"Sets the focus target.",
 		dataName = "name",
-		inputDescription = "Name of the unit to set as the focus target, or optionally a UnitID instead.\n\rCommon UnitIDs: 'player', 'target', 'cursor', 'mouseover', 'partyN' (where N = number 1,2,3,4 for which party member)",
+		inputDescription =
+		"Name of the unit to set as the focus target, or optionally a UnitID instead.\n\rCommon UnitIDs: 'player', 'target', 'cursor', 'mouseover', 'partyN' (where N = number 1,2,3,4 for which party member)",
 		revert = function()
 			RunPrivileged("ClearFocus()")
 		end,
@@ -2463,10 +2664,10 @@ local actionTypeData = {
 	[ACTION_TYPE.FollowUnit] = scriptAction("Follow Unit", {
 		command = function(vars)
 			if not vars then vars = "target" end
-			RunPrivileged("FollowUnit('"..vars.."')")
+			RunPrivileged("FollowUnit('" .. vars .. "')")
 		end,
 		description =
-		"Follows the given unit. Potentially only works on a friendly player unit.\n\r"..commonUnitIDs,
+			"Follows the given unit. Potentially only works on a friendly player unit.\n\r" .. commonUnitIDs,
 		dataName = nil,
 		revert = function() RunPrivileged("MoveForwardStart(0); MoveForwardStop(0)") end,
 		revertDesc = "Stops following the unit.",

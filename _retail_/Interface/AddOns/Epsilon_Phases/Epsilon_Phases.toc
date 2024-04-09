@@ -1,0 +1,11 @@
+## Interface: 90100
+## Title: Epsilon Phases
+## Notes: Phase List and Phase manager for Epsilon
+## Author: Gardener
+## SavedVariables: malls
+## RequiredDeps: EpsilonLib
+## Version: 0.0.1
+
+Epsilon_Phases.lua
+Epsilon_Phases.xml
+

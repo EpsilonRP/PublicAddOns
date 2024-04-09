@@ -1,0 +1,11 @@
+## Interface: 90207
+## Title: GLink
+## Version: 1.0.0
+## Notes: Adds useful Hyperlinks to the chat.
+## Author: Gardener
+## DefaultState: Enabled
+## SavedVariables: GLink_debugging, GLink_Settings
+## Dependencies: EpsilonLib
+GLink.xml
+
+
