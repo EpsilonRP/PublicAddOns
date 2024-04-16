@@ -1,4 +1,4 @@
-## Interface: 92700
+## Interface: 90207
 ## Version: 1
 ## Title: GobViewer
 ## Author: Warli
