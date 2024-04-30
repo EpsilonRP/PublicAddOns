@@ -719,6 +719,29 @@ local conditions = {
 	---- ArcVar equals... (input = ArcVar, Value, isPhase)
 	{ header = "Advanced" },
 	{
+		catName = "UI",
+		catItems = {
+			{
+				key = "UnitPowerBarShown",
+				name = "UnitPowerBar Shown",
+				description = "Returns true if the Arcanum UnitPowerBar is shown, and optionally only if it's with the specific Power Name.",
+				inputs = { input("Power Name", "string?") },
+				script = function(powerName)
+					if SCForge_UnitPowerBar:IsShown() then
+						if not powerName then return true end
+						if powerName and SCForge_UnitPowerBar.powerName and powerName == SCForge_UnitPowerBar.powerName then
+							return true
+						else
+							return false
+						end
+					else
+						return false
+					end
+				end,
+			}
+		}
+	},
+	{
 		catName = "Arcanum",
 		catItems = {
 			{

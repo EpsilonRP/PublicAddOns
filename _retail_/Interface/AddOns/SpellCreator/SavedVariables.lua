@@ -22,7 +22,7 @@ SpellCreatorCharacterTable = {}
 
 SpellCreatorMasterTable.quickcast = {}
 ---@class QCSavedBooks
----@field savedBookTable table<QuickcastBook, QuickcastPage[]>
+---@field savedBookTable table<QuickcastBook, QuickcastPage[]>?
 SpellCreatorMasterTable.quickcast.books = {}
 
 ----------------------
@@ -126,13 +126,16 @@ local function init()
 	if isNotDefined(SpellCreatorMasterTable.Options["minimapIcon"]) then SpellCreatorMasterTable.Options["minimapIcon"] = true end
 
 	if isNotDefined(SpellCreatorMasterTable.Options["showTooltips"]) then SpellCreatorMasterTable.Options["showTooltips"] = true end
-	if isNotDefined(SpellCreatorMasterTable.Options["biggerInputBox"]) then SpellCreatorMasterTable.Options["biggerInputBox"] = false end
+	if isNotDefined(SpellCreatorMasterTable.Options["biggerInputBox"]) then SpellCreatorMasterTable.Options["biggerInputBox"] = true end
 	if isNotDefined(SpellCreatorMasterTable.Options["showVaultOnShow"]) then SpellCreatorMasterTable.Options["showVaultOnShow"] = false end
 	if isNotDefined(SpellCreatorMasterTable.Options["clearRowOnRemove"]) then SpellCreatorMasterTable.Options["clearRowOnRemove"] = false end
 	if isNotDefined(SpellCreatorMasterTable.Options["loadChronologically"]) then SpellCreatorMasterTable.Options["loadChronologically"] = false end
 
 	if isNotDefined(SpellCreatorMasterTable.Options["keepQCOpen"]) then SpellCreatorMasterTable.Options["keepQCOpen"] = true end
 	if isNotDefined(SpellCreatorMasterTable.Options["allowQCOverscrolling"]) then SpellCreatorMasterTable.Options["allowQCOverscrolling"] = true end
+
+	if isNotDefined(SpellCreatorMasterTable.Options["sparkThrottle"]) then SpellCreatorMasterTable.Options["sparkThrottle"] = 1 end
+	ns.UI.SparkPopups.SparkPopups.setSparkThrottle(SpellCreatorMasterTable.Options["sparkThrottle"])
 
 	if isNotDefined(SpellCreatorMasterTable.arcVarLocations) then SpellCreatorMasterTable.arcVarLocations = {} end
 	ns.API.retargetSavedLocationsTable(SpellCreatorMasterTable.arcVarLocations)
@@ -147,6 +150,10 @@ local function init()
 
 	if isNotDefined(SpellCreatorCharacterTable.actionButtonsRegister) then SpellCreatorCharacterTable.actionButtonsRegister = {} end
 	ns.UI.ActionButton.retargetSavedActionButtons(SpellCreatorCharacterTable.actionButtonsRegister)
+
+	if isNotDefined(SpellCreatorCharacterTable.stratacast) then SpellCreatorCharacterTable.stratacast = {} end
+	if isNotDefined(SpellCreatorCharacterTable.stratacastEnabled) then SpellCreatorCharacterTable.stratacastEnabled = false end
+	ns.UI.Stratacast.retargetStratacastDB(SpellCreatorCharacterTable.stratacast)
 
 	-- // Unlocks Tracker table
 	if isNotDefined(SpellCreatorMasterTable.Unlocks) then SpellCreatorMasterTable.Unlocks = {} end

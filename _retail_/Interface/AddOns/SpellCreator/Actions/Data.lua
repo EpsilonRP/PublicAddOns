@@ -34,8 +34,8 @@ local function strsplitTrim(delim, str, pieces)
 end
 
 local parseStringToArgs = ns.Utils.Data.parseStringToArgs
-local parseArgsWrapper = function(string)
-	local success, argTable, numArgs = pcall(parseStringToArgs, string)
+local parseArgsWrapper = function(string, limit)
+	local success, argTable, numArgs = pcall(parseStringToArgs, string, limit)
 	if not success then
 		ns.Logging.eprint("Error Parsing String to Args (Are you missing a \" ?)")
 		ns.Logging.dprint(argTable)
@@ -44,8 +44,11 @@ local parseArgsWrapper = function(string)
 	return argTable, numArgs
 end
 
-local function getArgs(string)
-	local argsTable, numArgs = parseArgsWrapper(string)
+---@param string string CSV Delimited String of Args
+---@param limit number Max number of args to grab
+---@return ... All the args, capped at the limit or the max number found if no limit given, including nils
+local function getArgs(string, limit)
+	local argsTable, numArgs = parseArgsWrapper(string, limit)
 	if not argsTable then error("Error Parsing String to Args (Are you missing a \" ?)") end
 	return unpack(argsTable, 1, numArgs)
 end
@@ -217,6 +220,7 @@ local ACTION_TYPE = {
 	SendMail = "SendMail",
 	TalkingHead = "TalkingHead",
 	UnitPowerBar = "UnitPowerBar",
+	UnitPowerBarValue = "UnitPowerBarValue",
 
 	HideMostUI = "HideMostUI",
 	UnhideMostUI = "UnhideMostUI",
@@ -1165,7 +1169,7 @@ local actionTypeData = {
 			if not args then return end
 			local description, okayText, cancText, command = unpack(args)
 			--]]
-			local success, description, okayText, cancText, command = pcall(getArgs, msg)
+			local success, description, okayText, cancText, command = pcall(getArgs, msg, 4)
 			if not success then return end
 
 			if not cancText and not command then command = okayText end
@@ -1205,7 +1209,7 @@ local actionTypeData = {
 			if not args then return end
 			local description, okayText, cancText, scriptString = unpack(args)
 			--]]
-			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg)
+			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg, 4)
 			if not success then return end
 
 			if not cancText and not scriptString then scriptString = okayText end
@@ -1262,7 +1266,7 @@ local actionTypeData = {
 			if not args then return end
 			local description, okayText, cancText, command = unpack(args)
 			--]]
-			local success, description, okayText, cancText, command = pcall(getArgs, msg)
+			local success, description, okayText, cancText, command = pcall(getArgs, msg, 4)
 			if not success then return end
 
 			if not cancText and not command then command = okayText end
@@ -1301,7 +1305,7 @@ local actionTypeData = {
 			local description, okayText, cancText, scriptString = unpack(args)
 			--]]
 
-			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg)
+			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg, 4)
 			if not success then return end
 
 			if not cancText and not scriptString then scriptString = okayText end
@@ -1432,6 +1436,21 @@ local actionTypeData = {
 			local success, powerValue, minPower, maxPower, textureKit, powerName, powerTooltip, r, g, b, onFinished, isPercentage, flashEnabled = pcall(getArgs, vars)
 			if not success then return end
 
+			ns.Logging.dprint(false,
+				"pv", powerValue,
+				"mnP", minPower,
+				"mxP", maxPower,
+				"tx", textureKit,
+				"pN", powerName,
+				"pT", powerTooltip,
+				"r", r,
+				"g", g,
+				"b", b,
+				"onF", onFinished,
+				"isP", isPercentage,
+				"fE", flashEnabled
+			)
+
 			if not powerValue and minPower and maxPower then
 				SCForge_UnitPowerBar:Hide()
 				return
@@ -1462,6 +1481,17 @@ local actionTypeData = {
 		example = [[10, 0, 100, Azerite, Borrowed Power, "Don't worry - you'll get it back eventually!", 1, 1, 1, nil, false, false]],
 		revertDesc = "Hides the UnitPowerBar frame.",
 		revert = function() SCForge_UnitPowerBar:Hide(); end,
+		doNotDelimit = true,
+	}),
+	[ACTION_TYPE.UnitPowerBarValue] = scriptAction("Update UnitPowerBar Value", {
+		command = function(value)
+			if SCForge_UnitPowerBar then SCForge_UnitPowerBar.value = tonumber(value) end
+		end,
+		description =
+		"Updates the displaed UnitPowerBar to the value given.\n\rTip: Use a condition to verify if the UnitPowerBar is shown, and is the powerName you are expecting to modify!",
+		dataName = "powerValue",
+		inputDescription = "Syntax: powerValue",
+		example = [[10]],
 		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.TRP3e_Item_QuickImport] = scriptAction("TRP3e Import Item", {

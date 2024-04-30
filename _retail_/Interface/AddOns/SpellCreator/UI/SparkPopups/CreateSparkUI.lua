@@ -29,6 +29,55 @@ local function halloweenUnlockTest(key)
 	return SavedVariables.unlocks.isUnlockedByKeyOrTime(key, event_unlock_dates.halloween2023)
 end
 
+---@enum (key) SparkTypes
+local _sparkTypes = {
+	[1] = "Standard",
+	--[2] = "Multi",
+	[3] = "Emote",
+	[4] = "Chat",
+	--[5] = "Jump",
+	[6] = "Auto",
+}
+
+local _sparkTypesMap = {}         -- this is a name = value reverse map
+for k, v in pairs(_sparkTypes) do -- pairs, not ipairs, because you can comment out a line to disable that type for now
+	_sparkTypesMap[v] = k
+end
+
+---@type EmoteToken[]
+local emotesList = {}
+
+---@type table<EmoteToken, string>
+local emotesMap = {}       -- dictionary of token = "command; command1; ..."
+
+for emoteIndex = 1, 626 do -- MAXEMOTEINDEX is local in 927 build, so we're just going to hard code this for now..
+	local token = _G["EMOTE" .. emoteIndex .. "_TOKEN"];
+	if token then
+		local slashCommands = { _G["EMOTE" .. emoteIndex .. "_CMD"] }
+
+		local i = 1
+		local label = _G["EMOTE" .. emoteIndex .. "_CMD1"];
+		while (label) do
+			if not tContains(slashCommands, label) then
+				tinsert(slashCommands, label) -- store the command, then iterate to the next label
+			end
+
+			i = i + 1
+			label = _G["EMOTE" .. emoteIndex .. "_CMD" .. i]
+		end
+
+		local fullLabel
+		if #slashCommands > 0 then
+			fullLabel = table.concat(slashCommands, "; ")
+		else
+			fullLabel = token
+		end
+
+		tinsert(emotesList, token)
+		emotesMap[token] = fullLabel
+	end
+end
+
 local sparkPopupStyles = { -- You can still use one not listed here technically, but these are the ones supported in the UI.
 
 	-- Blizzard Extra Buttons
@@ -168,6 +217,7 @@ local function getSparkPopupStylesSorted()
 end
 
 ---@class SparkUIHelper
+---@field type SparkTypes|number
 ---@field commID string
 ---@field radius number
 ---@field style integer|string
@@ -182,9 +232,13 @@ end
 ---@field cooldownBroadcastToPhase? boolean
 ---@field requirement? string
 ---@field conditionsData? ConditionData
+---@field emote? EmoteToken
+---@field chat? string
+---@field showHSI? boolean
 
 ---@type SparkUIHelper
 local sparkUI_Helper = {
+	type = 1,
 	commID = "Type a CommID",
 	radius = 5,
 	style = defaultSparkPopupStyle,
@@ -199,12 +253,21 @@ local sparkUI_Helper = {
 	cooldownBroadcastToPhase = false,
 	requirement = nil,
 	conditionsData = nil,
+	showHSI = nil,
 }
 
 ---@param num integer
 ---@return number
 local function getPosData(num)
 	return DataUtils.roundToNthDecimal(select(num, getPlayerPositionData()), 4)
+end
+
+local function requiredSparkTypes(...)
+	local t = {}
+	for k, v in ipairs({ ... }) do
+		t[v] = true
+	end
+	return function() return not t[sparkUI_Helper.type] end
 end
 
 local orderGroup = 0
@@ -234,6 +297,69 @@ local uiOptionsTable = {
 			inline = true,
 			order = autoOrder(true),
 			args = {
+				sparkType = {
+					name = "Spark Type",
+					desc =
+						"Type of Spark - This changes the behavior of the Spark & how you would interact with it.\n\r" ..
+						Tooltip.genContrastText("Standard: ") .. "Classic style Single-Spell Pop-Up button.\n" ..
+						--Tooltip.genContrastText("Multi: ") .. "Multiple Spell Pop-Up with a more basic border.\n" ..
+						Tooltip.genContrastText("Emote: ") .. "Invisible Spark that triggers when the given emote is performed while in radius (i.e., /kneel).\n" ..
+						Tooltip.genContrastText("Chat: ") .. "Invisible Spark that triggers when a specified word or phrase is said in /say, /yell, or /emote while in radius.\n" ..
+						Tooltip.genContrastText("Auto: ") .. "Invisible Spark that triggers when a you walk in radius. Only casts once, until you leave & re-enter radius.\n" ..
+						Tooltip.genContrastText("   WARNING: ") .. "Auto Sparks take away player choice & interaction. Please use sparingly and with careful consideration.",
+					type = "select",
+					order = autoOrder(),
+					values = _sparkTypes,
+					set = function(info, val) sparkUI_Helper.type = val end,
+					get = function(info) return sparkUI_Helper.type or 1 end
+				},
+				gap = {
+					type = "description",
+					order = autoOrder(),
+					width = 1,
+					name = " ",
+				},
+				conditionsEditor = {
+					type = "execute",
+					name = function()
+						if (sparkUI_Helper.requirement and #sparkUI_Helper.requirement > 0) or (sparkUI_Helper.conditionsData and #sparkUI_Helper.conditionsData > 0) then
+							return "Edit Conditions"
+						else
+							return "Add Conditions"
+						end
+					end,
+					desc = function()
+						local lines = {
+							"Sets conditions on this Spark. If the conditions are not met, then the Spark will not be shown at all.",
+							" ",
+						}
+						if sparkUI_Helper.conditionsData and #sparkUI_Helper.conditionsData > 0 then
+							tinsert(lines, "Current Conditions:")
+							for gi, groupData in ipairs(sparkUI_Helper.conditionsData) do
+								local groupString = (gi == 1 and "If") or "..Or"
+								for ri, rowData in ipairs(groupData) do
+									local continueStatement = (ri ~= 1 and "and ") or ""
+									local condName = ns.Actions.ConditionsData.getByKey(rowData.Type).name
+									groupString = string.join(" ", groupString, continueStatement .. condName)
+								end
+								tinsert(lines, groupString)
+							end
+						else
+							tinsert(lines, "This Spark has no conditions. Click to add some!")
+						end
+						local str = ""
+						local numLines = #lines
+						for k, v in ipairs(lines) do
+							str = str .. v .. (k ~= numLines and "\n" or "")
+						end
+						return str
+					end,
+					order = autoOrder(),
+					width = 1,
+					func = function()
+						ns.UI.ConditionsEditor.open(sparkUI_Helper, "spark", sparkUI_Helper.conditionsData)
+					end,
+				},
 				commID = {
 					name = "ArcSpell",
 					desc = "CommID of the ArcSpell from the Phase Vault",
@@ -352,47 +478,6 @@ local uiOptionsTable = {
 					width = "half",
 				},
 				--]]
-				conditionsEditor = {
-					type = "execute",
-					name = function()
-						if (sparkUI_Helper.requirement and #sparkUI_Helper.requirement > 0) or (sparkUI_Helper.conditionsData and #sparkUI_Helper.conditionsData > 0) then
-							return "Edit Conditions"
-						else
-							return "Add Conditions"
-						end
-					end,
-					desc = function()
-						local lines = {
-							"Sets conditions on this Spark. If the conditions are not met, then the Spark will not be shown at all.",
-							" ",
-						}
-						if sparkUI_Helper.conditionsData and #sparkUI_Helper.conditionsData > 0 then
-							tinsert(lines, "Current Conditions:")
-							for gi, groupData in ipairs(sparkUI_Helper.conditionsData) do
-								local groupString = (gi == 1 and "If") or "..Or"
-								for ri, rowData in ipairs(groupData) do
-									local continueStatement = (ri ~= 1 and "and ") or ""
-									local condName = ns.Actions.ConditionsData.getByKey(rowData.Type).name
-									groupString = string.join(" ", groupString, continueStatement .. condName)
-								end
-								tinsert(lines, groupString)
-							end
-						else
-							tinsert(lines, "This Spark has no conditions. Click to add some!")
-						end
-						local str = ""
-						local numLines = #lines
-						for k, v in ipairs(lines) do
-							str = str .. v .. (k ~= numLines and "\n" or "")
-						end
-						return str
-					end,
-					order = autoOrder(),
-					width = 1,
-					func = function()
-						ns.UI.ConditionsEditor.open(sparkUI_Helper, "spark", sparkUI_Helper.conditionsData)
-					end,
-				},
 				spacer2 = {
 					name = " ",
 					type = "description",
@@ -407,6 +492,7 @@ local uiOptionsTable = {
 					values = getSparkPopupStylesKV,
 					sorting = getSparkPopupStylesSorted,
 					order = autoOrder(),
+					hidden = requiredSparkTypes(1, 2),
 					set = function(info, val)
 						if val == addNewSparkPopupStyleTex then
 							ns.UI.Popups.showCustomGenericInputBox({
@@ -431,7 +517,10 @@ local uiOptionsTable = {
 						end
 						sparkUI_Helper.style = val
 					end,
-					get = function(info) return sparkUI_Helper.style end
+					get = function(info)
+						if not sparkUI_Helper.style then sparkUI_Helper.style = 629199 end -- this forces the style if switching from non-visual spark type
+						return sparkUI_Helper.style
+					end
 				},
 				styleColor = {
 					name = ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("Border Tint"),
@@ -439,6 +528,7 @@ local uiOptionsTable = {
 					type = "color",
 					width = 0.75,
 					order = autoOrder(),
+					hidden = requiredSparkTypes(1, 2),
 					set = function(info, vR, vG, vB)
 						if vR and vG and vB then
 							sparkUI_Helper.color = CreateColor(vR, vG, vB):GenerateHexColor()
@@ -458,6 +548,7 @@ local uiOptionsTable = {
 					type = "execute",
 					name = "Reset Tint",
 					order = autoOrder(),
+					hidden = requiredSparkTypes(1, 2),
 					width = 0.75,
 					func = function()
 						sparkUI_Helper.color = nil
@@ -466,11 +557,13 @@ local uiOptionsTable = {
 				stylePreviewTitle = {
 					type = "description",
 					name = "\nBorder Preview:",
+					hidden = requiredSparkTypes(1, 2),
 					order = autoOrder(),
 				},
 				stylePreview = {
 					--name = ""
 					name = function()
+						if not sparkUI_Helper.style then return "No Preview" end
 						local vR, vG, vB = 255, 255, 255
 						if sparkUI_Helper.color then vR, vG, vB = CreateColorFromHexString(sparkUI_Helper.color):GetRGBAsBytes() end
 						return ns.Utils.UIHelpers.CreateTextureMarkupWithColor(sparkUI_Helper.style, 64 * 2, 32 * 2, 64 * 2, 32 * 2, 0, 1, 0, 1, 0, 0, vR, vG, vB)
@@ -478,7 +571,50 @@ local uiOptionsTable = {
 					type = "header",
 					width = "full",
 					order = autoOrder(),
+					hidden = requiredSparkTypes(1, 2),
 					--image = function() return sparkUI_Helper.style, 64 * 2, 32 * 2 end,
+				},
+				emoteTrigger = {
+					name = "Activation Emote",
+					desc = "The Emote required to activate / trigger this Spark, when in radius.",
+					type = "select",
+					values = emotesMap,
+					order = autoOrder(),
+					hidden = requiredSparkTypes(_sparkTypesMap["Emote"]),
+					get = function()
+						return sparkUI_Helper.emote
+					end,
+					set = function(info, val) sparkUI_Helper.emote = val end,
+				},
+				chatText = {
+					name = "Chat Text (say|yell|emote)",
+					desc = "The word or phrase required to activate / trigger this Spark, when in radius.",
+					dialogControl = "MAW-Editbox",
+					type = "input",
+					width = "full",
+					order = autoOrder(),
+					hidden = requiredSparkTypes(_sparkTypesMap["Chat"]),
+					get = function() return sparkUI_Helper.chat end,
+					set = function(info, val) sparkUI_Helper.chat = val end,
+				},
+				showHiddenSparkIcon = {
+					type = "toggle",
+					name = "Show 'Spark Nearby' Icon",
+					desc =
+					"When enabled, shows a small 'Hidden Spark' icon underneath where visual Sparks would normally show.\n\rThink of it like a 'clue' they're in the right place to do the thing.",
+					order = autoOrder(),
+					get = function()
+						if sparkUI_Helper.showHSI == nil then
+							sparkUI_Helper.showHSI = true
+						end
+
+						return sparkUI_Helper.showHSI
+					end,
+					set = function(info, val)
+						sparkUI_Helper.showHSI = val
+					end,
+					hidden = requiredSparkTypes(_sparkTypesMap["Chat"], _sparkTypesMap["Emote"], _sparkTypesMap["Jump"]),
+					width = 1.5,
 				},
 				spacer = {
 					name = " ",
@@ -584,11 +720,13 @@ local uiOptionsTable = {
 						cooldownTime = sparkUI_Helper.cooldownTime,
 						trigSpellCooldown = sparkUI_Helper.cooldownTriggerSpellCooldown,
 						broadcastCooldown = sparkUI_Helper.cooldownBroadcastToPhase,
-						--requirement = sparkUI_Helper.requirement,
 						inputs = sparkUI_Helper.spellInputs,
-						conditions = sparkUI_Helper.conditionsData
+						conditions = sparkUI_Helper.conditionsData,
+						emote = sparkUI_Helper.emote,
+						chat = sparkUI_Helper.chat,
+						showHSI = sparkUI_Helper.showHSI
 					},
-					sparkUI_Helper.overwriteIndex)
+					sparkUI_Helper.overwriteIndex, sparkUI_Helper.type)
 				AceConfigDialog:Close(theUIDialogName)
 			end,
 		},
@@ -609,22 +747,30 @@ end
 ---@param editIndex integer?
 ---@param editMapID integer?
 local function openSparkCreationUI(commID, editIndex, editMapID)
+	table.wipe(sparkUI_Helper) -- clear any old data
+
 	sparkUI_Helper.overwriteIndex = editIndex or nil
 	sparkUI_Helper.commID = commID
 
-	local x, y, z, mapID, radius, style, colorHex, cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase, requirement, spellInputs, conditions
+	local sparkType, x, y, z, mapID, radius, style, colorHex, cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase, requirement, spellInputs, conditions
+	local emote, chat, showHSI
 	if editIndex then
 		local phaseSparkTriggers = SparkPopups.SparkPopups.getPhaseSparkTriggersCache()
-		local triggerData = phaseSparkTriggers[editMapID][editIndex]
+		local triggerData = phaseSparkTriggers[editMapID][editIndex] --[[@as SparkPopupTriggerData]]
 		x, y, z, mapID, radius, style, colorHex = triggerData[2], triggerData[3], triggerData[4], editMapID, triggerData[5], triggerData[6], triggerData[7]
+		sparkType = triggerData[9] or 1
 		local sparkOptions = triggerData[8] --[[@as PopupTriggerOptions]]
 		if sparkOptions ~= nil then
 			cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase = sparkOptions.cooldownTime, sparkOptions.trigSpellCooldown, sparkOptions.broadcastCooldown
 			requirement = sparkOptions.requirement -- Kept for back compatibility, should not be used going forward
 			conditions = sparkOptions.conditions
 			spellInputs = sparkOptions.inputs
+			emote = sparkOptions.emote
+			chat = sparkOptions.chat
+			showHSI = sparkOptions.showHSI
 		end
 	else
+		sparkType = 1
 		radius = 5
 		x, y, z, mapID = getPlayerPositionData()
 		style = defaultSparkPopupStyle
@@ -634,6 +780,7 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 		cooldownBroadcastToPhase = false
 		requirement = nil
 		spellInputs = nil
+		showHSI = true
 	end
 
 	x, y, z = DataUtils.roundToNthDecimal(verifyNumber(x), 4), DataUtils.roundToNthDecimal(verifyNumber(y), 4), DataUtils.roundToNthDecimal(verifyNumber(z), 4)
@@ -642,6 +789,10 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 	sparkUI_Helper.requirement = requirement
 	sparkUI_Helper.conditionsData = conditions
 	sparkUI_Helper.spellInputs = spellInputs
+	sparkUI_Helper.type = sparkType
+	sparkUI_Helper.emote = emote
+	sparkUI_Helper.chat = chat
+	sparkUI_Helper.showHSI = showHSI
 
 	if (sparkUI_Helper.requirement and #sparkUI_Helper.requirement > 0) then
 		-- convert old requirement
@@ -668,4 +819,10 @@ ns.UI.SparkPopups.CreateSparkUI = {
 	sparkPopupStyles = sparkPopupStyles,
 	getSparkStyles = getSparkPopupStylesKV,
 	--sparkPopupStyles = sparkPopupStylesKVTable,
+
+	sparkTypes = _sparkTypes,
+	sparkTypesMap = _sparkTypesMap,
+
+	emotesList = emotesList,
+	emotesMap = emotesMap,
 }

@@ -946,14 +946,14 @@
 				Epsilon_MerchantFrame.merchantID = id;
 				Epsilon_MerchantFrame.addingVendor = true;
 				SendChatMessage( ".phase forge npc gossip option add I want to browse your goods.", "GUILD" );
-				SendChatMessage( ".phase forge npc gossip option icon "..GetNumGossipOptions().." 1", "GUILD" );
+				SendChatMessage( ".phase forge npc gossip option icon "..C_GossipInfo.GetNumOptions().." 1", "GUILD" );
 				self:Hide();
 			</OnClick>
 			<OnEvent>
-				if GetNumGossipOptions() == 0 then
+				if C_GossipInfo.GetNumOptions() == 0 then
 					self:SetPoint("TOPLEFT", GossipGreetingText, "BOTTOMLEFT", -10, -20)
 				else
-					self:SetPoint("TOPLEFT", _G["GossipTitleButton"..GetNumGossipOptions()], "BOTTOMLEFT", 0, -3)
+					self:SetPoint("TOPLEFT", GossipFrame_GetTitleButton(C_GossipInfo.GetNumOptions()), "BOTTOMLEFT", 0, -3)
 				end
 			</OnEvent>
 		</Scripts>
@@ -987,9 +987,9 @@
 			</OnLeave>
 			<OnEvent>
 				if not C_Epsilon.IsOfficer() then self:Hide(); return end
-				for i = 1, GetNumGossipOptions() do
-					titleButton = _G["GossipTitleButton" .. i];
-					titleButtonText = _G["GossipTitleButton" .. i]:GetText();
+				for i = 1, C_GossipInfo.GetNumOptions() do
+					titleButton = GossipFrame_GetTitleButton(i);
+					titleButtonText = titleButton:GetText();
 					if titleButtonText == "I want to browse your goods." then
 						self:SetPoint("RIGHT", titleButton, "RIGHT", -8, 0);
 						self:SetFrameLevel(10000)

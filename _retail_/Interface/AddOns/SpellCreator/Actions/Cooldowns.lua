@@ -35,6 +35,9 @@ local cooldownFrameFuncs = {
 	actionButtons = function(commID, cooldownTime, phase)
 		ns.UI.ActionButton.updateArcActionButtonCooldowns()
 	end,
+	strataCast = function(commdID, cooldownTime, phase)
+		if not phase then ns.UI.Stratacast.triggerCD(commdID, cooldownTime) end
+	end,
 }
 
 ---Trigger all spell icon cooldown frame visuals

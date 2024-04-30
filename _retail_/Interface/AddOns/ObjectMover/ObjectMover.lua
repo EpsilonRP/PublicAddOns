@@ -14,27 +14,96 @@ local addonVersion, addonAuthor, addonName = GetAddOnMetadata(MYADDON, "Version"
 
 local addonColor = "|cff" .. "FFD700"
 
+local useAddonMsgCommands = true
+
 local OPmoveLength, OPmoveWidth, OPmoveHeight, MessageCount, ObjectClarifier, SpawnClarifier, ScaleClarifier, RotateClarifier, OPObjectSpell, cmdPref, isGroupSelected, m, rateLimited =
-0, 0, 0, 0, false, false, false, false, nil, "go", nil, nil, false
+	0, 0, 0, 0, false, false, false, false, nil, "go", nil, nil, false
 BINDING_HEADER_OBJECTMANIP, SLASH_OM_SHOWCLOSE1, SLASH_OM_SHOWCLOSE2, SLASH_OM_SHOWCLOSE3 = "Object Mover", "/obj", "/om",
 	"/op"
 
 local isWMO = { [14] = true, [15] = true, [33] = true, [38] = true, [43] = true, [54] = true }
-local ObjectTypes = { [0] = "DOOR", [1] = "BUTTON", [2] = "QUESTGIVER", [3] = "CHEST", [4] = "BINDER", [5] = "GENERIC",
-	[6] = "TRAP", [7] = "CHAIR", [8] = "SPELL_FOCUS", [9] = "TEXT", [10] = "GOOBER", [11] = "TRANSPORT", [12] =
-"AREADAMAGE", [13] = "CAMERA", [14] = "MAP_OBJECT (WMO)", [15] = "MAP_OBJ_TRANSPORT (WMO)", [16] = "DUEL_ARBITER", [17] =
-"FISHINGNODE", [18] = "RITUAL", [19] = "MAILBOX", [20] = "DO_NOT_USE", [21] = "GUARDPOST", [22] = "SPELLCASTER", [23] =
-"MEETINGSTONE", [24] = "FLAGSTAND", [25] = "FISHINGHOLE", [26] = "FLAGDROP", [27] = "MINI_GAME", [28] = "DO_NOT_USE_2",
-	[29] = "CONTROL_ZONE", [30] = "AURA_GENERATOR", [31] = "DUNGEON_DIFFICULTY", [32] = "BARBER_CHAIR", [33] =
-"DESTRUCTIBLE_BUILDING (WMO)", [34] = "GUILD_BANK", [35] = "TRAPDOOR", [36] = "NEW_FLAG", [37] = "NEW_FLAG_DROP", [38] =
-"GARRISON_BUILDING (WMO)", [39] = "GARRISON_PLOT", [40] = "CLIENT_CREATURE", [41] = "CLIENT_ITEM", [42] =
-"CAPTURE_POINT (WMO)", [43] = "PHASEABLE_MO", [44] = "GARRISON_MONUMENT", [45] = "GARRISON_SHIPMENT", [46] =
-"GARRISON_MONUMENT_PLAQUE", [47] = "ITEM_FORGE", [48] = "UI_LINK", [49] = "KEYSTONE_RECEPTACLE", [50] = "GATHERING_NODE",
-	[51] = "CHALLENGE_MODE_REWARD", [52] = "MULTI", [53] = "SIEGEABLE_MULTI", [54] = "SIEGEABLE_MO (WMO)", [55] =
-"PVP_REWARD", [56] = "PLAYER_CHOICE_CHEST", [57] = "LEGENDARY_FORGE", [58] = "GARR_TALENT_TREE", [59] =
-"WEEKLY_REWARD_CHEST", [60] = "CLIENT_MODEL" }
-local ObjectAnims = { [0] = "Stand", [145] = "Spawn", [146] = "Close", [147] = "Closed", [148] = "Open", [149] = "Opened",
-	[150] = "Destroy", [157] = "Despawn" }
+local ObjectTypes = {
+	[0] = "DOOR",
+	[1] = "BUTTON",
+	[2] = "QUESTGIVER",
+	[3] = "CHEST",
+	[4] = "BINDER",
+	[5] = "GENERIC",
+	[6] = "TRAP",
+	[7] = "CHAIR",
+	[8] = "SPELL_FOCUS",
+	[9] = "TEXT",
+	[10] = "GOOBER",
+	[11] = "TRANSPORT",
+	[12] =
+	"AREADAMAGE",
+	[13] = "CAMERA",
+	[14] = "MAP_OBJECT (WMO)",
+	[15] = "MAP_OBJ_TRANSPORT (WMO)",
+	[16] = "DUEL_ARBITER",
+	[17] =
+	"FISHINGNODE",
+	[18] = "RITUAL",
+	[19] = "MAILBOX",
+	[20] = "DO_NOT_USE",
+	[21] = "GUARDPOST",
+	[22] = "SPELLCASTER",
+	[23] =
+	"MEETINGSTONE",
+	[24] = "FLAGSTAND",
+	[25] = "FISHINGHOLE",
+	[26] = "FLAGDROP",
+	[27] = "MINI_GAME",
+	[28] = "DO_NOT_USE_2",
+	[29] = "CONTROL_ZONE",
+	[30] = "AURA_GENERATOR",
+	[31] = "DUNGEON_DIFFICULTY",
+	[32] = "BARBER_CHAIR",
+	[33] =
+	"DESTRUCTIBLE_BUILDING (WMO)",
+	[34] = "GUILD_BANK",
+	[35] = "TRAPDOOR",
+	[36] = "NEW_FLAG",
+	[37] = "NEW_FLAG_DROP",
+	[38] =
+	"GARRISON_BUILDING (WMO)",
+	[39] = "GARRISON_PLOT",
+	[40] = "CLIENT_CREATURE",
+	[41] = "CLIENT_ITEM",
+	[42] =
+	"CAPTURE_POINT (WMO)",
+	[43] = "PHASEABLE_MO",
+	[44] = "GARRISON_MONUMENT",
+	[45] = "GARRISON_SHIPMENT",
+	[46] =
+	"GARRISON_MONUMENT_PLAQUE",
+	[47] = "ITEM_FORGE",
+	[48] = "UI_LINK",
+	[49] = "KEYSTONE_RECEPTACLE",
+	[50] = "GATHERING_NODE",
+	[51] = "CHALLENGE_MODE_REWARD",
+	[52] = "MULTI",
+	[53] = "SIEGEABLE_MULTI",
+	[54] = "SIEGEABLE_MO (WMO)",
+	[55] =
+	"PVP_REWARD",
+	[56] = "PLAYER_CHOICE_CHEST",
+	[57] = "LEGENDARY_FORGE",
+	[58] = "GARR_TALENT_TREE",
+	[59] =
+	"WEEKLY_REWARD_CHEST",
+	[60] = "CLIENT_MODEL"
+}
+local ObjectAnims = {
+	[0] = "Stand",
+	[145] = "Spawn",
+	[146] = "Close",
+	[147] = "Closed",
+	[148] = "Open",
+	[149] = "Opened",
+	[150] = "Destroy",
+	[157] = "Despawn"
+}
 
 -- Chat Filter Cache
 
@@ -90,16 +159,34 @@ local function eprint(text, rest)
 	local line = strmatch(debugstack(2), ":(%d+):")
 	if line then
 		print(addonColor .. addonName .. " Error @ " .. line .. ": " .. text ..
-		" | " .. (rest and " | " .. rest or "") .. " |r")
+			" | " .. (rest and " | " .. rest or "") .. " |r")
 	else
 		print(addonColor .. addonName .. " @ ERROR: " .. text .. " | " .. rest .. " |r")
 		print(debugstack(2))
 	end
 end
 
+local sendAddonCmd
+
+if EpsilonLib and EpsilonLib.AddonCommands then
+	sendAddonCmd = EpsilonLib.AddonCommands.Register("ObjectMover")
+else
+	function sendAddonCmd(text)
+		local cmdPref = "i:om:"
+		local fullCmd = cmdPref .. text
+
+		C_ChatInfo.SendAddonMessage("Command", fullCmd, "GUILD")
+	end
+end
+
 local function cmd(text)
-	SendChatMessage("." .. text, "GUILD");
-	--	dprint("Sending Command: "..text)
+	if useAddonMsgCommands and OPShowMessagesToggle:GetChecked() ~= true then
+		sendAddonCmd(text)
+	else -- Send as a normal command if we have show messages enabled
+		SendChatMessage("." .. text, "GUILD");
+	end
+
+	dprint(false, "Sending Command: " .. text)
 end
 
 function OPManagerPrint(text)
@@ -139,6 +226,9 @@ function loadMasterTable()
 	if isNotDefined(OPMasterTable.Options["showTooltips"]) then OPMasterTable.Options["showTooltips"] = true end
 	if isNotDefined(OPMasterTable.Options["MovePlayer"]) then OPMasterTable.Options["MovePlayer"] = false end
 	if isNotDefined(OPMasterTable.Options["useOverlayMethod"]) then OPMasterTable.Options["useOverlayMethod"] = false end
+	if isNotDefined(OPMasterTable.Options["autoUpdateRot"]) then OPMasterTable.Options["autoUpdateRot"] = true end
+	if isNotDefined(OPMasterTable.Options["autoUpdateTint"]) then OPMasterTable.Options["autoUpdateTint"] = true end
+
 	if not OPMasterTable.ParamPresetKeys then OPMasterTable.ParamPresetKeys = { "Building Tile", "Fine Positioning" } end
 	if not OPMasterTable.ParamPresetContent then
 		OPMasterTable.ParamPresetContent = {
@@ -249,9 +339,9 @@ OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
 			OPWidthBox:SetText(roundToNthDecimal(abs(mY), 7))
 			OPHeightBox:SetText(roundToNthDecimal(abs(mZ), 7))
 			dprint("AUTODIM: X: " ..
-			mX .. " (" .. mX1 ..
-			" | " .. mX2 .. "), Y: " .. mY .. " (" .. mY1 .. " | " .. mY2 .. "), Z: " .. mZ .. " (" ..
-			mZ1 .. " | " .. mZ2 .. ")")
+				mX .. " (" .. mX1 ..
+				" | " .. mX2 .. "), Y: " .. mY .. " (" .. mY1 .. " | " .. mY2 .. "), Z: " .. mZ .. " (" ..
+				mZ1 .. " | " .. mZ2 .. ")")
 			OP_AutoDimensionModelFrame.o:ClearModel()
 		end
 
@@ -384,7 +474,7 @@ function OPObjectPreviewerActor_OnModelLoaded(self)
 		OPSelectedObjectDimZ = nil
 	else
 		local dimX = roundToNthDecimal(abs(lx), 4); local dimY = roundToNthDecimal(abs(ly), 4); local dimZ =
-		roundToNthDecimal(abs(lz), 4)
+			roundToNthDecimal(abs(lz), 4)
 		OPPanelPopout.ObjDimensions.Text:SetText(dimX .. "*" .. dimY .. "*" .. dimZ)
 		OPSelectedObjectDimX = abs(lx)
 		OPSelectedObjectDimY = abs(ly)
@@ -603,8 +693,9 @@ function OPMainFrame_OnShow(self)
 				OPNewOptionsFrame.MainArea.Help:Hide();
 				OPNewOptionsFrame.MainArea.NewOptions:Hide();
 				dprint("Addon version " ..
-				addonVersion .. " detected as being ~= last version seen (" .. OPMasterTable.Options["LastVersion"] ..
-				")")
+					addonVersion ..
+					" detected as being ~= last version seen (" .. OPMasterTable.Options["LastVersion"] ..
+					")")
 			end
 
 			OPMasterTable.Options["LastVersion"] = addonVersion
@@ -709,11 +800,19 @@ function updateDimensions(val)
 		if val == "width" then if tonumber(OPWidthBox:GetText()) ~= nil then OPmoveWidth = (tonumber(OPWidthBox:GetText()) * tonumber(OPScaleBox:GetText())) end end
 		if val == "height" then if tonumber(OPHeightBox:GetText()) ~= nil then OPmoveHeight = (tonumber(OPHeightBox:GetText()) * tonumber(OPScaleBox:GetText())) end end
 	else
-		if val == "length" then if tonumber(OPLengthBox:GetText()) ~= nil then OPmoveLength = tonumber(OPLengthBox
-				:GetText()) end end
+		if val == "length" then
+			if tonumber(OPLengthBox:GetText()) ~= nil then
+				OPmoveLength = tonumber(OPLengthBox
+					:GetText())
+			end
+		end
 		if val == "width" then if tonumber(OPWidthBox:GetText()) ~= nil then OPmoveWidth = tonumber(OPWidthBox:GetText()) end end
-		if val == "height" then if tonumber(OPHeightBox:GetText()) ~= nil then OPmoveHeight = tonumber(OPHeightBox
-				:GetText()) end end
+		if val == "height" then
+			if tonumber(OPHeightBox:GetText()) ~= nil then
+				OPmoveHeight = tonumber(OPHeightBox
+					:GetText())
+			end
+		end
 	end
 end
 
@@ -843,7 +942,7 @@ end
 
 function OPSpawn()
 	if CheckIfValid(OPObjectIDBox) then
-		SpawnClarifier = true
+		--SpawnClarifier = true
 		--Check if we have an object ID in the object ID box, if we do, spawn it
 		if OPScaleObjectToggle:GetChecked() == true and OPScaleObjectToggle:IsEnabled() then
 			SendChatMessage(".go spawn " .. OPObjectIDBox:GetText() .. " scale " .. OPScaleBox:GetText())
@@ -949,7 +1048,7 @@ end
 
 function OPRotateObject(sendToServer)
 	--if RotateClarifier == false then
-	RotateClarifier = true
+	--RotateClarifier = true
 	--end
 	if isGroupSelected then
 		if rateLimited == true and not sendToServer then return; end
@@ -957,7 +1056,7 @@ function OPRotateObject(sendToServer)
 		local RotationZ2 = tonumber(OPLastSelectedGroupRotZ) or tonumber(OPLastSelectedObjectData[11])
 		if RotationZ2 < 0 then RotationZ2 = RotationZ2 + 360 elseif RotationZ2 > 360 then RotationZ2 = RotationZ2 - 360 end
 		local newRotZ = RotationZ1 - RotationZ2
-		updateRotateClarifierQ(1)
+		--updateRotateClarifierQ(1)
 		cmd("go group turn " .. newRotZ)
 		OPLastSelectedGroupRotZ = RotationZ1
 		rateLimited = true
@@ -978,12 +1077,12 @@ function OPRotateObject(sendToServer)
 			RotationZ = 0; dprint("RotZ < 0, Made 0");
 		end
 		if sendToServer or dontUseClientRotation then
-			updateRotateClarifierQ(1)
+			--updateRotateClarifierQ(1)
 			cmd("go rot " .. RotationX .. " " .. RotationY .. " " .. RotationZ)
 		else
 			C_Epsilon.RotateObject(localGUIDLow, localGUIDHigh, RotationX, RotationY, RotationZ)
 			dprint("C_Epsilon.RotateObject(" ..
-			localGUIDLow .. "," .. localGUIDHigh .. "," .. RotationX .. "," .. RotationY .. "," .. RotationZ .. ")")
+				localGUIDLow .. "," .. localGUIDHigh .. "," .. RotationX .. "," .. RotationY .. "," .. RotationZ .. ")")
 		end
 	end
 end
@@ -1219,13 +1318,12 @@ local wordGenCharOffsets = {
 }
 
 local function spawnCharWithOffset(letterID, offsetX)
-	print("new spawning function")
 	if wordGenCharOffsets[letterID] then
 		local charData = wordGenCharOffsets[letterID]
-		cmd("go spawn " .. letterID .. " move left " .. offset .. " move up " .. charData.y)
+		cmd("go spawn " .. letterID .. " move left " .. offsetX .. " move up " .. charData.y)
 		dprint("object required y-offset by " .. charData.y)
 	else
-		cmd("go spawn " .. letterID .. " move left " .. offsetY)
+		cmd("go spawn " .. letterID .. " move left " .. offsetX)
 	end
 end
 
@@ -1245,7 +1343,7 @@ local function resumeProcessingObjectSpawning()
 				spawnCharWithOffset(letterID, offset)
 				cmd("go group add " .. groupLeaderID)
 				dprint("Spawned object (" .. letterID .. ") left (" .. offset ..
-				") to GUID (" .. groupLeaderID .. ")'s group.")
+					") to GUID (" .. groupLeaderID .. ")'s group.")
 			end
 			table.wipe(objectSpawningData)
 			dprint("Wiping objectSpawningData table")
@@ -1255,6 +1353,8 @@ end
 
 StaticPopupDialogs["OP_TOOLS_WORDGEN"] = {
 	text = "Text Generator",
+	subText = ("Enter the text you'd like here, then hit '%s' to spawn.\n\rSupported Symbols: ! / & - + ; : ? | < >")
+		:format(START),
 	button1 = START,
 	button2 = CANCEL,
 	OnAccept = function(self)
@@ -1341,7 +1441,7 @@ function OPSaveMenuActualSave()
 		message("Please enter a valid name!\n\rNames must contain at least one non-space character.")
 	else
 		eprint(
-		"There was an error saving your pre-set. Please use '/reload' and try again. If this persists, please report it as a bug.")
+			"There was an error saving your pre-set. Please use '/reload' and try again. If this persists, please report it as a bug.")
 	end
 end
 
@@ -1353,7 +1453,7 @@ function OPSaveMenuParamSave(name)
 			if v == name then
 				if not confirmPSaveOverwrite then
 					message(
-					"The name specified conflicts with an already saved Parameter Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
+						"The name specified conflicts with an already saved Parameter Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
 					confirmPSaveOverwrite = true
 					confirmPSaveOverwriteName = name
 					return
@@ -1363,14 +1463,14 @@ function OPSaveMenuParamSave(name)
 						OPSaveMenuParamSaveForReal(name, false)
 					else
 						message(
-						"The name specified conflicts with an already saved Parameter Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
+							"The name specified conflicts with an already saved Parameter Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
 						confirmPSaveOverwrite = true
 						confirmPSaveOverwriteName = name
 					end
 					return
 				else
 					eprint(
-					"You tried to save with the same name as another Parameter Pre-set save, and an error occurred internally. Please remember how you did this and report it as a bug. Thanks you.")
+						"You tried to save with the same name as another Parameter Pre-set save, and an error occurred internally. Please remember how you did this and report it as a bug. Thanks you.")
 					return
 				end
 				return
@@ -1399,30 +1499,30 @@ end
 
 function OPSaveMenuRotSave(name)
 	if OPMasterTable.RotPresetKeys then
-		for k, v in ipairs(OPMasterTable.RotPresetKeys) do                                                                                                     -- Scan all our current saved rotation preset and confirm if we're overwriting one
-			if v == name then                                                                                                                                  -- if already saved name == new save name
-				if not confirmRSaveOverwrite then                                                                                                              -- If this is the first time, we'll do this, otherwise go to the second step
+		for k, v in ipairs(OPMasterTable.RotPresetKeys) do                                                                                              -- Scan all our current saved rotation preset and confirm if we're overwriting one
+			if v == name then                                                                                                                           -- if already saved name == new save name
+				if not confirmRSaveOverwrite then                                                                                                       -- If this is the first time, we'll do this, otherwise go to the second step
 					message(
-					"The name specified conflicts with an already saved Rotation Pre-set name. Hit save again confirm that you wish to overwrite the previous save.") -- Warn the user about overwriting a current preset
-					confirmRSaveOverwrite = true                                                                                                               -- save that we've already warned them
+						"The name specified conflicts with an already saved Rotation Pre-set name. Hit save again confirm that you wish to overwrite the previous save.") -- Warn the user about overwriting a current preset
+					confirmRSaveOverwrite = true                                                                                                        -- save that we've already warned them
 					confirmRSaveOverwriteName =
-					name                                                                                                                                       -- keep the name in memory, so that if they close the menu and then save as a new name, we know to recheck again
+						name                                                                                                                            -- keep the name in memory, so that if they close the menu and then save as a new name, we know to recheck again
 					return
-				elseif confirmRSaveOverwrite then                                                                                                              -- if we're in the confirmation state
-					if name == confirmRSaveOverwriteName then                                                                                                  -- if the name matches the last warned overwrite name
-						confirmRSaveOverwrite = false                                                                                                          -- reset the check so we're back to normal
-						OPSaveMenuRotSaveForReal(name, false)                                                                                                  -- Save the actual preset yay!
-					else                                                                                                                                       -- if the name they're trying to save no longer matches the last warned name, we need to re-warn them that this name is also still taken!!
+				elseif confirmRSaveOverwrite then                                                                                                       -- if we're in the confirmation state
+					if name == confirmRSaveOverwriteName then                                                                                           -- if the name matches the last warned overwrite name
+						confirmRSaveOverwrite = false                                                                                                   -- reset the check so we're back to normal
+						OPSaveMenuRotSaveForReal(name, false)                                                                                           -- Save the actual preset yay!
+					else                                                                                                                                -- if the name they're trying to save no longer matches the last warned name, we need to re-warn them that this name is also still taken!!
 						message(
-						"The name specified conflicts with an already saved Rotation Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
-						confirmRSaveOverwrite = true                                                                                                           -- Set the check to true again to make sure
+							"The name specified conflicts with an already saved Rotation Pre-set name. Hit save again to confirm that you wish to overwrite the previous save.")
+						confirmRSaveOverwrite = true -- Set the check to true again to make sure
 						confirmRSaveOverwriteName =
-						name                                                                                                                                   -- and keep the new name in memory again, just incase they change it again
+							name   -- and keep the new name in memory again, just incase they change it again
 					end
 					return
 				else
 					eprint(
-					"You tried to save with the same name as another Rotation Save, and an error occurred internally. Please remember how you did this and report it as a bug. Thank you.")
+						"You tried to save with the same name as another Rotation Save, and an error occurred internally. Please remember how you did this and report it as a bug. Thank you.")
 					return
 				end
 				return
@@ -1501,7 +1601,7 @@ function OPCreateLoadDropDownMenus()
 				GameTooltip:SetText("Select a previously saved parameter pre-set to load.", nil, nil, nil, nil, true)
 				GameTooltip:AddLine(" ")
 				GameTooltip:AddLine(
-				"Right-Click a saved Pre-set to Delete it. You must do this twice to confirm deletion to avoid mis-clicks.",
+					"Right-Click a saved Pre-set to Delete it. You must do this twice to confirm deletion to avoid mis-clicks.",
 					1, 1, 1, true)
 				GameTooltip:Show()
 			end)
@@ -1570,7 +1670,7 @@ function OPCreateLoadDropDownMenus()
 				GameTooltip:SetText("Select a previously saved rotation pre-set to load.", nil, nil, nil, nil, true)
 				GameTooltip:AddLine(" ")
 				GameTooltip:AddLine(
-				"Right-Click a saved Pre-set to Delete it. You must do this twice to confirm deletion to avoid mis-clicks.",
+					"Right-Click a saved Pre-set to Delete it. You must do this twice to confirm deletion to avoid mis-clicks.",
 					1, 1, 1, true)
 				GameTooltip:Show()
 			end)
@@ -1655,7 +1755,7 @@ local function checkForFilter(Message)
 
 	-- GObject Rotate Message Filter
 	if RotateClarifier and Message:gsub("|.........", ""):find("rotated") then
-		updateRotateClarifierQ(-1)
+		--updateRotateClarifierQ(-1)
 		dprint("RotateClarifier Caught Message")
 		return true
 
@@ -1695,20 +1795,7 @@ local function OMChatFilter(Self, Event, Message)
 	local clearmsg = gsub(Message, "|cff%x%x%x%x%x%x", "");
 	local clearmsg = clearmsg:gsub("|r", "");
 
-	--[[
-	if clearmsg:find("Selected gameobject") or clearmsg:find("Spawned gameobject") then
-		if not clearmsg:find("[aA]dd") and not clearmsg:find("group") then
-			lastSelectedObjectID = clearmsg:match("gameobject .* %- (%d*)%]")
-			print(clearmsg)
-			dprint("Last Selected/Spawned Object = "..tostring(lastSelectedObjectID))
-			if OPParamAutoUpdateButton:GetChecked() then
-				OPGetObject("RightButton")
-			end
-			isGroupSelected = false
-			dprint("isGroupSelected false")
-		end
-	end
-	--]]
+	---------- Group Selection Detection ----------
 
 	if clearmsg:find("Selected gameobject group") or clearmsg:find("Spawned gameobject group") or clearmsg:find("Spawned blueprint") or clearmsg:find("added %d+ objects to gameobject group") or clearmsg:find("added the gameobject .* to gameobject group") then
 		updateGroupSelected(true)
@@ -1725,7 +1812,7 @@ local function OMChatFilter(Self, Event, Message)
 				dprint("Added objects to a group, re-selecting group to capture the rotation..")
 			else
 				cprint(
-				"ALERT: Objects added to group with Auto-Rotate enabled, but we couldn't get the group data. Please re-select the group.")
+					"ALERT: Objects added to group with Auto-Rotate enabled, but we couldn't get the group data. Please re-select the group.")
 			end
 		end
 	end
@@ -1748,11 +1835,12 @@ local function OMChatFilter(Self, Event, Message)
 			dprint("Group Data collected, not listening.")
 		end
 	end
+
 	---------- Auto Update Rotation CAPTURES ----------
 
 	if OPRotAutoUpdate:GetChecked() == true and not RotateClarifier then -- Is the AutoUpdate Rot enabled? (Check if RotateClarifier is enabled - if it is, we don't do anything as to not impact the sliders functioning normally)
-		if clearmsg:find("You have rotated group .* [%X%Y%Z]+") then -- Did we get a rotated object message?
-			dontFuckingRotate = true                                -- Stop the sliders from actually causing a rotation
+		if clearmsg:find("You have rotated group .* [%X%Y%Z]+") then  -- Did we get a rotated object message?
+			dontFuckingRotate = true                                  -- Stop the sliders from actually causing a rotation
 			dprint("Group Rotate detected")
 
 			if clearmsg:find("Z:") then -- Matching for Group Rotation Message which is always relative..
@@ -1760,65 +1848,15 @@ local function OMChatFilter(Self, Event, Message)
 				if z < 0 then z = z + 360 elseif z > 360 then z = z - 360 end
 				OPRotationSliderZ:SetValueStep(0.0001)
 				local newYaw = OPRotationSliderZ:GetValue() + z
-				if newYaw < 0 then newYaw = newYaw + 360 elseif newYaw > 360 then newYaw = newYaw - 360 end
+
+				-- if newYaw < 0 then newYaw = newYaw + 360 elseif newYaw > 360 then newYaw = newYaw - 360 end -- replaced with whiles
+				while newYaw < 0 do newYaw = newYaw + 360 end
+				while newYaw > 360 do newYaw = newYaw - 360 end
 				OPRotationSliderZ:SetValue(newYaw)
 				dprint("Set Slider Z to " .. newYaw)
 			end
 			dontFuckingRotate = false -- Allow sliders to cause rotation again
 		end
-
-		-- Old Rotate Message Filters for auto-updating the sliders. Replaced by Gob_Info
-		--[[
-			if clearmsg:find("X:") then
-				local x
-				if clearmsg:find("from X.*to X") then
-					x = tonumber(clearmsg:match("to X: (%-?%d*%.%d*)"))
-					dprint("Relative Rotation Caught")
-				else
-					x = tonumber(clearmsg:match("X: (%-?%d*%.%d*)"))
-				end
-				if x < 0 then x = x+360 elseif x > 360 then x = x-360 end
-				OPRotationSliderX:SetValueStep(0.0001)
-				OPRotationSliderX:SetValue(x)
-				dprint("Set Slider X to "..x)
-			end
-			if clearmsg:find("Y:") then
-				local y
-				if clearmsg:find("from Y.*to Y") then
-					y = tonumber(clearmsg:match("to Y: (%-?%d*%.%d*)"))
-					dprint("Relative Rotation Caught")
-				else
-					y = tonumber(clearmsg:match("Y: (%-?%d*%.%d*)"))
-				end
-				if y < 0 then y = y+360 elseif y > 360 then y = y-360 end
-				OPRotationSliderY:SetValueStep(0.0001)
-				OPRotationSliderY:SetValue(y)
-				dprint("Set Slider Y to "..y)
-			end
-			--]]
-
-		--[[
-		if clearmsg:find("Pitch: %-?%d*%.%d*, Roll: %-?%d*%.%d*, Yaw/Turn: %-?%d*%.%d*") then
-			local pitch = tonumber(clearmsg:match("Pitch: (%-?%d*%.%d*), Roll: %-?%d*%.%d*, Yaw/Turn: %-?%d*%.%d*"))
-			if pitch < 0 then pitch = pitch+360 end
-			local roll = tonumber(clearmsg:match("Pitch: %-?%d*%.%d*, Roll: (%-?%d*%.%d*), Yaw/Turn: %-?%d*%.%d*"))
-			if roll < 0 then roll = roll+360 end
-			local yaw = tonumber(clearmsg:match("Pitch: %-?%d*%.%d*, Roll: %-?%d*%.%d*, Yaw/Turn: (%-?%d*%.%d*)"))
-			if yaw < 0 then yaw = yaw+360 end
-			dprint(clearmsg)
-
-			dontFuckingRotate = true
-			OPRotationSliderX:SetValueStep(0.0001)
-			OPRotationSliderY:SetValueStep(0.0001)
-			OPRotationSliderZ:SetValueStep(0.0001)
-			OPRotationSliderX:SetValue(roll)
-			OPRotationSliderY:SetValue(pitch)
-			OPRotationSliderZ:SetValue(yaw)
-			dontFuckingRotate = false
-
-			dprint("Roll: "..roll.." | Pitch: "..pitch.." | Turn: "..yaw)
-		end
-		--]]
 	end
 
 
@@ -1826,7 +1864,8 @@ local function OMChatFilter(Self, Event, Message)
 
 
 	---- Handling Hiding Messages to avoid Spam ----
-
+	-- // Nope - SILENT SENDING NOW!
+	--[[
 	if ObjectClarifier or SpawnClarifier or ScaleClarifier or RotateClarifier then
 		--Check to see if we sent a request and we don't want to see messages
 		if OPShowMessagesToggle:GetChecked() ~= true then
@@ -1837,6 +1876,7 @@ local function OMChatFilter(Self, Event, Message)
 			checkForFilter(Message)
 		end
 	end
+	--]]
 end
 
 --Apply filter
@@ -1878,7 +1918,7 @@ local function Addon_OnEvent(self, event, ...)
 				dprint("isGroupSelected false")
 
 				local guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh =
-				strsplit(strchar(31), objdetails)
+					strsplit(strchar(31), objdetails)
 				HasTint = tonumber(HasTint)
 				OPLastSelectedObjectData = { strsplit(strchar(31), objdetails) }
 				OPLastSelectedGroupRotZ = nil

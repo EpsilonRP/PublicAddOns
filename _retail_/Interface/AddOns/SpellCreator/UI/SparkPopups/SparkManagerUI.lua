@@ -9,6 +9,11 @@ local Tooltip = ns.Utils.Tooltip
 local Popups = ns.UI.Popups
 local Permissions = ns.Permissions
 
+local _sparkTypes = SparkPopups.CreateSparkUI.sparkTypes
+local _sparkTypesMap = SparkPopups.CreateSparkUI.sparkTypesMap
+
+local ASSETS_PATH = ns.Constants.ASSETS_PATH
+local SPARK_ASSETS_PATH = ASSETS_PATH .. "/Sparks/"
 local ADDON_COLORS = ns.Constants.ADDON_COLORS
 
 local cmd = ns.Cmd.cmd
@@ -117,20 +122,40 @@ local function drawMapGroup(group, mapID, callback)
 		local triggerGroup = AceGUI:Create("InlineGroup") --[[@as AceGUIInlineGroup]]
 		triggerGroup:SetLayout("Flow")
 		triggerGroup:SetRelativeWidth(1)
-		triggerGroup:SetAutoAdjustHeight(false)
-		triggerGroup:SetHeight(115)
+		--triggerGroup:SetAutoAdjustHeight(false)
+		--triggerGroup:SetHeight(115)
 		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(triggerData[1]) .. " Trigger")
 		groupScrollFrame:AddChild(triggerGroup)
 
 		local triggerInfoSection = AceGUI:Create("SimpleGroup") --[[@as AceGUISimpleGroup]]
 		triggerInfoSection:SetLayout("List")
 		triggerInfoSection:SetRelativeWidth(0.3)
-		triggerInfoSection:SetAutoAdjustHeight(false)
-		triggerInfoSection:SetHeight(50)
+		--triggerInfoSection:SetAutoAdjustHeight(false)
+		--triggerInfoSection:SetHeight(50)
 		triggerGroup:AddChild(triggerInfoSection)
-		local numExtraLines = 0
 
 		do
+			local popupOptions = triggerData[8] --[[@as PopupTriggerOptions]]
+
+			local typeLabel = AceGUI:Create("InteractiveLabel") --[[@as AceGUIInteractiveLabel]]
+			local _typeID = triggerData[9] or 1
+			local _typeName = triggerData[9] and _sparkTypes[triggerData[9]] or "Standard*"
+			typeLabel:SetText(ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("Type: ") .. _typeName)
+			typeLabel:SetRelativeWidth(1)
+			triggerInfoSection:AddChild(typeLabel)
+			if _typeID == _sparkTypesMap["Emote"] or _typeID == _sparkTypesMap["Chat"] then -- Show what the chat or emote is that's needed
+				local tableToUse = string.lower(_sparkTypes[_typeID])              -- emote | chat
+				local emoteOrChat
+				if _typeID == _sparkTypesMap["Chat"] then
+					emoteOrChat = "[Say|Emote|Yell]: " .. popupOptions[tableToUse]
+				elseif _typeID == _sparkTypesMap["Emote"] then
+					local slashCommands = SparkPopups.CreateSparkUI.emotesMap[popupOptions[tableToUse]]
+					if type(slashCommands) == "table" then slashCommands = table.concat(slashCommands, "; ") end
+					emoteOrChat = popupOptions[tableToUse] .. (" (%s)"):format(slashCommands)
+				end
+				Tooltip.setAceTT(typeLabel, _sparkTypes[_typeID] .. ":", emoteOrChat, { forced = true, delay = 0 })
+			end
+
 			local xLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
 			xLabel:SetText(ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("X: ") .. round(verifyNumber(triggerData[2]), 4))
 			xLabel:SetRelativeWidth(1)
@@ -151,20 +176,20 @@ local function drawMapGroup(group, mapID, callback)
 			radiusLabel:SetRelativeWidth(1)
 			triggerInfoSection:AddChild(radiusLabel)
 
-			local tintLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
-			local colorHex = triggerData[7]
-			tintLabel:SetText(ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("Tint: ") .. (colorHex and WrapTextInColorCode(colorHex, colorHex) or "None"))
-			tintLabel:SetRelativeWidth(1)
-			triggerInfoSection:AddChild(tintLabel)
+			if not _typeID or _typeID == _sparkTypesMap["Standard"] or _typeID == _sparkTypesMap["Multi"] then
+				local tintLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
+				local colorHex = triggerData[7]
+				tintLabel:SetText(ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("Tint: ") .. (colorHex and WrapTextInColorCode(colorHex, colorHex) or "None"))
+				tintLabel:SetRelativeWidth(1)
+				triggerInfoSection:AddChild(tintLabel)
+			end
 
-			local popupOptions = triggerData[8] --[[@as PopupTriggerOptions]]
 			if popupOptions then
 				if popupOptions.cooldownTime then
 					local cdTimeLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
 					cdTimeLabel:SetText(ADDON_COLORS.GAME_GOLD:WrapTextInColorCode("CD: ") .. tostring((popupOptions.cooldownTime) .. "s"))
 					cdTimeLabel:SetRelativeWidth(1)
 					triggerInfoSection:AddChild(cdTimeLabel)
-					numExtraLines = numExtraLines + 1
 				end
 				if (popupOptions.conditions and #popupOptions.conditions > 0) or popupOptions.requirement then
 					local requirementLabel = AceGUI:Create("InteractiveLabel") --[[@as AceGUIInteractiveLabel]]
@@ -179,6 +204,7 @@ local function drawMapGroup(group, mapID, callback)
 								local groupString = (gi == 1 and "If") or "..Or"
 								for ri, rowData in ipairs(groupData) do
 									local continueStatement = (ri ~= 1 and "and ") or ""
+									if rowData.IsNot then continueStatement = continueStatement .. "not" end
 									local condName = ns.Actions.ConditionsData.getByKey(rowData.Type).name
 									groupString = string.join(" ", groupString, continueStatement .. condName)
 								end
@@ -190,24 +216,28 @@ local function drawMapGroup(group, mapID, callback)
 						return lines
 					end, { forced = true, delay = 0 })
 					triggerInfoSection:AddChild(requirementLabel)
-					numExtraLines = numExtraLines + 1
 				end
 			end
 		end
 
-		triggerInfoSection:SetHeight(50 + (numExtraLines * 10))
+		--triggerInfoSection:SetHeight(50 + (numExtraLines * 10))
 
 		local triggerIconSection = AceGUI:Create("SimpleGroup") --[[@as AceGUISimpleGroup]]
 		triggerIconSection:SetLayout("Flow")
 		triggerIconSection:SetRelativeWidth(0.39)
 		--triggerIconSection:SetFullHeight(true)
 		triggerGroup:AddChild(triggerIconSection)
+		--triggerGroup:SetHeight(100 + (numExtraLines * 10))
 
 		do
 			local styleBorder = AceGUI:Create("Label") --[[@as AceGUILabel]]
 			local styleBorderImage = triggerData[6]
+			if not styleBorderImage then
+				styleBorderImage = SPARK_ASSETS_PATH .. "1Simple"
+			end
 			if type(styleBorderImage) == "string" then styleBorderImage = styleBorderImage:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName) end
 			styleBorder:SetImage(styleBorderImage)
+
 			styleBorder:SetImageSize(128, 64)
 			styleBorder:SetRelativeWidth(1)
 			if triggerData[7] then -- if there's a color hex code
@@ -279,6 +309,7 @@ local function drawMapGroup(group, mapID, callback)
 		end
 		triggerButtonsSection:DoLayout()
 		triggerGroup:DoLayout()
+		groupScrollFrame:DoLayout()
 	end
 end
 

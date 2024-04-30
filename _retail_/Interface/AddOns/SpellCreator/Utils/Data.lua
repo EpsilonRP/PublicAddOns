@@ -78,15 +78,23 @@ local function caseInsensitiveCompare(a, b)
 	end
 end
 
+local replaceEmptyVars = function(str)
+	while str:find(",%s*,") do
+		str = str:gsub(",%s*,", ",nil,", 1)
+	end
+
+	return str
+end
+
 ---@param text string string to parse into csv arguments, returned as an array of args.
 ---@return string[]|table
 local null = {}
-local function getCSVArgsFromString(text)
+local function getCSVArgsFromString(text, limit)
 	local _csvTable = {}
 	if not text then return _csvTable end
 	text = text:gsub(', "', ',"') -- replace , " with ,"
 	text = text:gsub('" ,', '",') -- replace " , with ",
-	text = text:gsub(",,", ",nil,") -- replace blanks with a nil, to switch to a true nil when adding to the table later
+	text = replaceEmptyVars(text) -- replacing any empty vars with nil
 	if not text then return _csvTable end
 
 	local spat, epat, buf, quoted = [=[^(['"])]=], [=[(['"])$]=]
@@ -102,8 +110,8 @@ local function getCSVArgsFromString(text)
 			buf = buf .. ',' .. str
 		end
 		if not buf then
-			local arg = strtrim((str:gsub(spat, ""):gsub(epat, "")))
-			if arg == "nil" then arg = null end
+			local arg = (str:gsub(spat, ""):gsub(epat, ""))
+			if strtrim(arg) == "nil" then arg = null end
 			tinsert(_csvTable, arg)
 		end
 	end
@@ -111,18 +119,49 @@ local function getCSVArgsFromString(text)
 
 	-- convert nulls back to nils
 	local trueLength = #_csvTable
-	for k,v in ipairs(_csvTable) do
+	for k, v in ipairs(_csvTable) do
 		if v == null then
 			_csvTable[k] = nil
 		end
+
+		if limit and k > limit then
+			_csvTable[limit] = strjoin(",", _csvTable[limit], _csvTable[k]) -- rejoin anything over the limit with , delimiter
+			_csvTable[k] = nil                                     -- clear that
+		end
+
+		if _csvTable[k] then _csvTable[k] = strtrim(_csvTable[k]) end -- trim it
 	end
 
-	return _csvTable, trueLength
+	local returnLength
+	if limit and limit < trueLength then
+		returnLength = limit
+	else
+		returnLength = trueLength
+	end
+
+	return _csvTable, returnLength
 end
 
-local function loadStringToTable(text)
-	local t = assert(loadstring("return {" .. text .. "}"))()
-	return unpack(t)
+local function csv2seq(s)
+	s = replaceEmptyVars(s)
+
+	local t = {}
+	for m in s:gsub('""', '⸂Q⸃'):gsub('%b""', -- change '""' to '\\"' if you want backslash escapes
+		function(q)
+			return q:sub(2, -2):gsub(',', '⸂C⸃')
+		end):gmatch('([^,]+),? *') do -- change * to ? to only trim one space after comma
+		t[#t + 1] = m:gsub('⸂Q⸃', '"'):gsub('⸂C⸃', ',')
+	end
+
+	local trueLength = #t
+
+	for k, v in ipairs(t) do
+		if v == "nil" then
+			t[k] = nil
+		end
+	end
+
+	return t, trueLength
 end
 
 local parseStringToArgs = getCSVArgsFromString

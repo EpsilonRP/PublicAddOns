@@ -294,6 +294,7 @@ local baseMenuList = {
 		spacer(),
 		action(ACTION.TalkingHead),
 		action(ACTION.UnitPowerBar),
+		action(ACTION.UnitPowerBarValue),
 		spacer(),
 		action(ACTION.HideNames),
 		action(ACTION.ShowNames),

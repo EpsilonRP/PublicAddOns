@@ -1104,7 +1104,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(2)
 								else
 									OPLengthBox:SetText(OPLengthBox:GetText()*2)
@@ -1142,7 +1142,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(0.5)
 								else
 									OPLengthBox:SetText(OPLengthBox:GetText()/2)
@@ -1180,7 +1180,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(2)
 								else
 									OPWidthBox:SetText(OPWidthBox:GetText()*2)
@@ -1218,7 +1218,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(0.5)
 								else
 									OPWidthBox:SetText(OPWidthBox:GetText()/2)
@@ -1256,7 +1256,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(2)
 								else
 									OPHeightBox:SetText(OPHeightBox:GetText()*2)
@@ -1294,7 +1294,7 @@
 								if self.Timer then self.Timer:Cancel() end
 							</OnLeave>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPUpdateAllDimensions(0.5)
 								else
 									OPHeightBox:SetText(OPHeightBox:GetText()/2)
@@ -1664,7 +1664,7 @@
 								end
 							</OnClick>
 							<OnShow>
-								if OPMasterTable.Options["SpawnOnMove"] == true then self:SetChecked(true) end 
+								if OPMasterTable.Options["SpawnOnMove"] == true then self:SetChecked(true) end
 								if OPMovePlayerInstead:GetChecked() then
 									self:Enable()
 								else
@@ -1951,7 +1951,7 @@
 						<HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD" />
 						<CheckedTexture file="Interface\Buttons\UI-CheckBox-Check" />
 						<DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled" />
-					</CheckButton> 
+					</CheckButton>
 					<Button parentKey="FullOptionsButton" inherits="UIPanelButtonTemplate" text="More">
 						<Size x="32" y="16" />
 						<Anchors>
@@ -1961,17 +1961,17 @@
 						</Anchors>
 						<Scripts>
 							<OnClick>
-								if not OPNewOptionsFrame:IsShown() then 
+								if not OPNewOptionsFrame:IsShown() then
 									OPNewOptionsFrame:Show();
 									PanelTemplates_SetTab(OPNewOptionsFrame, 1);
 									OPNewOptionsFrame.MainArea.Changelog:Hide();
 									OPNewOptionsFrame.MainArea.Help:Hide();
-									OPNewOptionsFrame.MainArea.NewOptions:Show(); 
+									OPNewOptionsFrame.MainArea.NewOptions:Show();
 								elseif OPNewOptionsFrame.MainArea.NewOptions:IsShown() == false then
 									PanelTemplates_SetTab(OPNewOptionsFrame, 1);
 									OPNewOptionsFrame.MainArea.Changelog:Hide();
 									OPNewOptionsFrame.MainArea.Help:Hide();
-									OPNewOptionsFrame.MainArea.NewOptions:Show(); 
+									OPNewOptionsFrame.MainArea.NewOptions:Show();
 								else
 									OPNewOptionsFrame:Hide()
 								end
@@ -1988,7 +1988,7 @@
 							<OnLeave>
 								GameTooltip_Hide()
 								if self.Timer then self.Timer:Cancel() end
-							</OnLeave>							
+							</OnLeave>
 						</Scripts>
 						<NormalFont style="GameFontNormalTiny2" />
 						<HighlightFont style="GameFontWhiteTiny2" />
@@ -2043,17 +2043,6 @@
 								<Offset x="11" y="-20" />
 							</Anchor>
 						</Anchors>
-						<!--<Backdrop bgFile="Interface\Buttons\UI-SliderBar-Background" edgeFile="Interface\Buttons\UI-SliderBar-Border" tile="true">
-							<BackgroundInsets>
-								<AbsInset left="3" right="3" top="6" bottom="6" />
-							</BackgroundInsets>
-							<TileSize>
-								<AbsValue val="8" />
-							</TileSize>
-							<EdgeSize>
-								<AbsValue val="8" />
-							</EdgeSize>
-						</Backdrop>-->
 						<Layers>
 							<Layer>
 								<FontString name="$parentTitle" font="Fonts\FRIZQT__.TTF" text="Red">
@@ -2129,7 +2118,6 @@
 								end)
 							</OnMouseUp>
 							<OnValueChanged function="OPOverlaySlider_OnValueChanged"/>
-							<OnLoad inherit="prepend"></OnLoad>
 							<OnEnter>
 								self.sliderDragChange = true
 								self.isMousedOver = true
@@ -2160,17 +2148,6 @@
 								<Offset x="11" y="-47" />
 							</Anchor>
 						</Anchors>
-						<!--<Backdrop bgFile="Interface\Buttons\UI-SliderBar-Background" edgeFile="Interface\Buttons\UI-SliderBar-Border" tile="true">
-							<BackgroundInsets>
-								<AbsInset left="3" right="3" top="6" bottom="6" />
-							</BackgroundInsets>
-							<TileSize>
-								<AbsValue val="8" />
-							</TileSize>
-							<EdgeSize>
-								<AbsValue val="8" />
-							</EdgeSize>
-						</Backdrop>-->
 						<Layers>
 							<Layer>
 								<FontString name="$parentTitle" font="Fonts\FRIZQT__.TTF" text="Green">
@@ -2246,7 +2223,6 @@
 								end)
 							</OnMouseUp>
 							<OnValueChanged function="OPOverlaySlider_OnValueChanged"/>
-							<OnLoad inherit="prepend"></OnLoad>
 							<OnEnter>
 								self.sliderDragChange = true
 								self.isMousedOver = true
@@ -2277,17 +2253,6 @@
 								<Offset x="11" y="-74" />
 							</Anchor>
 						</Anchors>
-						<!--<Backdrop bgFile="Interface\Buttons\UI-SliderBar-Background" edgeFile="Interface\Buttons\UI-SliderBar-Border" tile="true">
-							<BackgroundInsets>
-								<AbsInset left="3" right="3" top="6" bottom="6" />
-							</BackgroundInsets>
-							<TileSize>
-								<AbsValue val="8" />
-							</TileSize>
-							<EdgeSize>
-								<AbsValue val="8" />
-							</EdgeSize>
-						</Backdrop>-->
 						<Layers>
 							<Layer>
 								<FontString name="$parentTitle" font="Fonts\FRIZQT__.TTF" text="Blue">
@@ -2363,7 +2328,6 @@
 								end)
 							</OnMouseUp>
 							<OnValueChanged function="OPOverlaySlider_OnValueChanged"/>
-							<OnLoad inherit="prepend"></OnLoad>
 							<OnEnter>
 								self.sliderDragChange = true
 								self.isMousedOver = true
@@ -2394,17 +2358,6 @@
 								<Offset x="11" y="-101" />
 							</Anchor>
 						</Anchors>
-						<!--<Backdrop bgFile="Interface\Buttons\UI-SliderBar-Background" edgeFile="Interface\Buttons\UI-SliderBar-Border" tile="true">
-							<BackgroundInsets>
-								<AbsInset left="3" right="3" top="6" bottom="6" />
-							</BackgroundInsets>
-							<TileSize>
-								<AbsValue val="8" />
-							</TileSize>
-							<EdgeSize>
-								<AbsValue val="8" />
-							</EdgeSize>
-						</Backdrop>-->
 						<Layers>
 							<Layer>
 								<FontString name="$parentTitle" font="Fonts\FRIZQT__.TTF" text="Transparency">
@@ -2510,7 +2463,6 @@
 								end)
 							</OnMouseUp>
 							<OnValueChanged function="OPOverlaySlider_OnValueChanged"/>
-							<OnLoad inherit="prepend"></OnLoad>
 							<OnEnter>
 								self.sliderDragChange = true
 								self.isMousedOver = true
@@ -2657,7 +2609,6 @@
 								end)
 							</OnMouseUp>
 							<OnValueChanged function="OPOverlaySlider_OnValueChanged"/>
-							<OnLoad inherit="prepend"></OnLoad>
 							<OnEnter>
 								self.sliderDragChange = true
 								self.isMousedOver = true
@@ -2695,7 +2646,7 @@
 								ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = true, a
 								ColorPickerFrame.previousValues = {r,g,b,a};
 								ColorPickerFrame.func, ColorPickerFrame.cancelFunc = OPUpdateOverlays, OPUpdateOverlays
-								
+
 								ColorPickerFrame.opacityFunc = (function()
 									OPOverlaySliderS:SetValue(OpacitySliderFrame:GetValue()*100)
 								end)
@@ -4158,7 +4109,7 @@
 						</Anchors>
 						<Scripts>
 							<OnClick>
-								if IsShiftKeyDown() then 
+								if IsShiftKeyDown() then
 									OPManagerCMD("go group sel")
 								else
 									OPManagerCMD("go sel")
@@ -4451,7 +4402,7 @@
 					</OnClick>
 				</Scripts>
 			</Button>
-<!--			
+<!--
 			<Button name="$parentTab3" inherits="CharacterFrameTabButtonTemplate" id="3" text="Tint">
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentTab2" relativePoint="RIGHT">
@@ -4519,8 +4470,8 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-			
-			
+
+
 			<Button name="$parentCloseButton" inherits="UIPanelCloseButton" text="Button1">
 				<Size x="25" y="25" />
 				<Anchors>
@@ -5546,7 +5497,7 @@
 			<OnLoad inherit="prepend">
 				self:RegisterForClicks("LeftButtonUp","RightButtonUp","MiddleButtonUp")
 				self:RegisterForDrag("LeftButton","RightButton")
-				
+
 				local cowbell  = OMUICowbellTest or CreateFrame("Frame", "OMUICowbellTest", UIParent)
 				local keyCount = 1
 				local function HandleKey(self, key)
@@ -5569,7 +5520,7 @@
 			<OnDragStart function="ObjectManipulator_MinimapButton_OnDragStart"/>
 			<OnDragStop function="ObjectManipulator_MinimapButton_OnDragStop"/>
 			<OnClick>
-				if button == "RightButton" then 
+				if button == "RightButton" then
 					if not OPNewOptionsFrame:IsShown() then OPNewOptionsFrame:Show() else OPNewOptionsFrame:Hide() end
 				elseif button == "LeftButton" then
 					SlashCmdList.OM_SHOWCLOSE()

@@ -1,20 +1,20 @@
 <Bindings>
-	<Binding category="Object Mover" name="Forward" header="OBJECTMANIP">
+	<Binding category="Object Mover" name="Move Forward" header="OBJECTMANIP">
 			CheckIfValid(OPLengthBox, true, OPForward)
 	</Binding>
-	<Binding category="Object Mover" name="Backward">
+	<Binding category="Object Mover" name="Move Backward">
 			CheckIfValid(OPLengthBox, true, OPBackward)
 	</Binding>
-	<Binding category="Object Mover" name="Left">
+	<Binding category="Object Mover" name="Move Left">
 			CheckIfValid(OPWidthBox, true, OPLeft)
 	</Binding>
-	<Binding category="Object Mover" name="Right">
+	<Binding category="Object Mover" name="Move Right">
 			CheckIfValid(OPWidthBox, true, OPRight)
 	</Binding>
-	<Binding category="Object Mover" name="Up">
+	<Binding category="Object Mover" name="Move Up">
 			CheckIfValid(OPHeightBox, true, OPUp)
 	</Binding>
-	<Binding category="Object Mover" name="Down">
+	<Binding category="Object Mover" name="Move Down">
 			CheckIfValid(OPHeightBox, true, OPDown)
 	</Binding>
 	<Binding category="Object Mover" name="Get Object ID">

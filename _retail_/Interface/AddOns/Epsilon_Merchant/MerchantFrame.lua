@@ -382,7 +382,7 @@ function Epsilon_MerchantDeleteVendor()
 		-- Iterate through gossip options and remove any
 		-- that match ours.
 		--
-		for i = 1, GetNumGossipOptions() do
+		for i = 1, C_GossipInfo.GetNumOptions() do
 			titleButton = _G["GossipTitleButton" .. i];
 			titleButtonText = _G["GossipTitleButton" .. i]:GetText();
 			if titleButtonText == "I want to browse your goods." then
@@ -397,7 +397,7 @@ function Epsilon_MerchantDeleteVendor()
 	end
 	Epsilon_MerchantFrame_Update()
 	Epsilon_Merchant_SaveVendor()
-	CloseGossip()
+	C_GossipInfo.CloseGossip()
 end
 
 -------------------------------------------------------------------------------
@@ -684,8 +684,8 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 			GossipFrameEditSoundsButton:Hide()
 		end
 		-- Reset gossip options to link to their appropriate pages.
-		for i = 1, GetNumGossipOptions() do
-			_G["GossipTitleButton" .. i]:SetScript("OnClick", function()
+		for i = 1, C_GossipInfo.GetNumOptions() do
+			GossipFrame_GetTitleButton(i):SetScript("OnClick", function()
 				SelectGossipOption(i)
 			end)
 		end
@@ -702,10 +702,10 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 			-- Iterate through gossip options to find if ours already exists...
 			--
 			local found = false;
-			for i = 1, GetNumGossipOptions() do
-				titleButton = _G["GossipTitleButton" .. i];
-				titleButtonIcon = _G["GossipTitleButton" .. i .. "GossipIcon"]:GetTexture();
-				titleButtonText = _G["GossipTitleButton" .. i]:GetText();
+			for i = 1, C_GossipInfo.GetNumOptions() do
+				titleButton = GossipFrame_GetTitleButton(i);
+				titleButtonIcon = titleButton.Icon:GetTexture();
+				titleButtonText = titleButton:GetText();
 				titleIndex = titleIndex + 1;
 				if id and titleButtonText == "I want to browse your goods." then
 					-- ...and it does! :D
@@ -715,7 +715,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 						EPSILON_VENDOR_DATA[id] = {};
 					end
 					Epsilon_MerchantFrame.merchantID = id;
-					_G["GossipTitleButton" .. i]:SetScript("OnClick", function()
+					titleButton:SetScript("OnClick", function()
 						Epsilon_MerchantFrame:Show()
 						MerchantFrame:Show()
 						MerchantFrame:SetAlpha(0)
@@ -815,7 +815,7 @@ end
 -------------------------------------------------------------------------------
 
 function Epsilon_MerchantFrame_OnHide(self)
-	CloseGossip();
+	C_GossipInfo.CloseGossip();
 	Epsilon_MerchantItemEditor_Close()
 	Epsilon_MerchantEditor_Close()
 
