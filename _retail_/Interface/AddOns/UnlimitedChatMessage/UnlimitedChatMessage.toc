@@ -1,6 +1,6 @@
-## Interface: 90001
+## Interface: 90207
 ## Title: UnlimitedChatMessage
-## Version: 1.9.14
+## Version: 1.9.16
 ## Notes: Lets you paste long msgs into chat by spliting msg into multiple outing msgs. 
 ## Author: Cyprias
 ## SavedVariables: UCM_DB
