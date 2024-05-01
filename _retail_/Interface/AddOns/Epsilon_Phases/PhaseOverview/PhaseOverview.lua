@@ -37,7 +37,7 @@ end
 
 local function addPhaseToList(phase)
 
-	print("addPhaseToList")
+	--print("addPhaseToList")
 	if checkPhases(phase[1]) == true then
 		--phase already exists
 	else
