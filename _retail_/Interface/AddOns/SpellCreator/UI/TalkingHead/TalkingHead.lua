@@ -19,7 +19,7 @@ local talkingHeadFontColor = {
 local talkingHeadChatTypes = {
 	["SAY"] = { Prefix = "|cFFE6E68E", Verbage = " says: " },
 	["EMOTE"] = { Prefix = "|cFFFF7E40", Verbage = "" },
-	["YELL"] = { Prefix = "|cFFFF3F40", Verbage = " whispers: " },
+	["YELL"] = { Prefix = "|cFFFF3F40", Verbage = " yells: " },
 	["WHISPER"] = { Prefix = "|cFFFF7EFF", Verbage = " whispers: " },
 }
 
@@ -160,12 +160,13 @@ function SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, s
 	model.PortraitImage:Hide()
 
 	if type(displayID) == "number" then
-		model:SetDisplayInfo(displayID)
-		model:SetPortraitZoom(1)
+		-- it's a displayID
+		model:SetDisplayInfo(displayID);
+		model:SetPortraitZoom(1);
 	elseif type(displayID) == "string" then
-		model:SetDisplayInfo(1)
-		model.PortraitImage:Show()
-		model.PortraitImage:SetTexture(displayID)
+		-- it's a unitID
+		model:SetUnit(displayID);
+		model:SetPortraitZoom(1);
 	end
 	frame.soundKitID = sound or nil;
 	frame.NameFrame.Name:SetText(name or "Unknown")

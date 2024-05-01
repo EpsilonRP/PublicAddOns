@@ -12,6 +12,19 @@ if EpsilonLib then
 	server = EpsilonLib.Server.server
 end
 
+if not server then
+	server = {
+		send = function(...)
+			if EpsilonLib and EpsilonLib.Server then -- reattempt assignment?
+				server = EpsilonLib.Server.server
+				server.send(...)
+			else
+				error("Error using EpsilonLib server.send() - EpsilonLib not available")
+			end
+		end
+	}
+end
+
 local function cmd(text)
 	SendChatMessage("." .. text, "GUILD");
 end

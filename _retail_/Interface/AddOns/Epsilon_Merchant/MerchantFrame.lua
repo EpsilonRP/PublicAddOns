@@ -686,7 +686,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 		-- Reset gossip options to link to their appropriate pages.
 		for i = 1, C_GossipInfo.GetNumOptions() do
 			GossipFrame_GetTitleButton(i):SetScript("OnClick", function()
-				SelectGossipOption(i)
+				C_GossipInfo.SelectOption(i)
 			end)
 		end
 		if UnitExists("npc") then

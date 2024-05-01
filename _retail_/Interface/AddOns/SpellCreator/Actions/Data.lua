@@ -1408,7 +1408,8 @@ local actionTypeData = {
 			if not message and name and displayID then return end
 			message = tostring(message);
 			name = tostring(name) or "Unknown";
-			displayID = tonumber(displayID) or 0;
+			-- displayID = tonumber(displayID) or 0;
+			-- don't sanitise displayID! it could be a unitID.
 			sound = tonumber(sound) or nil;
 			timeout = tonumber(timeout) or nil;
 

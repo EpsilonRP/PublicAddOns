@@ -686,7 +686,7 @@ local function noPopupsToLoad()
 	Logging.dprint("Phase Has No Popup Triggers to load.");
 	phaseAddonDataListener:UnregisterEvent("CHAT_MSG_ADDON");
 	setSparkLoadingStatus(false)
-	phaseSparkTriggers = nil
+	phaseSparkTriggers = {}
 end
 
 local sparkStrings = {}
