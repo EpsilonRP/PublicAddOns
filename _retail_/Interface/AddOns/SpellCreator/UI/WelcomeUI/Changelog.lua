@@ -56,7 +56,9 @@ local versions = {
 				"Sparks have received a small overhaul to introduce Spark Types (and added SL ExtraButton Textures)!",
 				"Spark Types allow you to control how a Spark is displayed, and what triggers that Spark.",
 				"New Spark Types include 'Emote' & 'Chat'. These Sparks do not show up with the standard Spark button, and are instead triggered by performing the required emote or saying the correct phrase that is assigned to it in chat.",
-				ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode("Example: You can create a Emote-Type Spark at the base of a statue, with %s as the activation emote. You then have to /kneel infront of the statue to activate the Spark!"):format(ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("/kneel")),
+				ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode(
+					"Example: You can create a Emote-Type Spark at the base of a statue, with %s as the activation emote. You then have to /kneel infront of the statue to activate the Spark!"):format(
+					ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("/kneel")),
 				"Additionally, a new setting has been added to allow you to adjust your Spark check throttle. Spark Throttle determines how frequently/how fast Sparks are checked to see if you're in range of one. By default, this remains at 1 (checks once every 1 second), which is what it has always been, and can be lowered to 0.25s (aka: Checks once every 0.25 seconds, or 4 times a second)."
 			},
 			"",
@@ -75,10 +77,10 @@ local versions = {
 			"",
 			"New TalkingHead & UnitPowerBar Actions, thanks to skylar!",
 			{
-				"TalkingHead:",
+				"Send Talking Head:",
 				{
 					"The return of the Talking Head Popups is here!",
-					"This shows a visual pop-up for conversational dialog.",
+					"Displays a Talking Head frame with customizable options!",
 				},
 				"UnitPowerBar:",
 				{
