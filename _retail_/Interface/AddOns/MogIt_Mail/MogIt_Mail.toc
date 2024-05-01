@@ -1,4 +1,4 @@
-## Interface: 90001
+## Interface: 90207
 ## Author: Aelobin (The Maelstrom EU) & Lombra (Defias Brotherhood EU)
 ## Version: v3.9.7
 ## SavedVariables: MogIt_MailDB
