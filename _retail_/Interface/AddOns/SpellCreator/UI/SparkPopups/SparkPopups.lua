@@ -136,7 +136,7 @@ end
 ---@param ... number
 ---@return boolean
 local function isSparkType(type, ...)
-	if not type then return false end -- early exit if no type given (legacy spark)
+	if not type then type = _sparkTypesMap["Standard"] end -- Legacy Spark - default to standard
 
 	local t = {}
 	for _, v in ipairs({ ... }) do
@@ -894,19 +894,27 @@ end
 --#region || Extended Spark Handlers
 ---------------------
 
--- Emote
-local function onEmote(token)
+---Check Sparks with an additional predicate function. Predicate must return true to continue to cast.
+---@param pred fun(sparkData: VaultSpell, ...)
+---@param expensive? boolean Whether the predicate should be considered expensive or not. If it's expensive, range is checked before predicate.
+---@param ... unknown any additional input, this is passed to the predicate function after the sparkData
+local function checkSparksWithPredicate(pred, expensive, ...)
+	if not pred then error("SparkPopups:checkSparksWithPredicate -- Error: Cannot call without predicate.") end
 	local x, y, z, mapID = getPlayerPositionData()
 
-	local phaseSpellsOnThisMap = phaseSparkTriggers[mapID]
+	local phaseSpellsOnThisMap = phaseSparkTriggers and phaseSparkTriggers[mapID]
 	if phaseSpellsOnThisMap then
 		for i = 1, #phaseSpellsOnThisMap do
 			local sparkData = phaseSpellsOnThisMap[i]
-			local sparkType = sparkData[9]
 
-			if isSparkType(sparkType, _sparkTypesMap["Emote"]) then
-				local sparkOptions = sparkData[8] --[[@as PopupTriggerOptions]]
-				if sparkOptions and sparkOptions.emote and token == string.upper(sparkOptions.emote) then -- has emote requirement & we match
+			if expensive then                                                                              -- check range first
+				if isSparkInRange(sparkData, x, y, z) then
+					if pred(sparkData, ...) and isSparkOrSpellNotOnCD(sparkData) and isSparkConditionsMet(sparkData) then -- still check conditions after pred
+						triggerSpark(sparkData)
+					end
+				end
+			else
+				if pred(sparkData, ...) then
 					if isSparkInRange(sparkData, x, y, z) and isSparkOrSpellNotOnCD(sparkData) and isSparkConditionsMet(sparkData) then
 						triggerSpark(sparkData)
 					end
@@ -914,6 +922,21 @@ local function onEmote(token)
 			end
 		end
 	end
+end
+
+-- Emote
+local function emotePredicate(sparkData, token)
+	local sparkType = sparkData[9]
+	if isSparkType(sparkType, _sparkTypesMap["Emote"]) then
+		local sparkOptions = sparkData[8]
+		if sparkOptions and sparkOptions.emote and token == string.upper(sparkOptions.emote) then
+			return true
+		end
+	end
+	return false
+end
+local function onEmote(token)
+	checkSparksWithPredicate(emotePredicate, false, token)
 end
 hooksecurefunc("DoEmote", onEmote)
 
@@ -923,6 +946,17 @@ local allowedChats = {
 	["EMOTE"] = true,
 	["YELL"] = true,
 }
+
+local function chatPredicate(sparkData, msg)
+	local sparkType = sparkData[9]
+	if isSparkType(sparkType, _sparkTypesMap["Chat"]) then
+		local sparkOptions = sparkData[8] --[[@as PopupTriggerOptions]]
+		if sparkOptions and sparkOptions.chat and string.lower(msg) == string.lower(sparkOptions.chat) then
+			return true
+		end
+	end
+	return false
+end
 local function onChat(msg, chatType, languageID, target)
 	if not msg then return end
 	if not chatType then chatType = "SAY" end
@@ -930,45 +964,19 @@ local function onChat(msg, chatType, languageID, target)
 	-- only listen to say, emote, yell:
 	if not allowedChats[chatType] then return end
 
-	if not languageID then languageID = GetDefaultLanguage() end
-
-	local x, y, z, mapID = getPlayerPositionData()
-
-	local phaseSpellsOnThisMap = phaseSparkTriggers[mapID]
-	if phaseSpellsOnThisMap then
-		for i = 1, #phaseSpellsOnThisMap do
-			local sparkData = phaseSpellsOnThisMap[i]
-			local sparkType = sparkData[9]
-
-			if isSparkType(sparkType, _sparkTypesMap["Chat"]) then
-				local sparkOptions = sparkData[8] --[[@as PopupTriggerOptions]]
-				if sparkOptions and sparkOptions.chat and string.lower(msg) == string.lower(sparkOptions.chat) then -- has chat requirement & we match
-					if isSparkInRange(sparkData, x, y, z) and isSparkOrSpellNotOnCD(sparkData) and isSparkConditionsMet(sparkData) then
-						triggerSpark(sparkData)
-					end
-				end
-			end
-		end
-	end
+	checkSparksWithPredicate(chatPredicate, false, msg)
 end
 hooksecurefunc("SendChatMessage", onChat)
 
 -- Jump
-local function onJump()
-	local x, y, z, mapID = getPlayerPositionData()
-
-	local phaseSpellsOnThisMap = phaseSparkTriggers[mapID]
-	if phaseSpellsOnThisMap then
-		for i = 1, #phaseSpellsOnThisMap do
-			local sparkData = phaseSpellsOnThisMap[i]
-			local sparkType = sparkData[9]
-			if sparkType == _sparkTypesMap["Jump"] then -- is jump type and we jump!
-				if isSparkInRange(sparkData, x, y, z) and isSparkOrSpellNotOnCD(sparkData) and isSparkConditionsMet(sparkData) then
-					triggerSpark(sparkData)
-				end
-			end
-		end
+local function jumpPredicate(sparkData)
+	local sparkType = sparkData[9]
+	if isSparkType(sparkType, _sparkTypesMap["Jump"]) then
+		return true
 	end
+end
+local function onJump()
+	checkSparksWithPredicate(jumpPredicate)
 end
 hooksecurefunc("JumpOrAscendStart", onJump)
 
@@ -998,4 +1006,6 @@ ns.UI.SparkPopups.SparkPopups = {
 
 	setSparkThrottle = setThrottle,
 	getSparkThrottle = getThrottle,
+
+	checkSparksWithPredicate = checkSparksWithPredicate,
 }

@@ -35,7 +35,7 @@ local _sparkTypes = {
 	--[2] = "Multi",
 	[3] = "Emote",
 	[4] = "Chat",
-	--[5] = "Jump",
+	[5] = "Jump",
 	[6] = "Auto",
 }
 
@@ -305,6 +305,7 @@ local uiOptionsTable = {
 						--Tooltip.genContrastText("Multi: ") .. "Multiple Spell Pop-Up with a more basic border.\n" ..
 						Tooltip.genContrastText("Emote: ") .. "Invisible Spark that triggers when the given emote is performed while in radius (i.e., /kneel).\n" ..
 						Tooltip.genContrastText("Chat: ") .. "Invisible Spark that triggers when a specified word or phrase is said in /say, /yell, or /emote while in radius.\n" ..
+						Tooltip.genContrastText("Jump: ") .. "Invisible Spark that triggers any time you jump while within radius. Triggers each jump.\n" ..
 						Tooltip.genContrastText("Auto: ") .. "Invisible Spark that triggers when a you walk in radius. Only casts once, until you leave & re-enter radius.\n" ..
 						Tooltip.genContrastText("   WARNING: ") .. "Auto Sparks take away player choice & interaction. Please use sparingly and with careful consideration.",
 					type = "select",
