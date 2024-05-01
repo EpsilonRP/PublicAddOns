@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 90207
 ## Author: ubermike
 ## Title: AfkCam
 ## Notes: Rotates the game camera around your character when you go AFK.

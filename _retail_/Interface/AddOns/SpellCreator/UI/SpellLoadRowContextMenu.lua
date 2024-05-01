@@ -206,6 +206,22 @@ local function createAddQCMenu(spell)
 end
 
 ---@param spell VaultSpell
+---@return DropdownItem
+local function createStratacastMenu(spell)
+	local items = { Dropdown.header("Stratacast") }
+	local pos, data = ns.UI.Stratacast.get(spell.commID)
+	if pos then
+		tinsert(items, Dropdown.execute("Move Up", function() ns.UI.Stratacast.moveUp(pos) end))
+		tinsert(items, Dropdown.execute("Move Down", function() ns.UI.Stratacast.moveDown(pos) end))
+		tinsert(items, Dropdown.execute("Disconnect Spell", function() ns.UI.Stratacast.remove(spell.commID) end))
+	else
+		tinsert(items, Dropdown.execute("Connect", function() ns.UI.Stratacast.showAdder(spell) end))
+	end
+
+	return Dropdown.submenu("Stratacast", items, { hidden = function() return not SpellCreatorCharacterTable.stratacastEnabled end })
+end
+
+---@param spell VaultSpell
 ---@return DropdownItem[]
 local function getPersonalSpellItems(spell)
 	local inQuickcast = tContains(SpellCreatorMasterTable.quickCastSpells, spell.commID)
@@ -266,6 +282,8 @@ local function getPersonalSpellItems(spell)
 				Popups.showLinkHotkeyDialog(spell.commID)
 			end
 		),
+
+		createStratacastMenu(spell),
 	}
 end
 

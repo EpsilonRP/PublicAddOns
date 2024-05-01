@@ -19,29 +19,6 @@ local C_Timer = C_Timer
 local IsFlying = IsFlying
 local IsFalling = IsFalling
 
-----------------------
---#region Chat Filter
-----------------------
-
-local MessagesToFilter = 0
-
-local function flightToggleFilter(self, event, m, ...)
-	if MessagesToFilter > 0 then
-		if m:find(playerName .. ".*'s Fly Mode has been set to") then
-			MessagesToFilter = MessagesToFilter - 1
-			return true;
-		end
-	end
-end
-
-local function registerChatFilter()
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", flightToggleFilter)
-end
-
-----------------------
---#endregion
-----------------------
-
 ----------------------------
 --#region Flight Spell Controls
 ----------------------------
@@ -230,7 +207,6 @@ function flightFrame.ToggleFlight(switch)
 	local sendSpells = flightSettings.sendSpells
 
 	if switch == true then
-		MessagesToFilter = MessagesToFilter + 1
 		cmd("cheat fly on")
 		flightFrame.isFlying = true
 		flightFrame.SetLandingOnUpdate(true)
@@ -242,7 +218,6 @@ function flightFrame.ToggleFlight(switch)
 			castSpellList()
 		end
 	else
-		MessagesToFilter = MessagesToFilter + 1
 		cmd("cheat fly off")
 		flightFrame.isFlying = false
 		flightFrame.SetLandingOnUpdate(false)
@@ -338,6 +313,4 @@ ns.Flight = {
 	getSpellListsInStorage = getSpellListsInStorage,
 
 	toggleExtendedFlightDetection = toggleExtendedFlightDetection,
-
-	registerChatFilter = registerChatFilter,
 }

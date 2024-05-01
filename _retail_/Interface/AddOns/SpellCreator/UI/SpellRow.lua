@@ -303,18 +303,32 @@ local function addRow(rowToAdd, copy)
 		local inputEntryBox
 
 		-- ID Entry Box (Input)
+		newRow.InputEntryScrollFrame = CreateFrame("ScrollFrame", nil, newRow, "InputScrollFrameTemplate")
+		newRow.InputEntryScrollFrame.CharCount:Hide()
+		newRow.InputEntryScrollFrame:SetPoint("LEFT", newRow.SelfCheckbox, "RIGHT", 15, 1)
+		inputEntryBox = newRow.InputEntryScrollFrame.EditBox --[[@as SpellRowFrameInput]]
+
 		if SpellCreatorMasterTable.Options["biggerInputBox"] == true then
-			newRow.InputEntryScrollFrame = CreateFrame("ScrollFrame", nil, newRow, "InputScrollFrameTemplate")
-			newRow.InputEntryScrollFrame.CharCount:Hide()
 			newRow.InputEntryScrollFrame:SetSize(inputEntryColumnWidth, 40)
-			newRow.InputEntryScrollFrame:SetPoint("LEFT", newRow.SelfCheckbox, "RIGHT", 15, 1)
-			inputEntryBox = newRow.InputEntryScrollFrame.EditBox --[[@as SpellRowFrameInput]]
-			inputEntryBox:SetWidth(newRow.InputEntryScrollFrame:GetWidth() - 18)
 		else
+			newRow.InputEntryScrollFrame:SetSize(inputEntryColumnWidth, 20)
+			newRow.InputEntryScrollFrame.ScrollBar:Hide()
+
+			local _orig_OnScrollRangeChanged = newRow.InputEntryScrollFrame:GetScript("OnScrollRangeChanged")
+			local _new_OnScrollRangeChanged = function(self, xR, yR)
+				_orig_OnScrollRangeChanged(self, xR, yR)
+				self.ScrollBar:Hide()
+			end
+			newRow.InputEntryScrollFrame:SetScript("OnScrollRangeChanged", _new_OnScrollRangeChanged)
+
+			--[=[
 			inputEntryBox = CreateFrame("EditBox", nil, newRow, "InputBoxInstructionsTemplate") --[[@as SpellRowFrameInput]]
 			inputEntryBox:SetSize(inputEntryColumnWidth, 23)
 			inputEntryBox:SetPoint("LEFT", newRow.SelfCheckbox, "RIGHT", 15, 1)
+			-- inputEntryBox:SetMultiLine(true) -- This causes it to not be a scrollable one - meaning it's just ALL SHOWN ALL OVER THE SCREEN. Weird. Idk what to fix besides forcing biggerInputBox always, which is probably the solution
+			--]=]
 		end
+		inputEntryBox:SetWidth(newRow.InputEntryScrollFrame:GetWidth() - 18)
 
 		newRow.InputEntryBox = inputEntryBox
 

@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90207
 ## Title: Epsilon Phases
 ## Notes: Phase List and Phase manager for Epsilon
 ## Author: Gardener

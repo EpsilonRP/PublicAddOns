@@ -543,11 +543,8 @@ local function OnEnter(self)
 	end
 	GameTooltip:Show();
 
-	if self.isPercentage then
-		self.text:SetText(self.powerName .. " " .. self.displayedValue .. "%")
-	else
-		self.text:SetText(self.displayedValue .. "/" .. self.range)
-	end
+	self:UpdateText()
+
 	self.text:Show()
 end
 
@@ -559,6 +556,7 @@ end
 local function SetDisplayedPower(self, value)
 	self.displayedValue = value;
 	--UnitPowerBarAltStatus_UpdateText(self.statusFrame);
+	self:UpdateText();
 	self:UpdateFill();
 end
 
@@ -706,6 +704,29 @@ local methods = {
 				self.flashOutAnim:Play();
 			end
 		end
+	end,
+	---------------------------------------------------------------------------
+	--
+	--
+	UpdateText = function(self, value)
+		local valueToShow
+		if self.value == self.displayedValue then
+			valueToShow = self.displayedValue
+		else
+			valueToShow = math.ceil(self.displayedValue)
+		end
+
+		if self.isPercentage then
+			self.text:SetText((self.powerName and (self.powerName .. ": ") or "") .. valueToShow .. "%")
+		else
+			self.text:SetText(valueToShow .. "/" .. self.range)
+		end
+	end,
+	---------------------------------------------------------------------------
+	--
+	--
+	SetValue = function(self, value) -- this is just to make it easier to remember - honestly use direct set instead
+		self.value = value
 	end,
 }
 

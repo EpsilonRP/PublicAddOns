@@ -69,7 +69,7 @@ server.receive("PHASE", function(message, channel, sender)
 	local records = {string.split(EpsiLib.record, message)}
 	for _, record in pairs(records) do
 		local id, name, description, icon, information, owner = string.split(EpsiLib.field, record)
-		print("PHASE",id, owner, name, comment, description)
+		--print("PHASE",id, owner, name, comment, description)
 		if id and name and description then
 
 		table.insert(phases, {

@@ -18,18 +18,26 @@ getLibDBIcon()
 ---@param name string
 ---@return string
 local function isAddOnLoaded(name)
-	if IsAddOnLoaded(name) then return name
-	elseif IsAddOnLoaded(name.."-dev") then return name.."-dev" end
+	if IsAddOnLoaded(name) then
+		return name
+	elseif IsAddOnLoaded(name .. "-dev") then
+		return name .. "-dev"
+	end
 end
 
 local SendChatMessage = SendChatMessage
 local function cmd(text)
-    SendChatMessage("."..text, "GUILD");
+	SendChatMessage("." .. text, "GUILD");
 end
 
 local mmIcon
 local function clickIconFromLauncherTray(name)
 	getLibDBIcon()
+
+	if not LibDBIcon then
+		return error("LibDBIcon is not loaded; Splash cannot transfer click handling to Icons if there's no icons!")
+	end
+
 	if not mmIcon then mmIcon = LibDBIcon:GetMinimapButton("Epsilon_Launcher") end
 	if not mmIcon then mmIcon = LibDBIcon:GetMinimapButton("Epsilon_Launcher-dev") end
 	if not mmIcon then return end

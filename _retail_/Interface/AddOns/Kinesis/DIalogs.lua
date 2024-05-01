@@ -160,10 +160,10 @@ end
 
 local function profileNonEmptyTextHandler(self)
 	local parent = self:GetParent();
-    local text = strtrim(parent.editBox:GetText())
-    if text == "Default" then text = "default" end
+	local text = strtrim(parent.editBox:GetText())
+	if text == "Default" then text = "default" end
 	parent.button1:SetEnabled((text ~= "" and not KinesisOptions.profiles[text]));
-    parent.button1:SetText(KinesisOptions.profiles[text] and "Already in Use" or ACCEPT)
+	parent.button1:SetText(KinesisOptions.profiles[text] and "Already in Use" or ACCEPT)
 end
 
 StaticPopupDialogs["KINESIS_NEW_PROFILE"] = {
@@ -178,15 +178,15 @@ StaticPopupDialogs["KINESIS_NEW_PROFILE"] = {
 	end,
 	EditBoxOnEnterPressed = function(self)
 		local text = self:GetText();
-        if text == "Default" then text = "default" end
+		if text == "Default" then text = "default" end
 		if text ~= "" and not KinesisOptions.profiles[text] then
-            ns.Main.createNewProfile(text)
-            self:GetParent():Hide();
-        end
+			ns.Main.createNewProfile(text)
+			self:GetParent():Hide();
+		end
 	end,
-    EditBoxOnEscapePressed = function(self)
-        self:GetParent():Hide();
-    end,
+	EditBoxOnEscapePressed = function(self)
+		self:GetParent():Hide();
+	end,
 	OnShow = function(self)
 		self.editBox:SetFocus();
 	end,
@@ -194,16 +194,16 @@ StaticPopupDialogs["KINESIS_NEW_PROFILE"] = {
 		ChatEdit_FocusActiveWindow();
 		self.editBox:SetText("");
 	end,
-    EditBoxOnTextChanged = profileNonEmptyTextHandler,
+	EditBoxOnTextChanged = profileNonEmptyTextHandler,
 	timeout = 0,
-    cancels = true,
+	cancels = true,
 	exclusive = 1,
 	whileDead = 1,
 	hideOnEscape = 1,
-    enterClicksFirstButton = true,
+	enterClicksFirstButton = true,
 };
 local function showNewProfilePopup()
-    StaticPopup_Show("KINESIS_NEW_PROFILE")
+	StaticPopup_Show("KINESIS_NEW_PROFILE")
 end
 
 -------------------------------
@@ -234,9 +234,9 @@ end
 local function copyLink(link)
 	local popup = StaticPopup_Show(HyperLinkCopyDialogName, link);
 	local width = max(popup.text:GetStringWidth(), 100)
-	width = min((GetScreenWidth()*.8), width) -- clamp to 80% screen width so it's not obnoxiously large..
+	width = min((GetScreenWidth() * .8), width) -- clamp to 80% screen width so it's not obnoxiously large..
 	popup.editBox:SetWidth(width);
-	popup:SetWidth(width+50)
+	popup:SetWidth(width + 50)
 	popup.text:SetText(BROWSER_COPY_LINK)
 	popup.editBox:SetText(link)
 	popup.editBox:SetFocus()
@@ -248,9 +248,9 @@ end
 -------------------------------
 
 ns.Dialogs = {
-    showCustomGenericInputBox = showCustomGenericInputBox,
-    showCustomGenericConfirmation = showCustomGenericConfirmation,
-    showGenericConfirmation = showGenericConfirmation,
-    showNewProfilePopup = showNewProfilePopup,
+	showCustomGenericInputBox = showCustomGenericInputBox,
+	showCustomGenericConfirmation = showCustomGenericConfirmation,
+	showGenericConfirmation = showGenericConfirmation,
+	showNewProfilePopup = showNewProfilePopup,
 	copyLink = copyLink,
 }

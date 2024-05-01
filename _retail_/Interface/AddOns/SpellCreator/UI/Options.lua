@@ -231,98 +231,141 @@ local myOptionsTable = {
 			type = "group",
 			order = autoOrder(true),
 			args = {
-				qcheader = {
+				qcSection = {
 					name = "Quickcast",
-					type = "header",
+					type = "group",
 					order = autoOrder(),
-				},
-				keepOpen = {
-					name = "Keep Quickcast Open after Casting",
-					order = autoOrder(),
-					desc = "Keeps the Quickcast ring open after casting a spell from it. Some might call it.. Quickquickcast!",
-					type = "toggle",
-					width = 1.5,
-					arg = "keepQCOpen",
-					set = genericSet,
-					get = genericGet,
-				},
-				overscroll = {
-					name = "Allow Overscrolling",
-					order = autoOrder(),
-					desc =
-					"Overscrolling allows you to scroll past the first/last page in a Quickcast Book, looping back to the other side.\n\rIf disabled, when you reach the first/last page, you cannot scroll any further.",
-					type = "toggle",
-					width = 1.5,
-					arg = "allowQCOverscrolling",
-					set = genericSet,
-					get = genericGet,
-				},
-				toggleQCBooks = {
-					name = "Toggle QC Books",
-					order = autoOrder(),
-					type = "execute",
-					func = function(info)
-						local menuArgs = {}
-						for i = 1, #Quickcast.Book.booksDB do
-							local v = Quickcast.Book.booksDB[i]
-							tinsert(menuArgs, Quickcast.ContextMenu.genShowBookItem(v))
-						end
-						Dropdown.open(menuArgs, Dropdown.genericDropdownHolder, "cursor", 0, 0, "MENU")
-					end,
-				},
-				showQCManagerUI = {
-					name = "Quickcast Manager",
-					order = autoOrder(),
-					type = "execute",
-					func = function(info)
-						ns.UI.Quickcast.ManagerUI.showQCManagerUI()
-					end,
+					inline = true,
+					args = {
+						keepOpen = {
+							name = "Keep Quickcast Open after Casting",
+							order = autoOrder(),
+							desc = "Keeps the Quickcast ring open after casting a spell from it. Some might call it.. Quickquickcast!",
+							type = "toggle",
+							width = 1.5,
+							arg = "keepQCOpen",
+							set = genericSet,
+							get = genericGet,
+						},
+						overscroll = {
+							name = "Allow Overscrolling",
+							order = autoOrder(),
+							desc =
+							"Overscrolling allows you to scroll past the first/last page in a Quickcast Book, looping back to the other side.\n\rIf disabled, when you reach the first/last page, you cannot scroll any further.",
+							type = "toggle",
+							width = 1.5,
+							arg = "allowQCOverscrolling",
+							set = genericSet,
+							get = genericGet,
+						},
+						toggleQCBooks = {
+							name = "Toggle QC Books",
+							order = autoOrder(),
+							type = "execute",
+							func = function(info)
+								local menuArgs = {}
+								for i = 1, #Quickcast.Book.booksDB do
+									local v = Quickcast.Book.booksDB[i]
+									tinsert(menuArgs, Quickcast.ContextMenu.genShowBookItem(v))
+								end
+								Dropdown.open(menuArgs, Dropdown.genericDropdownHolder, "cursor", 0, 0, "MENU")
+							end,
+						},
+						showQCManagerUI = {
+							name = "Quickcast Manager",
+							order = autoOrder(),
+							type = "execute",
+							func = function(info)
+								ns.UI.Quickcast.ManagerUI.showQCManagerUI()
+							end,
+						},
+					}
 				},
 				spacer1 = spacer(autoOrder(), "large"),
-				sparkheader = {
+				sparkSection = {
 					name = "Sparks",
-					type = "header",
+					type = "group",
 					order = autoOrder(),
+					inline = true,
+					args = {
+						showSparkManagerUI = {
+							name = "Spark Manager",
+							order = autoOrder(),
+							disabled = function() return not (ns.Permissions.isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) end,
+							type = "execute",
+							func = function(info)
+								ns.UI.SparkPopups.SparkManagerUI.showSparkManagerUI()
+							end,
+						},
+						exportCurrentPhaseSparks = {
+							name = "Export Sparks",
+							desc = "Export Sparks from the current Phase to a copyable text string, so you can back them up or copy to another phase.",
+							disabled = function() return not (ns.Permissions.isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) end,
+							order = autoOrder(),
+							type = "execute",
+							func = function(info)
+								ns.UI.ImportExport.exportAllSparks()
+							end,
+						},
+						importSparksToCurrentPhase = {
+							name = "Import Sparks",
+							desc = "Import Sparks to the current Phase.\n\r" .. Tooltip.genTooltipText("warning", "This will overwrite any sparks currently in the phase."),
+							disabled = function() return not ns.Permissions.isOfficerPlus() end,
+							order = autoOrder(),
+							type = "execute",
+							func = function(info)
+								ns.UI.ImportExport.showImportSparksMenu()
+							end,
+						},
+						sparkClickKeybind = {
+							type = "keybinding",
+							name = "Activate Spark Keybind",
+							desc =
+							"When set, this key can be used to activate a currently shown Spark via the keypress instead of clicking with the mouse. This will override any other bindings on this key, until you unset it. Once unset, your original keybind will be returned.\n\rDefault: F",
+							get = function() return ns.UI.SparkPopups.SparkPopups.getSparkKeybind() end,
+							set = function(info, val)
+								ns.UI.SparkPopups.SparkPopups.setSparkKeybind(val)
+							end,
+							order = autoOrder(),
+						},
+						sparkThrottle = {
+							type = "range",
+							name = "Spark Check Throttle Time",
+							desc =
+							"The throttle limit (in seconds) that Arcanum checks if you are within range of a Spark. Lower values are more responsive (checks more frequently), but increases the impact on performance (may reduce FPS).\n\rDefault: 1 (second)",
+							get = function() return ns.UI.SparkPopups.SparkPopups.getSparkThrottle() end,
+							set = function(info, val)
+								ns.UI.SparkPopups.SparkPopups.setSparkThrottle(tonumber(val))
+							end,
+							min = 0.25,
+							max = 2,
+							softMin = 0.25,
+							softMax = 1,
+							bigStep = 0.05,
+							order = autoOrder(),
+						},
+					},
 				},
-				showSparkManagerUI = {
-					name = "Spark Manager",
+				spacer2 = spacer(autoOrder(), "large"),
+				strataSection = {
+					name = "Stratacast",
+					type = "group",
 					order = autoOrder(),
-					disabled = function() return not (ns.Permissions.isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) end,
-					type = "execute",
-					func = function(info)
-						ns.UI.SparkPopups.SparkManagerUI.showSparkManagerUI()
-					end,
-				},
-				exportCurrentPhaseSparks = {
-					name = "Export Sparks",
-					desc = "Export Sparks from the current Phase to a copyable text string, so you can back them up or copy to another phase.",
-					disabled = function() return not (ns.Permissions.isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) end,
-					order = autoOrder(),
-					type = "execute",
-					func = function(info)
-						ns.UI.ImportExport.exportAllSparks()
-					end,
-				},
-				importSparksToCurrentPhase = {
-					name = "Import Sparks",
-					desc = "Import Sparks to the current Phase.\n\r" .. Tooltip.genTooltipText("warning", "This will overwrite any sparks currently in the phase."),
-					disabled = function() return not ns.Permissions.isOfficerPlus() end,
-					order = autoOrder(),
-					type = "execute",
-					func = function(info)
-						ns.UI.ImportExport.showImportSparksMenu()
-					end,
-				},
-				sparkClickKeybind = {
-					type = "keybinding",
-					name = "Activate Spark Keybind",
-					desc =
-					"When set, this key can be used to activate a currently shown Spark via the keypress instead of clicking with the mouse. This will override any other bindings on this key, until you unset it. Once unset, your original keybind will be returned.\n\rDefault: F",
-					get = function() return ns.UI.SparkPopups.SparkPopups.getSparkKeybind() end,
-					set = function(info, val)
-						ns.UI.SparkPopups.SparkPopups.setSparkKeybind(val)
-					end,
-					order = autoOrder(),
+					inline = true,
+					args = {
+						enable = {
+							name = "Connect to Super Conduit",
+							order = autoOrder(),
+							desc =
+							"Connects the user to a ley line Super Conduit, allowing quicker casting of powerful magics by simple hand gestures, enabling the caster to spread Liberty even more efficiently.\n\rPress Left-Control once connected to get started.",
+							type = "toggle",
+							width = 1.5,
+							set = function(info, val)
+								ns.UI.Stratacast.toggle(val)
+							end,
+							get = function() return SpellCreatorCharacterTable.stratacastEnabled end,
+						},
+					},
 				},
 			},
 		},

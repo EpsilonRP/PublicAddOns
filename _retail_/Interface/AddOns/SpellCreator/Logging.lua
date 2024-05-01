@@ -16,7 +16,7 @@ end
 local function dprint(force, text, ...)
 	if text then
 		if force == true or SpellCreatorMasterTable.Options["debug"] then
-			local rest = ... or ""
+			local rest = table.concat({ ... }, ", ") or ""
 			local line = strmatch(debugstack(2), ":(%d+):")
 			local file = strmatch(debugstack(2), "AddOns\\" .. addonNameSearch .. "\\(.-%.lua)") or ""
 			if line then

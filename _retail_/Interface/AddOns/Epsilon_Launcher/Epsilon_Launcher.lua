@@ -6,6 +6,7 @@ local ns = select(2, ...)
 --
 -- Looking to add your AddOn's icon to the tray?
 -- Usage: LibStub("EpsiLauncher-1.0").API.new(name, func, icon, lines, ttOptions)
+-- Alt with EpsilonLib:		EpsilonLib.AddOnLauncher.new(name, func, icon, lines, ttOptions)
 --
 -- name				Either a the name (string), or alternatively a pre-made button frame to use. If using a pre-made button, you can skip the rest. If name is string, it's used as both the ID and the name in the tooltip.
 -- func? 			The function to run when clicked. For instance, showing a frame for a simple frame toggle icon button
@@ -442,4 +443,8 @@ ns.Launcher = {
 local lib = LibStub:NewLibrary("EpsiLauncher-1.0", 1)
 if lib then
 	lib.API = ns.Launcher
+end
+
+if EpsilonLib then
+	EpsilonLib.AddOnLauncher = ns.Launcher -- add to the EpsilonLib Library
 end

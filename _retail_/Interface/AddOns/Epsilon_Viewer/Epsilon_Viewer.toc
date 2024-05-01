@@ -1,0 +1,14 @@
+## Interface: 90207
+## Version: 1
+## Title: Epsilon_Viewer
+## Author: Warli
+## Thanks: BinarySpace, Prosper, EpsilonDevTeam
+## SavedVariables: Epsilon_ViewerDB
+
+
+Libs\LibStub\LibStub.lua
+Libs\StdUi\StdUi.xml
+
+utils.lua
+main.lua
+

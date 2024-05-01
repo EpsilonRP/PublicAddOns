@@ -593,7 +593,7 @@ sparkCDFuncs.getCurrentSparkCDName = wrapToEvalFinalVal(ns.Actions.Cooldowns.get
 ARC.XAPI.sparks = {}
 ARC.XAPI.Sparks = ARC.XAPI.sparks -- alternative access for continuity but also keeping the old one for backwards compatibility
 do
-	-- function addPopupTriggerToPhaseData(commID: string, radius: number, style: integer, x: number, y: number, z: number, colorHex: any, mapID: integer, options: PopupTriggerOptions, overwriteIndex: any)
+	-- function addPopupTriggerToPhaseData(commID: string, radius: number, style: integer, x: number, y: number, z: number, colorHex: any, mapID: integer, options: PopupTriggerOptions, overwriteIndex: any, sparkType: number|SparkTypes)
 	ARC.XAPI.sparks.addPopupTriggerToPhaseData = wrapToEvalFinalVal(ns.UI.SparkPopups.SparkPopups.addPopupTriggerToPhaseData, ARC.XAPI.sparks)
 
 	-- function getSparkLoadingStatus() -> boolean

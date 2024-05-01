@@ -136,6 +136,7 @@
 	<Script file="UI/SpellLoadRowContextMenu.lua"/>
 	<Script file="UI/SpellLoadRow.lua"/>
 	<Script file="UI/SpellVaultFrame.lua"/>
+	<Script file="UI/Stratacast.lua"/>
 	<Script file="UI/Options.lua"/>
 
 	<Include file="UI/SpellBookUI.xml"/>

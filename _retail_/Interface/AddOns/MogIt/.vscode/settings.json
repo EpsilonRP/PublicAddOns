@@ -144,6 +144,8 @@
         "ITEM_BIND_ON_EQUIP",
         "LE_ITEM_BIND_ON_ACQUIRE",
         "ITEM_BIND_ON_PICKUP",
-        "YELLOW_FONT_COLOR_CODE"
+        "YELLOW_FONT_COLOR_CODE",
+        "UIDropDownMenu_CreateInfo",
+        "ChatFrame1EditBox"
     ]
 }

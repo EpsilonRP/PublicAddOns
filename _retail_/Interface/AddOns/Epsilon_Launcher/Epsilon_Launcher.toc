@@ -5,7 +5,7 @@
 ## Notes: Mini-Map Icon to open various Epsilon AddOns
 ## DefaultState: Enabled
 ## SavedVariables: Epsilon_Launcher_DB
-## OptionalDeps: ObjectMover, SpellCreator, Gobviewer
+## OptionalDeps: ObjectMover, SpellCreator, Gobviewer, EpsilonLib
 ## X-Changes: 
 
 Epsilon_Launcher.xml

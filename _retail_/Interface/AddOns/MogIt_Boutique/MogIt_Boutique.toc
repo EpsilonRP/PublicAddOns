@@ -1,4 +1,4 @@
-## Interface: 60000
+## Interface: 90207
 ## Title: MogIt_|cFF87CEFABoutique|r
 ## Notes: Sets module for MogIt
 ## Author: Tactica (Trollbane US) & SannaSK (Bronzebeard US)
