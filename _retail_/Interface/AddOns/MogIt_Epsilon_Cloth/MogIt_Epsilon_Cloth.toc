@@ -1,0 +1,30 @@
+## Interface: 80300
+## Author: Epsilon Development Team
+## Version: 3.6.5
+## LoadOnDemand: 1
+## RequiredDeps: MogIt
+## X-MogItModuleVersion: 3
+## X-Curse-Packaged-Version: 3.6.5
+## X-Curse-Project-Name: MogIt
+## X-Curse-Project-ID: mogit
+## X-Curse-Repository-ID: wow/mogit/mainline
+
+## Title: MogIt: Epsilon Armour: Cloth
+## Notes: MogIt Data for Epsilon Custom Armour
+
+
+init.lua
+Head.lua
+Shoulders.lua
+Chest.lua
+Shirts.lua
+Tabards.lua
+Waist.lua
+Wrist.lua
+Hands.lua
+Legs.lua
+Feet.lua
+
+
+
+

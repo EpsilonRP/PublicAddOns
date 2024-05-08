@@ -1,0 +1,56 @@
+## Interface: 80300
+## Author: Epsilon Development Team
+## Version: 3.6.5
+## LoadOnDemand: 1
+## RequiredDeps: MogIt
+## X-MogItModuleVersion: 3
+## X-Curse-Packaged-Version: 3.6.5
+## X-Curse-Project-Name: MogIt
+## X-Curse-Project-ID: mogit
+## X-Curse-Repository-ID: wow/mogit/mainline
+
+## Title: MogIt: Epsilon Weapons
+## Title-frFR: MogIt: Tissu
+## Title-deDE: MogIt: Stoff
+## Title-esES: MogIt: Tela
+## Title-esMX: MogIt: Tela
+## Title-ruRU: MogIt: Ткань
+## Title-koKR: MogIt: 천
+## Title-zhCN: MogIt: 布甲
+## Title-zhTW: MogIt: 布料
+## Title-ptBR: MogIt: Tecido
+## Title-itIT: MogIt: Cloth
+
+## Notes: MogIt Data
+## Notes-frFR: MogIt Données
+## Notes-deDE: MogIt Daten
+## Notes-esES: MogIt Datos
+## Notes-esMX: MogIt Datos
+## Notes-ruRU: MogIt данные
+## Notes-koKR: MogIt 데이터
+## Notes-zhCN: MogIt 数据
+## Notes-zhTW: MogIt 的數據
+## Notes-ptBR: MogIt Dados
+## Notes-itIT: MogIt Dati
+
+init.lua
+Axe1h.lua
+Axe2h.lua
+Bow.lua
+Crossbow.lua
+Dagger.lua
+Fist.lua
+Glaive.lua
+Firearm.lua
+Mace1h.lua
+Mace2h.lua
+Offhand.lua
+Misc.lua
+Polearm.lua
+Shield.lua
+Staff.lua
+Sword1h.lua
+Sword2h.lua
+Thrown.lua
+Wand.lua
+Quiver.lua
