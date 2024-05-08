@@ -26,6 +26,16 @@ local function standardEditBoxOnEscapePressed(self)
 	self:GetParent():Hide();
 end
 
+local function hideCancelIfNeeded(dialogTemplate, customData)
+	if not customData.cancelText then -- need to accept nil / false as "DON'T SHOW THIS BUTTON"
+		dialogTemplate.button2 = nil
+	end
+end
+
+local function restoreCancelButton(dialogTemplate)
+	dialogTemplate.button2 = "" -- supplied dynamically
+end
+
 -- Generic Input Box Dialog
 StaticPopupDialogs["SCFORGE_GENERIC_INPUT_BOX"] = {
 	text = "", -- supplied dynamically.
@@ -98,20 +108,26 @@ local function runOverrides(dialogTemplate, customData)
 			dialogTemplate[field] = customData[field]
 		end
 	end
+	hideCancelIfNeeded(dialogTemplate, customData)
 end
 local function resetOverrides(dialogTemplate)
 	for i = 1, #hardOverrides do
 		local field = hardOverrides[i]
 		dialogTemplate[field] = nil
 	end
+
+	restoreCancelButton(dialogTemplate)
 end
 
 ---@param customData GenericInputCustomData
 ---@param insertedFrame frame?
 local function showCustomGenericInputBox(customData, insertedFrame)
-	runOverrides(StaticPopupDialogs["SCFORGE_GENERIC_INPUT_BOX"], customData)
-	StaticPopup_Show("SCFORGE_GENERIC_INPUT_BOX", nil, nil, customData, insertedFrame);
-	resetOverrides(StaticPopupDialogs["SCFORGE_GENERIC_INPUT_BOX"])
+	local template = "SCFORGE_GENERIC_INPUT_BOX"
+	runOverrides(StaticPopupDialogs[template], customData)
+	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
+	resetOverrides(StaticPopupDialogs[template])
+
+	return shownFrame
 end
 
 
@@ -198,7 +214,12 @@ end
 
 ---@param customData GenericInputCustomData
 local function showCustomMultiLineInputBox(customData)
-	StaticPopup_Show("SCFORGE_GENERIC_MULTILINE_INPUT_BOX", nil, nil, customData, genMultiLineInputBoxOnDemand(customData.editBoxWidth));
+	local template = "SCFORGE_GENERIC_MULTILINE_INPUT_BOX"
+	hideCancelIfNeeded(StaticPopupDialogs[template], customData)
+	local shownFrame = StaticPopup_Show(template, nil, nil, customData, genMultiLineInputBoxOnDemand(customData.editBoxWidth));
+	restoreCancelButton(StaticPopupDialogs[template])
+
+	return shownFrame
 end
 
 -- Script Input Box
@@ -291,7 +312,7 @@ local function showScriptInputBox(text, returnEditBox, enableLuaSyntax)
 		returnEditBox = returnEditBox,
 		enableLuaSyntax = enableLuaSyntax,
 	}
-	StaticPopup_Show("SCFORGE_SCRIPT_INPUT_BOX", nil, nil, customData, genScriptInputBoxOnDemand());
+	return StaticPopup_Show("SCFORGE_SCRIPT_INPUT_BOX", nil, nil, customData, genScriptInputBoxOnDemand());
 end
 
 -- Generic Confirmation Dialog
@@ -364,14 +385,12 @@ StaticPopupDialogs["SCFORGE_GENERIC_CONFIRMATION"] = {
 ---@param customData GenericConfirmationCustomData
 ---@param insertedFrame? frame
 local function showCustomGenericConfirmation(customData, insertedFrame)
-	local shownFrame
-	if customData.cancelText == false then
-		StaticPopupDialogs["SCFORGE_GENERIC_CONFIRMATION"].button2 = nil
-		shownFrame = StaticPopup_Show("SCFORGE_GENERIC_CONFIRMATION", nil, nil, customData, insertedFrame);
-		StaticPopupDialogs["SCFORGE_GENERIC_CONFIRMATION"].button2 = ""
-	else
-		shownFrame = StaticPopup_Show("SCFORGE_GENERIC_CONFIRMATION", nil, nil, customData, insertedFrame);
-	end
+	local template = "SCFORGE_GENERIC_CONFIRMATION"
+
+	hideCancelIfNeeded(StaticPopupDialogs[template], customData)
+	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
+	restoreCancelButton(StaticPopupDialogs[template])
+
 	return shownFrame
 end
 
@@ -381,6 +400,69 @@ end
 local function showGenericConfirmation(text, callback, insertedFrame)
 	local data = { text = text, callback = callback, };
 	return showCustomGenericConfirmation(data, insertedFrame);
+end
+
+StaticPopupDialogs["SCFORGE_GENERIC_DROP_DOWN"] = {
+	text = "", -- supplied dynamically.
+	button1 = ACCEPT,
+	button2 = CANCEL,
+	hasDropDown = 1,
+	dropDownOptions = {},
+	OnShow = function(self, data)
+		self.text:SetFormattedText(data.text, data.text_arg1, data.text_arg2);
+		self.button1:SetText(data.acceptText or OKAY);
+		self.button2:SetText(data.cancelText or CANCEL);
+
+		if not self.DropDownControl then
+			self.DropDownControl = CreateFrame("Frame", nil, self, "DropDownControlTemplate")
+			self.DropDownControl:SetPoint("BOTTOM", 0, 45)
+		end
+		self.DropDownControl:Show()
+		self.DropDownControl:ClearSelectedValue();
+		self.DropDownControl:SetOptions(data.options, data.defaultOption);
+		local hasButtons = not not data.hasButtons;
+		self.button1:SetShown(hasButtons);
+		if data.cancelText ~= false then
+			self.button2:SetShown(hasButtons);
+		end
+		if hasButtons then
+			self.DropDownControl:SetOptionSelectedCallback(nil);
+		else
+			local function StaticPopupGenericDropDownOptionSelectedCallback(option)
+				data.callback(option);
+				self:Hide();
+			end
+			self.DropDownControl:SetOptionSelectedCallback(StaticPopupGenericDropDownOptionSelectedCallback);
+		end
+	end,
+	OnAccept = function(self, data)
+		data.callback(self.DropDownControl:GetSelectedValue());
+	end,
+	OnHide = function(self)
+		self.DropDownControl:SetOptionSelectedCallback(nil);
+		self.DropDownControl:ClearOptions();
+		self.DropDownControl:Hide()
+	end,
+	hideOnEscape = 1,
+	timeout = 0,
+	exclusive = 1,
+	whileDead = 1,
+};
+
+local function showCustomGenericDropDown(customData, insertedFrame)
+	local template = "SCFORGE_GENERIC_DROP_DOWN"
+	hideCancelIfNeeded(StaticPopupDialogs[template], customData)
+	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
+	shownFrame:SetHeight(shownFrame:GetHeight() + 40) -- manual adjust for dropdown lol
+	restoreCancelButton(StaticPopupDialogs[template])
+
+	return shownFrame
+end
+
+local function showGenericDropDown(text, callback, options, hasButtons, defaultOption, insertedFrame)
+	local customData = { text = text, callback = callback, options = options, hasButtons = hasButtons, defaultOption = defaultOption };
+
+	return showCustomGenericDropDown(customData, insertedFrame)
 end
 
 -- //
@@ -524,7 +606,7 @@ function hotkeyModInsertFrame:Update()
 	local defaultBindingAction = GetBindingAction(key and key or "", true)
 	if defaultBindingAction:find("SCForgeHotkeyButton") then
 		defaultBindingAction = nil
-	elseif defaultBindingAction:find("SCForgePhaseCastPopupButton.keybind") then
+	elseif defaultBindingAction:find("ArcanumSparkPopupButton.keybind") then
 		defaultBindingAction = ns.Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum: Activate Spark")
 	elseif defaultBindingAction and defaultBindingAction ~= "" then
 		defaultBindingAction = ns.Constants.ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode(defaultBindingAction)
@@ -971,6 +1053,9 @@ ns.UI.Popups = {
 	showCustomMultiLineInputBox = showCustomMultiLineInputBox,
 	showCustomGenericConfirmation = showCustomGenericConfirmation,
 	showGenericConfirmation = showGenericConfirmation,
+
+	showGenericDropDown = showGenericDropDown,
+	showCustomGenericDropDown = showCustomGenericDropDown,
 
 	showScriptInputBox = showScriptInputBox,
 }

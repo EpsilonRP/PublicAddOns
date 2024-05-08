@@ -282,6 +282,9 @@ local baseMenuList = {
 		header("Prompt, No Input (Confirmation)"),
 		action(ACTION.BoxPromptCommandNoInput),
 		action(ACTION.BoxPromptScriptNoInput),
+		header("Prompt with Dropdown Choice"),
+		action(ACTION.BoxPromptCommandChoice),
+		action(ACTION.BoxPromptScriptChoice),
 	}),
 	selectmenu("User Interface (UI)", {
 		action(ACTION.HideMostUI),

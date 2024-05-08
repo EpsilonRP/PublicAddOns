@@ -24,15 +24,6 @@ local function onToBoolean(val)
 	if strtrim(string.lower(val)) == "on" then return true else return false end
 end
 
-local function strsplitTrim(delim, str, pieces)
-	local strings = { strsplit(delim, str, pieces) }
-	local finStrings = {}
-	for k, v in ipairs(strings) do
-		tinsert(finStrings, strtrim(v))
-	end
-	return unpack(finStrings)
-end
-
 local parseStringToArgs = ns.Utils.Data.parseStringToArgs
 local parseArgsWrapper = function(string, limit)
 	local success, argTable, numArgs = pcall(parseStringToArgs, string, limit)
@@ -216,6 +207,8 @@ local ACTION_TYPE = {
 	BoxPromptScript = "BoxPromptScript",
 	BoxPromptScriptNoInput = "BoxPromptScriptNoInput",
 	BoxPromptCommandNoInput = "BoxPromptCommandNoInput",
+	BoxPromptCommandChoice = "BoxPromptCommandChoice",
+	BoxPromptScriptChoice = "BoxPromptScriptChoice",
 	OpenSendMail = "OpenSendMail",
 	SendMail = "SendMail",
 	TalkingHead = "TalkingHead",
@@ -1161,14 +1154,8 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptCommand] = scriptAction("Command Input Prompt", {
 		command = function(msg)
-			--local description, okayText, cancText, command = strsplit(",", msg, 4)
 			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
 
-			--[[
-			--local args, numArgs = parseArgsWrapper(msg)
-			if not args then return end
-			local description, okayText, cancText, command = unpack(args)
-			--]]
 			local success, description, okayText, cancText, command = pcall(getArgs, msg, 4)
 			if not success then return end
 
@@ -1176,11 +1163,14 @@ local actionTypeData = {
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
 			if cancText == "false" then cancText = false end
-			--if cancText == "nil" then cancText = false end
+
 			command = strtrim(command)
 			ns.UI.Popups.showCustomGenericInputBox({
 				callback = function(input)
-					cmdWithDotCheck((command):gsub("@", input))
+					command = command:gsub("@input", input)
+					command = command:gsub("@", input) -- legacy support
+
+					cmdWithDotCheck(command)
 				end,
 				text = description,
 				acceptText = okayText,
@@ -1191,24 +1181,18 @@ local actionTypeData = {
 		end,
 		description = "Prompts the user with an input box, then adds that input to the command given.",
 		dataName = "Text, OK, Cancel, Command",
-		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, and the command to use; separated by commas.\nUse the " ..
-			Tooltip.genContrastText("@") ..
-			" symbol as the placeholder to be replaced by the user input.\n\rOkay and Cancel can be left blank and will default as 'Okay' and 'Cancel'.\nSet Cancel text as 'nil' to hide the Cancel button.",
-		example = 'What item do you want to add?,,, additem @',
+		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, and the command to use; separated by commas.\n" ..
+			"Use " .. Tooltip.genContrastText("@input") .. " as the placeholder to be replaced by the user input.\n\r" ..
+			"Okay and Cancel can be left blank and will default as 'Okay' and 'Cancel'.\n" ..
+			"Set Cancel text as 'nil' to hide the Cancel button.",
+		example = 'What item do you want to add?,,, additem @input',
 		revert = nil,
 		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.BoxPromptScript] = scriptAction("Script Input Prompt", {
 		command = function(msg)
-			--local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
-
 			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
 
-			--[[
-			--local args, numArgs = parseArgsWrapper(msg)
-			if not args then return end
-			local description, okayText, cancText, scriptString = unpack(args)
-			--]]
 			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg, 4)
 			if not success then return end
 
@@ -1216,7 +1200,7 @@ local actionTypeData = {
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
 			if cancText == "false" then cancText = false end
-			--if cancText == "nil" then cancText = false end
+
 			scriptString = strtrim(scriptString):gsub("@input", "userInput")
 			local scriptTest, errorMessageTest = loadstring(scriptString)
 			if scriptTest and not errorMessageTest then
@@ -1247,9 +1231,10 @@ local actionTypeData = {
 		end,
 		description = "Prompts the user with an input box, then adds that input to the script given.",
 		dataName = "Text, OK, Cancel, Script",
-		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, and the script to use; separated by a comma.\nUse the " ..
-			Tooltip.genContrastText("@input") ..
-			" tag as the placeholder to be replaced by the user input.\n\rOkay and Cancel can be left blank and will default as 'Okay' and 'Cancel'.\nSet Cancel text as 'nil' to hide the Cancel button.",
+		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, and the script to use; separated by a comma.\n" ..
+			"Use the " .. Tooltip.genContrastText("@input") .. " tag as the placeholder to be replaced by the user input.\n\r" ..
+			"Okay and Cancel can be left blank and will default as 'Okay' and 'Cancel'.\n" ..
+			"Set Cancel text as 'nil' to hide the Cancel button.",
 		example = [[What's 2+2?,,, if @input == "4" then print("Correct!") else print("Nope!") end]],
 		revert = nil,
 		doNotDelimit = true,
@@ -1257,15 +1242,8 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptCommandNoInput] = scriptAction("Command Run Prompt", {
 		command = function(msg)
-			--local description, okayText, cancText, command = strsplit(",", msg, 4)
-
 			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
 
-			--[[
-			--local args, numArgs = parseArgsWrapper(msg)
-			if not args then return end
-			local description, okayText, cancText, command = unpack(args)
-			--]]
 			local success, description, okayText, cancText, command = pcall(getArgs, msg, 4)
 			if not success then return end
 
@@ -1273,7 +1251,6 @@ local actionTypeData = {
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
 			if cancText == "false" then cancText = false end
-			--if cancText == "nil" then cancText = false end
 
 			command = strtrim(command)
 			ns.UI.Popups.showCustomGenericConfirmation({
@@ -1295,15 +1272,7 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.BoxPromptScriptNoInput] = scriptAction("Script Run Prompt", {
 		command = function(msg)
-			--local description, okayText, cancText, scriptString = strsplit(",", msg, 4)
-
 			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
-
-			--[[
-			--local args, numArgs = parseArgsWrapper(msg)
-			if not args then return end
-			local description, okayText, cancText, scriptString = unpack(args)
-			--]]
 
 			local success, description, okayText, cancText, scriptString = pcall(getArgs, msg, 4)
 			if not success then return end
@@ -1312,7 +1281,6 @@ local actionTypeData = {
 			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
 			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
 			if cancText == "false" then cancText = false end
-			--if cancText == "nil" then cancText = false end
 
 			scriptString = strtrim(scriptString)
 			local script, errorMessage = loadstring(scriptString)
@@ -1333,6 +1301,135 @@ local actionTypeData = {
 		inputDescription =
 		"The text to show in the prompt message, Okay Button Text, Cancel Button Text, and the script to use; separated by commas.\n\rOkay and Cancel can be left blank and will default as 'Okay' and 'Cancel'.\nSet Cancel text as 'nil' to hide the Cancel button.",
 		example = [[Do you want to know the answer?, Yes, No, print("42! But what is the question..?")]],
+		revert = nil,
+		doNotDelimit = true,
+		doNotSanitizeNewLines = true,
+	}),
+	[ACTION_TYPE.BoxPromptCommandChoice] = scriptAction("Command Choice Prompt", {
+		command = function(msg)
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			local success, description, okayText, cancText, command, optionsString = pcall(getArgs, msg, 5)
+			if not success then return end
+			local success, _rawOptions = pcall(parseArgsWrapper, optionsString)
+			if not success then return end
+
+			local optionsTable = {}
+			local defaultOption
+
+			for k, v in ipairs(_rawOptions) do
+				local value, display = strsplit(":", v, 2)
+
+				if value:find("^*") then
+					value = value:gsub("^*", "")
+					defaultOption = value
+				end
+
+				optionsTable[k] = { value = value, text = display or value }
+			end
+
+			if not cancText and not command then command = okayText end
+			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
+			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
+			if cancText == "false" then cancText = false end
+			if okayText == "false" then okayText = false end
+			command = strtrim(command)
+			local callback = function(input)
+				cmdWithDotCheck((command):gsub("@input", input))
+			end
+			ns.UI.Popups.showCustomGenericDropDown({
+				callback = callback,
+				text = description,
+				acceptText = okayText,
+				cancelText = cancText,
+				options = optionsTable,
+				hasButtons = okayText or cancText, -- wtf happens if you have cancText but not okayText? EEK.
+				defaultOption = defaultOption or nil,
+			})
+		end,
+		description = "Prompts the user with a dropdown of choices, then adds that choice as input to the command given.",
+		dataName = "Description, OK Button Text, Cancel Button Text, Command, value1:DisplayText1, value2:DisplayText2, ...",
+		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, Command to use, and a list a values; separated by commas.\n" ..
+			"Use " .. Tooltip.genContrastText("@input") .. " as the placeholder to be replaced by the user input.\n\r" ..
+			"Okay and Cancel can be left blank and will default as 'Okay' and 'Cancel'. Cancel can be set as 'nil' to hide the Cancel button.\n" ..
+			"Set Okay AND Cancel text as 'nil' to hide both buttons & auto-run when an option is selected.\n" ..
+			"Add a " .. Tooltip.genContrastText("*") .. " to the start of a VALUE to make that the default selected option.\n\r" ..
+			("Options can be given as either '%s' alone, or as '%s'; value is what is passed into the script, Display Text is what would be shown in the dropdown."):format(
+				Tooltip.genContrastText("value"), Tooltip.genContrastText("value:DisplayText")),
+		example = [[Where do you want to go?, Teleport, Cancel, .tele @input, oldironforge:Old Iron Forge, Stormwind, *start:Return to Start]],
+		revert = nil,
+		doNotDelimit = true,
+	}),
+	[ACTION_TYPE.BoxPromptScriptChoice] = scriptAction("Script Choice Prompt", {
+		command = function(msg)
+			msg = msg:gsub("nil", "false") -- convert nil to false for backwards compatibility, since parseArgsWrapper makes nil a true nil, and we don't want that
+
+			local success, description, okayText, cancText, scriptString, optionsString = pcall(getArgs, msg, 5)
+			if not success then return end
+			local success, _rawOptions = pcall(parseArgsWrapper, optionsString)
+			if not success then return end
+
+			local optionsTable = {}
+			local defaultOption
+
+			for k, v in ipairs(_rawOptions) do
+				local value, display = strsplit(":", v, 2)
+
+				if value:find("^*") then
+					value = value:gsub("^*", "")
+					defaultOption = value
+				end
+
+				optionsTable[k] = { value = value, text = display or value }
+			end
+
+
+			if not cancText and not scriptString then scriptString = okayText end
+			if not okayText or strtrim(okayText) == "" then okayText = OKAY else okayText = strtrim(okayText) end
+			if not cancText or strtrim(cancText) == "" then cancText = CANCEL else cancText = strtrim(cancText) end
+			if cancText == "false" then cancText = false end
+			if okayText == "false" then okayText = false end
+
+			scriptString = strtrim(scriptString):gsub("@input", "userInput")
+			local scriptTest, errorMessageTest = loadstring(scriptString)
+			if scriptTest and not errorMessageTest then
+				local callback = function(userInput)
+					local script, errorMessage = loadstring([[
+						return function(userInput)
+							]] .. (scriptString) .. [[
+						end
+					]])
+					if script and not errorMessage then
+						script()(userInput)
+					else
+						ns.Logging.eprint("Error with Input while running script (Script Choice Prompt), please check your input or script. Error:")
+						print(errorMessage)
+					end
+				end
+				ns.UI.Popups.showCustomGenericDropDown({
+					callback = callback,
+					text = description,
+					acceptText = okayText,
+					cancelText = cancText,
+					options = optionsTable,
+					hasButtons = okayText or cancText,
+					defaultOption = defaultOption or nil,
+				})
+			else
+				ns.Logging.eprint("Error Loading Script in ArcSpell Action (Script Choice Prompt), please check your script. Error:")
+				print(errorMessageTest)
+			end
+		end,
+		description = "Prompts the user with an dialog box with a dropdown box of options, then adds their choice to the script given.",
+		dataName = "Description, OK Button Text, Cancel Button Text, script string, value1:DisplayText1, value2:DisplayText2, ...",
+		inputDescription = "The text to show in the prompt message, Okay Button Text, Cancel Button Text, Command to use, and a list a values; separated by commas.\n" ..
+			"Use " .. Tooltip.genContrastText("@input") .. " as the placeholder to be replaced by the user input.\n\r" ..
+			"Okay and Cancel can be left blank and will default as 'Okay' and 'Cancel'. Cancel can be set as 'nil' to hide the Cancel button.\n" ..
+			"Set Okay AND Cancel text as 'nil' to hide both buttons & auto-run when an option is selected.\n" ..
+			"Add a " .. Tooltip.genContrastText("*") .. " to the start of a VALUE to make that the default selected option.\n\r" ..
+			("Options can be given as either '%s' alone, or as '%s'; value is what is passed into the script, Display Text is what would be shown in the dropdown."):format(
+				Tooltip.genContrastText("value"), Tooltip.genContrastText("value:DisplayText")),
+		example = [[What color is an Orange?, nil, nil, if @input == 'orange' then print('Nice') end, orange:Orange, apple:Red, banana:Yellow, Green]],
 		revert = nil,
 		doNotDelimit = true,
 		doNotSanitizeNewLines = true,

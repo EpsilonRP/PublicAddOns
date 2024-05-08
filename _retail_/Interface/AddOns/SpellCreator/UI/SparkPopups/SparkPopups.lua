@@ -1,65 +1,61 @@
 ---@class ns
-local ns                       = select(2, ...)
-local addonName                = ...
+local ns                              = select(2, ...)
+local addonName                       = ...
 
-local Animation                = ns.UI.Animation
-local AceComm                  = ns.Libs.AceComm
-local Comms                    = ns.Comms
-local Constants                = ns.Constants
-local Vault                    = ns.Vault
-local Icons                    = ns.UI.Icons
-local Logging                  = ns.Logging
-local Permissions              = ns.Permissions
-local serializer               = ns.Serializer
-local Tooltip                  = ns.Utils.Tooltip
-local SparkPopups              = ns.UI.SparkPopups
-local CreateSparkUI            = SparkPopups.CreateSparkUI
+local Animation                       = ns.UI.Animation
+local AceComm                         = ns.Libs.AceComm
+local Comms                           = ns.Comms
+local Constants                       = ns.Constants
+local Vault                           = ns.Vault
+local Icons                           = ns.UI.Icons
+local Logging                         = ns.Logging
+local Permissions                     = ns.Permissions
+local serializer                      = ns.Serializer
+local Tooltip                         = ns.Utils.Tooltip
+local SparkPopups                     = ns.UI.SparkPopups
+local CreateSparkUI                   = SparkPopups.CreateSparkUI
+local SparkInit                       = SparkPopups.Init
 
-local AceConfigDialog          = ns.Libs.AceConfigDialog
+local AceConfigDialog                 = ns.Libs.AceConfigDialog
 
-local addonMsgPrefix           = Comms.PREFIX
-local DataUtils                = ns.Utils.Data
-local Debug                    = ns.Utils.Debug
+local addonMsgPrefix                  = Comms.PREFIX
+local DataUtils                       = ns.Utils.Data
+local Debug                           = ns.Utils.Debug
 
-local Cooldowns                = ns.Actions.Cooldowns
+local Cooldowns                       = ns.Actions.Cooldowns
 
-local isOfficerPlus            = Permissions.isOfficerPlus
-local getDistanceBetweenPoints = DataUtils.getDistanceBetweenPoints
+local isOfficerPlus                   = Permissions.isOfficerPlus
+local getDistanceBetweenPoints        = DataUtils.getDistanceBetweenPoints
+local areTablesFunctionallyEquivalent = DataUtils.areTablesFunctionallyEquivalent
 
-local ASSETS_PATH              = Constants.ASSETS_PATH
+local ASSETS_PATH                     = Constants.ASSETS_PATH
 
-local defaultSparkPopupStyle   = "Interface\\ExtraButton\\Default";
+local defaultSparkPopupStyle          = "Interface\\ExtraButton\\Default";
 
----@type table<number, SparkPopupTriggerData[]>
-local phaseSparkTriggers       = {}
+---@type table<number, SparkTriggerData[]>
+local phaseSparkTriggers              = {}
 
-local getPlayerPositionData    = C_Epsilon.GetPosition or function() return UnitPosition("player") end
+local getPlayerPositionData           = C_Epsilon.GetPosition or function() return UnitPosition("player") end
 
-local multiMessageData         = ns.Comms.multiMessageData
-local MSG_MULTI_FIRST          = multiMessageData.MSG_MULTI_FIRST
-local MSG_MULTI_NEXT           = multiMessageData.MSG_MULTI_NEXT
-local MSG_MULTI_LAST           = multiMessageData.MSG_MULTI_LAST
-local MAX_CHARS_PER_SEGMENT    = multiMessageData.MAX_CHARS_PER_SEGMENT
+local multiMessageData                = ns.Comms.multiMessageData
+local MSG_MULTI_FIRST                 = multiMessageData.MSG_MULTI_FIRST
+local MSG_MULTI_NEXT                  = multiMessageData.MSG_MULTI_NEXT
+local MSG_MULTI_LAST                  = multiMessageData.MSG_MULTI_LAST
+local MAX_CHARS_PER_SEGMENT           = multiMessageData.MAX_CHARS_PER_SEGMENT
 
-local _sparkTypesMap           = CreateSparkUI.sparkTypesMap
+local _sparkTypesMap                  = CreateSparkUI.sparkTypesMap
 
 -------------------------------
 --#region || Shared Funcs
 -------------------------------
+local genSparkCDNameOverride          = SparkInit.genSparkCDNameOverride
+local isSparkConditionsMet            = SparkInit.isSparkConditionsMet
+local isSparkOrSpellNotOnCD           = SparkInit.isSparkOrSpellNotOnCD
+local isSparkType                     = ns.UI.SparkPopups.CreateSparkUI.isSparkType
 
----Gets the Spark Spell CommID + X Y Z coords concat to it for a unique name to use for CDs
----@param commID CommID
----@param x number
----@param y number
----@param z number
----@return string
-local function genSparkCDNameOverride(commID, x, y, z)
-	local sparkCDNameOverride = strjoin(string.char(31), commID, x, y, z)
-	return sparkCDNameOverride
-end
 
 ---Checks if spark is in range of given X Y Z, or Player Pos if X Y Z not given
----@param sparkData SparkPopupTriggerData
+---@param sparkData SparkTriggerData
 ---@param x? number
 ---@param y? number
 ---@param z? number
@@ -82,74 +78,11 @@ local function isSparkInRange(sparkData, x, y, z)
 	return false -- did not meet all requirements to hit true, so false
 end
 
----Checks if a Sparks' conditions are met
----@param sparkData SparkPopupTriggerData
-local function isSparkConditionsMet(sparkData)
-	local v = sparkData
-	local sparkOptions = v[8] --[[@as PopupTriggerOptions]]
-
-	if not sparkOptions then return true end -- early exit if sparkOptions don't exist for some reason
-
-	local shouldShowSpark = true
-	if sparkOptions.conditions then
-		shouldShowSpark = ns.Actions.Execute.checkConditions(sparkOptions.conditions)
-	elseif sparkOptions.requirement then
-		local script = sparkOptions.requirement
-		if not script:match("return") then
-			script = "return " .. script
-		end
-		if ns.Cmd.runMacroText(script) then
-			shouldShowSpark = true
-		end
-	end
-
-	return shouldShowSpark
-end
-
----Checks if a Spark, or it's Spell, is on CD
----@param sparkData SparkPopupTriggerData
-local function isSparkOrSpellNotOnCD(sparkData)
-	local v = sparkData
-	local commID, sX, sY, sZ, sR, barTex, colorHex = v[1], v[2], v[3], v[4], v[5], v[6], v[7]
-
-	-- Check if Spark on CD
-	local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
-	local sparkCdTimeRemaining, sparkCdLength = Cooldowns.isSparkOnCooldown(sparkCDNameOverride)
-	if sparkCdTimeRemaining then
-		print(("This spark (%s) is on cooldown (%ss)."):format(sparkCDNameOverride, sparkCdTimeRemaining))
-		return false
-	end
-
-	-- Check if Spell on CD
-	local spellCdTimeRemaining, spellCdLength = Cooldowns.isSpellOnCooldown(commID, C_Epsilon.GetPhaseId())
-	if spellCdTimeRemaining then
-		print(("This Spark's Spell (%s) is on Cooldown (%ss)."):format(commID, spellCdTimeRemaining))
-		return false
-	end
-
-	-- Neither were on CD
-	return true
-end
-
----Checks if a Spark Type is equal to any of the types specified
----@param type number
----@param ... number
----@return boolean
-local function isSparkType(type, ...)
-	if not type then type = _sparkTypesMap["Standard"] end -- Legacy Spark - default to standard
-
-	local t = {}
-	for _, v in ipairs({ ... }) do
-		t[v] = true
-	end
-	if t[type] then return true else return false end
-end
-
----Triggers a Spark!
----@param sparkData SparkPopupTriggerData
+---Triggers a Spark! Does not parse any form of checks regarding CD, distance, or conditions.
+---@param sparkData SparkTriggerData
 local function triggerSpark(sparkData)
 	local commID, sX, sY, sZ = sparkData[1], sparkData[2], sparkData[3], sparkData[4]
-	local sparkOptions = sparkData[8] --[[@as PopupTriggerOptions]]
+	local sparkOptions = sparkData[8] --[[@as SparkTriggerDataOptions]]
 
 	-- Pull the Spark Data locally for easy access
 	local sparkCdTime, sparkCdTrigger, sparkCdBroadcast
@@ -187,24 +120,22 @@ end
 
 --#endregion
 -------------------------------
---#region || Standard Frames
+--#region || Standard Spark
 -------------------------------
 
----@class PopupTriggerOptions
+---@class SparkTriggerDataOptions
 ---@field cooldownTime? integer
 ---@field trigSpellCooldown? boolean
 ---@field broadcastCooldown? boolean
----@field requirement? string
+---@field requirement? string Deprecated, use Conditions Instead!
 ---@field inputs? string
 ---@field chat? string
 ---@field emote? EmoteToken
 ---@field conditions? ConditionDataTable
 ---@field showHSI? boolean Should Show HiddenSparkIcon
 
-local sparkPopup           = CreateFrame("Frame", "SCForgePhaseCastPopup", UIParent, "SC_ExtraActionBarFrameTemplate")
-sparkPopup.button          = CreateFrame("CheckButton", "SCForgePhaseCastPopupButton", sparkPopup, "SC_ExtraActionButtonTemplate")
-sparkPopup.button.cooldown = CreateFrame("Cooldown", nil, sparkPopup.button, "CooldownFrameTemplate")
-sparkPopup.button.cooldown:SetAllPoints()
+local multiSparkFrame --predef to use in OnShow/OnHide
+local sparkPopup = CreateFrame("Frame", "ArcanumSparkPopupFrame", UIParent, "SC_ExtraActionBarFrameTemplate")
 
 -- make the sparkPopup able to be moved by dragging it; slightly smaller than the actual style frame to account for transparency on the edges
 sparkPopup:SetSize(200, 100)
@@ -218,101 +149,163 @@ sparkPopup:SetScript("OnDragStop", function(self)
 	self:StopMovingOrSizing()
 end)
 
-local castbutton = sparkPopup.button
-castbutton:SetPoint("CENTER")
-castbutton:SetScript("OnClick", function(self, button)
-	self:SetChecked(false)
-	if (isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) and button == "RightButton" then
-		SparkPopups.SparkManagerUI.showSparkManagerUI()
-		return
+sparkPopup:SetScript("OnShow", function(self)
+	if not multiSparkFrame:IsUserPlaced() then
+		multiSparkFrame:ClearAllPoints()
+		multiSparkFrame:SetPoint("BOTTOM", self, "TOP")
 	end
-	local spell = self.spell
-	if button == "keybind" and not sparkPopup:IsShown() then
-		Logging.dprint("SparkPopups Keybind Pressed, but not shown so skipped.")
-		return
-	end
-	if not spell then
-		Logging.eprint("No spell found on the button. Report this.")
-		return
-	end
-
-	--spark cooldown overrides
-	local cdData = self.cdData
-	local pseudoSparkData = { spell.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3] }
-
-	if not isSparkOrSpellNotOnCD(pseudoSparkData) then return end -- Exit if spark & spell not not on CD (aka: On CD) -- Print CD messages are handled in the check
-
-	local bypassCD = false
-	if cdData[1] then
-		local sparkCDNameOverride = genSparkCDNameOverride(spell.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
-		Cooldowns.addSparkCooldown(sparkCDNameOverride, cdData[1], spell.commID)
-		bypassCD = true
-		if cdData[2] then
-			bypassCD = false
-		end
-		if cdData[3] then
-			ns.Comms.sendSparkCooldown(sparkCDNameOverride, cdData[1])
-			-- send something to the comms to trigger that cd on the phase.. ick..
-		end
-	end
-	if cdData.inputs then
-		ARC.PHASE:CAST(spell.commID, bypassCD, unpack(DataUtils.parseStringToArgs(cdData.inputs)))
-	else
-		ARC.PHASE:CAST(spell.commID, bypassCD)
+end)
+sparkPopup:SetScript("OnHide", function(self)
+	if not multiSparkFrame:IsUserPlaced() then
+		multiSparkFrame:ClearAllPoints()
+		multiSparkFrame:SetPoint("CENTER", self, "CENTER")
 	end
 end)
 
-Tooltip.set(sparkPopup.button,
-	function(self)
-		return self.spell.fullName
-	end,
-	function(self)
-		local spell = self.spell
-		local strings = {}
+--#endregion
+-------------------------------
+--#region || Multi Spark Frame
+-------------------------------
+multiSparkFrame = CreateFrame("FRAME", "ArcanumMultiSparkFrame", UIParent, "ArcanumMultiSparkFrameTemplate")
+multiSparkFrame:Hide()
+multiSparkFrame:SetSize(256, 128)
+--multiSparkFrame:SetPoint("BOTTOM", 0, 50)
+multiSparkFrame:SetPoint("CENTER", sparkPopup, "CENTER")
+multiSparkFrame.SpellButtonContainer:SetTemplate("Button", "SC_ExtraActionButtonTemplate");
 
-		if spell.description then
-			tinsert(strings, spell.description)
-		end
-		local cooldownTime
-		if spell.cooldown then
-			cooldownTime = spell.cooldown
-		end
-		if self.cdData[1] then
-			local sparkCdTime = tonumber(self.cdData[1])
-			if self.cdData[2] then
-				if cooldownTime then
-					if sparkCdTime > cooldownTime then
-						cooldownTime = sparkCdTime
-					end
-				else
-					cooldownTime = sparkCdTime
+multiSparkFrame.Style:Hide() -- This is the blizz default one, we are not going to use it due to draw layer order
+multiSparkFrame:SetMovable(true)
+multiSparkFrame:EnableMouse(true)
+multiSparkFrame:RegisterForDrag("LeftButton")
+multiSparkFrame:SetScript("OnDragStart", function(self, button)
+	self:StartMoving()
+end)
+multiSparkFrame:SetScript("OnDragStop", function(self)
+	self:StopMovingOrSizing()
+end)
+
+
+---Set the spells
+---@param spells CommID[]
+function multiSparkFrame:SetSpells(spells)
+	local numSpells = #spells
+	if not numSpells or numSpells == 0 then
+		multiSparkFrame.SpellButtonContainer:SetContent({})
+		return false
+	end -- no spells
+
+	local spellsToContent = {}
+	for _, commID in ipairs(spells) do
+		commID = strtrim(commID) -- just incase our split had a space left
+		local spell = Vault.phase.findSpellByID(commID)
+		local sparkData = multiSparkFrame.sparkData
+		tinsert(spellsToContent, { spell = spell, spark = sparkData })
+	end
+
+	multiSparkFrame.SpellButtonContainer:SetContents(spellsToContent)
+end
+
+---@param style string
+---@param numSpells number
+function multiSparkFrame:SetStyle(style, numSpells)
+	if not numSpells then
+		numSpells = #multiSparkFrame.spells
+	end
+	if not numSpells then numSpells = 3 end -- just use a big one idk, shouldn't be possible.. if things are working..
+
+	style = style .. "-" .. numSpells    -- add the number of spells to pull the proper texture - Styles should always be passed as the raw name, without the final "-number"
+
+	--[[ -- Disabled Atlas Support for the time being - there is no valid WoW Atlas's setup that would work anyways.
+	local isAtlas = C_Texture.GetAtlasInfo(style)
+	local useAtlasSize = false
+
+	if isAtlas then
+		if numSpells > 1 then
+			if not style:find("-" .. numSpells .. "$") then
+				if style:find("-%d$") then
+					style = style:gsub("-%d$", "") -- remove any given number already
 				end
-			else
-				cooldownTime = sparkCdTime
+				style = style .. "-" .. numSpells
 			end
 		end
-		if cooldownTime then
-			tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Cooldown: " .. cooldownTime .. "s"));
-			if spell.author then
-				tinsert(strings, Tooltip.createDoubleLine(" ", "Author: " .. spell.author));
-			end
-		else
-			if spell.author then
-				tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Author: " .. spell.author));
-			else
-				tinsert(strings, "Actions: " .. #spell.actions)
-			end
+		self.Style:SetAtlas(style, useAtlasSize)
+	else
+		self.Style:SetTexture(style)
+	end
+	--]]
+
+	self.Border.Style:SetTexture(style)
+end
+
+---@param commIDs CommID[]
+---@param barTex string
+---@param i number
+---@param colorHex string
+---@param sparkData SparkTriggerData
+---@return boolean wasShown
+local function showMultiSpark(commIDs, barTex, i, colorHex, sparkData)
+	if not commIDs or #commIDs < 1 then return false end
+
+	multiSparkFrame.index = i
+	multiSparkFrame.sparkData = sparkData
+
+	-- assign spells
+	if not areTablesFunctionallyEquivalent(commIDs, (multiSparkFrame.spells or {})) then -- Only SetSpells if there's a change. If they are functionally identical, don't - this avoids the buttons 'glitching' every re-draw as they get released & re-acquired.
+		multiSparkFrame.spells = commIDs
+		multiSparkFrame:SetSpells(commIDs)
+	end
+
+	-- set style
+	multiSparkFrame:SetStyle(barTex, #commIDs)
+	if colorHex then
+		multiSparkFrame.Border.Style:SetVertexColor(CreateColorFromHexString(colorHex):GetRGB())
+	else
+		multiSparkFrame.Border.Style:SetVertexColor(1, 1, 1, 1)
+	end
+
+	-- update cooldowns
+	for button in pairs(multiSparkFrame.SpellButtonContainer.contentFramePool.activeObjects) do
+		button:UpdateCooldown()
+	end
+
+	-- show
+	if not multiSparkFrame:IsShown() then
+		multiSparkFrame:Show()
+		multiSparkFrame.outro:Stop()
+		multiSparkFrame.intro:Play()
+	end
+
+	return true
+end
+
+local function hideMultiSparkFrame()
+	multiSparkFrame.intro:Stop();
+	multiSparkFrame.outro:Play();
+
+	--[[
+	for k, v in ipairs(multiSparkFrame.SpellButtonContainer.contentFramePool) do
+		v.cooldown:Clear()
+	end
+	--]]
+end
+
+local function triggerMultiSparkCooldown(commID, cooldownTime)
+	for button in pairs(multiSparkFrame.SpellButtonContainer.contentFramePool.activeObjects) do
+		if not multiSparkFrame:IsShown() then return end -- multiSparkFrame was not visible..
+		if not button:IsShown() then return end    -- this button is not visible? Inactive?
+
+		local sparkSpell = button.spell
+		if sparkSpell.commID == commID then
+			local currTime = GetTime()
+			button.cooldown:SetCooldown(currTime, cooldownTime)
 		end
+	end
+end
 
-		tinsert(strings, " ")
-		tinsert(strings, "Click to cast " .. Tooltip.genContrastText(spell.commID) .. "!")
-
-		if isOfficerPlus() then tinsert(strings, "Right-Click to Open " .. Tooltip.genContrastText("Sparks Manager")) end
-
-		return strings
-	end,
-	{ delay = 0 }
-)
+--#endregion
+-------------------------------
+--#region || Hidden Spark Notice Frame
+-------------------------------
 
 local hiddenSparkIcon = CreateFrame("BUTTON", nil, UIParent, "SC_SimpleAnimInOutTemplate")
 hiddenSparkIcon:SetSize(24, 24)
@@ -453,26 +446,43 @@ end
 ---@param colorHex string
 ---@param sparkData table
 ---@return boolean
-local function showCastPopup(commID, barTex, index, colorHex, sparkData)
+local function showSparkPopup(commID, barTex, index, colorHex, sparkData)
 	local bar = sparkPopup;
 	local spell = Vault.phase.findSpellByID(commID)
 	if not spell then return false end -- spell not found in vault, return false which will hide the sparkPopup
 
-	local icon = Icons.getFinalIcon(spell.icon)
-	bar.button.icon:SetTexture(icon)
+	local sparkButton = bar.button
+
+	sparkButton:SetSpell(spell, sparkData)
+
+
 	local texture = barTex or defaultSparkPopupStyle;
-	if type(texture) == "string" then
-		texture = texture:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
-	end
-	bar.button.style:SetTexture(texture);
-	if colorHex then
-		bar.button.style:SetVertexColor(CreateColorFromHexString(colorHex):GetRGB())
+	local isAtlas = (type(texture) == "string") and C_Texture.GetAtlasInfo(texture)
+	if isAtlas then
+		-- It's an atlas, leave it as such
+		bar.Border.style:SetAtlas(texture)
 	else
-		bar.button.style:SetVertexColor(1, 1, 1, 1)
+		-- It's not an atlas - ensure we're using the correct %-dev string for the texture path if string, then set it as a normal texture
+		if type(texture) == "string" then
+			texture = texture:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+		end
+		bar.Border.style:SetTexture(texture);
 	end
 
-	bar.button.spell = spell
-	bar.button.index = index
+	local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[barTex]
+	if styleData and styleData.circular then
+		sparkButton:SetCircular()
+	else
+		sparkButton:SetSquare()
+	end
+
+	if colorHex then
+		bar.Border.style:SetVertexColor(CreateColorFromHexString(colorHex):GetRGB())
+	else
+		bar.Border.style:SetVertexColor(1, 1, 1, 1)
+	end
+
+	sparkButton.index = index
 	--UIParent_ManageFramePositions(); -- wtf does this do?
 	if not bar:IsShown() then
 		bar:Show();
@@ -480,47 +490,12 @@ local function showCastPopup(commID, barTex, index, colorHex, sparkData)
 		bar.intro:Play();
 	end
 
-	-- spark cooldown overrides
-	local sparkOptions = sparkData[8] or {} --[[@as PopupTriggerOptions]]
-	local sparkCdTime, sparkCdTrigger, sparkCdBroadcast
-	if sparkOptions then
-		sparkCdTime, sparkCdTrigger, sparkCdBroadcast = sparkOptions.cooldownTime, sparkOptions.trigSpellCooldown, sparkOptions.broadcastCooldown
-	end
-	bar.button.cdData = {
-		sparkCdTime,
-		sparkCdTrigger,
-		sparkCdBroadcast,
-		loc = { sparkData[2], sparkData[3], sparkData[4] },
-		inputs = (sparkOptions.inputs or nil)
-	}
-
-	--local sparkCDNameOverride = spell.commID .. sparkData[2] .. sparkData[3] .. sparkData[4]
-	local sparkCDNameOverride = genSparkCDNameOverride(spell.commID, sparkData[2], sparkData[3], sparkData[4])
-
-	-- check if the spell is currently on cooldown so we can show the correct cooldown timer visual, or clear it if there's one running from another spell
-	local cooldownTime, cooldownLength = Cooldowns.isSpellOnCooldown(spell.commID, C_Epsilon.GetPhaseId())
-	local remainingSparkCdTime, sparkCdLength = Cooldowns.isSparkOnCooldown(sparkCDNameOverride)
-	if remainingSparkCdTime then
-		if cooldownTime then
-			if (remainingSparkCdTime > cooldownTime) then
-				cooldownTime = remainingSparkCdTime
-				cooldownLength = sparkCdLength
-			end
-		else
-			cooldownTime = remainingSparkCdTime
-			cooldownLength = sparkCdLength
-		end
-	end
-	if cooldownTime then
-		bar.button.cooldown:SetCooldown(GetTime() - (cooldownLength - cooldownTime), cooldownLength)
-	else
-		bar.button.cooldown:Clear()
-	end
+	sparkButton:UpdateCooldown(sparkData)
 
 	return true
 end
 
-local function hideCastPopup()
+local function hideSparkPopup()
 	local bar = sparkPopup;
 	bar.intro:Stop();
 	bar.outro:Play();
@@ -543,8 +518,10 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 	counter = 0
 
 	if not phaseSparkTriggers then return end
+	if not Vault.phase.isLoaded then return end
 
 	local shouldHideCastbar = true
+	local shouldHideMultiSparkBar = true
 	local shouldShowHiddenSparkIcon = false
 	local x, y, z, mapID = getPlayerPositionData()
 
@@ -559,7 +536,7 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 			if not _sparkType or _sparkType == _sparkTypesMap["Standard"] then -- no type = legacy spark, spark type 1 = single spark; both should show
 				if commID and sX and sY and sZ and sR and barTex then
 					if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
-						shouldHideCastbar = not showCastPopup(commID, barTex, i, colorHex, sparkData)
+						shouldHideCastbar = not showSparkPopup(commID, barTex, i, colorHex, sparkData)
 					end
 				else
 					Logging.dprint(nil,
@@ -568,7 +545,11 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 				end
 			elseif _sparkTypesMap["Multi"] and _sparkType == _sparkTypesMap["Multi"] then
 				-- handle showing a multi spark!
-				local commIDs = { strsplit(commID, ";") } -- this sucks, need a better way to handle this
+				if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
+					local commIDs = ns.Utils.Data.strsplitTrimTable(",", commID, 4)
+
+					shouldHideMultiSparkBar = not showMultiSpark(commIDs, barTex, i, colorHex, sparkData)
+				end
 			elseif _sparkTypesMap["Auto"] and _sparkType == _sparkTypesMap["Auto"] then
 				-- auto spark handler
 				if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
@@ -595,7 +576,8 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 			end
 		end
 	end
-	if shouldHideCastbar then hideCastPopup() end
+	if shouldHideMultiSparkBar then hideMultiSparkFrame() end
+	if shouldHideCastbar then hideSparkPopup() end
 	if shouldShowHiddenSparkIcon then
 		hiddenSparkIcon:PlayIn()
 	else
@@ -621,14 +603,19 @@ local phaseAddonDataListener = CoordinateListener -- reusing the frame - since i
 local isGettingPopupData
 
 ---Value Order: 1=CommID, 2=x, 3=y, 4=z, 5=radius, 6=style, 7=colorHex
----@alias SparkPopupTriggerData { [1]: CommID, [2]: number, [3]: number, [4]: number, [5]: number, [6]: number, [7]: string, [8]: PopupTriggerOptions, [9]: SparkTypes|number }
+---@alias SparkTriggerData { [1]: CommID, [2]: number, [3]: number, [4]: number, [5]: number, [6]: number, [7]: string, [8]: SparkTriggerDataOptions, [9]: SparkTypes|number }
 
+---Cleans any excess data from a Spark based on it's type
+---@param sparkData SparkTriggerData
+---@return SparkTriggerData
 local function cleanSparkData(sparkData)
 	local sparkOptions = sparkData[8]
 	local sparkType = sparkData[9]
 	if isSparkType(sparkType, _sparkTypesMap["Standard"], _sparkTypesMap["Multi"]) then
 		-- visual sparks, clean any 'invisible' only spark data
 		sparkOptions.showHSI = nil
+		sparkOptions.chat = nil
+		sparkOptions.emote = nil
 	else
 		-- invis spark, clean any 'visible' only spark data
 		sparkData[6] = nil -- style
@@ -647,15 +634,15 @@ end
 ---@param y number
 ---@param z number
 ---@param colorHex? string
----@param options PopupTriggerOptions?
+---@param options SparkTriggerDataOptions?
 ---@param sparkType SparkTypes|number
----@return SparkPopupTriggerData
-local function createPopupEntry(commID, radius, style, x, y, z, colorHex, options, sparkType)
+---@return SparkTriggerData
+local function createSparkEntry(commID, radius, style, x, y, z, colorHex, options, sparkType)
 	if not sparkType then sparkType = 1 end -- always ensure we have a valid SparkType going forward
 
-	local popupTrigger = { commID, x, y, z, radius, style, colorHex, options, sparkType }
-	popupTrigger = cleanSparkData(popupTrigger)
-	return popupTrigger
+	local _newSparkTrigger = { commID, x, y, z, radius, style, colorHex, options, sparkType }
+	_newSparkTrigger = cleanSparkData(_newSparkTrigger)
+	return _newSparkTrigger
 end
 
 ---@param status boolean
@@ -797,12 +784,12 @@ end
 ---@param y number
 ---@param z number
 ---@param mapID integer
----@param options PopupTriggerOptions
+---@param options SparkTriggerDataOptions
 ---@param sparkType SparkTypes|number
 local function addPopupTriggerToPhaseData(commID, radius, style, x, y, z, colorHex, mapID, options, overwriteIndex, sparkType)
 	sendPhaseSparkIOLock(true)
 	getPopupTriggersFromPhase(function()
-		local triggerData = createPopupEntry(commID, radius, style, x, y, z, colorHex, options, sparkType)
+		local triggerData = createSparkEntry(commID, radius, style, x, y, z, colorHex, options, sparkType)
 		if not phaseSparkTriggers then
 			phaseSparkTriggers = {}
 			Logging.dprint("Phase Spark Triggers was Blank")
@@ -865,7 +852,7 @@ local function setSparkKeybind(key)
 			ClearOverrideBindings(sparkKeybindHolder)
 		else
 			SpellCreatorMasterTable.Options.sparkKeybind = key
-			SetOverrideBindingClick(sparkKeybindHolder, true, key, "SCForgePhaseCastPopupButton", "keybind")
+			SetOverrideBindingClick(sparkKeybindHolder, true, key, "ArcanumSparkPopupButton", "keybind")
 		end
 	else
 		SpellCreatorMasterTable.Options.sparkKeybind = false
@@ -950,7 +937,7 @@ local allowedChats = {
 local function chatPredicate(sparkData, msg)
 	local sparkType = sparkData[9]
 	if isSparkType(sparkType, _sparkTypesMap["Chat"]) then
-		local sparkOptions = sparkData[8] --[[@as PopupTriggerOptions]]
+		local sparkOptions = sparkData[8] --[[@as SparkTriggerDataOptions]]
 		if sparkOptions and sparkOptions.chat and string.lower(msg) == string.lower(sparkOptions.chat) then
 			return true
 		end
@@ -997,6 +984,7 @@ ns.UI.SparkPopups.SparkPopups = {
 	sendPhaseSparkIOLock = sendPhaseSparkIOLock,
 	savePopupTriggersToPhaseData = savePopupTriggersToPhaseData,
 	triggerSparkCooldownVisual = triggerSparkCooldownVisual,
+	triggerMultiSparkCooldown = triggerMultiSparkCooldown,
 
 	setSparkKeybind = setSparkKeybind,
 	getSparkKeybind = getSparkKeybind,

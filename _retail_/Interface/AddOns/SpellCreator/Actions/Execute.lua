@@ -405,17 +405,17 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 		if spellData.conditions and #spellData.conditions > 0 then
 			if not checkConditions(spellData.conditions) then
 				PlayVocalErrorSoundID(48);
-				local cooldownMessage = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName))
-				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGB(), 1)
+				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName)
+				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 				return dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
 			end
 		end
 
 		local spellCooldownRemaining, spellCooldownLength = Cooldowns.isSpellOnCooldown(spellData.commID)
 		if spellCooldownRemaining then
-			local cooldownMessage = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(("ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spellData.fullName, spellData
-				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2)))
-			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGB(), 1)
+			local cooldownMessage = ("ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spellData.fullName, spellData
+				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2))
+			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 			PlayVocalErrorSoundID(12);
 			return
 		elseif spellData.cooldown then
@@ -436,9 +436,9 @@ local function executePhaseSpell(commID, bypassCD, ...)
 	if spell then
 		local spellCooldownRemaining, spellCooldownLength = Cooldowns.isSpellOnCooldown(commID, currentPhase)
 		if spellCooldownRemaining then
-			local cooldownMessage = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(("Phase ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spell.fullName, spell
-				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2)))
-			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGB(), 1)
+			local cooldownMessage = ("Phase ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spell.fullName, spell
+				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2))
+			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 			PlayVocalErrorSoundID(12);
 			return false
 		else

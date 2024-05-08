@@ -107,7 +107,8 @@ local function createCommandBox(mainFrame)
 
 	commandBox:HookScript("OnTextChanged", function(self, userInput)
 		local selfText = self:GetText();
-		if selfText:match(",") then self:SetText(selfText:gsub(",", "")) end
+		--if selfText:match(",") then self:SetText(selfText:gsub(",", "")) end
+		if selfText:match("[^%w]") then self:SetText(selfText:gsub("[^%w]", "")) end -- More strict, ONLY Letters & Numbers allowed!
 		if userInput then markEditorUnsaved() end
 	end)
 

@@ -126,6 +126,7 @@
 	<Script file="UI/SimpleHTMLEditor.lua"/>
 
 	<Include file="UI/Quickcast/Init.xml" />
+	<Script file="UI/SparkPopups/Init.lua"/>
 	<Include file="UI/SparkPopups/SparkPopups.xml" />
 	<Include file="UI/ItemIntegration/Init.xml" />
 

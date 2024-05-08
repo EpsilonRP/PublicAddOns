@@ -561,13 +561,18 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
 									OPMasterTable.Options["ObjectID"] = self:GetText()
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 								end
@@ -665,13 +670,18 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
 									OPMasterTable.Options["Length"] = self:GetText()
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 								end
@@ -769,13 +779,18 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
 									OPMasterTable.Options["Width"] = self:GetText()
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 								end
@@ -869,13 +884,18 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then -- is a valid number
 									self:SetTextColor(255,255,255,1)
-									OPMasterTable.Options["Height"] = self:GetText()
-								elseif self:GetText() == "" then
+									OPMasterTable.Options["Height"] = text
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 								end
@@ -973,15 +993,18 @@
 								self:ClearFocus()
 							</OnEscapePressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+								if text:find("%a") then
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+								if tonumber(text) then
 									OPScaleObjectToggle:Enable()
 									self:SetTextColor(255,255,255,1)
-									OPMasterTable.Options["Scale"] = self:GetText()
-								elseif self:GetText() == "" then
+									OPMasterTable.Options["Scale"] = text
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
 									OPScaleObjectToggle:Disable()
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 									OPScaleObjectToggle:Disable()
@@ -2967,18 +2990,22 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
 								else
 									self:SetTextColor(1,0,0,1)
 								end
 							</OnTextChanged>
 							<OnEditFocusLost>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								if tonumber(self:GetText()) then
 									local OPRotXEditVal = self:GetText()
 									OPRotationSliderX:SetValueStep(0.0001)
 									OPRotationSliderX:SetValue(OPRotXEditVal,true)
@@ -3230,18 +3257,24 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
+
 								else
 									self:SetTextColor(1,0,0,1)
 								end
 							</OnTextChanged>
 							<OnEditFocusLost>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								if tonumber(self:GetText()) then
 									local OPRotYEditVal = self:GetText()
 									OPRotationSliderY:SetValueStep(0.0001)
 									OPRotationSliderY:SetValue(OPRotYEditVal,true)
@@ -3492,19 +3525,25 @@
 								self:ClearFocus()
 							</OnEnterPressed>
 							<OnTextChanged>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText() == "" then
+								elseif text == "" then
 									self:SetTextColor(255,255,255,1)
-								elseif self:GetText():find("%a") then
-									self:SetText(self:GetText():gsub("%a", ""))
+
 								else
 									self:SetTextColor(1,0,0,1)
 								end
 							</OnTextChanged>
 							<OnEditFocusGained>OPRotationSliderZ:SetValueStep(0.001)</OnEditFocusGained>
 							<OnEditFocusLost>
-								if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
+								if tonumber(self:GetText()) then
 									local OPRotZEditVal = self:GetText()
 									OPRotationSliderZ:SetValueStep(0.0001)
 									OPRotationSliderZ:SetValue(OPRotZEditVal,true)

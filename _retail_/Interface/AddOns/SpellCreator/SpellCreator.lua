@@ -118,36 +118,6 @@ background.Overlay:SetTexture(ADDON_PATH .. "/assets/forge_ui_bg_anim")
 background.Overlay:SetAllPoints()
 background.Overlay:SetAlpha(0.02)
 
---[[
-	background.Overlay2 = SCForgeMainFrame.Inset:CreateTexture(nil, "BACKGROUND")
-	background.Overlay2:SetTexture(ADDON_PATH.."/assets/forge_ui_bg_runes")
-	background.Overlay2:SetAllPoints()
-	background.Overlay2:SetAlpha(0.25)
-	--]]
---[[ -- Old Background Setup
-
---- The Inner Frame
-local isDualBackgroundRequired = false
-
-local randomBackgroundID = fastrandom(#frameBackgroundOptions)
-if randomBackgroundID < 7 then isDualBackgroundRequired = true end
-
-if isDualBackgroundRequired then
-	background:SetTexCoord(0.05,1,0,0.96)
-	background:SetPoint("TOPLEFT", SCForgeMainFrame.Inset, "TOPLEFT", 0,0) -- 12, -66
-	background:SetPoint("BOTTOMRIGHT", SCForgeMainFrame.Inset, "BOTTOMRIGHT", -20,0)
-else
-	background:SetAllPoints()
-end
-
-if isDualBackgroundRequired then
-	local background2 = SCForgeMainFrame.Inset:CreateTexture(nil,"BACKGROUND")
-	background2:SetTexture(frameBackgroundOptionsEdge[randomBackgroundID])
-	background2:SetPoint("TOPLEFT", background, "TOPRIGHT")
-	background2:SetPoint("BOTTOMRIGHT", background, "BOTTOMRIGHT", 30, 0)
-	background2:SetTexCoord(0,1,0,0.96)
-end
---]]
 SpellRow.addAddRowRow()
 
 ---@param spellToLoad VaultSpell

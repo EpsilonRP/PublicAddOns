@@ -12,6 +12,8 @@ local Permissions = ns.Permissions
 local _sparkTypes = SparkPopups.CreateSparkUI.sparkTypes
 local _sparkTypesMap = SparkPopups.CreateSparkUI.sparkTypesMap
 
+local isSparkType = SparkPopups.CreateSparkUI.isSparkType
+
 local ASSETS_PATH = ns.Constants.ASSETS_PATH
 local SPARK_ASSETS_PATH = ASSETS_PATH .. "/Sparks/"
 local ADDON_COLORS = ns.Constants.ADDON_COLORS
@@ -36,7 +38,10 @@ end
 --------------------------------
 --- NEW AceGUI Powered UI
 --------------------------------
+
 local curMapID
+
+---@type AceGUIFrame
 local sparkManagerUI
 
 ---@param mapID integer
@@ -119,12 +124,14 @@ local function drawMapGroup(group, mapID, callback)
 		return
 	end
 	for k, triggerData in ipairs(phaseSparkTriggers[mapID]) do
+		local commID = triggerData[1]
+
 		local triggerGroup = AceGUI:Create("InlineGroup") --[[@as AceGUIInlineGroup]]
 		triggerGroup:SetLayout("Flow")
 		triggerGroup:SetRelativeWidth(1)
 		--triggerGroup:SetAutoAdjustHeight(false)
 		--triggerGroup:SetHeight(115)
-		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(triggerData[1]) .. " Trigger")
+		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(commID) .. " Trigger")
 		groupScrollFrame:AddChild(triggerGroup)
 
 		local triggerInfoSection = AceGUI:Create("SimpleGroup") --[[@as AceGUISimpleGroup]]
@@ -135,7 +142,7 @@ local function drawMapGroup(group, mapID, callback)
 		triggerGroup:AddChild(triggerInfoSection)
 
 		do
-			local popupOptions = triggerData[8] --[[@as PopupTriggerOptions]]
+			local popupOptions = triggerData[8] --[[@as SparkTriggerDataOptions]]
 
 			local typeLabel = AceGUI:Create("InteractiveLabel") --[[@as AceGUIInteractiveLabel]]
 			local _typeID = triggerData[9] or 1
@@ -154,6 +161,8 @@ local function drawMapGroup(group, mapID, callback)
 					emoteOrChat = popupOptions[tableToUse] .. (" (%s)"):format(slashCommands)
 				end
 				Tooltip.setAceTT(typeLabel, _sparkTypes[_typeID] .. ":", emoteOrChat, { forced = true, delay = 0 })
+			elseif _typeID == _sparkTypesMap["Multi"] then
+				Tooltip.setAceTT(typeLabel, "Multi - ArcSpells:", commID:gsub("%s", ""):gsub(",", "\n"), { forced = true, delay = 0 })
 			end
 
 			local xLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
@@ -235,8 +244,24 @@ local function drawMapGroup(group, mapID, callback)
 			if not styleBorderImage then
 				styleBorderImage = SPARK_ASSETS_PATH .. "1Simple"
 			end
-			if type(styleBorderImage) == "string" then styleBorderImage = styleBorderImage:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName) end
-			styleBorder:SetImage(styleBorderImage)
+			if type(styleBorderImage) == "string" then
+				-- Ensure our FilePath works on -dev addons
+				styleBorderImage = styleBorderImage:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+
+				-- For Multi-Sparks, ensure our border accounts for needing a "-number" at the end.
+				if isSparkType(triggerData[9], _sparkTypesMap["Multi"]) then
+					local numSpells = #{ strsplit(",", triggerData[1], 4) }
+					styleBorderImage = styleBorderImage .. "-" .. numSpells
+				end
+			end
+
+			local isAtlas = (type(styleBorderImage) == "string") and C_Texture.GetAtlasInfo(styleBorderImage)
+			if isAtlas then
+				styleBorder.image:SetAtlas(styleBorderImage)
+				styleBorder.imageshown = true
+			else
+				styleBorder:SetImage(styleBorderImage)
+			end
 
 			styleBorder:SetImageSize(128, 64)
 			styleBorder:SetRelativeWidth(1)
@@ -328,7 +353,7 @@ local function showSparkManagerUI(mapSelectOverride)
 	frame:SetLayout("Fill")
 	frame:SetCallback("OnClose", hideSparkManagerUI)
 	frame:EnableResize(false)
-	sparkManagerUI = frame
+	sparkManagerUI = frame --[[@as AceGUIFrame]]
 
 	local mapSelectTree = AceGUI:Create("TreeGroup") --[[@as AceGUITreeGroup]]
 	mapSelectTree:SetFullHeight(true)

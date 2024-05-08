@@ -26,6 +26,10 @@ local cooldownFrameFuncs = {
 		if not phase then return end
 		ns.UI.SparkPopups.SparkPopups.triggerSparkCooldownVisual(commID, cooldownTime)
 	end,
+	multiSpark = function(commID, cooldownTime, phase)
+		if not phase then return end
+		ns.UI.SparkPopups.SparkPopups.triggerMultiSparkCooldown(commID, cooldownTime)
+	end,
 	qcFrame = function(commID, cooldownTime, phase)
 		-- this is done manually in the quickcast book page buttons
 	end,
@@ -162,8 +166,8 @@ local function isSparkOnCooldown(commID)
 end
 
 local function getCurrentSparkCDName()
-	local spellData = SCForgePhaseCastPopup.button.spell
-	local cdData = SCForgePhaseCastPopup.button.cdData
+	local spellData = ArcanumSparkPopupButton.button.spell
+	local cdData = ArcanumSparkPopupButton.button.cdData
 	if not spellData or not cdData then return end
 	local sparkCDNameOverride = ns.UI.SparkPopups.SparkPopups.genSparkCDNameOverride(spellData.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
 	return sparkCDNameOverride

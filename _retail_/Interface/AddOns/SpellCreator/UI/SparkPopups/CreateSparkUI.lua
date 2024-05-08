@@ -7,6 +7,7 @@ local Constants = ns.Constants
 local DataUtils = ns.Utils.Data
 local AceConfig = ns.Libs.AceConfig
 local AceConfigDialog = ns.Libs.AceConfigDialog
+local AceGUI = ns.Libs.AceGUI
 local SparkPopups = ns.UI.SparkPopups
 local ASSETS_PATH = ns.Constants.ASSETS_PATH
 local ADDON_COLORS = ns.Constants.ADDON_COLORS
@@ -29,10 +30,14 @@ local function halloweenUnlockTest(key)
 	return SavedVariables.unlocks.isUnlockedByKeyOrTime(key, event_unlock_dates.halloween2023)
 end
 
+------------------------------------
+--#region Spark Types
+------------------------------------
+
 ---@enum (key) SparkTypes
 local _sparkTypes = {
 	[1] = "Standard",
-	--[2] = "Multi",
+	[2] = "Multi",
 	[3] = "Emote",
 	[4] = "Chat",
 	[5] = "Jump",
@@ -43,6 +48,32 @@ local _sparkTypesMap = {}         -- this is a name = value reverse map
 for k, v in pairs(_sparkTypes) do -- pairs, not ipairs, because you can comment out a line to disable that type for now
 	_sparkTypesMap[v] = k
 end
+
+---Checks if a Spark Type is equal to any of the types specified
+---@param sparkType number
+---@param ... number|SparkTypes
+---@return boolean
+local function isSparkType(sparkType, ...)
+	if not sparkType then sparkType = _sparkTypesMap["Standard"] end -- Legacy Spark - default to standard
+
+	local t = {}
+	for _, v in ipairs({ ... }) do
+		if type(v) == "string" then
+			-- convert from string to type
+			if _sparkTypesMap[v] then
+				-- found a type for that name
+				v = _sparkTypesMap[v]
+			end
+		end
+		t[v] = true
+	end
+	if t[sparkType] then return true else return false end
+end
+
+--#endregion
+------------------------------------
+--#region Emote List for UI Choices
+------------------------------------
 
 ---@type EmoteToken[]
 local emotesList = {}
@@ -77,6 +108,8 @@ for emoteIndex = 1, 626 do -- MAXEMOTEINDEX is local in 927 build, so we're just
 		emotesMap[token] = fullLabel
 	end
 end
+
+--#endregion
 
 local sparkPopupStyles = { -- You can still use one not listed here technically, but these are the ones supported in the UI.
 
@@ -113,20 +146,13 @@ local sparkPopupStyles = { -- You can still use one not listed here technically,
 	{ tex = 2203956,                                              name = "Heart of Az. Minimal" },
 
 	-- SL
-	{ tex = 3850736,                                              name = "Ardenweald Ability" },
-	{ tex = 3853103,                                              name = "Ardenweald Button" },
-	{ tex = 3850737,                                              name = "Ardenweald (Wide)" },
-	{ tex = 3850738,                                              name = "Bastion Ability" },
-	{ tex = 3853104,                                              name = "Bastion Button" },
-	{ tex = 3850739,                                              name = "Bastion (Wide)" },
-	{ tex = 3850740,                                              name = "Maldraxxus Ability" },
-	{ tex = 3853105,                                              name = "Maldraxxus Button" },
-	{ tex = 3850741,                                              name = "Maldraxxus (Wide)" },
-	{ tex = 3850742,                                              name = "Revendreth Ability" },
-	{ tex = 3853106,                                              name = "Revendreth Button" },
-	{ tex = 3850743,                                              name = "Revendreth (Wide)" },
-	{ tex = 4191854,                                              name = "Torghast" },
 	{ tex = 4391622,                                              name = "Shadowlands Generic" },
+	{ tex = 3853103,                                              name = "Ardenweald" },
+	{ tex = 3853104,                                              name = "Bastion" },
+	{ tex = 3853105,                                              name = "Maldraxxus" },
+	{ tex = 3853106,                                              name = "Revendreth" },
+	{ tex = "progenitor-extrabutton", --[[atlas]]                 name = "Zereth (Progenitor)" },
+	{ tex = "Torghast-Empowered", --[[atlas]]                     name = "Torghast" },
 
 	-- Start Custom Ones
 	{ tex = SPARK_ASSETS_PATH .. "1Simple",                       name = "Arcanum - Simple" },
@@ -148,6 +174,12 @@ local sparkPopupStyles = { -- You can still use one not listed here technically,
 	{ tex = SPARK_ASSETS_PATH .. "nzoth-xtrabtn",                 name = "Arc+Dice - Nzoth" },
 	{ tex = SPARK_ASSETS_PATH .. "forsaken-xtrabtn",              name = "Arc+Dice - Forsaken" },
 	{ tex = SPARK_ASSETS_PATH .. "worgen-xtrabtn",                name = "Arc+Dice - Worgen" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/Goblin-xtrabtn",         name = "Arc+Dice - Goblin" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/Mechagnome-xtrabtn",     name = "Arc+Dice - Mechagnome" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/KulTiras-xtrabtn",       name = "Arc+Dice - Kul Tiras" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/NightElf-xtrabtn",       name = "Arc+Dice - Kaldorei" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/BloodElf2-xtrabtn",      name = "Arc+Dice - Sin'dorei" },
+	{ tex = SPARK_ASSETS_PATH .. "skylar/VoidElf-xtrabtn",        name = "Arc+Dice - Ren'dorei" },
 
 	{ tex = SPARK_ASSETS_PATH .. "sf_dragon_frame_metal",         name = "SF Dragon - Metal" },
 	{ tex = SPARK_ASSETS_PATH .. "sf_dragon_frame_arcane",        name = "SF Dragon - Arcane" },
@@ -168,6 +200,25 @@ local sparkPopupStyles = { -- You can still use one not listed here technically,
 	{ tex = SPARK_ASSETS_PATH .. "sf_dragon_frame_ruby",          name = "SF Dragon - Ruby" },
 	{ tex = SPARK_ASSETS_PATH .. "sf_dragon_frame_white",         name = "SF Dragon - White" },
 	{ tex = SPARK_ASSETS_PATH .. "sf_dragon_frame_yellow",        name = "SF Dragon - Yellow" },
+
+	-- SL Custom
+	{ tex = SPARK_ASSETS_PATH .. "SL/Ardenweald",                 name = "Arc - Faetouched",         circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Maw",                        name = "Arc - Inevitable",         circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/ZerethMortis",               name = "Arc - Fractal",            circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Tazavesh",                   name = "Arc - Bazaar",             circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Devourer",                   name = "Arc - Devoured",           circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Maldraxxus",                 name = "Arc - Risen",              circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Revendreth",                 name = "Arc - Tithed",             circular = true },
+	{ tex = SPARK_ASSETS_PATH .. "SL/Bastion",                    name = "Arc - Ascended",           circular = true },
+
+	-- DF Ports
+	{ tex = SPARK_ASSETS_PATH .. "DF/WhiteStorm",                 name = "DF - White Storm" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/PurpleStorm",                name = "DF - Purple Storm" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/BlueStorm",                  name = "DF - Blue Storm" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/YellowStorm",                name = "DF - Yellow Storm" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/Water",                      name = "DF - Water" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/Earth",                      name = "DF - Earth" },
+	{ tex = SPARK_ASSETS_PATH .. "DF/Fire",                       name = "DF - Fire" },
 
 	--halloween 2023
 	{ tex = SPARK_ASSETS_PATH .. "halloween/" .. "halloween",     name = "Soulfire (Halloween 2023)" },
@@ -193,21 +244,88 @@ for k, v in ipairs(sparkPopupStyles) do
 end
 --]]
 
+local sparkPopupStyles_Map = {}
 local function getSparkPopupStylesKV()
 	local style_KV_Table = {}
 	for k, v in ipairs(sparkPopupStyles) do
 		if not v.requirement or v.requirement() then
 			local newKey = v.tex
-			local newVal = CreateTextureMarkup(v.tex, 48, 24, 48, 24, 0, 1, 0, 1) .. " " .. v.name
-			style_KV_Table[newKey] = newVal
+
+			local texString
+			local isAtlas = (type(v.tex) == "string") and C_Texture.GetAtlasInfo(v.tex)
+			if isAtlas then
+				texString = CreateAtlasMarkup(v.tex, 48, 24) .. " " .. v.name
+			else
+				texString = CreateTextureMarkup(v.tex, 48, 24, 48, 24, 0, 1, 0, 1) .. " " .. v.name
+			end
+
+			style_KV_Table[newKey] = texString
+			sparkPopupStyles_Map[newKey] = v
 		end
 	end
 	return style_KV_Table
 end
+getSparkPopupStylesKV() -- just call it once to instantiate our Map also
 
 local function getSparkPopupStylesSorted()
 	local style_Sort_Table = {}
 	for k, v in ipairs(sparkPopupStyles) do
+		if not v.requirement or v.requirement() then
+			local newKey = v.tex
+			tinsert(style_Sort_Table, newKey)
+		end
+	end
+	return style_Sort_Table
+end
+
+-- Multi Sparks
+local multiSparkStyles = { -- You can still use one not listed here technically, but these are the ones supported in the UI.
+
+	-- Custom to support variable 1 to 4 Buttons
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-ArcanumTint",      name = "Arcanum (Tint)" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Arcanum",          name = "Arcanum" },
+
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-ArcanumDecorated", name = "Arcanum - Enchanted" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Ornate",           name = "Arc Deco (Ornate)" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Draconic",         name = "Draconic" },
+
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Maw",              name = "Maw" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Zereth",           name = "Zereth (Progenitor)" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Ardenweald",       name = "Ardenweald" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Bastion",          name = "Bastion" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Maldraxxus",       name = "Maldraxxus" },
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Revendreth",       name = "Revendreth" },
+}
+
+local multiSparkStyles_Map = {}
+local function getMultiSparkStylesKV()
+	local style_KV_Table = {}
+	for k, v in ipairs(multiSparkStyles) do
+		if not v.requirement or v.requirement() then
+			local newKey = v.tex
+
+			local texString
+			local isAtlas = (type(v.tex) == "string") and C_Texture.GetAtlasInfo(v.tex)
+			if isAtlas then
+				texString = CreateAtlasMarkup(v.tex, 48, 24) .. " " .. v.name
+			else
+				-- let's show both 2 & 4, it's nice to see the range
+				texString = CreateTextureMarkup(v.tex .. "-2", 48, 24, 48, 24, 0, 1, 0, 1) .. "-  "
+				texString = texString .. CreateTextureMarkup(v.tex .. "-4", 48, 24, 48, 24, 0, 1, 0, 1) .. " " .. v.name
+			end
+
+
+			style_KV_Table[newKey] = texString
+			multiSparkStyles_Map[newKey] = v
+		end
+	end
+	return style_KV_Table
+end
+getMultiSparkStylesKV() -- just call it once to instantiate our Map also
+
+local function getMultiSparkStylesSorted()
+	local style_Sort_Table = {}
+	for k, v in ipairs(multiSparkStyles) do
 		if not v.requirement or v.requirement() then
 			local newKey = v.tex
 			tinsert(style_Sort_Table, newKey)
@@ -286,6 +404,38 @@ local function autoOrder(isGroup)
 	end
 end
 
+--[[
+	[1] = "Standard",
+	[2] = "Multi",
+	[3] = "Emote",
+	[4] = "Chat",
+	[5] = "Jump",
+	[6] = "Auto",
+]]
+local function _updateCreateSparkUIHeight()
+	local heights = {
+		[_sparkTypesMap["Standard"]] = 500,
+		[_sparkTypesMap["Multi"]] = 500,
+		[_sparkTypesMap["Emote"]] = 510 - 50,
+		[_sparkTypesMap["Chat"]] = 540 - 50,
+		[_sparkTypesMap["Jump"]] = 490 - 50,
+		[_sparkTypesMap["Auto"]] = 470 - 50,
+	}
+
+	local height = sparkUI_Helper.type and heights[sparkUI_Helper.type] or 500
+	AceConfigDialog:SetDefaultSize(theUIDialogName, 600, height + 50)
+
+	local openFrame = AceConfigDialog.OpenFrames[theUIDialogName]
+	if openFrame then
+		openFrame:SetHeight(height + 50)
+	end
+end
+
+local function _openCreateSparkUI() -- Hook so we can force disable Resize lol
+	AceConfigDialog:Open(theUIDialogName)
+	AceConfigDialog.OpenFrames[theUIDialogName]:EnableResize(false)
+end
+
 local uiOptionsTable = {
 	type = "group",
 	desc = "test",
@@ -301,8 +451,8 @@ local uiOptionsTable = {
 					name = "Spark Type",
 					desc =
 						"Type of Spark - This changes the behavior of the Spark & how you would interact with it.\n\r" ..
-						Tooltip.genContrastText("Standard: ") .. "Classic style Single-Spell Pop-Up button.\n" ..
-						--Tooltip.genContrastText("Multi: ") .. "Multiple Spell Pop-Up with a more basic border.\n" ..
+						Tooltip.genContrastText("Standard: ") .. "The Original, Classic style Single-Spell Pop-Up button.\n" ..
+						Tooltip.genContrastText("Multi: ") .. "Spark that supports up to 4 Arc Spells shown at once.\n" ..
 						Tooltip.genContrastText("Emote: ") .. "Invisible Spark that triggers when the given emote is performed while in radius (i.e., /kneel).\n" ..
 						Tooltip.genContrastText("Chat: ") .. "Invisible Spark that triggers when a specified word or phrase is said in /say, /yell, or /emote while in radius.\n" ..
 						Tooltip.genContrastText("Jump: ") .. "Invisible Spark that triggers any time you jump while within radius. Triggers each jump.\n" ..
@@ -311,8 +461,13 @@ local uiOptionsTable = {
 					type = "select",
 					order = autoOrder(),
 					values = _sparkTypes,
-					set = function(info, val) sparkUI_Helper.type = val end,
-					get = function(info) return sparkUI_Helper.type or 1 end
+					set = function(info, val)
+						sparkUI_Helper.type = val
+					end,
+					get = function(info)
+						_updateCreateSparkUIHeight()
+						return sparkUI_Helper.type or 1
+					end
 				},
 				gap = {
 					type = "description",
@@ -362,8 +517,20 @@ local uiOptionsTable = {
 					end,
 				},
 				commID = {
-					name = "ArcSpell",
-					desc = "CommID of the ArcSpell from the Phase Vault",
+					name = function()
+						local msg = "ArcSpell"
+						if sparkUI_Helper.type == 2 then
+							msg = "ArcSpells (Multi)"
+						end
+						return msg
+					end,
+					desc = function()
+						local msg = "CommID of the ArcSpell from the Phase Vault"
+						if sparkUI_Helper.type == 2 then
+							msg = "CommIDs for the ArcSpells (from the Phase Vault) to include in the Spark, separated by commas.\n\rSupports up to 4 ArcSpells/commIDs."
+						end
+						return msg
+					end,
 					type = "input",
 					dialogControl = "MAW-Editbox",
 					order = autoOrder(),
@@ -485,7 +652,7 @@ local uiOptionsTable = {
 					width = "full",
 					order = autoOrder(),
 				},
-				style = {
+				style = { -- This is for Standard Sparks ONLY
 					name = "Border Style",
 					desc = "The decorative border around the Spark spell icon",
 					type = "select",
@@ -493,7 +660,7 @@ local uiOptionsTable = {
 					values = getSparkPopupStylesKV,
 					sorting = getSparkPopupStylesSorted,
 					order = autoOrder(),
-					hidden = requiredSparkTypes(1, 2),
+					hidden = requiredSparkTypes(1),
 					set = function(info, val)
 						if val == addNewSparkPopupStyleTex then
 							ns.UI.Popups.showCustomGenericInputBox({
@@ -505,13 +672,15 @@ local uiOptionsTable = {
 									local newKey = texPath -- path
 
 									customStyleTexIter = customStyleTexIter + 1
-									tinsert(sparkPopupStyles, {
-										tex = texPath,
+									local styleData = {
+										tex = newKey,
 										name = "Custom Texture " .. customStyleTexIter
-									})
+									}
+									tinsert(sparkPopupStyles, styleData)
+									sparkPopupStyles_Map[newKey] = styleData
 
 									sparkUI_Helper.style = newKey
-									AceConfigDialog:Open(theUIDialogName)
+									_openCreateSparkUI()
 								end,
 							})
 							return
@@ -520,6 +689,56 @@ local uiOptionsTable = {
 					end,
 					get = function(info)
 						if not sparkUI_Helper.style then sparkUI_Helper.style = 629199 end -- this forces the style if switching from non-visual spark type
+						if multiSparkStyles_Map[sparkUI_Helper.style] then
+							-- the style is a multi one, we should overwrite it to a default standard style
+							sparkUI_Helper.style = 629199
+						end
+
+						return sparkUI_Helper.style
+					end
+				},
+				multiStyle = { -- This is for Multi Sparks ONLY
+					name = "Backdrop Style (Multi)",
+					desc = "The decorative backdrop behind the Spark's spell icons",
+					type = "select",
+					width = 1.5,
+					values = getMultiSparkStylesKV,
+					sorting = getMultiSparkStylesSorted,
+					order = autoOrder(),
+					hidden = requiredSparkTypes(2),
+					set = function(info, val)
+						if val == addNewSparkPopupStyleTex then
+							ns.UI.Popups.showCustomGenericInputBox({
+								text = "Texture Path or FileID:",
+								acceptText = ADD,
+								maxLetters = 999,
+								callback = function(texPath)
+									if tonumber(texPath) then texPath = tonumber(texPath) end
+									local newKey = texPath -- path
+
+									customStyleTexIter = customStyleTexIter + 1
+									local styleData = {
+										tex = newKey,
+										name = "Custom Texture " .. customStyleTexIter
+									}
+									tinsert(multiSparkStyles, styleData)
+									multiSparkStyles_Map[newKey] = styleData
+
+									sparkUI_Helper.style = newKey
+									_openCreateSparkUI()
+								end,
+							})
+							return
+						end
+						sparkUI_Helper.style = val
+					end,
+					get = function(info)
+						if not sparkUI_Helper.style then sparkUI_Helper.style = multiSparkStyles[1].tex end -- this forces the style if switching from non-visual spark type
+						if sparkPopupStyles_Map[sparkUI_Helper.style] then
+							-- the style is a standard one, we should overwrite it to a default multi style
+							sparkUI_Helper.style = multiSparkStyles[1].tex
+						end
+
 						return sparkUI_Helper.style
 					end
 				},
@@ -567,7 +786,23 @@ local uiOptionsTable = {
 						if not sparkUI_Helper.style then return "No Preview" end
 						local vR, vG, vB = 255, 255, 255
 						if sparkUI_Helper.color then vR, vG, vB = CreateColorFromHexString(sparkUI_Helper.color):GetRGBAsBytes() end
-						return ns.Utils.UIHelpers.CreateTextureMarkupWithColor(sparkUI_Helper.style, 64 * 2, 32 * 2, 64 * 2, 32 * 2, 0, 1, 0, 1, 0, 0, vR, vG, vB)
+
+						local style = sparkUI_Helper.style
+
+						-- For Multi-Sparks, ensure our border accounts for needing a "-number" at the end.
+						if type(style) == "string" and isSparkType(sparkUI_Helper.type, _sparkTypesMap["Multi"]) then
+							style = style .. "-2"
+						end
+
+						local texString
+						local isAtlas = (type(style) == "string") and C_Texture.GetAtlasInfo(style)
+						if isAtlas then
+							texString = CreateAtlasMarkup(style, 64 * 2, 32 * 2, 0, 0, vR, vG, vB)
+						else
+							texString = ns.Utils.UIHelpers.CreateTextureMarkupWithColor(style, 64 * 2, 32 * 2, 64 * 2, 32 * 2, 0, 1, 0, 1, 0, 0, vR, vG, vB)
+						end
+
+						return texString
 					end,
 					type = "header",
 					width = "full",
@@ -713,7 +948,7 @@ local uiOptionsTable = {
 			type = "execute",
 			name = function() if sparkUI_Helper.overwriteIndex then return "Save Spark" else return "Create Spark" end end,
 			width = "full",
-			func = function()
+			func = function(info)
 				SparkPopups.SparkPopups.addPopupTriggerToPhaseData(sparkUI_Helper.commID, sparkUI_Helper.radius, sparkUI_Helper.style, sparkUI_Helper.x, sparkUI_Helper.y, sparkUI_Helper.z,
 					sparkUI_Helper.color,
 					sparkUI_Helper.mapID,
@@ -757,10 +992,10 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 	local emote, chat, showHSI
 	if editIndex then
 		local phaseSparkTriggers = SparkPopups.SparkPopups.getPhaseSparkTriggersCache()
-		local triggerData = phaseSparkTriggers[editMapID][editIndex] --[[@as SparkPopupTriggerData]]
+		local triggerData = phaseSparkTriggers[editMapID][editIndex] --[[@as SparkTriggerData]]
 		x, y, z, mapID, radius, style, colorHex = triggerData[2], triggerData[3], triggerData[4], editMapID, triggerData[5], triggerData[6], triggerData[7]
 		sparkType = triggerData[9] or 1
-		local sparkOptions = triggerData[8] --[[@as PopupTriggerOptions]]
+		local sparkOptions = triggerData[8] --[[@as SparkTriggerDataOptions]]
 		if sparkOptions ~= nil then
 			cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase = sparkOptions.cooldownTime, sparkOptions.trigSpellCooldown, sparkOptions.broadcastCooldown
 			requirement = sparkOptions.requirement -- Kept for back compatibility, should not be used going forward
@@ -805,7 +1040,7 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 		sparkUI_Helper.requirement = nil
 	end
 
-	AceConfigDialog:Open(theUIDialogName)
+	_openCreateSparkUI()
 end
 
 local function closeSparkCreationUI()
@@ -818,8 +1053,11 @@ ns.UI.SparkPopups.CreateSparkUI = {
 	closeSparkCreationUI = closeSparkCreationUI,
 
 	sparkPopupStyles = sparkPopupStyles,
+	sparkPopupStyles_Map = sparkPopupStyles_Map,
 	getSparkStyles = getSparkPopupStylesKV,
 	--sparkPopupStyles = sparkPopupStylesKVTable,
+
+	isSparkType = isSparkType,
 
 	sparkTypes = _sparkTypes,
 	sparkTypesMap = _sparkTypesMap,

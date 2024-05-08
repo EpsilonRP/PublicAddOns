@@ -86,9 +86,10 @@ local replaceEmptyVars = function(str)
 	return str
 end
 
----@param text string string to parse into csv arguments, returned as an array of args.
----@return string[]|table
 local null = {}
+---@param text string string to parse into csv arguments, returned as an array of args.
+---@param limit number
+---@return string[]|table
 local function getCSVArgsFromString(text, limit)
 	local _csvTable = {}
 	if not text then return _csvTable end
@@ -225,6 +226,27 @@ end
 --- Table Helpers
 ---------------------------------------------------------
 
+---@param delim string
+---@param str string
+---@param pieces? number
+---@return table
+local function strsplitTrimTable(delim, str, pieces)
+	local strings = { strsplit(delim, str, pieces) }
+	local finStrings = {}
+	for k, v in ipairs(strings) do
+		tinsert(finStrings, strtrim(v))
+	end
+	return finStrings
+end
+
+---@param delim string
+---@param str string
+---@param pieces? number
+---@return ... strings
+local function strsplitTrim(delim, str, pieces)
+	return unpack(strsplitTrimTable(delim, str, pieces))
+end
+
 ---@generic T
 ---@param t T
 ---@return T
@@ -307,6 +329,25 @@ local function indexOf(array, value)
 	return -1
 end
 
+local function do_tables_match_concat( a, b )
+    return table.concat(a) == table.concat(b)
+end
+
+local function areTablesFunctionallyEquivalent(tableA, tableB)
+	local longerTable = tableA;
+	if #tableB > #tableA then longerTable = tableB end
+	-- determine which table is larger to get the end
+	-- of our iterator
+	local mismatch = false;
+	for i=1,#longerTable do
+	  if not(tableB[i] == tableA[i]) then
+		mismatch = true;
+		break
+	  end
+	end
+	if not(mismatch) then return true end
+	return false
+end
 ---------------------------------------------------------
 --- Number Helpers
 ---------------------------------------------------------
@@ -426,6 +467,11 @@ ns.Utils.Data = {
 	sanitizeNewlinesToCSV = sanitizeNewlinesToCSV,
 	--getCSVArgsFromString = getCSVArgsFromString,
 	parseStringToArgs = parseStringToArgs,
+
+	strsplitTrimTable = strsplitTrimTable,
+	strsplitTrim = strsplitTrim,
+	do_tables_match_concat = do_tables_match_concat,
+	areTablesFunctionallyEquivalent = areTablesFunctionallyEquivalent,
 
 	getSpellInfoFromHyperlink = getSpellInfoFromHyperlink,
 	getItemInfoFromHyperlink = getItemInfoFromHyperlink,
