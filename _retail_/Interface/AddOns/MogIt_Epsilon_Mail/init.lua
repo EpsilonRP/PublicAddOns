@@ -22,6 +22,7 @@ if MogIt.ModuleExtension_Base and allowUseGlobalModuleExtensionBase then
 	-- another ModuleExtension exists and created the base, and we can use it, so use it.
 	module_base = MogIt.ModuleExtension_Base
 else
+
 	--// Base Functions
 
 	function module_base.DropdownTier1(self)
@@ -91,6 +92,7 @@ else
 		mog.Item_FrameUpdate(frame, frame.data);
 	end
 
+
 	function module_base.GetFilterArgs(filter, item)
 		if filter == "name" then
 			return item:match(":(%d*):")
@@ -106,12 +108,15 @@ else
 	function module_base.SortAlphabetical(items)
 		return items;
 	end
+
 end
 
 -- Create our Name Sort Option, if needed, otherwise assume one exists and allow just using it
 if not mog:GetSort("name") then
+
 	local sort_tracker = {}
 	local function getItemData(itemID)
+
 		if type(itemID) == "table" then
 			itemID = itemID[1]
 		end
@@ -123,7 +128,7 @@ if not mog:GetSort("name") then
 		end
 
 		local _itemData = mog:GetItemInfo(itemID)
-		if not _itemData then
+		if not _itemData then 
 			_itemData = GetItemInfo(itemID)
 			local newItemInfo
 			if _itemData then
@@ -178,8 +183,7 @@ if not mog:GetSort("name") then
 			info.checked = mog.sorting.active == "name";
 			info.tooltipOnButton = true;
 			info.tooltipTitle = "Sort by Name (Alphabetical)";
-			info.tooltipText =
-			"Takes a second to sort on the first run.\n\rIf it does not load properly the first time you click sort, some items may not have been cached yet. Sort back by Display, and then by Name and it should work then!";
+			info.tooltipText = "Takes a second to sort on the first run.\n\rIf it does not load properly the first time you click sort, some items may not have been cached yet. Sort back by Display, and then by Name and it should work then!";
 			dropdown:AddButton(info, tier);
 		end,
 		Sort = function(args)
@@ -230,7 +234,7 @@ local function noop() end
 function s.AddSlot(slot, addon)
 	local module = mog:GetModule(addon);
 	if not module then return noop end
-
+	
 	if not module.slots[slot] then
 		module.slots[slot] = {
 			label = LBI[slot] or slot,
