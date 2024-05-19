@@ -42,13 +42,13 @@ local defaultSplashWidthOffset = 0.12
 ---@class build: string
 
 ---@class SplashHighlightRegion
----@field x1 number
----@field y1 number
----@field x2 number
----@field y2 number
----@field title? string
----@field lines? string
----@field callback? function
+---@field x1 number Top Left
+---@field y1 number Top Left
+---@field x2 number Bottom Right
+---@field y2 number Bottom Right
+---@field title? string The Tooltip title
+---@field lines? string The additional lines in tooltip. Use \n and \r for new lines, because too lazy to make it support an array of strings
+---@field callback? function What happens when it's clicked.
 
 ---@class SplashTable
 ---@field tex string Always just the file name, we handle the path otherwise
@@ -137,11 +137,11 @@ local splashVersions = {
 				lines =
 				"Search, View, and Catalogue objects to your hearts content, thanks to our new Object Viewer AddOn from Warli!\n\rClick to open the viewer!",
 				callback = function()
-					if IsAddOnLoaded("Gobviewer") then
-						SlashCmdList["GOB"]()
+					if IsAddOnLoaded("Epsilon_Viewer") then
+						SlashCmdList["EPSV"]()
 					else
 						print(
-							"Gobviewer doesn't seem to be loaded. Check you have the AddOn enabled!")
+							"Epsilon Viewer doesn't seem to be loaded. Check you have the AddOn enabled!")
 					end
 				end
 			},
