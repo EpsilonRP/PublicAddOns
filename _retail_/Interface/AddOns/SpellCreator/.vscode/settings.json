@@ -312,6 +312,17 @@
         "LE_AURORA_STATE_LEGAL_AGREEMENT",
         "StopSound",
         "LE_AUTH_AUTHENTICATOR",
-        "CreateObjectPool"
+        "CreateObjectPool",
+        "GossipFrame",
+        "Settings",
+        "LE_EXPANSION_LEVEL_CURRENT",
+        "LE_EXPANSION_CLASSIC",
+        "LE_EXPANSION_WRATH_OF_THE_LICH_KING",
+        "ActionButton1",
+        "ObjectPoolMixin",
+        "CreateTexturePool",
+        "UIParent_ManageFramePositions",
+        "AlertFrame",
+        "GetSmoothProgressChange"
     ]
 }

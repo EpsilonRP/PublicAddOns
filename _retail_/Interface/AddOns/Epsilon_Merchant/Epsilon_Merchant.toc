@@ -2,8 +2,9 @@
 ## Title: Epsilon Merchant
 ## Author: Skylar
 ## Notes: Adds NPC vendor integration.
-## Version: 1.5
+## Version: 1.6
 ## SavedVariables: Epsilon_Merchant
+## OptionalDeps: EpsilonLib, EpsilonLib-dev
 
 Libs\Embeds.xml
 

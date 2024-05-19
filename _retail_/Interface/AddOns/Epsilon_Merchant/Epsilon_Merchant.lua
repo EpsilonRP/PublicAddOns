@@ -73,8 +73,11 @@ function Epsilon_Merchant_LoadVendor()
 	f:SetScript("OnEvent", function( self, event, prefix, text, channel, sender, ... )
 		if event == "CHAT_MSG_ADDON" and prefix == messageTicketId then
 			f:UnregisterEvent( "CHAT_MSG_ADDON" )
+			if text == nil then text = "" end
 			text = (loadstring or load)("return "..text)()
-			EPSILON_VENDOR_DATA[ Epsilon_MerchantFrame.merchantID ] = text
+			if EPSILON_VENDOR_DATA[ Epsilon_MerchantFrame.merchantID ] then
+				EPSILON_VENDOR_DATA[ Epsilon_MerchantFrame.merchantID ] = text
+			end
 			Epsilon_MerchantFrame_Update()
 		end
 	end)
@@ -501,26 +504,32 @@ function Epsilon_Merchant:OnInitialize()
 	
 	ChatFrame_AddMessageEventFilter( "CHAT_MSG_SYSTEM", OnSystemMessage );
 	ChatFrame_AddMessageEventFilter( "CHAT_MSG_LOOT", OnLootMessage );
+
+	hooksecurefunc(GossipFrame, "Hide", function(self)
+		self:SetAlpha(1);
+		self:EnableMouse(true)
+	end);
 	
-	local original = GameTooltip:GetScript("OnTooltipSetItem")
-	GameTooltip:SetScript("OnTooltipSetItem", function(tooltip, ...)
-		if not( Epsilon_MerchantFrame.merchantID and Epsilon_MerchantFrame:IsShown() and #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] > 0 ) then
-			return original(tooltip, ...)
+	-- local original = GameTooltip:GetScript("SetInventoryItem")
+	hooksecurefunc(GameTooltip, "SetBagItem", function(tooltip, bag, slot)
+		if not( Epsilon_MerchantFrame.merchantID and Epsilon_MerchantFrame:IsShown() and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] and #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] > 0 ) then
+			return
 		end
 		
-		local name, link = tooltip:GetItem();
-		local price;
-		local itemID, _, _, _, texture = GetItemInfoInstant(link)
-		
+		local texture, itemCount, _, _, _, _, link, _, _, itemID = GetContainerItemInfo(bag, slot)
+		local price, count;
+
 		for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 			if tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][1] ) == tonumber( itemID ) then
-				price = EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][2]
+				_, price, count = unpack( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i] )
 				price = tonumber( price );
+				pricePerUnit = price / count
+				price = math.ceil( pricePerUnit * itemCount);
 			end
 		end
 		
-		if not( price ) then
-			return original(tooltip, ...)
+		if not( price ) or price <= 0 then
+			return
 		end
 		
 		local textLeft = tooltip.textLeft

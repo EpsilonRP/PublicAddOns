@@ -931,6 +931,10 @@ local function syncPreviews()
 	mog.db.profile.sync = not mog.db.profile.sync;
 end
 
+local function togOption(self, option)
+	mog.db.profile[option] = not mog.db.profile[option]
+end
+
 mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	if not mog.db.profile.singlePreview then
 		local info = UIDropDownMenu_CreateInfo();
@@ -959,6 +963,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.tooltipText = L["Auto-Show Preview when Targetting an NPC with a MogIt Link as their name"];
 	info.tooltipOnButton = true
 	info.checked = mog.db.profile.autoShowMogNPCNamePreviews;
+	info.keepShownOnClick = true;
 	info.func = togOption;
 	info.arg1 = "autoShowMogNPCNamePreviews"
 	info.isNotRadio = true;
@@ -970,6 +975,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.tooltipText = L["When Auto-Showing a preview from an NPC with Mogit name, use your current character as the model instead of the NPC."];
 	info.tooltipOnButton = true
 	info.checked = mog.db.profile.useCurrentCharForMogAutoPreviews;
+	info.keepShownOnClick = true;
 	info.func = togOption;
 	info.arg1 = "useCurrentCharForMogAutoPreviews"
 	info.isNotRadio = true;

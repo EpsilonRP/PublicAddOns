@@ -246,11 +246,22 @@ end
 local function showMultiSpark(commIDs, barTex, i, colorHex, sparkData)
 	if not commIDs or #commIDs < 1 then return false end
 
+	-- check if an update is required from the last show of MultiSpark
+	local needUpdate = false
+	if not areTablesFunctionallyEquivalent(commIDs, (multiSparkFrame.spells or {})) then -- Only SetSpells if there's a change. If they are functionally identical, don't - this avoids the buttons 'glitching' every re-draw as they get released & re-acquired.
+		-- spells updated
+		needUpdate = true
+	end
+	if not areTablesFunctionallyEquivalent(sparkData, multiSparkFrame.sparkData or {}) then
+		-- some spark Data updated
+		needUpdate = true
+	end
+
 	multiSparkFrame.index = i
 	multiSparkFrame.sparkData = sparkData
 
 	-- assign spells
-	if not areTablesFunctionallyEquivalent(commIDs, (multiSparkFrame.spells or {})) then -- Only SetSpells if there's a change. If they are functionally identical, don't - this avoids the buttons 'glitching' every re-draw as they get released & re-acquired.
+	if needUpdate then
 		multiSparkFrame.spells = commIDs
 		multiSparkFrame:SetSpells(commIDs)
 	end
@@ -265,7 +276,7 @@ local function showMultiSpark(commIDs, barTex, i, colorHex, sparkData)
 
 	-- update cooldowns
 	for button in pairs(multiSparkFrame.SpellButtonContainer.contentFramePool.activeObjects) do
-		button:UpdateCooldown()
+		button:UpdateCooldown(sparkData)
 	end
 
 	-- show
@@ -295,7 +306,7 @@ local function triggerMultiSparkCooldown(commID, cooldownTime)
 		if not button:IsShown() then return end    -- this button is not visible? Inactive?
 
 		local sparkSpell = button.spell
-		if sparkSpell.commID == commID then
+		if sparkSpell.commID == commID or commID == "(multispark)" then
 			local currTime = GetTime()
 			button.cooldown:SetCooldown(currTime, cooldownTime)
 		end

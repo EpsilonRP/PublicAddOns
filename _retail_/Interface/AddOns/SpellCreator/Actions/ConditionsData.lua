@@ -39,13 +39,11 @@ do
 	if EpsilonLib then
 		-- using newer EpsilonLib, coo
 		EpsilonLib.Server.server.receive("DSPLY", function(message, channel, sender)
-			local Epsilon = EpsilonLib
-			local records = { string.split(Epsilon.record, message) }
+			local records = { string.split(EpsilonLib.record, message) }
 			for _, record in pairs(records) do
-				local displayid = string.split(Epsilon.field, record)
+				local displayid = string.split(EpsilonLib.field, record)
 				if displayid ~= "" then
 					lastCreatureDisplayID = tonumber(displayid)
-					--print(lastCreatureDisplayID)
 				end
 			end
 		end)
@@ -79,6 +77,13 @@ end
 local InputHelper = ns.Utils.InputHelper
 local input = InputHelper.input
 
+
+---@type ConditionRow
+local lastSelectedConditionRow
+
+local getLastSelectedRow = function() return lastSelectedConditionRow end
+local setLastSelectedRow = function(row) lastSelectedConditionRow = row end
+
 ------------------------------------------
 -- Conditions Data Structures & Creation
 
@@ -93,6 +98,7 @@ local input = InputHelper.input
 ---@field inputs InputsContainer|boolean|nil Ordered Array of Inputs and their types, used for Input Helper Tool later.. Can be `true` for now, but if false/nil then it will disable the input editbox. See inputs module (TODO) for input generator func
 ---@field inputDesc? string Description of the Inputs
 ---@field inputExample? string Example Input
+---@field requirement? function
 ---@field doNotTestEval? boolean Default to disabling the Condition Status preview evaluation. Useful in things like Macro Script & Random Roll which are irrelevant to test now.
 
 ---@class ConditionTypeCat
@@ -826,6 +832,32 @@ local conditions = {
 					return (value == actualVal)
 				end,
 			},
+			{
+				key = "sparkOnCDCurr",
+				name = "Spark on Cooldown (Current)",
+				description = "Returns true if the current Spark is on cooldown. Best example is paired with 'Not' to hide a Spark when it's on Cooldown.",
+				requirement = function() 
+					local frameText = lastSelectedConditionRow.parent.parent.parent.titletext:GetText() -- bit of a hack to figure out if it's a Spark frame LOL
+					return not frameText:find("Spark")
+				end,
+				script = function()
+					return ns.Actions.Cooldowns.isCurrentSparkOnCooldown()
+				end,
+			},
+			{
+				key = "sparkOnCDName",
+				name = "Spark on Cooldown (By Spark CD Name)",
+				description = "Returns true if the given Spark, by Cooldown (CD) Name, is on cooldown. Alt+Right-Click a Spark to copy it's CD Name.",
+				requirement = function() 
+					local frameText = lastSelectedConditionRow.parent.parent.parent.titletext:GetText() -- bit of a hack to figure out if it's a Spark frame LOL
+					return not frameText:find("Spark")
+				end,
+				inputs = { input("Spark CD Name", "string") },
+				script = function(sparkCDName)
+					return ns.Actions.Cooldowns.isSparkOnCooldown(sparkCDName)
+				end,
+			},
+
 		}
 	},
 
@@ -868,12 +900,6 @@ local conditions = {
 	},
 }
 
----@type ConditionRow
-local lastSelectedConditionRow
-
-local getLastSelectedRow = function() return lastSelectedConditionRow end
-local setLastSelectedRow = function(row) lastSelectedConditionRow = row end
-
 ---@type table<ConditionKey, ConditionTypeData>
 local conditionKeysMap = {}
 
@@ -915,6 +941,7 @@ local function genCondRadio(key)
 		end,
 		tooltipTitle = conditionData.name,
 		tooltipText = conditionData.description,
+		hidden = conditionData.requirement,
 	} --[[@as DropdownToggleCreationOptions]]
 	return Dropdown.radio(conditionData.name, options)
 end

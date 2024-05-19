@@ -64,8 +64,13 @@ local MAX_CHARS_PER_SEGMENT    = multiMessageData.MAX_CHARS_PER_SEGMENT
 ---@param z number
 ---@return string
 local function genSparkCDNameOverride(commID, x, y, z)
-	local sparkCDNameOverride = strjoin(string.char(31), commID, x, y, z)
+	--local sparkCDNameOverride = strjoin(string.char(31), commID, x, y, z)
+	local sparkCDNameOverride = strjoin("+", commID, x, y, z)
 	return sparkCDNameOverride
+end
+
+local function genMultiSparkCDNameOverride(x,y,z)
+	return genSparkCDNameOverride("(multispark)", x, y, z)
 end
 
 ---Checks if a Sparks' conditions are met
@@ -144,6 +149,8 @@ SC_ExtraActionButtonMixin = {}
 function SC_ExtraActionButtonMixin:UpdateCooldown(sparkData)
 	local spell = self.spell
 	if not spell then return end
+	local commID = spell.commID
+	if self.isMulti then commID = "(multispark)" end
 
 	-- check if the spell is currently on cooldown so we can show the correct cooldown timer visual, or clear it if there's one running from another spell
 	local cooldownTime, cooldownLength = Cooldowns.isSpellOnCooldown(spell.commID, C_Epsilon.GetPhaseId())
@@ -151,7 +158,7 @@ function SC_ExtraActionButtonMixin:UpdateCooldown(sparkData)
 	local sparkCDNameOverride
 	local remainingSparkCdTime, sparkCdLength
 	if sparkData then
-		sparkCDNameOverride = genSparkCDNameOverride(spell.commID, sparkData[2], sparkData[3], sparkData[4])
+		sparkCDNameOverride = genSparkCDNameOverride(commID, sparkData[2], sparkData[3], sparkData[4])
 		remainingSparkCdTime, sparkCdLength = Cooldowns.isSparkOnCooldown(sparkCDNameOverride)
 	end
 
@@ -232,19 +239,30 @@ function SC_ExtraActionButtonMixin:SetContent(content)
 	local spell = content.spell
 	local sparkData = content.spark
 
+	self.isMulti = true
 	self:SetSpell(spell, sparkData)
 	self:SetSquare()
 end
 
 function SC_ExtraActionButtonMixin:OnClick(button)
 	local sparkPopup = self:GetParent()
+	local cdData = self.cdData
+	local spell = self.spell
+	local commID = spell.commID
+	if self.isMulti then commID = "(multispark)" end -- use this as your commID for sending CDs
 
 	if self.SetChecked then self:SetChecked(false) end
 	if (isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) and button == "RightButton" then
+
+		if IsAltKeyDown() then
+			local sparkCDNameOverride = genSparkCDNameOverride(commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
+			ns.Actions.Data_Scripts.runScriptPriv("CopyToClipboard('" .. sparkCDNameOverride .. "')")
+			Logging.cprint("Spark CD Name (Copied to Clipboard): ".. sparkCDNameOverride)
+			return
+		end
 		SparkPopups.SparkManagerUI.showSparkManagerUI()
 		return
 	end
-	local spell = self.spell
 	if button == "keybind" and not sparkPopup:IsShown() then
 		Logging.dprint("SparkPopups Keybind Pressed, but not shown so skipped.")
 		return
@@ -255,15 +273,14 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 	end
 
 	--spark cooldown overrides
-	local cdData = self.cdData
-	local pseudoSparkData = { spell.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3] }
+	local pseudoSparkData = { commID, cdData.loc[1], cdData.loc[2], cdData.loc[3] }
 
 	if not isSparkOrSpellNotOnCD(pseudoSparkData) then return end -- Exit if spark & spell not not on CD (aka: On CD) -- Print CD messages are handled in the check
 
 	local bypassCD = false
 	if cdData[1] then
-		local sparkCDNameOverride = genSparkCDNameOverride(spell.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
-		Cooldowns.addSparkCooldown(sparkCDNameOverride, cdData[1], spell.commID)
+		local sparkCDNameOverride = genSparkCDNameOverride(commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
+		Cooldowns.addSparkCooldown(sparkCDNameOverride, cdData[1], commID)
 		bypassCD = true
 		if cdData[2] then
 			bypassCD = false
@@ -339,4 +356,5 @@ ns.UI.SparkPopups.Init = {
 	isSparkConditionsMet = isSparkConditionsMet,
 	isSparkOrSpellNotOnCD = isSparkOrSpellNotOnCD,
 	genSparkCDNameOverride = genSparkCDNameOverride,
+	genMultiSparkCDNameOverride = genMultiSparkCDNameOverride,
 }

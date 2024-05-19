@@ -5,6 +5,7 @@
 --
 
 local Me = Epsilon_Merchant;
+local SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
 
 -------------------------------------------------------------------------------
 -- Static Popup Dialogs
@@ -249,14 +250,20 @@ end
 --
 local function GetMerchantCurrencies()
 	if not( Epsilon_MerchantFrame.merchantID ) then
-		return
+		return {};
+	end
+
+	if not( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] ) then
+		return {};
 	end
 
 	local currencies = {};
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
 			local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
-			tinsert( currencies, currency );
+			if not( tContains(currencies, currency) ) and currency > 0 then
+				tinsert( currencies, currency );
+			end
 		end
 	end
 	return currencies;
@@ -383,10 +390,10 @@ function Epsilon_MerchantDeleteVendor()
 		-- that match ours.
 		--
 		for i = 1, C_GossipInfo.GetNumOptions() do
-			titleButton = _G["GossipTitleButton" .. i];
-			titleButtonText = _G["GossipTitleButton" .. i]:GetText();
+			titleButton = GossipFrame_GetTitleButton(i);
+			titleButtonText = titleButton:GetText();
 			if titleButtonText == "I want to browse your goods." then
-				SendChatMessage( ".phase forge npc gossip option remove ".. ( i - 1 ), "GUILD" );
+				SendCommand( "phase forge npc gossip option remove ".. ( i - 1 ) );
 				Epsilon_MerchantFrame.removingVendor = true;
 			end
 		end
@@ -484,26 +491,26 @@ local function BuyEpsilon_MerchantItem( itemID, amount )
 	end
 
 	if CanAffordMerchantItem( itemID ) then
-		local _, _, price, _, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID )
+		local _, _, price, stackCount, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID );
 		if price then
-			SendChatMessage( ".mod money -" .. (price * amount), "GUILD" )
+			SendCommand( "mod money -" .. (price * amount) )
 		end
 		if extendedCost then
-			SendChatMessage( ".additem "..currencyID.." -"..currencyAmount, "GUILD" )
+			SendCommand( "additem "..currencyID.." -"..currencyAmount )
 		end
+
+		if not( stackCount ) then
+			stackCount = 1;
+		end
+
+		SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
+		C_Timer.After( 0.5, function() Epsilon_Merchant_PlaySound( "buyitem" ) end )
+		Epsilon_MerchantFrame_Update()
 	else
 		PlaySound( 47355 );
 		UIErrorsFrame:AddMessage( select(2, CanAffordMerchantItem( itemID )), 1.0, 0.0, 0.0, 53, 5 );
 		return
 	end
-
-	if not( stackCount ) then
-		stackCount = 1;
-	end
-
-	SendChatMessage( ".additem " .. itemID .. " " .. ( amount * stackCount ), "GUILD" )
-	C_Timer.After( 0.5, function() Epsilon_Merchant_PlaySound( "buyitem" ) end )
-	Epsilon_MerchantFrame_Update()
 end
 
 -------------------------------------------------------------------------------
@@ -517,15 +524,16 @@ local function SellEpsilon_MerchantItem( bag, slot )
 	local _, count = GetContainerItemInfo( bag, slot );
 	if count and count > 0 then
 		Epsilon_MerchantFrame.makingPurchase = true
-		local _, _, price, _, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID )
+		local _, _, price, stackSize, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID )
+		local pricePerUnit = price / stackSize;
 		if ( price and tonumber( price ) ~= nil and price > 0 ) or ( extendedCost and currencyID and currencyAmount ) then
 			if price then
-				SendChatMessage( ".mod money " .. ( tonumber( price ) * count), "GUILD" )
-				SendChatMessage( ".additem "..itemID.." -"..count, "GUILD" )
+				SendCommand( "mod money " .. ( pricePerUnit * count) )
+				SendCommand( "additem "..itemID.." -"..count )
 
 				local item = {
 					itemID = itemID;
-					price = price;
+					price = pricePerUnit * count;
 					stackCount = count;
 				}
 
@@ -533,7 +541,7 @@ local function SellEpsilon_MerchantItem( bag, slot )
 			end
 
 			if extendedCost then
-				SendChatMessage( ".additem "..currencyID.." "..currencyAmount, "GUILD" )
+				SendCommand( "additem "..currencyID.." "..currencyAmount )
 			end
 			--PlaySound(895)
 
@@ -560,8 +568,30 @@ end
 local function BuybackEpsilon_MerchantItem( itemID, amount )
 	for i = 1, #EPSILON_ITEM_BUYBACK do
 		if EPSILON_ITEM_BUYBACK[i]["itemID"] == itemID then
+			Epsilon_MerchantFrame.makingPurchase = true
+
+			if not( amount ) then
+				amount = 1
+			end
+
+			if CanAffordMerchantItem( itemID ) then
+				local price, count = EPSILON_ITEM_BUYBACK[i]["price"], EPSILON_ITEM_BUYBACK[i]["stackCount"];
+				if price then
+					SendCommand( "mod money -" .. price )
+				end
+				if extendedCost then
+					SendCommand( "additem "..currencyID.." -"..currencyAmount )
+				end
+
+				SendCommand( "additem " .. itemID .. " " .. count )
+				C_Timer.After( 0.5, function() Epsilon_Merchant_PlaySound( "buyitem" ) end )
+				Epsilon_MerchantFrame_Update()
+			else
+				PlaySound( 47355 );
+				UIErrorsFrame:AddMessage( select(2, CanAffordMerchantItem( itemID )), 1.0, 0.0, 0.0, 53, 5 );
+				return
+			end
 			tremove( EPSILON_ITEM_BUYBACK, i );
-			BuyEpsilon_MerchantItem( itemID, amount );
 			break
 		end
 	end
@@ -592,14 +622,20 @@ end)
 --
 local function SetInventoryCursor( self )
 	if ( Epsilon_MerchantFrame:IsShown() and Epsilon_MerchantFrame.selectedTab == 1 ) and not Epsilon_MerchantCursorOverlay:IsShown() then
-		ShowContainerSellCursor(self:GetParent():GetID(),self:GetID());
+		local itemID = GetContainerItemID( self:GetParent():GetID(), self:GetID() );
+		local _, _, price = GetMerchantItemInfo( itemID );
+		if price and price > 0 then
+			SetCursor("BUY_CURSOR")
+		else
+			SetCursor("BUY_ERROR_CURSOR")
+		end
 	end
 end
 
 -------------------------------------------------------------------------------
 -- Hook the cursor.
 --
-local function HookCursor( self )
+local function HookCursor()
 	if GetMouseFocus() and type(GetMouseFocus()) == "table" and GetMouseFocus():GetName() and strfind(GetMouseFocus():GetName(), "ContainerFrame%d*Item") then
 		SetInventoryCursor( GetMouseFocus() )
 	end
@@ -611,8 +647,8 @@ end
 --
 hooksecurefunc("ContainerFrameItemButton_OnEnter", SetInventoryCursor)
 hooksecurefunc("ContainerFrameItemButton_OnUpdate", SetInventoryCursor)
-hooksecurefunc("ResetCursor", HookCursor)
-hooksecurefunc("SetCursor", HookCursor)
+-- hooksecurefunc("ResetCursor", HookCursor)
+-- hooksecurefunc("SetCursor", HookCursor)
 
 function Epsilon_MerchantRefreshItemButtons()
 	if not Epsilon_MerchantFrame.ItemButtons then
@@ -649,6 +685,7 @@ function Epsilon_MerchantFrame_OnLoad(self)
 	self:RegisterEvent("BAG_UPDATE");
 	self:RegisterEvent("GOSSIP_SHOW");
 	self:RegisterEvent("GOSSIP_CLOSED");
+	self:RegisterEvent("CURSOR_UPDATE");
 	self:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player");
 	self:RegisterForDrag("LeftButton");
 	self.page = 1;
@@ -676,8 +713,6 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 		-- Revert the GossipFrame and MerchantFrame to default.
 		MerchantFrame:SetAlpha(1)
 		MerchantFrame:EnableMouse(true)
-		GossipFrame:SetAlpha(1)
-		GossipFrame:EnableMouse(true)
 		if Me.IsPhaseOwner() then
 			GossipFrameEditSoundsButton:Show()
 		else
@@ -693,7 +728,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 			local titleButton;
 			local titleIndex = 1;
 			local titleButtonIcon;
-			local guid = UnitGUID("target")
+			local guid = UnitGUID("npc")
 			local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 			if not(unitType == "Creature") then
 				return
@@ -711,6 +746,9 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 					-- ...and it does! :D
 					--
 					found = true;
+					if not( titleButtonIcon == 132060 ) then
+						titleButton.Icon:SetTexture(132060);
+					end
 					if not EPSILON_VENDOR_DATA[id] then
 						EPSILON_VENDOR_DATA[id] = {};
 					end
@@ -745,9 +783,6 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 		MerchantFrame:SetAlpha(1)
 		MerchantFrame:EnableMouse(true)
 
-		GossipFrame:SetAlpha(1)
-		GossipFrame:EnableMouse(true)
-
 		GossipFrameEditSoundsButton:Hide()
 
 		GossipTitleButtonAddVendor:Hide()
@@ -761,6 +796,8 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 		Epsilon_MerchantSoundPicker_Close()
 
 		Epsilon_MerchantFrame.merchantID = nil;
+	elseif ( event == "CURSOR_UPDATE" ) then
+		HookCursor()
 	end
 end
 
@@ -1321,7 +1358,7 @@ end
 function Epsilon_MerchantItemBuybackButton_OnClick(self, button)
 	local _, _, _, stackCount, numAvailable, isPurchasable, isUsable, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo(self:GetID());
 	if button == "RightButton" then
-		BuybackEpsilon_MerchantItem( EPSILON_ITEM_BUYBACK[1]["itemID"], stackCount );
+		BuybackEpsilon_MerchantItem( EPSILON_ITEM_BUYBACK[1]["itemID"], EPSILON_ITEM_BUYBACK[1]["stackCount"] );
 	end
 end
 
@@ -1508,6 +1545,8 @@ end
 
 function Epsilon_MerchantFrame_UpdateCurrencies()
 	local currencies = GetMerchantCurrencies();
+
+	print(#currencies);
 
 	if ( #currencies == 0 ) then	-- common case
 		Epsilon_MerchantFrame:UnregisterEvent("CURRENCY_DISPLAY_UPDATE");

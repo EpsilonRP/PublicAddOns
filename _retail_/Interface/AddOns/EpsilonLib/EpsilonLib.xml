@@ -16,4 +16,6 @@
 	<Script file="RunScript.lua"/>
 	<Script file="PhaseAddOnData.lua"/>
 
+	<Include file="Utils\Utils.xml"/>
+
 </Ui>

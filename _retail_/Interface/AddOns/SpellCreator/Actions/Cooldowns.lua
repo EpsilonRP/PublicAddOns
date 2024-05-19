@@ -136,9 +136,11 @@ local function addSparkCooldown(commID, cooldownTime, origCommID, phaseOverride)
 	if phaseOverride then
 		if curPhase == phaseOverride then -- phase override is the phase we are in, trigger cooldown visuals
 			ns.UI.SparkPopups.SparkPopups.triggerSparkCooldownVisual(origCommID, cooldownTime)
+			ns.UI.SparkPopups.SparkPopups.triggerMultiSparkCooldown(origCommID, cooldownTime)
 		end
 	else
 		ns.UI.SparkPopups.SparkPopups.triggerSparkCooldownVisual(origCommID, cooldownTime)
+		ns.UI.SparkPopups.SparkPopups.triggerMultiSparkCooldown(origCommID, cooldownTime)
 	end
 end
 
@@ -166,8 +168,8 @@ local function isSparkOnCooldown(commID)
 end
 
 local function getCurrentSparkCDName()
-	local spellData = ArcanumSparkPopupButton.button.spell
-	local cdData = ArcanumSparkPopupButton.button.cdData
+	local spellData = ArcanumSparkPopupButton.spell
+	local cdData = ArcanumSparkPopupButton.cdData
 	if not spellData or not cdData then return end
 	local sparkCDNameOverride = ns.UI.SparkPopups.SparkPopups.genSparkCDNameOverride(spellData.commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
 	return sparkCDNameOverride
