@@ -33,7 +33,7 @@ function mog:GetItemLabel(itemID, callback, includeIcon, iconSize)
 	else
 		--Epsi
 		--Invalid items breaks the wishlist, will direct user to update set until I can find a way to remove these items automatically.
-		name = RED_FONT_COLOR_CODE..RETRIEVING_ITEM_INFO .. " - BAD ITEM, LOAD PROBLEMATIC SET IT IN MOGIT PREVIEW AND SAVE, OVERWRITING PREVIOUS SET."..FONT_COLOR_CODE_CLOSE
+		name = RED_FONT_COLOR_CODE .. RETRIEVING_ITEM_INFO .. " - BAD ITEM, LOAD PROBLEMATIC SET IT IN MOGIT PREVIEW AND SAVE, OVERWRITING PREVIOUS SET." .. FONT_COLOR_CODE_CLOSE
 	end
 	if includeIcon then
 		return format("|T%s:%d|t %s", GetItemIcon(itemID), iconSize, name)
@@ -43,8 +43,9 @@ function mog:GetItemLabel(itemID, callback, includeIcon, iconSize)
 end
 
 local function addItemTooltipLine(itemID, slot, selected, wishlist, isSetItem)
-	local texture = format("|T%s:0|t ", (selected and [[Interface\ChatFrame\ChatFrameExpandArrow]]) or (mog:HasItem(mog:GetSourceFromItem(itemID), isSetItem) and TEXTURE) or (wishlist and [[Interface\TargetingFrame\UI-RaidTargetingIcon_1]]) or "")
-	GameTooltip:AddDoubleLine(texture..(type(slot) == "string" and _G[strupper(slot)]..": " or "")..mog:GetItemLabel(itemID, "ModelOnEnter"), mog.GetItemSourceShort(itemID), nil, nil, nil, 1, 1, 1)
+	local texture = format("|T%s:0|t ",
+		(selected and [[Interface\ChatFrame\ChatFrameExpandArrow]]) or (mog:HasItem(mog:GetSourceFromItem(itemID), isSetItem) and TEXTURE) or (wishlist and [[Interface\TargetingFrame\UI-RaidTargetingIcon_1]]) or "")
+	GameTooltip:AddDoubleLine(texture .. (type(slot) == "string" and _G[strupper(slot)] .. ": " or "") .. mog:GetItemLabel(itemID, "ModelOnEnter"), mog.GetItemSourceShort(itemID), nil, nil, nil, 1, 1, 1)
 end
 
 function mog.GetItemSourceInfo(itemID)
@@ -75,13 +76,13 @@ function mog.GetItemSourceInfo(itemID)
 
 	-- local zone = mog:GetData("item", itemID, "zone");
 	-- if zone then
-		-- zone = GetMapNameByID(zone);
-		-- if zone then
-			-- local diff = L.diffs[sourceInfo];
-			-- if sourceType == 1 and diff then
-				-- zone = format("%s (%s)", zone, diff);
-			-- end
-		-- end
+	-- zone = GetMapNameByID(zone);
+	-- if zone then
+	-- local diff = L.diffs[sourceInfo];
+	-- if sourceType == 1 and diff then
+	-- zone = format("%s (%s)", zone, diff);
+	-- end
+	-- end
 	-- end
 
 	return L.source[sourceType], source, zone, info;
@@ -109,7 +110,7 @@ end
 
 -- create a new set and add the item to it
 local function newSetOnClick(self)
-	StaticPopup_Show("MOGIT_WISHLIST_CREATE_SET", nil, nil, {items = {self.value}})
+	StaticPopup_Show("MOGIT_WISHLIST_CREATE_SET", nil, nil, { items = { self.value } })
 	CloseDropDownMenus()
 end
 
@@ -188,37 +189,33 @@ local itemOptions = {
 	{
 		text = L["|cff00ccffAdd to inventory|r"], --epsi edit
 		func = function(self)
-		local itemID = self.value:match("item:(%d*)");
-		local bonusID = self.value:match(":1:(%d*)")
-		if itemID:match(":1:%d*") then
-
+			local itemID = self.value:match("item:(%d*)");
+			local bonusID = self.value:match(":1:(%d*)")
+			if itemID:match(":1:%d*") then
 				--has bonus still
-
-		end
-		if bonusID ~= nil then
-			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r adding item: "..itemID.." with bonus: "..bonusID)
 			end
-			SendChatMessage(".additem "..itemID.." 1 "..bonusID, "GUILD")
-		else
-			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r adding item: "..itemID)
+			if bonusID ~= nil then
+				if not mog.db.profile.toggleMessages then
+					print("|cff00ccff[MogIt]|r adding item: " .. itemID .. " with bonus: " .. bonusID)
+				end
+				SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
+			else
+				if not mog.db.profile.toggleMessages then
+					print("|cff00ccff[MogIt]|r adding item: " .. itemID)
+				end
+				SendChatMessage(".add " .. itemID, "GUILD")
 			end
-			SendChatMessage(".add "..itemID, "GUILD")
-		end
-
-	end,
+		end,
 	},
 	{
 		text = L["|cff00ccffLookup item|r"], --epsi edit
 		func = function(self)
-		local item = mog:GetItemInfo(self.value, callback)
-		local itemID = self.value:match("item:(%d*)");
-		if not mog.db.profile.toggleMessages then
-			print("|cff00ccff[MogIt]|r looking up item: |cff00ccff|Hitem:"..itemID.."|h["..item.name.."]|r");
-		end
-		SendChatMessage(".lookup item "..item.name, "GUILD")
-
+			local item = mog:GetItemInfo(self.value, callback)
+			local itemID = self.value:match("item:(%d*)");
+			if not mog.db.profile.toggleMessages then
+				print("|cff00ccff[MogIt]|r looking up item: |cff00ccff|Hitem:" .. itemID .. "|h[" .. item.name .. "]|r");
+			end
+			SendChatMessage(".lookup item " .. item.name, "GUILD")
 		end,
 	},
 }
@@ -288,7 +285,7 @@ local function showMenu(menu, data, isSaved, isPreview)
 	menu:Toggle(data.item, "cursor")
 end
 
-do	-- item functions
+do -- item functions
 	local sourceLabels = {
 		[L.source[1]] = BOSS,
 	}
@@ -330,6 +327,17 @@ do	-- item functions
 		if not (self and item) then return end
 
 		if button == "LeftButton" then
+			if IsAltKeyDown() then
+				local itemLink = data.item
+				local bonusID = itemLink:match(":1:(%d*)")
+				local itemID = itemLink:match("item:(%d*)");
+
+				if not mog.db.profile.toggleMessages then
+					print("|cff00ccff[MogIt]|r adding item: " .. (itemID or "invalid item id") .. " with bonus: " .. (bonusID and bonusID or "n/a"));
+				end
+				SendChatMessage(".add " .. itemID .. " 1 " .. (bonusID and bonusID or ""), "GUILD")
+			end
+
 			if not HandleModifiedItemClick(select(2, GetItemInfo(item))) and data.items then
 				data.cycle = (data.cycle % #data.items) + 1
 				data.item = data.items[data.cycle]
@@ -350,7 +358,7 @@ do	-- item functions
 	function mog.ShowItemTooltip(self, item, items)
 		-- hack for items not returning any transmog info
 		if not item then return end
-		
+
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip[mog] = true
 
@@ -372,16 +380,16 @@ do	-- item functions
 
 		local sourceType, source, zone, info = mog.GetItemSourceInfo(item)
 		if sourceType then
-			GameTooltip:AddLine(L["Source"]..": |cffffffff"..sourceType)
+			GameTooltip:AddLine(L["Source"] .. ": |cffffffff" .. sourceType)
 			if source then
-				GameTooltip:AddLine((sourceLabels[sourceType] or sourceType)..": |cffffffff"..source)
+				GameTooltip:AddLine((sourceLabels[sourceType] or sourceType) .. ": |cffffffff" .. source)
 			end
 			if info ~= nil then
-				GameTooltip:AddLine(STATUS..": |cffffffff"..(info and COMPLETE or INCOMPLETE))
+				GameTooltip:AddLine(STATUS .. ": |cffffffff" .. (info and COMPLETE or INCOMPLETE))
 			end
 		end
 		if zone then
-			GameTooltip:AddLine(ZONE..": |cffffffff"..zone)
+			GameTooltip:AddLine(ZONE .. ": |cffffffff" .. zone)
 		end
 
 		GameTooltip:AddLine(" ")
@@ -391,12 +399,12 @@ do	-- item functions
 		end
 		local requiredLevel = mog:GetData("item", item, "level")
 		if itemInfo and itemInfo.reqLevel and itemInfo.reqLevel > 0 then
-			GameTooltip:AddLine(L["Required Level"]..": |cffffffff"..itemInfo.reqLevel)
+			GameTooltip:AddLine(L["Required Level"] .. ": |cffffffff" .. itemInfo.reqLevel)
 		end
-		GameTooltip:AddLine(STAT_AVERAGE_ITEM_LEVEL..": |cffffffff"..(itemLevel or "??"))
+		GameTooltip:AddLine(STAT_AVERAGE_ITEM_LEVEL .. ": |cffffffff" .. (itemLevel or "??"))
 		local faction = mog:GetData("item", item, "faction")
 		if faction then
-			GameTooltip:AddLine(FACTION..": |cffffffff"..(faction == 1 and FACTION_ALLIANCE or FACTION_HORDE))
+			GameTooltip:AddLine(FACTION .. ": |cffffffff" .. (faction == 1 and FACTION_ALLIANCE or FACTION_HORDE))
 		end
 		local class = mog:GetData("item", item, "class")
 		if class and class > 0 then
@@ -411,23 +419,23 @@ do	-- item functions
 					end
 				end
 			end
-			GameTooltip:AddLine(CLASS..": "..str)
+			GameTooltip:AddLine(CLASS .. ": " .. str)
 		end
 		local slot = mog:GetData("item", item, "slot")
 		if slot then
-			GameTooltip:AddLine(L["Slot"]..": |cffffffff"..L.slots[slot])
+			GameTooltip:AddLine(L["Slot"] .. ": |cffffffff" .. L.slots[slot])
 		end
 
 		if mog.db.profile.tooltipItemID then
 			GameTooltip:AddLine(" ")
-			GameTooltip:AddLine(L["Item ID"]..": |cffffffff"..mog:ToNumberItem(item))
+			GameTooltip:AddLine(L["Item ID"] .. ": |cffffffff" .. mog:ToNumberItem(item))
 		end
-		
+
 		-- source sometimes can't be determined if item is not cached
 		local hasItem = itemInfo and mog:HasItem(mog:GetSourceFromItem(item))
 		if hasItem then
 			GameTooltip:AddLine(" ")
-			GameTooltip:AddLine(format("|T%s:0|t ", TEXTURE)..TRANSMOGRIFY_TOOLTIP_APPEARANCE_KNOWN, 1, 1, 1)
+			GameTooltip:AddLine(format("|T%s:0|t ", TEXTURE) .. TRANSMOGRIFY_TOOLTIP_APPEARANCE_KNOWN, 1, 1, 1)
 		end
 
 		local found, profiles = mog.wishlist:IsItemInWishlist(item)
@@ -435,10 +443,10 @@ do	-- item functions
 			if not hasItem then
 				GameTooltip:AddLine(" ")
 			end
-			GameTooltip:AddLine("|TInterface\\PetBattles\\PetJournal:0:0:0:0:512:1024:62:78:26:42:255:255:255|t "..L["This item is on your wishlist."], 1, 1, 1)
+			GameTooltip:AddLine("|TInterface\\PetBattles\\PetJournal:0:0:0:0:512:1024:62:78:26:42:255:255:255|t " .. L["This item is on your wishlist."], 1, 1, 1)
 			if mog.db.profile.tooltipWishlistDetail and profiles then
 				for i, character in ipairs(profiles) do
-					GameTooltip:AddLine("|T:0|t "..character)
+					GameTooltip:AddLine("|T:0|t " .. character)
 				end
 			end
 		end
@@ -485,7 +493,7 @@ do	-- item functions
 	end
 end
 
-do	-- set functions
+do -- set functions
 	function mog.Set_FrameUpdate(self, data)
 		self:ShowIndicator("label")
 		self:SetText(data.name)
@@ -565,8 +573,8 @@ do	-- set functions
 		{
 			wishlist = true,
 			text = L["|cff00ccffEquip Set|r"],
-			func = function(self,set,items)
-					mog.wishlist:mogequipWishlistItems(set,items);
+			func = function(self, set, items)
+				mog.wishlist:mogequipWishlistItems(set, items);
 			end,
 		},
 		{

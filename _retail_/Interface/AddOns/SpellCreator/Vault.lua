@@ -31,6 +31,9 @@ local function savePersonalSpell(spell)
 		ns.ProfileFilter.toggleFilter(spell.profile, true)
 	end
 	ns.UI.ItemIntegration.scripts.updateCache(true)
+
+	-- Apply Migrations if needed
+	ns.Actions.Migrations.migrateSpell(spell)
 end
 
 ---@param commID CommID

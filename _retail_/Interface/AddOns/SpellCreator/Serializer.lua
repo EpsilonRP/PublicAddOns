@@ -20,6 +20,18 @@ local function decompressForAddonMsg(str)
 	return str;
 end
 
+local function decompressForAddonMsg_SparkCopy(str)
+	--str = LibDeflate:DecodeForWoWAddonChannel(str)
+	str = LibDeflate:DecodeForWoWChatChannel(str)
+	str = LibDeflate:DecompressDeflate(str)
+
+	-- copy to force save the last spark decompress string for debug purposes
+	ns.UI.DataSalvager.saveLastSparkStr(str)
+
+	_, str = AceSerializer:Deserialize(str)
+	return str;
+end
+
 local function compressForExport(str)
 	str = AceSerializer:Serialize(str)
 	str = LibDeflate:CompressDeflate(str, { level = 9 })
@@ -38,6 +50,7 @@ end
 ns.Serializer = {
 	compressForAddonMsg = compressForAddonMsg,
 	decompressForAddonMsg = decompressForAddonMsg,
+	decompressForAddonMsg_SparkCopy = decompressForAddonMsg_SparkCopy,
 	compressForExport = compressForExport,
 	decompressForImport = decompressForImport,
 }

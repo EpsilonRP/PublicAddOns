@@ -61,11 +61,8 @@ end
 ---@param commID CommID
 local function _Button_setNotFound(self, commID)
 	-- use Tooltip util? -- no need, letting the button handle it is fine, since the codebase is already there from blizzard, and we do not need it on a delay
-	self.tooltipTitle = "Error Loading Spell"
-	self.tooltipText = {
-		("Spell %s does not exist in your vault."):format(Tooltip.genContrastText(commID)),
-		"\nRight-Click to remove this from your Quickcast.",
-	}
+	self.commID = commID
+	self.spell = nil
 	self:SetNormalTexture("interface/icons/inv_misc_questionmark")
 	self:SetScript("OnClick", function(_, btn)
 		if btn == "RightButton" then
@@ -74,20 +71,18 @@ local function _Button_setNotFound(self, commID)
 	end)
 end
 
+--[[
 ---@param spell VaultSpell
 local function formatCastText(spell)
 	local actionsLabel = #spell.actions > 1 and "actions" or "action"
 	return ("Cast '%s' (%d %s)."):format(spell.commID, #spell.actions, actionsLabel)
 end
+--]]
 
 ---@param self QuickcastButton
 ---@param spell VaultSpell
 local function _Button_setSpell(self, spell)
-	self.tooltipTitle = spell.fullName
-	self.tooltipText = {
-		formatCastText(spell),
-		ADDON_COLORS.QC_DARKRED:GenerateHexColorMarkup() .. "Shift+Right-Click to remove.|r",
-	}
+	self.spell = spell
 	self.commID = spell.commID
 
 	if spell.icon then
@@ -310,12 +305,21 @@ local function createButton(page, index)
 	Tooltip.set(
 		button,
 		function(self)
-			return self.tooltipTitle
+			local title = "Error Loading Spell"
+			title = ns.UI.SpellTooltip.getTitle("vault", self.spell, false) or title
+			return title
 		end,
 		function(self)
-			return self.tooltipText
+			local error_strings = {
+				("Spell %s does not exist in your vault."):format(Tooltip.genContrastText(self.commID)),
+				"\nRight-Click to remove this from your Quickcast.",
+			}
+			local good_strings = ns.UI.SpellTooltip.getLines("vault", self.spell, false, true)
+			tinsert(good_strings, " ")
+			tinsert(good_strings, ADDON_COLORS.QC_DARKRED:GenerateHexColorMarkup() .. "Shift+Right-Click to remove.|r")
+			return good_strings or error_strings
 		end,
-		{ delay = 0.5 }
+		{ delay = 0.5, updateOnUpdate = true }
 	)
 
 	button:HookScript("OnEnter", function(self)

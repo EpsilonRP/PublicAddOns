@@ -131,12 +131,14 @@ local function genSpellManagerMenu(container, isRefresh)
 				Tooltip.setAceTT(
 					spellIconLabel,
 					function(self)
-						return spellData.fullName
+						--return spellData.fullName
+						return ns.UI.SpellTooltip.getTitle("vault", spellData)
 					end,
 					function(self)
 						local spell = spellData
+						local strings = ns.UI.SpellTooltip.getLines("vault", spell, false, true)
+						--[[
 						local strings = {}
-
 						if spell.description then
 							tinsert(strings, spell.description)
 						end
@@ -157,7 +159,7 @@ local function genSpellManagerMenu(container, isRefresh)
 							tinsert(strings, Tooltip.createDoubleLine(" ", "Profile: " .. spell.profile))
 							--tinsert(strings, "Profile: " .. spell.profile);
 						end
-
+						--]]
 						return strings
 					end,
 					{

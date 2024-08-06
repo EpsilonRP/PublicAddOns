@@ -116,7 +116,7 @@ local function formatName(style)
 		texMarkup = "•    "
 	end
 
-	return texMarkup .. data.name .. "(ID: " .. style .. ")"
+	return texMarkup .. data.name .. " (ID: " .. style .. ")"
 end
 
 ---@param style BookStyle

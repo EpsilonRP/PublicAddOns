@@ -83,6 +83,41 @@ local function verifyNumber(num)
 	if num then return num else return 99999999 end
 end
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- Create a quick filter system with memory - we end up killing the memory later but it's still needed between redraws.
+
+local sparkFilter
+local function setSparkFilter(str)
+	if type(str) == "string" then
+		sparkFilter = str
+	else
+		sparkFilter = nil
+	end
+end
+
+local function clearSparkFilter()
+	sparkFilter = nil
+end
+
+local function filterSparksPred(v)
+	local filterArray = DataUtils.strsplitTrimTable(",", sparkFilter)
+	local commID = string.lower(v[1])
+	for i = 1, #filterArray do
+		if string.find(commID, string.lower(filterArray[i])) then return true end
+	end
+	return false
+end
+
+local function filterSparksData(sparks, filter)
+	if filter ~= nil then sparkFilter = filter end
+
+	if filter and filter ~= "" then
+		return tFilter(sparks, filterSparksPred, false) -- We do NOT treat is as indexed at this point, as we want to ensure the key stays the same, as the key is used for accessing it in the full table if needed (i.e., edit/delete)
+	else
+		return sparks
+	end
+end
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ---@param group AceGUIContainer
@@ -116,22 +151,35 @@ local function drawMapGroup(group, mapID, callback)
 
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	-- gen our inline groups
-	if not phaseSparkTriggers or not phaseSparkTriggers[mapID] then
+	local sparksData = (phaseSparkTriggers and phaseSparkTriggers[mapID]) and (sparkFilter and filterSparksData(phaseSparkTriggers[mapID], sparkFilter) or phaseSparkTriggers[mapID]) or nil
+	if not sparksData or not next(sparksData) then
 		local noSparksLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
-		noSparksLabel:SetText("There are no Sparks on this map.")
+
+		if not phaseSparkTriggers or not phaseSparkTriggers[mapID] then
+			noSparksLabel:SetText("There are no Sparks on the selected map.")
+		else
+			noSparksLabel:SetText("There are no Sparks matching your search on the selected map.")
+		end
+
 		noSparksLabel:SetRelativeWidth(1)
 		groupScrollFrame:AddChild(noSparksLabel)
 		return
 	end
-	for k, triggerData in ipairs(phaseSparkTriggers[mapID]) do
+	for k, triggerData in DataUtils.orderedPairs(sparksData) do -- User OrderedPairs here instead of ipairs / iterator as we need to account for filtered not being a valid array anymore
+		triggerData = triggerData --[[@as SparkTriggerData]]
 		local commID = triggerData[1]
+		local autoLeaveOnly
+		if commID == "" and triggerData[8].uncast then
+			commID = triggerData[8].uncast -- // Override the display to use the Uncast Arc Spell, if it's a 'leave only' auto spark.
+			autoLeaveOnly = true
+		end
 
 		local triggerGroup = AceGUI:Create("InlineGroup") --[[@as AceGUIInlineGroup]]
 		triggerGroup:SetLayout("Flow")
 		triggerGroup:SetRelativeWidth(1)
 		--triggerGroup:SetAutoAdjustHeight(false)
 		--triggerGroup:SetHeight(115)
-		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(commID) .. " Trigger")
+		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(commID) .. (autoLeaveOnly and " (On Leave)" or "") .. " Trigger")
 		groupScrollFrame:AddChild(triggerGroup)
 
 		local triggerInfoSection = AceGUI:Create("SimpleGroup") --[[@as AceGUISimpleGroup]]
@@ -275,7 +323,7 @@ local function drawMapGroup(group, mapID, callback)
 			triggerIconSection:SetAutoAdjustHeight(false)
 
 			local spellIcon = AceGUI:Create("Label") --[[@as AceGUILabel]]
-			local theSpell = ns.Vault.phase.findSpellByID(triggerData[1])
+			local theSpell = ns.Vault.phase.findSpellByID(commID)
 			if theSpell then
 				spellIcon:SetImage(ns.UI.Icons.getFinalIcon(theSpell.icon))
 				spellIcon:SetImageSize(24, 24)
@@ -342,9 +390,11 @@ local function hideSparkManagerUI()
 	if sparkManagerUI and sparkManagerUI:IsShown() then sparkManagerUI:Release() end
 end
 
+local lastSelectedMap
 ---@param mapSelectOverride integer? The map ID to open the UI to
 local function showSparkManagerUI(mapSelectOverride)
 	hideSparkManagerUI()
+	local releaseWithMain = {}
 
 	local frame = AceGUI:Create("Frame") --[[@as AceGUIFrame]]
 	frame:SetTitle("Arcanum - Spark Manager")
@@ -369,6 +419,7 @@ local function showSparkManagerUI(mapSelectOverride)
 
 	mapSelectTree:SetCallback("OnGroupSelected", function(container, _, selectedMap)
 		container:ReleaseChildren()
+		lastSelectedMap = selectedMap
 		drawMapGroup(container, selectedMap, resetMeCallback)
 	end)
 
@@ -376,7 +427,50 @@ local function showSparkManagerUI(mapSelectOverride)
 	if not phaseSparkTriggers then phaseSparkTriggers = { [curMapID] = {} } end
 
 	local mapToSelect = (phaseSparkTriggers[mapSelectOverride] and mapSelectOverride or (phaseSparkTriggers[curMapID] and curMapID or next(phaseSparkTriggers)))
+
+	local filterEditBox = AceGUI:Create("EditBox") --[[@as AceGUIEditBox]]
+	filterEditBox:SetWidth(250)
+	filterEditBox:DisableButton(true)
+	filterEditBox.frame:SetParent(frame.frame)
+	filterEditBox.frame:SetPoint("BOTTOM", frame.frame, "BOTTOM", 39, 15)
+	filterEditBox.frame:Show()
+	filterEditBox:SetText(sparkFilter)
+	filterEditBox:SetCallback("OnRelease", clearSparkFilter)
+	tinsert(releaseWithMain, filterEditBox)
+	Tooltip.setAceTT(filterEditBox, "Filter Sparks by CommID(s)", "Separated by commas", { forced = true, delay = 0 })
+
+	local onTextChangedDelay
+
+	filterEditBox:SetCallback("OnTextChanged", function(widget, event, text)
+		-- apply the text as a filter and reload the list mapGroup
+		setSparkFilter(text)
+		if onTextChangedDelay then onTextChangedDelay:Cancel() end
+		onTextChangedDelay = C_Timer.NewTimer(0.33, function()
+			mapSelectTree:ReleaseChildren()
+			drawMapGroup(mapSelectTree, lastSelectedMap, resetMeCallback)
+		end)
+	end)
+
+	local filterLabel = AceGUI:Create("Label") --[[@as AceGUILabel]]
+	filterLabel:SetText("Search:")
+	filterLabel:SetWidth(40)
+	filterLabel.frame:SetParent(frame.frame)
+	filterLabel.frame:SetPoint("RIGHT", filterEditBox.frame, "LEFT")
+	filterLabel.frame:Show()
+	tinsert(releaseWithMain, filterLabel)
+
+	-- set our default selected map
 	mapSelectTree:SelectByPath(mapToSelect)
+
+
+
+	-- & Hook our onrelease to also release the other shit
+	frame:SetCallback("OnClose", function(widget)
+		AceGUI:Release(widget)
+		for _, v in ipairs(releaseWithMain) do
+			AceGUI:Release(v)
+		end
+	end)
 end
 
 ---@param shownMap integer? The map ID to re-open the UI to

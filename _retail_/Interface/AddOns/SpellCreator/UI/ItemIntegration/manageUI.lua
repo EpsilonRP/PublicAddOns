@@ -21,6 +21,46 @@ local cmd = ns.Cmd.cmd
 local round = DataUtils.roundToNthDecimal
 local orderedPairs = DataUtils.orderedPairs
 
+---Connects an Item & Spell, handling all the connections and phase re-upload if needed.
+---@param self any
+---@param itemInfoOrID any
+---@param spell VaultSpell
+---@param isPhase boolean
+local function ConnectItemAndSpell(self, itemInfoOrID, spell, isPhase)
+	if not itemInfoOrID then return end
+	if not spell then return end
+
+	local vaultType
+	if isPhase then vaultType = VAULT_TYPE.PHASE else vaultType = VAULT_TYPE.PERSONAL end
+
+
+	if not tonumber(itemInfoOrID) then
+		itemInfoOrID = ns.Utils.Data.getItemInfoFromHyperlink(itemInfoOrID)
+	end
+	if itemInfoOrID then
+		if ns.UI.ItemIntegration.scripts.LinkItemToSpell(spell, itemInfoOrID, vaultType, true) then
+			if isPhase then
+				--ns.MainFuncs.uploadSpellDataToPhaseData(spell.commID, spell)
+				ns.Vault.phase.uploadSingleSpellAndNotifyUsers(spell.commID, spell)
+			end
+		end
+	else
+		ns.Logging.uiErrorMessage("Invalid Item. Could not connect Item & ArcSpell.", Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:GetRGB())
+	end
+end
+
+local function DisconnectItemAndSpell(self, itemID, spell, isPhase)
+	local vaultType
+	if isPhase then vaultType = VAULT_TYPE.PHASE else vaultType = VAULT_TYPE.PERSONAL end
+
+	if ns.UI.ItemIntegration.scripts.RemoveItemLinkFromSpell(spell, itemID, vaultType, true) then
+		if isPhase then
+			--ns.MainFuncs.uploadSpellDataToPhaseData(spell.commID, spell)
+			ns.Vault.phase.uploadSingleSpellAndNotifyUsers(spell.commID, spell)
+		end
+	end
+end
+
 -- -- -- -- -- -- -- -- -- -- -- --
 --#region Sub Menu Generation for Item Connections
 -- -- -- -- -- -- -- -- -- -- -- --
@@ -32,8 +72,8 @@ local orderedPairs = DataUtils.orderedPairs
 local function genItemMenuSubMenu(spell, isPhase)
 	local spellItems = spell.items
 	local hasSpells = false
-	local vaultType = isPhase and VAULT_TYPE.PHASE or VAULT_TYPE.PERSONAL
-	local vaultName = string.lower(vaultType)
+	--local vaultType = isPhase and VAULT_TYPE.PHASE or VAULT_TYPE.PERSONAL
+	--local vaultName = string.lower(vaultType)
 
 	local items = {
 		Dropdown.input("Connect Item", {
@@ -41,6 +81,8 @@ local function genItemMenuSubMenu(spell, isPhase)
 			hidden = (isPhase and not Permissions.isMemberPlus()),
 			hyperlinkEnabled = true,
 			set = function(self, val)
+				ConnectItemAndSpell(self, val, spell, isPhase)
+				--[[
 				if val then
 					if not tonumber(val) then
 						val = ns.Utils.Data.getItemInfoFromHyperlink(val)
@@ -56,6 +98,7 @@ local function genItemMenuSubMenu(spell, isPhase)
 						ns.Logging.uiErrorMessage("Invalid Item. Could not connect Item & ArcSpell.", Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:GetRGB())
 					end
 				end
+				--]]
 			end
 		}),
 	}
@@ -70,12 +113,15 @@ local function genItemMenuSubMenu(spell, isPhase)
 			local subItems = {
 				Dropdown.execute("Add Item", function() cmd("additem " .. itemID) end),
 				Dropdown.execute("Unlink", function()
+						DisconnectItemAndSpell(nil, itemID, spell, isPhase)
+						--[[
 						if ns.UI.ItemIntegration.scripts.RemoveItemLinkFromSpell(spell, itemID, vaultType, true) then
 							if isPhase then
 								--ns.MainFuncs.uploadSpellDataToPhaseData(spell.commID, spell)
 								ns.Vault.phase.uploadSingleSpellAndNotifyUsers(spell.commID, spell)
 							end
 						end
+						--]]
 					end,
 					{
 						hidden = (isPhase and not Permissions.isMemberPlus())
@@ -197,4 +243,7 @@ end)
 ns.UI.ItemIntegration.manageUI = {
 	genItemMenuSubMenu = genItemMenuSubMenu,
 	checkIfNeedItems = checkIfNeedItems,
+
+	ConnectItemAndSpell = ConnectItemAndSpell,
+	DisconnectItemAndSpell = DisconnectItemAndSpell,
 }

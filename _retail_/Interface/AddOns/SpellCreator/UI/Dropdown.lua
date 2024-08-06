@@ -16,6 +16,7 @@ local currentMenu = {}
 ---| "spacer"
 ---| "selectmenu"
 ---| "submenu"
+---| "custom"
 
 ---@class DropdownItemCreationOptions
 ---@field disabled? DynamicBoolean
@@ -29,6 +30,7 @@ local currentMenu = {}
 ---@class DropdownInputCreationOptions: DropdownItemCreationOptions
 ---@field placeholder string
 ---@field set fun(self: Frame, text: string): nil
+---@field get? string|fun(self: Frame): string If not given, always defaults to empty string
 ---@field hyperlinkEnabled? boolean
 
 ---@class DropdownToggleCreationOptions: DropdownItemCreationOptions
@@ -45,7 +47,7 @@ local currentMenu = {}
 ---@field disabledWarning? string
 ---@field keepShownOnClick DynamicBoolean? overwrite options that default to not stay shown on click
 ---@field hidden DynamicBoolean?
----@field options table
+---@field options? table
 
 --#region Pools
 
@@ -62,11 +64,11 @@ end)
 --#endregion
 
 ---@generic V
----@param value (V | fun(): V)
+---@param value (V | fun(...): V)
 ---@return V
-local function evaluate(value)
+local function evaluate(value, ...)
 	if type(value) == "function" then
-		return value()
+		return value(...)
 	end
 
 	return value
@@ -113,9 +115,13 @@ local function initialize(_, level, menuList)
 		local dropdownItem = menuList[index]
 
 		if dropdownItem.type == "divider" then
-			UIDropDownMenu_AddSeparator(level)
+			if not evaluate(dropdownItem.hidden) then
+				UIDropDownMenu_AddSeparator(level)
+			end
 		elseif dropdownItem.type == "spacer" then
-			UIDropDownMenu_AddSpace(level)
+			if not evaluate(dropdownItem.hidden) then
+				UIDropDownMenu_AddSpace(level)
+			end
 		else
 			local menuItem = getMenuItem(dropdownItem)
 			menuItem.index = index
@@ -268,7 +274,7 @@ end
 
 ---@param text DynamicText
 ---@param dropdownItems DropdownItem[]
----@param options DropdownItemCreationOptions?
+---@param options? DropdownItemCreationOptions
 ---@return DropdownItem
 local function submenu(text, dropdownItems, options)
 	local dropdownItem = item("submenu", text, options)
@@ -284,7 +290,7 @@ end
 
 ---@param text DynamicText
 ---@param func fun(self): nil
----@param options DropdownItemCreationOptions?
+---@param options? DropdownItemCreationOptions
 ---@return DropdownItem
 local function execute(text, func, options)
 	local dropdownItem = item("button", text, options)
@@ -380,6 +386,18 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 
 ---@param text DynamicText
+---@param frame frame
+---@param options? DropdownItemCreationOptions
+---@return DropdownItem
+local function customFrame(text, frame, options)
+	local dropdownItem = item("custom", text, options)
+
+	dropdownItem.menuItem.customFrame = frame
+
+	return submenu(text, { dropdownItem }, options)
+end
+
+---@param text DynamicText
 ---@param options DropdownInputCreationOptions
 ---@return DropdownItem
 local function input(text, options)
@@ -414,6 +432,7 @@ local function input(text, options)
 			ns.UI.ChatLink.registerEditBox(editBox)
 			registerInputForChatLinks(editBox)
 		end
+		editBox:SetText(evaluate(options.get, editBox) or "")
 		editBox:SetFocus()
 	end)
 
@@ -452,13 +471,13 @@ local function header(name)
 end
 
 ---@return DropdownItem
-local function spacer()
-	return item("spacer")
+local function spacer(options)
+	return item("spacer", nil, options)
 end
 
 ---@return DropdownItem
-local function divider()
-	return item("divider")
+local function divider(options)
+	return item("divider", nil, options)
 end
 
 ---@class DropdownTemplate: UIDropDownMenuTemplate
@@ -526,5 +545,6 @@ ns.UI.Dropdown = {
 	spacer = spacer,
 	selectmenu = selectmenu,
 	submenu = submenu,
+	customFrame = customFrame,
 	genericDropdownHolder = genericDropdownHolder,
 }

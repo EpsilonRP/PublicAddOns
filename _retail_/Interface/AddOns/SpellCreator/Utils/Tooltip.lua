@@ -5,9 +5,32 @@ local ADDON_COLORS = ns.Constants.ADDON_COLORS
 
 local timer
 
+-- Adding a cool icon system...
+local tooltipIcon = CreateFrame("Frame", nil, GameTooltip)
+tooltipIcon:SetPoint("TOPRIGHT", GameTooltip, "TOPLEFT", 0, -2)
+tooltipIcon:SetSize(39, 39)
+
+tooltipIcon.tex = tooltipIcon:CreateTexture()
+tooltipIcon.tex:SetAllPoints(tooltipIcon)
+tooltipIcon.tex:SetTexture("interface/icons/inv_mushroom_11")
+tooltipIcon:Hide() -- default hide
+
+GameTooltip:HookScript("OnShow", function()
+	tooltipIcon:Hide()
+end)
+
+
+-- Back to your regularly scheduled program
+
 ---@param title string
 local function setTitle(title)
 	GameTooltip:SetText(title, nil, nil, nil, nil, true)
+end
+
+local function setIcon(icon)
+	if not icon then return end
+	tooltipIcon.tex:SetTexture(icon)
+	tooltipIcon:Show()
 end
 
 local function clearLines()
@@ -134,10 +157,10 @@ end
 
 ---@param title string | fun(self): string
 ---@param lines? string[] | string | fun(self): (string[] | string)
-local function setTooltip(self, title, lines)
+---@param icon? string | fun(self): (string)
+local function setTooltip(self, title, lines, icon)
 	local _title = title
 	local _lines = lines
-
 
 	if type(_title) == "function" then
 		_title = _title(self)
@@ -163,15 +186,25 @@ local function setTooltip(self, title, lines)
 		end
 	end
 
+	if icon then
+		if type(icon) == "function" then
+			icon = icon()
+		end
+
+		setIcon(icon)
+	end
+
 	GameTooltip:Show()
 end
 
 ---Call to directly show a tooltip; this is mostly so you can update / redraw a tooltip live if needed.
 ---@param title string | fun(self): string
 ---@param lines? string[] | string | fun(self): (string[] | string)
-local function rawSetTooltip(self, title, lines)
-	GameTooltip:SetOwner(self, self.tooltipAnchor or "ANCHOR_LEFT")
-	setTooltip(self, title, lines)
+---@param icon? string | fun(self):string
+---@param dontSetOwner? boolean Ignore setting owner, if that's not how it visually should be..
+local function rawSetTooltip(self, title, lines, icon, dontSetOwner)
+	if not dontSetOwner then GameTooltip:SetOwner(self, self.tooltipAnchor or "ANCHOR_LEFT") end
+	setTooltip(self, title, lines, icon)
 end
 
 ---@class TooltipOptions
@@ -180,6 +213,8 @@ end
 ---@field forced boolean?
 ---@field anchor string?
 ---@field predicate function?
+---@field updateOnUpdate boolean?
+---@field icon? string | fun(self): string
 
 ---@param title string | fun(self): string
 ---@param lines? string[] | string | fun(self): (string[] | string)
@@ -198,7 +233,7 @@ local function onEnter(title, lines, options)
 		GameTooltip:SetOwner(self, self.tooltipAnchor or "ANCHOR_LEFT")
 
 		timer = C_Timer.NewTimer(delay, function()
-			setTooltip(self, title, lines)
+			setTooltip(self, title, lines, options and options.icon)
 		end)
 	end
 end
@@ -222,7 +257,7 @@ local function set(frame, title, lines, options)
 	if options then
 		if options.updateOnClick then
 			frame:HookScript("OnClick", function(self)
-				setTooltip(self, title, lines)
+				setTooltip(self, title, lines, options and options.icon)
 			end)
 		end
 		if options.forced then
@@ -230,6 +265,14 @@ local function set(frame, title, lines, options)
 		end
 		if options.anchor then
 			frame.tooltipAnchor = options.anchor
+		end
+
+		if options.updateOnUpdate then
+			frame:HookScript("OnUpdate", function(self)
+				if GameTooltip:GetOwner() == self then
+					setTooltip(self, title, lines, options and options.icon)
+				end
+			end)
 		end
 	end
 

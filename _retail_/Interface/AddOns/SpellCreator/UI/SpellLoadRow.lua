@@ -120,6 +120,7 @@ local function onIconClick(self, button)
 	end
 end
 
+--[[
 local function genSpellTooltipLines(spell, isClickable)
 	local strings = {}
 	local hotkeyKey = Hotkeys.getHotkeyByCommID(spell.commID)
@@ -147,17 +148,21 @@ local function genSpellTooltipLines(spell, isClickable)
 	end
 	return strings
 end
+--]]
 
 ---@param frame SpellLoadRowIcon | SpellLoadRow
 local function setTooltip(frame, isIcon)
 	Tooltip.set(
 		frame,
 		function(self)
-			return getSpell(self.commID).fullName
+			--return getSpell(self.commID).fullName
+			return ns.UI.SpellTooltip.getTitle("vault", getSpell(self.commID))
 		end,
 		function(self)
 			local spell = getSpell(self.commID)
-			local strings = genSpellTooltipLines(spell, isIcon)
+			--local strings = genSpellTooltipLines(spell, isIcon)
+			local strings = ns.UI.SpellTooltip.getLines("vault", spell, (ns.UI.LoadSpellFrame.getCurrentVault() == Constants.VAULT_TYPE.PHASE), true)
+			tinsert(strings, " ")
 			tinsert(strings, Tooltip.genContrastText("Right-Click") .. " for more options!")
 			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. " to link in chat.")
 			return strings

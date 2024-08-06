@@ -138,7 +138,8 @@ end
 
 function camera.EnableMouselook(key)
 	if isNotDefined(key) then
-		return eprint("Mouselook mode must have an Exit Key given.")
+		key = "ESCAPE"
+		--return eprint("Mouselook mode must have an Exit Key given.")
 	end
 	key = string.upper(key)
 	keybindFrame:RegisterKeybindScript(key, _disableMouselookAndUnregisterSelf)
@@ -335,6 +336,221 @@ function mail.sendMailCallback(name, subject, body)
 end
 
 --------------------
+--#region Custom Sound
+--------------------
+
+local soundHandles = {}
+local soundHistory = {}
+local eventFrame = keybindFrame -- reusing it because we can, it doesn't use events
+
+local sounds = {}
+
+function sounds.getHandles()
+	return soundHandles
+end
+
+function sounds.getHistory()
+	return soundHistory
+end
+
+function sounds.logSound(soundItem)
+	tinsert(soundHandles, soundItem)
+	tinsert(soundHistory, soundItem)
+	ns.UI.Options.notifyChange()
+end
+
+function sounds.isHandlePlaying(handle)
+	for i = 1, #soundHandles do
+		local handler = soundHandles[i]
+		if handler.soundHandle == handle then
+			return true
+		end
+	end
+end
+
+function sounds.isSoundIDPlaying(soundID)
+	for i = 1, #soundHandles do
+		local handler = soundHandles[i]
+		if handler.soundID == soundID then
+			return true
+		end
+	end
+end
+
+function sounds.isSoundFilePlaying(fileID)
+	for i = 1, #soundHandles do
+		local handler = soundHandles[i]
+		if handler.soundFile == tostring(fileID) then
+			return true
+		end
+	end
+end
+
+function sounds.clearHandle(handleIndex, soundID, soundHandle)
+	if handleIndex then
+		tremove(soundHandles, handleIndex)
+	elseif soundID then
+		for k, v in ipairs(soundHandles) do
+			if v.soundID == soundID then
+				tremove(soundHandles, k)
+				break -- only remove the first one
+			end
+		end
+	elseif soundHandle then
+		for k, v in ipairs(soundHandles) do
+			if v.soundHandle == soundHandle then
+				tremove(soundHandles, k)
+				break
+			end
+		end
+	end
+	ns.UI.Options.notifyChange()
+end
+
+function sounds.clearFinishedHandles()
+	for i = #soundHandles, 1, -1 do
+		if soundHandles[i].stopped then
+			tremove(soundHandles, i)
+		end
+	end
+end
+
+local function soundFinishedCallback(self, event, soundHandle)
+	if event ~= "SOUNDKIT_FINISHED" then return end -- just incase
+	soundHandle = tonumber(soundHandle)          -- to be safe
+	if not soundHandle then return end
+	sounds.clearHandle(nil, nil, soundHandle)
+end
+eventFrame:RegisterEvent("SOUNDKIT_FINISHED")
+eventFrame:SetScript("OnEvent", soundFinishedCallback) -- Keeps our table clean if the sound finished
+
+---@param index number
+---@param fadeout? number
+function sounds.stopSoundIndex(index, fadeout)
+	assert(index, "Index cannot be nil")
+	local soundInfo = soundHandles[index]
+	StopSound(soundInfo.soundHandle, fadeout)
+	sounds.clearHandle(index)
+end
+
+function sounds.stopSoundHandle(handle, fadeout)
+	handle = tonumber(handle)
+	assert(handle, "Handle cannot be nil")
+	for k = #soundHandles, 1, -1 do
+		local v = soundHandles[k]
+		if v.soundHandle == handle then
+			sounds.stopSoundIndex(k, fadeout)
+		end
+	end
+end
+
+---@param soundID number
+---@param fadeout? number
+function sounds.stopSoundID(soundID, fadeout)
+	assert(soundID, "Sound ID cannot be nil")
+	for k = #soundHandles, 1, -1 do
+		local v = soundHandles[k]
+		if v.soundID == soundID then
+			sounds.stopSoundIndex(k, fadeout)
+		end
+	end
+end
+
+---@param file fileID|string
+---@param fadeout? number
+function sounds.stopSoundFile(file, fadeout)
+	file = file and tostring(file) or nil
+	assert(file, "Sound File cannot be nil")
+	for k = #soundHandles, 1, -1 do
+		local v = soundHandles[k]
+		if v.soundFile == file then
+			sounds.stopSoundIndex(k, fadeout)
+		end
+	end
+end
+
+---@param channel string
+---@param fadeout? number
+function sounds.stopSoundChannel(channel, fadeout)
+	assert(channel, "Channel cannot be nil")
+	for k = #soundHandles, 1, -1 do
+		local v = soundHandles[k]
+		if string.lower(v.channel) == string.lower(channel) then
+			sounds.stopSoundIndex(k, fadeout)
+		end
+	end
+end
+
+---@param fadeout? number
+function sounds.stopAll(fadeout)
+	for k = #soundHandles, 1, -1 do
+		--StopSound(v.soundHandle, fadeout)
+		sounds.stopSoundIndex(k, fadeout)
+	end
+end
+
+---@param id number
+---@param channel string? defaults to SFX if not given
+function sounds.playSoundID(id, channel)
+	assert(id, "Sound ID cannot be nil")
+	local willPlay, soundHandle = PlaySound(id, channel, nil, true)
+	if willPlay and soundHandle then
+		local soundItem = { soundHandle = soundHandle, soundID = id, channel = (channel or "SFX") }
+		sounds.logSound(soundItem)
+	end
+end
+
+---@param file string|fileID
+---@param channel string? defaults to SFX if not given
+function sounds.playSoundFile(file, channel)
+	file = file and tostring(file) or nil -- always treat them as string no matter what
+	assert(file, "File ID cannot be nil")
+	local willPlay, soundHandle = PlaySoundFile(file, channel)
+	if willPlay and soundHandle then
+		local soundItem = { soundHandle = soundHandle, soundFile = file, channel = (channel or "SFX") }
+		sounds.logSound(soundItem)
+	end
+end
+
+-- // Music
+local lastMusicID
+
+function sounds.getLastMusicID()
+	return lastMusicID
+end
+
+function sounds.playMusic(id)
+	id = tonumber(id)
+	if not id then return false end -- invalid ID given / not number, exit & return false to let'em know.
+
+	PlayMusic(id)
+	lastMusicID = id
+	return true
+end
+
+function sounds.stopMusic(id)
+	id = tonumber(id)
+	if not id then
+		StopMusic()
+		lastMusicID = nil
+		return true
+	end -- No ID given, stop all music
+
+	-- ID given, check if it's the last one and only stop if so:
+	if id == lastMusicID then
+		StopMusic()
+		lastMusicID = nil
+		return true -- was & stopped
+	else
+		return false -- was not & nothing done
+	end
+end
+
+--------------------
+--#endregion
+--------------------
+
+--------------------
 --#endregion
 --------------------
 
@@ -349,6 +565,7 @@ ns.Actions.Data_Scripts = {
 	keybind = keybindFrame,
 	ui = ui,
 	mail = mail,
+	sounds = sounds,
 	TRP3e_sound = TRP3e.sound,
 	TRP3e_items = TRP3e.items,
 

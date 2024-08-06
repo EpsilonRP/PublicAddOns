@@ -62,14 +62,16 @@ local MAX_CHARS_PER_SEGMENT    = multiMessageData.MAX_CHARS_PER_SEGMENT
 ---@param x number
 ---@param y number
 ---@param z number
+---@param add? string
 ---@return string
-local function genSparkCDNameOverride(commID, x, y, z)
+local function genSparkCDNameOverride(commID, x, y, z, add)
 	--local sparkCDNameOverride = strjoin(string.char(31), commID, x, y, z)
 	local sparkCDNameOverride = strjoin("+", commID, x, y, z)
+	if add then sparkCDNameOverride = sparkCDNameOverride .. "+" .. tostring(add) end
 	return sparkCDNameOverride
 end
 
-local function genMultiSparkCDNameOverride(x,y,z)
+local function genMultiSparkCDNameOverride(x, y, z)
 	return genSparkCDNameOverride("(multispark)", x, y, z)
 end
 
@@ -253,11 +255,10 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 
 	if self.SetChecked then self:SetChecked(false) end
 	if (isOfficerPlus() or SpellCreatorMasterTable.Options["debug"]) and button == "RightButton" then
-
 		if IsAltKeyDown() then
 			local sparkCDNameOverride = genSparkCDNameOverride(commID, cdData.loc[1], cdData.loc[2], cdData.loc[3])
 			ns.Actions.Data_Scripts.runScriptPriv("CopyToClipboard('" .. sparkCDNameOverride .. "')")
-			Logging.cprint("Spark CD Name (Copied to Clipboard): ".. sparkCDNameOverride)
+			Logging.cprint("Spark CD Name (Copied to Clipboard): " .. sparkCDNameOverride)
 			return
 		end
 		SparkPopups.SparkManagerUI.showSparkManagerUI()
@@ -300,10 +301,14 @@ end
 function SC_ExtraActionButtonMixin:OnLoad()
 	Tooltip.set(self,
 		function(self)
-			return self.spell.fullName
+			return ns.UI.SpellTooltip.getTitle("spark", self.spell, true) or self.spell.fullName
 		end,
 		function(self)
 			local spell = self.spell
+			local strings = ns.UI.SpellTooltip.getLines("spark", spell, true, true, self)
+			if not strings then return "<Error Loading Spell Tooltip>" end
+
+			--[[
 			local strings = {}
 
 			if spell.description then
@@ -339,15 +344,18 @@ function SC_ExtraActionButtonMixin:OnLoad()
 					tinsert(strings, "Actions: " .. #spell.actions)
 				end
 			end
+			--]]
 
-			tinsert(strings, " ")
-			tinsert(strings, "Click to cast " .. Tooltip.genContrastText(spell.commID) .. "!")
-
-			if isOfficerPlus() then tinsert(strings, "Right-Click to Open " .. Tooltip.genContrastText("Sparks Manager")) end
+			if isOfficerPlus() then
+				if strings[#strings] ~= " " then
+					tinsert(strings, " ")
+				end
+				tinsert(strings, "Right-Click to Open " .. Tooltip.genContrastText("Sparks Manager"))
+			end
 
 			return strings
 		end,
-		{ delay = 0 }
+		{ delay = 0, updateOnUpdate = true }
 	)
 end
 

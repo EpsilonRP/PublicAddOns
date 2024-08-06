@@ -9,6 +9,7 @@
 	<Script file="Modify.lua"/>
 	<Script file="Cheat.lua"/>
 	<Script file="AddonCommands.lua"/>
+	<Script file="CommandDefinitions\init.lua"/>
 	<Script file="Utils.lua"/>
 	<Script file="SystemMessages.lua"/>
 	<Script file="ServerMessages.lua"/>

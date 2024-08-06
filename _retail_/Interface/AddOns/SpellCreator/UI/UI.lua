@@ -35,4 +35,6 @@ local ns = select(2, ...)
 ---@field SimpleHTMLEditor UI_SimpleHTMLEditor
 ---@field TalkingHead UI_TalkingHead
 ---@field UnitPowerBar UI_UnitPowerBar
+---@field SpellTooltip UI_SpellTooltip
+---@field Options UI_Options
 ns.UI = {}

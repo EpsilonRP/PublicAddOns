@@ -785,6 +785,8 @@ end
 ---@param actionData VaultSpellAction
 local function setRowAction(rowNum, actionData)
 	local _spellRow = SCForgeMainFrame.spellRows[rowNum]
+	local selectedActionData = actionTypeData[actionData.actionType]
+
 	if actionData.actionType == "reset" then
 		_spellRow.actionSelectButton:SetText("Action")
 		updateSpellRowOptions(rowNum)
@@ -798,7 +800,7 @@ local function setRowAction(rowNum, actionData)
 	_spellRow.mainDelayBox:SetText(tonumber(actionData.delay) or "")                                                   --delay
 	if actionData.selfOnly then _spellRow.SelfCheckbox:SetChecked(true) else _spellRow.SelfCheckbox:SetChecked(false) end --SelfOnly
 	if actionData.vars then _spellRow.InputEntryBox:SetText(actionData.vars) else _spellRow.InputEntryBox:SetText("") end --Input Entrybox
-	if actionData.revertDelay then
+	if selectedActionData and selectedActionData.revert and actionData.revertDelay then
 		_spellRow.RevertDelayBox:SetText(actionData.revertDelay)                                                       --revertDelay
 	else
 		_spellRow.RevertDelayBox:SetText("")                                                                           --revertDelay

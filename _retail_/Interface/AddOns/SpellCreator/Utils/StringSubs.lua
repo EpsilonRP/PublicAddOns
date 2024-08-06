@@ -60,7 +60,7 @@ local subsBase = {
 	it. Note also that it's case sensitive unless you write both upper- and
 	lower-case letters inside brackets like the substitutions above.]]
 
-	--["%%tsinfo"] = "TeamSpeak info: Server: host.domain.com, Password: 12345",
+	--["%%discord"] = "Discord Invite: https://discord.gg/epsilon",
 }
 
 local subModifiers = {
@@ -272,20 +272,20 @@ local unitInfoSuffixes = {
 	end,
 
 	["[Rr][Pp][Nn]"] = function(unit) -- TRP3 RP Name (Full)
-		if not TRP_Loaded then return end
+		if not TRP_Loaded then return "<no TRP3>" end
 		return TRP3_API.register.getUnitRPName(unit)
 	end,
 	["[Rr][Pp][Nn][Ff]"] = function(unit) -- TRP3 RP Name (First)
-		if not TRP_Loaded then return end
+		if not TRP_Loaded then return "<no TRP3>" end
 		return TRP3_API.register.getUnitRPFirstName(unit)
 	end,
 	["[Rr][Pp][Nn][Ll]"] = function(unit) -- TRP3 RP Name (Last)
-		if not TRP_Loaded then return end
+		if not TRP_Loaded then return "<no TRP3>" end
 		return TRP3_API.register.getUnitRPLastName(unit)
 	end,
 
 	["[Rr][Pp][Rr]"] = function(targetType) -- TRP3 RP Race
-		if not TRP_Loaded then return end
+		if not TRP_Loaded then return "<no TRP3>" end
 
 		local unitID = TRP3_API.utils.str.getUnitID(targetType);
 
@@ -304,7 +304,7 @@ local unitInfoSuffixes = {
 	end,
 
 	["[Rr][Pp][Cc]"] = function(targetType) -- TRP3 RP Race
-		if not TRP_Loaded then return end
+		if not TRP_Loaded then return "<no TRP3>" end
 		if not TRP3_API.register.isUnitKnown(targetType) then
 			return getUnitInfoSuffixResult("[Cc]", targetType)
 		end
@@ -362,8 +362,9 @@ local function replaceSubstitutions(text)
 	for i = 1, #substitutions do
 		local substitution = substitutions[i]
 		local func = substitution.func
-		text = text:gsub(substitution.code,
-			type(func) == "function" and func() or func)
+		if text:find(substitution.code) then
+			text = text:gsub(substitution.code, type(func) == "function" and func() or func)
+		end
 	end
 	return text
 end
@@ -411,11 +412,10 @@ end
 local function replaceInputPlaceholders(text, ...)
 	local inputs = { ... }
 
-	for i = 1, #inputs do
-		local input = inputs[i]
-		local inputString = ("@input%s@"):format(i)
-		text = text:gsub(inputString, input)
-	end
+	text = text:gsub("@input(%d)@", function(num)
+		return inputs[tonumber(num)] or 'nil'
+	end) -- Self reminder: in Macro Scripts, these still return as gsub'd strings that, if not stringified, become VARIABLE NAMES. Kinda fun.
+
 	return text
 end
 

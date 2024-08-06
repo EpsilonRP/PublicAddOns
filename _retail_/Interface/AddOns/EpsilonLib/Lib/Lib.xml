@@ -8,4 +8,6 @@
 <Script file="LookupTerms.lua"/>
 <Script file="MessageTypes.lua"/>
 
+<Include file="LibRPMedia\LibRPMedia-1.0.xml"/>
+
 </Ui>

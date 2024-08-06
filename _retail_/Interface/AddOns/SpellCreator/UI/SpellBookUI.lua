@@ -243,6 +243,7 @@ spellButtonMixin.UpdateButton = function(self)
 end
 
 -- helper function for the tooltip when you mouse-over a spell icon
+--[[
 local function genSpellTooltipLines(spell, isClickable)
 	local strings = {}
 	local hotkeyKey = Hotkeys.getHotkeyByCommID(spell.commID)
@@ -270,6 +271,7 @@ local function genSpellTooltipLines(spell, isClickable)
 	end
 	return strings
 end
+--]]
 
 -- create the spell buttons!
 for i = 1, SPELLS_PER_PAGE do
@@ -325,11 +327,14 @@ for i = 1, SPELLS_PER_PAGE do
 	ns.Utils.Tooltip.set(
 		spellButton,
 		function(self)
-			return getSpell(self.commID).fullName
+			--return getSpell(self.commID).fullName
+			return ns.UI.SpellTooltip.getTitle("vault", getSpell(self.commID))
 		end,
 		function(self)
 			local spell = getSpell(self.commID)
-			local strings = genSpellTooltipLines(spell, true)
+			--local strings = genSpellTooltipLines(spell, true)
+			local strings = ns.UI.SpellTooltip.getLines("vault", spell, false, true)
+			tinsert(strings, " ")
 			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. " to link in chat.")
 			return strings
 		end,
@@ -442,12 +447,19 @@ end)
 local customTabButton = CreateFrame("Button", "Arcanum_SpellBook_TabButton", SpellBookFrame, "SpellBookFrameTabButtonTemplate")
 customTabButton:SetPoint("TOPRIGHT", SpellBookFrame, "BOTTOMRIGHT", 0, 2)
 customTabButton:Show()
-customTabButton:SetText( ns.Utils.UIHelpers.CreateSimpleTextureMarkup(TAB_TEXTURE, 20) .. " Arcanum")
+customTabButton:SetText(ns.Utils.UIHelpers.CreateSimpleTextureMarkup(TAB_TEXTURE, 20) .. " Arcanum")
 
 local function showArcSpellBook()
-	if not SpellBookFrame:IsShown() then 
+	if not SpellBookFrame:IsShown() then
 		ShowUIPanel(SpellBookFrame);
 	end
+
+	do
+		SpellBookFrame.bookType = BOOKTYPE_PROFESSION
+		SpellBookFrame_Update()
+		SpellBookFrame.bookType = "arcanum"
+	end
+
 	mainFrame:Show()
 	PanelTemplates_TabResize(customTabButton, 0, nil, 40);
 	if mainFrame:IsShown() then
@@ -466,7 +478,7 @@ end
 
 customTabButton:SetScript("OnEnter", function(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:SetText("Arcanum Spellbook", 1.0,1.0,1.0 );
+	GameTooltip:SetText("Arcanum Spellbook", 1.0, 1.0, 1.0);
 end)
 customTabButton:SetScript("OnClick", function(self)
 	self:Disable();

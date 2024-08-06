@@ -43,13 +43,14 @@ local function consumeSomeTable(tab, ...)
 			end
 		end
 	end
-	return varTable
+	return varTable, table.maxn(varTable)
 end
 
 local function wrapToEvalFinalVal(callback, tableToEat)
 	if not tableToEat then tableToEat = ARC end
 	return function(self, ...)
-		return callback(unpack(consumeSomeTable(tableToEat, self, ...)))
+		local varTable, numArgs = consumeSomeTable(tableToEat, self, ...)
+		return callback(unpack(varTable, 1, numArgs))
 	end
 end
 
@@ -637,6 +638,8 @@ do
 		--]]
 	ARC.XAPI.UI.castbar = ns.UI.Castbar
 end
+
+ARC.XAPI.Sounds = ns.Actions.Data_Scripts.sounds
 
 ARC.XAPI.Cooldowns = {}
 do

@@ -70,6 +70,11 @@ local function isSparkType(sparkType, ...)
 	if t[sparkType] then return true else return false end
 end
 
+-- Helper function, but most cases this is called directly. Example: getSparkTypeIDByName("Auto") is the same as _sparkTypesMap["Auto"] but with function overhead.
+local function getSparkTypeIDByName(name)
+	return _sparkTypesMap[name]
+end
+
 --#endregion
 ------------------------------------
 --#region Emote List for UI Choices
@@ -372,6 +377,7 @@ local sparkUI_Helper = {
 	requirement = nil,
 	conditionsData = nil,
 	showHSI = nil,
+	uncastID = nil,
 }
 
 ---@param num integer
@@ -380,6 +386,8 @@ local function getPosData(num)
 	return DataUtils.roundToNthDecimal(select(num, getPlayerPositionData()), 4)
 end
 
+---@param ... number|SparkTypes
+---@return function
 local function requiredSparkTypes(...)
 	local t = {}
 	for k, v in ipairs({ ... }) do
@@ -419,7 +427,7 @@ local function _updateCreateSparkUIHeight()
 		[_sparkTypesMap["Emote"]] = 510 - 50,
 		[_sparkTypesMap["Chat"]] = 540 - 50,
 		[_sparkTypesMap["Jump"]] = 490 - 50,
-		[_sparkTypesMap["Auto"]] = 470 - 50,
+		[_sparkTypesMap["Auto"]] = 510 - 50,
 	}
 
 	local height = sparkUI_Helper.type and heights[sparkUI_Helper.type] or 500
@@ -526,8 +534,12 @@ local uiOptionsTable = {
 					end,
 					desc = function()
 						local msg = "CommID of the ArcSpell from the Phase Vault"
-						if sparkUI_Helper.type == 2 then
+						if sparkUI_Helper.type == _sparkTypesMap["Multi"] then
 							msg = "CommIDs for the ArcSpells (from the Phase Vault) to include in the Spark, separated by commas.\n\rSupports up to 4 ArcSpells/commIDs."
+						end
+						if sparkUI_Helper.type == _sparkTypesMap["Auto"] then
+							msg = msg ..
+								"\n\rMay be left blank on AutoSparks, in coordination with 'Cast On Leave', to not cast anything on enter, and only cast on leave, creating an 'inverse auto spark'."
 						end
 						return msg
 					end,
@@ -651,6 +663,19 @@ local uiOptionsTable = {
 					type = "description",
 					width = "full",
 					order = autoOrder(),
+				},
+				uncastID = {
+					name = "Cast on Leave (Uncast)",
+					desc = "Casts another ArcSpell, by CommID (from Phase Vault), when leaving the radius of the Auto Spark.\rRespects Spark Cooldown Overrides if given (for uncast only).",
+					type = "input",
+					dialogControl = "MAW-Editbox",
+					order = autoOrder(),
+					hidden = requiredSparkTypes(6),
+					set = function(info, val)
+						if val == "" then val = nil end -- Force blank into nil, otherwise it tries to cast "" lol..
+						sparkUI_Helper.uncastID = val
+					end,
+					get = function(info) return sparkUI_Helper.uncastID end
 				},
 				style = { -- This is for Standard Sparks ONLY
 					name = "Border Style",
@@ -960,7 +985,8 @@ local uiOptionsTable = {
 						conditions = sparkUI_Helper.conditionsData,
 						emote = sparkUI_Helper.emote,
 						chat = sparkUI_Helper.chat,
-						showHSI = sparkUI_Helper.showHSI
+						showHSI = sparkUI_Helper.showHSI,
+						uncast = ((sparkUI_Helper.type == _sparkTypesMap["Auto"]) and sparkUI_Helper.uncastID or nil),
 					},
 					sparkUI_Helper.overwriteIndex, sparkUI_Helper.type)
 				AceConfigDialog:Close(theUIDialogName)
@@ -989,7 +1015,7 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 	sparkUI_Helper.commID = commID
 
 	local sparkType, x, y, z, mapID, radius, style, colorHex, cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase, requirement, spellInputs, conditions
-	local emote, chat, showHSI
+	local emote, chat, showHSI, uncastID
 	if editIndex then
 		local phaseSparkTriggers = SparkPopups.SparkPopups.getPhaseSparkTriggersCache()
 		local triggerData = phaseSparkTriggers[editMapID][editIndex] --[[@as SparkTriggerData]]
@@ -1004,6 +1030,7 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 			emote = sparkOptions.emote
 			chat = sparkOptions.chat
 			showHSI = sparkOptions.showHSI
+			uncastID = sparkOptions.uncast
 		end
 	else
 		sparkType = 1
@@ -1017,6 +1044,8 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 		requirement = nil
 		spellInputs = nil
 		showHSI = true
+		uncastID = nil
+		-- the nils here are not actually needed to specify but are written to ensure I don't forget them I guess.
 	end
 
 	x, y, z = DataUtils.roundToNthDecimal(verifyNumber(x), 4), DataUtils.roundToNthDecimal(verifyNumber(y), 4), DataUtils.roundToNthDecimal(verifyNumber(z), 4)
@@ -1029,6 +1058,7 @@ local function openSparkCreationUI(commID, editIndex, editMapID)
 	sparkUI_Helper.emote = emote
 	sparkUI_Helper.chat = chat
 	sparkUI_Helper.showHSI = showHSI
+	sparkUI_Helper.uncastID = uncastID
 
 	if (sparkUI_Helper.requirement and #sparkUI_Helper.requirement > 0) then
 		-- convert old requirement
@@ -1061,6 +1091,7 @@ ns.UI.SparkPopups.CreateSparkUI = {
 
 	sparkTypes = _sparkTypes,
 	sparkTypesMap = _sparkTypesMap,
+	getSparkTypeIDByName = getSparkTypeIDByName,
 
 	emotesList = emotesList,
 	emotesMap = emotesMap,

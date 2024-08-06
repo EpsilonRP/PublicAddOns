@@ -146,6 +146,10 @@ end
 --]]
 local myOptionsExtraTable = {}
 local Dropdown = ns.UI.Dropdown
+local selectedSoundHandle
+local playingIcon = CreateAtlasMarkup("chatframe-button-icon-voicechat", 16, 16, 0, 0, 0, 255, 0)
+local notPlayingIcon = CreateAtlasMarkup("chatframe-button-icon-speaker-silenced", 16, 16)
+
 
 local myOptionsTable = {
 	name = ADDON_TITLE .. " (v" .. addonVersion .. ")",
@@ -462,6 +466,62 @@ local myOptionsTable = {
 					func = ns.UI.DataSalvager.showSalvagerMenu,
 					width = 1,
 				},
+				soundControls = {
+					name = "Sound Control",
+					type = "group",
+					inline = true,
+					order = autoOrder(),
+					args = {
+						stopSoundButton = {
+							name = "Stop Sound",
+							order = autoOrder(),
+							disabled = function()
+								return not ns.Actions.Data_Scripts.sounds.isHandlePlaying(selectedSoundHandle)
+							end,
+							desc = function() return ("Stops the currently selected sound handle (%s)"):format(selectedSoundHandle) end,
+							type = "execute",
+							func = function() ns.Actions.Data_Scripts.sounds.stopSoundHandle(selectedSoundHandle) end,
+							width = 1,
+						},
+						soundHistory = {
+							name = "Sound History",
+							type = "select",
+							style = "radio",
+							order = autoOrder(),
+							width = "full",
+							values = function()
+								local soundHistory = ns.Actions.Data_Scripts.sounds.getHistory()
+								local historyMap = {}
+								for i = 1, #soundHistory do
+									local historyItem = soundHistory[i]
+									local isPlaying = ns.Actions.Data_Scripts.sounds.isHandlePlaying(historyItem.soundHandle)
+									historyMap[historyItem.soundHandle] = (isPlaying and playingIcon or notPlayingIcon) .. " Sound: " ..
+										(historyItem.soundID or historyItem.soundFile) .. (" (Handle: %s) - %s"):format(historyItem.soundHandle, (isPlaying and "PLAYING" or "Finished/Stopped"))
+								end
+								return historyMap
+							end,
+							---[[
+							sorting = function()
+								local soundHistory = ns.Actions.Data_Scripts.sounds.getHistory()
+								local historyOrder = {}
+								for i = #soundHistory, 1, -1 do
+									local historyItem = soundHistory[i]
+									tinsert(historyOrder, historyItem.soundHandle)
+								end
+								return historyOrder
+							end,
+							--]]
+							get = function() return selectedSoundHandle end,
+							set = function(info, val)
+								if selectedSoundHandle and selectedSoundHandle == val then
+									selectedSoundHandle = nil -- unselect current one
+								else
+									selectedSoundHandle = val
+								end
+							end,
+						},
+					}
+				},
 			},
 		},
 	}
@@ -474,9 +534,14 @@ local function newOptionsInit()
 	--genChangelogScrollFrame(changelogFrame)
 end
 
+local function notifyChange()
+	Libs.AceConfigRegistry:NotifyChange(ADDON_TITLE)
+end
+
 ---@class UI_Options
 ns.UI.Options = {
 	--createSpellCreatorInterfaceOptions = createSpellCreatorInterfaceOptions,
 	newOptionsInit = newOptionsInit,
+	notifyChange = notifyChange,
 	--changelogFrame = changelogFrame,
 }

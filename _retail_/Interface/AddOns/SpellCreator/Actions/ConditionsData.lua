@@ -126,6 +126,7 @@ end
 ---@type (ConditionTypeData|ConditionTypeCat|ConditionTypeHead)[]
 local conditions = {
 	{ header = "Spells, Items, and Stuff" },
+
 	-- Spells & Effects
 	---- Has Aura (Self)
 	---- Has Number of Aura (Self)
@@ -184,10 +185,21 @@ local conditions = {
 		catItems = {
 			{
 				key = "hasItem",
-				name = "Has Item",
-				description = "If your character currently has at least one of this item.",
-				inputs = { input("Item ID", "number"), },
-				script = function(itemID) return GetItemCount(itemID, false, false) > 0 end,
+				name = "Has Item(s)",
+				description = "If your character currently has at least one of each item.",
+				inputDesc = "May supply multiple items, separated by commas.",
+				inputs = { input("Item ID(s)", "number"), },
+				script = function(...)
+					local itemIDs = { ... }
+					for i = 1, #itemIDs do
+						local itemID = itemIDs[i]
+						local itemCount = GetItemCount(itemID)
+						if not itemCount or itemCount <= 0 then
+							return false -- This one failed, return false and exit early
+						end
+					end
+					return true -- all passed, return true
+				end,
 			},
 			{
 				key = "hasNumItems",
@@ -233,6 +245,37 @@ local conditions = {
 						if not invSlotId then return false end               -- Well, if it's not a valid slot.. they don't have anything equipped in it! FAIL!
 					end
 					return GetInventoryItemID("player", invSlotId)
+				end,
+			},
+		}
+	},
+
+	-- Sounds
+	---- Is Sound ID Playing (Kit)
+	---- Is Sound File Playing (File)
+
+	{
+		catName = "Sounds (Self)",
+		catItems = {
+			{
+				key = "isSoundIDPlaying",
+				name = "Is Sound Kit ID Playing",
+				description = "If the given Sound Kit ID is currently playing from an Arcanum Spell / Action / ARC.XAPI. Cannot tell if sounds are playing if played from another source.",
+				inputs = { input("Sound ID", "number"), },
+				script = function(soundID)
+					if soundID and not tonumber(soundID) then soundID = (SOUNDKIT[string.upper(soundID)] or SOUNDKIT[soundID]) end
+					if not soundID then return false end
+					return (soundID and ns.Actions.Data_Scripts.sounds.isSoundIDPlaying(tonumber(soundID)) or false)
+				end,
+			},
+			{
+				key = "isSoundFilePlaying",
+				name = "Is Sound File Playing",
+				description =
+				"If the given Sound File ID is currently playing from an Arcanum Spell / Action / ARC.XAPI. Cannot tell if sounds are playing if played from another source.\n\rSounds played by File are considered to be 'playing' forever until explicitly told to stop. If you need better control / knowledge if a sound is actually still playing, you need to either use a SoundKit based Play Sound, or manually 'stop' it after the proper time via revert or separate action.",
+				inputs = { input("File ID", "string"), },
+				script = function(fileID)
+					return (fileID and ns.Actions.Data_Scripts.sounds.isSoundFilePlaying(tonumber(fileID) and tonumber(fileID) or fileID) or false)
 				end,
 			},
 		}
@@ -836,7 +879,7 @@ local conditions = {
 				key = "sparkOnCDCurr",
 				name = "Spark on Cooldown (Current)",
 				description = "Returns true if the current Spark is on cooldown. Best example is paired with 'Not' to hide a Spark when it's on Cooldown.",
-				requirement = function() 
+				requirement = function()
 					local frameText = lastSelectedConditionRow.parent.parent.parent.titletext:GetText() -- bit of a hack to figure out if it's a Spark frame LOL
 					return not frameText:find("Spark")
 				end,
@@ -848,7 +891,7 @@ local conditions = {
 				key = "sparkOnCDName",
 				name = "Spark on Cooldown (By Spark CD Name)",
 				description = "Returns true if the given Spark, by Cooldown (CD) Name, is on cooldown. Alt+Right-Click a Spark to copy it's CD Name.",
-				requirement = function() 
+				requirement = function()
 					local frameText = lastSelectedConditionRow.parent.parent.parent.titletext:GetText() -- bit of a hack to figure out if it's a Spark frame LOL
 					return not frameText:find("Spark")
 				end,

@@ -82,13 +82,17 @@
 	<Script file="Utils/ChatLinkCache.lua"/>
 	<Script file="Utils/Data.lua"/>
 	<Script file="Utils/Debug.lua"/>
+	<Script file="Utils/Flags.lua"/>
 	<Script file="Utils/HookLib.lua"/>
 	<Script file="Utils/HTML.lua"/>
 	<Script file="Utils/InputHelper.lua"/>
 	<Script file="Utils/NineSlice.lua"/>
 	<Script file="Utils/UIHelpers.lua"/>
+	<Script file="Utils/SpellUtils.lua"/>
 	<Script file="Utils/StringSubs.lua"/>
 	<Script file="Utils/Tooltip.lua"/>
+
+	<Script file="UI/SpellTooltip.lua"/>
 
 	<Script file="Comms.lua"/>
 
@@ -99,6 +103,8 @@
 	<Script file="Actions/Cooldowns.lua"/>
 	<Script file="Actions/Execute.lua"/>
 	<Script file="Actions/Hotkeys.lua"/>
+
+	<Script file="Actions/Migrations.lua"/>
 
 	<Script file="Gossip.lua"/>
 	<Script file="SavedVariables.lua"/>

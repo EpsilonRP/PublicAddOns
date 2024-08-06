@@ -11,6 +11,8 @@ local ns = select(2, ...)
 
 local NineSlice = ns.Utils.NineSlice
 
+local LibRPMedia = ns.Libs.LibRPMedia
+
 local Attic = ns.UI.MainFrame.Attic
 local Icons = ns.UI.Icons
 
@@ -41,8 +43,9 @@ function IconPicker.IconPickerButton_ShowTooltip(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 
 	local texture = self:GetNormalTexture():GetTexture()
+	local name = self.texName
 	GameTooltip:AddLine("|T" .. texture .. ":64|t", 1, 1, 1, true)
-	GameTooltip:AddLine(texture, 1, 0.81, 0, true)
+	GameTooltip:AddLine(name or texture, 1, 0.81, 0, true)
 	GameTooltip:Show()
 end
 
@@ -115,6 +118,7 @@ function IconPicker.IconPicker_RefreshGrid()
 
 			v:SetNormalTexture(tex)
 			v.realTex = Icons.getIconTextureFromName(texName)
+			v.texName = texName
 		else
 			v:Hide()
 		end

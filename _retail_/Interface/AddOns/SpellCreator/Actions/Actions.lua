@@ -8,4 +8,5 @@ local ns = select(2, ...)
 ---@field Execute Actions_Execute
 ---@field Hotkeys Actions_Hotkeys
 ---@field Cooldowns Actions_Cooldowns
+---@field Migrations Actions_Migrations
 ns.Actions = {}

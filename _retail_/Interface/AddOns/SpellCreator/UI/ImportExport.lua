@@ -69,6 +69,10 @@ local function exportAllSparks()
 	showExportMenu(("Sparks (Phase %s)"):format(thePhaseID), "Phase" .. thePhaseID .. "Sparks" .. ":" .. Serializer.compressForExport(ns.UI.SparkPopups.SparkPopups.getPhaseSparkTriggersCache()))
 end
 
+local function exportCustomSparks(data)
+	showExportMenu(("Sparks (CUSTOM)"), "CUSTOM" .. "Sparks" .. ":" .. Serializer.compressForExport(data))
+end
+
 local function showImportSpellMenu()
 	local dialog = StaticPopup_Show("SCFORGE_IMPORT_SPELL", nil, nil, nil, exportMenuFrame)
 	dialog.insertedFrame.ScrollFrame.EditBox:SetText("")
@@ -146,5 +150,6 @@ ns.UI.ImportExport = {
 
 	showImportSpellMenu = showImportSpellMenu,
 	exportAllSparks = exportAllSparks,
+	exportCustomSparks = exportCustomSparks,
 	showImportSparksMenu = showImportSparksMenu,
 }

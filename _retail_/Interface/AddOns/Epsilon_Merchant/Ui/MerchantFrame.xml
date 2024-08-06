@@ -13,8 +13,8 @@
 				if itemID and itemCount then
 					if Epsilon_MerchantFrame.choosingItem then
 						Epsilon_MerchantAddItem( itemID, itemCount )
-					elseif Epsilon_MerchantItemEditor.choosingItem then
-						Epsilon_MerchantItemEditorChooseCurrency( itemID )
+					elseif Epsilon_MerchantItemEditor.choosingItem and Epsilon_MerchantItemEditor.choosingIndex then
+						Epsilon_MerchantItemEditorChooseCurrency( itemID, Epsilon_MerchantItemEditor.choosingIndex )
 						ResetCursor()
 						Epsilon_MerchantCursorOverlay:Hide()
 					end

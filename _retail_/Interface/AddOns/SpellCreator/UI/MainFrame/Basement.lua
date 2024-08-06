@@ -29,6 +29,7 @@ end
 ---@param mainFrame SCForgeMainFrame
 ---@param duration number
 local function doFlicker(mainFrame, duration)
+	if not mainFrame then mainFrame = SCForgeMainFrame end
 	flicker(mainFrame)
 	C_Timer.After(duration, function() stopFlicker(mainFrame) end)
 end
@@ -218,4 +219,6 @@ end
 ns.UI.MainFrame.Basement = {
 	init = init,
 	updateExecutePermission = updateExecutePermission,
+
+	doFlicker = doFlicker,
 }

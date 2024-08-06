@@ -80,9 +80,18 @@ end
 
 ---Triggers a Spark! Does not parse any form of checks regarding CD, distance, or conditions.
 ---@param sparkData SparkTriggerData
-local function triggerSpark(sparkData)
+---@param uncast? boolean If the spark being triggered should attempt to be an 'uncast' instead (aka: OnLeave for Auto Sparks)
+local function triggerSpark(sparkData, uncast)
 	local commID, sX, sY, sZ = sparkData[1], sparkData[2], sparkData[3], sparkData[4]
 	local sparkOptions = sparkData[8] --[[@as SparkTriggerDataOptions]]
+
+	local uncastAddToCDName
+	if uncast then
+		if not sparkOptions.uncast then return end -- This is an uncast, but there's no uncast, so just exit...
+
+		commID = sparkOptions.uncast         -- switch our commID to the uncast CommID instead
+		uncastAddToCDName = "Uncast"
+	end
 
 	-- Pull the Spark Data locally for easy access
 	local sparkCdTime, sparkCdTrigger, sparkCdBroadcast
@@ -93,7 +102,7 @@ local function triggerSpark(sparkData)
 	-- All good, not on CD & Conditions met. Trigger CD's if needed & Cast the Spell.
 	local bypassCD = false
 	if sparkCdTime then
-		local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ) -- // need to gen the name for the override
+		local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ, uncastAddToCDName) -- // need to gen the name for the override
 
 		Cooldowns.addSparkCooldown(sparkCDNameOverride, sparkCdTime, commID)
 		bypassCD = true
@@ -133,6 +142,7 @@ end
 ---@field emote? EmoteToken
 ---@field conditions? ConditionDataTable
 ---@field showHSI? boolean Should Show HiddenSparkIcon
+---@field uncast? CommID CommID of the ArcSpell to 'uncast' on leaving the radius of the Auto Spark.
 
 local multiSparkFrame --predef to use in OnShow/OnHide
 local sparkPopup = CreateFrame("Frame", "ArcanumSparkPopupFrame", UIParent, "SC_ExtraActionBarFrameTemplate")
@@ -570,12 +580,22 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 					if not autoSparksInRange[sparkCDNameOverride] then
 						-- spark was not already in range, continue
 						autoSparksInRange[sparkCDNameOverride] = true -- track it
-						SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") .. Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
-						triggerSpark(sparkData)     -- trigger spark
+						if commID ~= "" then        -- explicitly block calling if the commID is blank. This is a niche, but technically supported use.
+							SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") .. Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
+							triggerSpark(sparkData) -- trigger spark
+						end
 					end
 				else
 					-- spark was not in range, or conditions not met, remove it from the tracker if it was in the tracker
 					local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
+					if autoSparksInRange[sparkCDNameOverride] then
+						-- Spark was previously in range; check if there's a 'cast on leave' as well.
+						if _sparkOptions.uncast then
+							SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark (On Leave) Triggered: ") ..
+								Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(_sparkOptions.uncast))
+							triggerSpark(sparkData, true)
+						end
+					end
 					autoSparksInRange[sparkCDNameOverride] = nil
 				end
 			elseif isSparkType(_sparkType, _sparkTypesMap["Emote"], _sparkTypesMap["Chat"], _sparkTypesMap["Jump"]) then
@@ -732,8 +752,8 @@ local function getPopupTriggersFromPhase(callback, iter)
 			local noTriggers
 			if not (#text < 1 or text == "") then
 				local loaded
-				--phaseSparkTriggers = serializer.decompressForAddonMsg(text)
-				loaded, phaseSparkTriggers = pcall(serializer.decompressForAddonMsg, text)
+				--phaseSparkTriggers = serializer.decompressForAddonMsg_SparkCopy(text)
+				loaded, phaseSparkTriggers = pcall(serializer.decompressForAddonMsg_SparkCopy, text)
 				if not loaded then
 					message("Arcanum Failed to Load Phase Sparks Data. Report this.")
 					return

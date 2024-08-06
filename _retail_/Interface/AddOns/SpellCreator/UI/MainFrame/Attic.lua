@@ -449,6 +449,7 @@ local function getInfo()
 	newSpellData.items = itemsCached
 	newSpellData.conditions = (SCForgeMainFrame.conditionsData and #SCForgeMainFrame.conditionsData > 0) and SCForgeMainFrame.conditionsData or nil
 
+	ns.Actions.Migrations.applyDefaultSpellMigrationFlags(newSpellData)
 	return newSpellData
 end
 

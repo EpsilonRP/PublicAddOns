@@ -1,9 +1,128 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
  
+
+	<Button name="Epsilon_MerchantItemEditorChooseCurrencyButtonTemplate" inherits="QuestItemTemplate" virtual="true">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeKey="$parent.itemPrice" relativePoint="BOTTOMLEFT" x="0" y="-32"/> 
+		</Anchors>
+		<Frames>
+			<Button name="$parentChooseButton" parentKey="chooseButton" inherits="UIPanelButtonTemplate" text="Choose Item">
+				<Size x="120" y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						OpenAllBags()
+						Epsilon_MerchantFrame.choosingItem = false;
+						Epsilon_MerchantItemEditor.choosingItem = true;
+						Epsilon_MerchantItemEditor.choosingIndex = self:GetParent():GetID();
+						Epsilon_MerchantCursorOverlay:Show()
+						Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
+							SetCursor("CAST_CURSOR")
+						end)
+						PlaySound( 83 )
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("Choose Item", 1, 1, 1)
+						GameTooltip:AddLine("Choose an item to use as a currency required to purchase this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();						
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Button name="$parentRemoveButton" parentKey="removeButton">
+				<Size x="42" y="42"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.chooseButton" relativePoint="RIGHT" x="-8" y="-2"/>
+				</Anchors>
+				<HitRectInsets>
+					<AbsInset left="9" right="7" top="-7" bottom="10"/>
+				</HitRectInsets>
+				<NormalTexture file="Interface\Buttons\CancelButton-Up"/>
+				<PushedTexture file="Interface\Buttons\CancelButton-Down"/>
+				<HighlightTexture file="Interface\Buttons\CancelButton-Highlight" alphaMode="ADD"/>
+				<Scripts>
+					<OnClick>
+						self:GetParent().itemID = nil;
+						SetItemButtonTexture(self:GetParent(), "Interface/Icons/inv_misc_questionmark");
+						self:GetParent().Name:SetText( "" );
+						self:GetParent().amount:SetText( "0" );
+						Epsilon_MerchantItemEditorUpdateAltCurrency()
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Remove Item", 1, 1, 1)
+						GameTooltip:AddLine("Remove the required currency from this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();						
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<EditBox name="$parentAmount" parentKey="amount" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+				<Size x="40" y="12"/> 
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.chooseButton" relativePoint="BOTTOMRIGHT" x="0" y="-6"/> 
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString inherits="GameFontNormalLeft" justifyH="left" text="Amount:">
+							<Anchors>
+								<Anchor point="RIGHT" relativePoint="LEFT" x="-10" y="0"/> 
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts> 
+					<OnLoad>
+						self:SetAutoFocus( false )
+						self:SetTextColor( 1, 1, 1 )
+						self:SetMaxLetters( 4 )
+					</OnLoad>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine("Amount", 1, 1, 1)
+						GameTooltip:AddLine("Set the amount of this currency required to buy this item.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show()
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+					<OnEditFocusGained>
+						self.lastValue = tonumber(self:GetText()) or 1;
+					</OnEditFocusGained>
+					<OnEditFocusLost>
+						self:HighlightText(0, 0)
+						if self:GetText()=="" then
+							self:SetText(self.lastValue)
+						end
+						if not tonumber(self:GetText()) then
+							self:SetText(self.lastValue)
+						elseif tonumber(self:GetText()) > 9999 or tonumber(self:GetText()) &lt; 1 then
+							self:SetText(self.lastValue)
+						end
+					</OnEditFocusLost>
+					<OnEscapePressed function="EditBox_ClearFocus"/>
+					<OnEnterPressed function="EditBox_ClearFocus"/>
+				</Scripts>
+			</EditBox>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self.Icon:SetTexture("Interface/Icons/Inv_misc_questionmark")
+			</OnLoad>
+		</Scripts>
+	</Button>
+
   <!-- Item editor frame. -->
   
   <Frame name="Epsilon_MerchantItemEditor" frameStrata="DIALOG" hidden="true" parent="UIParent" inherits="SimplePanelTemplate" toplevel="true">>
-    <Size x="256" y="280"/>
+    <Size x="256" y="460"/>
     <Anchors>
       <Anchor point="LEFT" relativeTo="Epsilon_MerchantFrame" relativePoint="RIGHT" x="0" y="0" />
     </Anchors>
@@ -94,6 +213,30 @@
 		</Scripts>
 	  </Frame>
 
+	  <Frame name="$parentAltCurrencyFrame" inherits="SmallAlternateCurrencyFrameTemplate" hidden="true">
+		<Anchors>
+			<Anchor point="BOTTOMLEFT" relativeTo="$parentNameFrame" relativePoint="BOTTOMLEFT">
+				<Offset>
+					<AbsDimension x="2" y="31"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+		<Scripts>
+			<OnLoad>
+				for i = 1, 3 do
+					_G[self:GetName().."Item"..i]:SetScript("OnEnter", function(self)
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetItemByID( self.itemID );
+						GameTooltip:Show();
+					end);
+					_G[self:GetName().."Item"..i]:SetScript("OnLeave", function()
+						GameTooltip:Hide();
+					end);
+				end
+			</OnLoad>
+		</Scripts>
+	  </Frame>
+
 	  <EditBox name="$parentItemPrice" parentKey="itemPrice" font="GameFontNormalMed2" inherits="InputBoxTemplate">
 		<Size x="100" y="12"/> 
 		<Anchors>
@@ -131,6 +274,7 @@
 				self:SetText( price )
 			end
 			MoneyFrame_Update( Epsilon_MerchantItemEditorMoneyFrame, price );
+			Epsilon_MerchantItemEditorUpdateAltCurrency()
 		  </OnEditFocusLost>
 		  <OnEscapePressed function="EditBox_ClearFocus"/>
 		  <OnEnterPressed function="EditBox_ClearFocus"/>
@@ -150,129 +294,31 @@
 		</Scripts>
 	  </Slider>
 	  
-	  <Button name="$parentCurrency" inherits="QuestItemTemplate">
+	  <Button name="$parentCurrency1" id="1" inherits="Epsilon_MerchantItemEditorChooseCurrencyButtonTemplate">
 		<Anchors>
 		  <Anchor point="TOPLEFT" relativeKey="$parent.itemPrice" relativePoint="BOTTOMLEFT" x="0" y="-32"/> 
 		</Anchors>
 		<Layers>
 			<Layer level="ARTWORK">
-			  <FontString inherits="GameFontNormalLeft" justifyH="center" text="Required Currency:">
+				<FontString inherits="GameFontNormalLeft" justifyH="center" text="Required Currency:">
 				<Anchors>
-				   <Anchor point="TOPLEFT" x="0" y="18"/> 
+					<Anchor point="TOPLEFT" x="0" y="18"/> 
 				</Anchors>
-			  </FontString>
-		  </Layer>
+				</FontString>
+			</Layer>
 		</Layers>
-		<Frames>
-			<Button name="$parentChooseButton" parentKey="chooseButton" inherits="UIPanelButtonTemplate" text="Choose Item">
-				<Size x="120" y="22"/>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="0"/>
-				</Anchors>
-				<Scripts>
-					<OnClick>
-						OpenAllBags()
-						Epsilon_MerchantFrame.choosingItem = false;
-						Epsilon_MerchantItemEditor.choosingItem = true;
-						Epsilon_MerchantCursorOverlay:Show()
-						Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
-							SetCursor("CAST_CURSOR")
-						end)
-						PlaySound( 83 )
-					</OnClick>
-					<OnEnter>
-						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-						GameTooltip:AddLine("Choose Item", 1, 1, 1)
-						GameTooltip:AddLine("Choose an item to use as a currency required to purchase this item.", 1.0, 0.81, 0.0, true)
-						GameTooltip:Show();
-					</OnEnter>
-					<OnLeave>
-						GameTooltip:Hide();						
-					</OnLeave>
-				</Scripts>
-			</Button>
-			<Button name="$parentRemoveButton" parentKey="removeButton">
-				<Size x="42" y="42"/>
-				<Anchors>
-					<Anchor point="LEFT" relativeKey="$parent.chooseButton" relativePoint="RIGHT" x="-8" y="-2"/>
-				</Anchors>
-				<HitRectInsets>
-					<AbsInset left="9" right="7" top="-7" bottom="10"/>
-				</HitRectInsets>
-				<NormalTexture file="Interface\Buttons\CancelButton-Up"/>
-				<PushedTexture file="Interface\Buttons\CancelButton-Down"/>
-				<HighlightTexture file="Interface\Buttons\CancelButton-Highlight" alphaMode="ADD"/>
-				<Scripts>
-					<OnClick>
-						Epsilon_MerchantItemEditorCurrency.itemID = nil;
-						SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency, "Interface/Icons/inv_misc_questionmark");
-						Epsilon_MerchantItemEditorCurrencyName:SetText( "" );
-						Epsilon_MerchantItemEditorCurrencyAmount:SetText( "0" );
-					</OnClick>
-					<OnEnter>
-						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-						GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Remove Item", 1, 1, 1)
-						GameTooltip:AddLine("Remove the required currency from this item.", 1.0, 0.81, 0.0, true)
-						GameTooltip:Show();
-					</OnEnter>
-					<OnLeave>
-						GameTooltip:Hide();						
-					</OnLeave>
-				</Scripts>
-			</Button>
-			<EditBox name="$parentAmount" parentKey="amount" font="GameFontNormalMed2" inherits="InputBoxTemplate">
-				<Size x="40" y="12"/> 
-				<Anchors>
-				  <Anchor point="TOPRIGHT" relativeKey="$parent.chooseButton" relativePoint="BOTTOMRIGHT" x="0" y="-6"/> 
-				</Anchors>
-				<Layers>
-					<Layer level="ARTWORK">
-						<FontString inherits="GameFontNormalLeft" justifyH="left" text="Amount:">
-							<Anchors>
-							  <Anchor point="RIGHT" relativePoint="LEFT" x="-10" y="0"/> 
-							</Anchors>
-						</FontString>
-					</Layer>
-				</Layers>
-				<Scripts> 
-				  <OnLoad>
-					self:SetAutoFocus( false )
-					self:SetTextColor( 1, 1, 1 )
-					self:SetMaxLetters( 4 )
-				  </OnLoad>
-				  <OnEnter>
-					GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-					GameTooltip:AddLine("Amount", 1, 1, 1)
-					GameTooltip:AddLine("Set the amount of this currency required to buy this item.", 1.0, 0.81, 0.0, true)
-					GameTooltip:Show()
-				  </OnEnter>
-				  <OnLeave>
-					GameTooltip:Hide()
-				  </OnLeave>
-				  <OnEditFocusGained>
-					self.lastValue = tonumber(self:GetText()) or 1;
-				  </OnEditFocusGained>
-				  <OnEditFocusLost>
-					self:HighlightText(0, 0)
-					if self:GetText()=="" then
-						self:SetText(self.lastValue)
-					end
-					if not tonumber(self:GetText()) then
-						self:SetText(self.lastValue)
-					elseif tonumber(self:GetText()) > 9999 or tonumber(self:GetText()) &lt; 1 then
-						self:SetText(self.lastValue)
-					end
-				  </OnEditFocusLost>
-				  <OnEscapePressed function="EditBox_ClearFocus"/>
-				  <OnEnterPressed function="EditBox_ClearFocus"/>
-				</Scripts>
-			</EditBox>
-		</Frames>
-		<Scripts>
-			<OnLoad>
-				self.Icon:SetTexture("Interface/Icons/Inv_misc_questionmark")
-			</OnLoad>
-		</Scripts>
+	  </Button>
+
+	  <Button name="$parentCurrency2" id="2" inherits="Epsilon_MerchantItemEditorChooseCurrencyButtonTemplate">
+		<Anchors>
+		  <Anchor point="TOPLEFT" relativeTo="$parentCurrency1" relativePoint="BOTTOMLEFT" x="0" y="-48"/> 
+		</Anchors>
+	  </Button>
+
+	  <Button name="$parentCurrency3" id="3" inherits="Epsilon_MerchantItemEditorChooseCurrencyButtonTemplate">
+		<Anchors>
+		  <Anchor point="TOPLEFT" relativeTo="$parentCurrency2" relativePoint="BOTTOMLEFT" x="0" y="-48"/> 
+		</Anchors>
 	  </Button>
 		
 	  <Button parentKey="closeButton" inherits="MagicButtonTemplate" text="Close">

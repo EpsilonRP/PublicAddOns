@@ -6,6 +6,7 @@ local ns = select(2, ...)
 ---@field ChatLinkCache Utils_ChatLinkCache
 ---@field Data Utils_Data
 ---@field Debug Utils_Debug
+---@field Flags Utils_Flags
 ---@field HTML Utils_HTML
 ---@field InputHelper Utils_InputHelper
 ---@field NineSlice Utils_NineSlice
@@ -13,4 +14,5 @@ local ns = select(2, ...)
 ---@field Tooltip Utils_Tooltip
 ---@field StringSubs Utils_StringSubs
 ---@field Hooks Utils_Hooks
+---@field SpellUtils Utils_SpellUtils
 ns.Utils = {}

@@ -32,19 +32,50 @@ function Epsilon_MerchantItemEditorStackCount_OnValueChanged( self, value, userI
 	end
 end
 
-function Epsilon_MerchantItemEditorChooseCurrency( itemID )
-	if itemID and type(itemID) == "number" and itemID > 0 and GetItemInfo(itemID) then
+function Epsilon_MerchantItemEditorUpdateAltCurrency()
+	Epsilon_MerchantItemEditorAltCurrencyFrame:Hide();
+	for i = 1, 3 do
+		local button = _G[Epsilon_MerchantItemEditorAltCurrencyFrame:GetName().."Item"..i];
+		if _G["Epsilon_MerchantItemEditorCurrency" .. i].itemID then
+			local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo( _G["Epsilon_MerchantItemEditorCurrency" .. i].itemID );
+			button.itemID = _G["Epsilon_MerchantItemEditorCurrency" .. i].itemID;
+			button.itemLink = link;
+			AltCurrencyFrame_Update( Epsilon_MerchantItemEditorAltCurrencyFrame:GetName().."Item"..i, texture, 1);
+			button:Show();
+			Epsilon_MerchantItemEditorAltCurrencyFrame:Show();
+		
+			local price = Epsilon_MerchantItemEditor.itemPrice:GetText() or 0
+			price = tonumber(price) or 0;
+			if price <= 0 then
+				Epsilon_MerchantItemEditorAltCurrencyFrame:ClearAllPoints();
+				Epsilon_MerchantItemEditorAltCurrencyFrame:SetPoint("BOTTOMLEFT", Epsilon_MerchantItemEditorNameFrame, "BOTTOMLEFT", 0, 31);
+			else
+				Epsilon_MerchantItemEditorAltCurrencyFrame:ClearAllPoints();
+				Epsilon_MerchantItemEditorAltCurrencyFrame:SetPoint("LEFT", Epsilon_MerchantItemEditorMoneyFrame, "RIGHT", -14, 0);
+			end
+		else
+			button.itemID = nil;
+			button.itemLink = nil;
+			button:Hide();
+		end
+	end
+end
+
+function Epsilon_MerchantItemEditorChooseCurrency( itemID, index )
+	if itemID and type(itemID) == "number" and itemID > 0 and GetItemInfo(itemID) and index and type(index) == "number" and index <= 3 then
 		if tonumber( itemID ) == tonumber( Epsilon_MerchantItemEditor.itemID ) then
 			UIErrorsFrame:AddMessage( "Items cannot use themselves as a currency.", 1.0, 0.0, 0.0, 53, 5 );
 			return
 		end
 		
-		local name, _, _, _, _, _, _, _, _, texture, _ = GetItemInfo(itemID);
+		local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(itemID);
 		
-		Epsilon_MerchantItemEditorCurrency.itemID = itemID;
-		SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency, texture or "Interface/Icons/inv_misc_questionmark");
-		Epsilon_MerchantItemEditorCurrencyName:SetText( name or "" );
-		Epsilon_MerchantItemEditorCurrencyAmount:SetText( 1 );
+		_G["Epsilon_MerchantItemEditorCurrency" .. index].itemID = itemID;
+		SetItemButtonTexture(_G["Epsilon_MerchantItemEditorCurrency" .. index], texture or "Interface/Icons/inv_misc_questionmark");
+		_G["Epsilon_MerchantItemEditorCurrency" .. index .. "Name"]:SetText( name or "" );
+		_G["Epsilon_MerchantItemEditorCurrency" .. index .. "Amount"]:SetText( 1 );
+
+		Epsilon_MerchantItemEditorUpdateAltCurrency()
 	end
 end
 
@@ -70,14 +101,23 @@ function Epsilon_MerchantItemEditor_LoadItem( itemIndex )
 	Epsilon_MerchantItemEditor.stackCount:SetValue( stackCount )
 	
 	if currency and amount then
-		Epsilon_MerchantItemEditorCurrency.itemID = currency;
+		Epsilon_MerchantItemEditorCurrency1.itemID = currency;
 		local name, _, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);
-		SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency, texture or "Interface/Icons/inv_misc_questionmark");
-		Epsilon_MerchantItemEditorCurrencyName:SetText( name or "" );
-		Epsilon_MerchantItemEditorCurrencyAmount:SetText( amount );
+		SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency1, texture or "Interface/Icons/inv_misc_questionmark");
+		Epsilon_MerchantItemEditorCurrency1Name:SetText( name or "" );
+		Epsilon_MerchantItemEditorCurrency1Amount:SetText( amount );
+	elseif type(currency) == "table" then
+		for i = 1, #currency do
+			_G["Epsilon_MerchantItemEditorCurrency" .. i].itemID = currency[i][1];
+			local name, _, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency[i][1]);
+			SetItemButtonTexture(_G["Epsilon_MerchantItemEditorCurrency" .. i], texture or "Interface/Icons/inv_misc_questionmark");
+			_G["Epsilon_MerchantItemEditorCurrency" .. i .."Name"]:SetText( name or "" );
+			_G["Epsilon_MerchantItemEditorCurrency" .. i .."Amount"]:SetText( currency[i][2] or 0 );
+		end
 	end
 	
 	MoneyFrame_Update( Epsilon_MerchantItemEditorMoneyFrame, price );
+	Epsilon_MerchantItemEditorUpdateAltCurrency()
 end
 
 function Epsilon_MerchantItemEditor_SaveItem()
@@ -90,12 +130,18 @@ function Epsilon_MerchantItemEditor_SaveItem()
 	EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][2] = price;
 	EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][3] = stackCount;
 	
-	if Epsilon_MerchantItemEditorCurrency.itemID then
-		local itemID = tonumber( Epsilon_MerchantItemEditorCurrency.itemID );
-		local amount = tonumber( Epsilon_MerchantItemEditorCurrencyAmount:GetText() ) or 1;
-		if amount > 9999 then amount = 9999; elseif amount < 1 then amount = 1; end
-		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][4] = itemID;
-		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][5] = amount;
+	local currencies = {};
+	for i = 1, 3 do
+		if _G["Epsilon_MerchantItemEditorCurrency" .. i].itemID then
+			local itemID = tonumber( _G["Epsilon_MerchantItemEditorCurrency" .. i].itemID );
+			local amount = tonumber( _G["Epsilon_MerchantItemEditorCurrency" .. i .. "Amount"]:GetText() ) or 1;
+			if amount > 9999 then amount = 9999; elseif amount < 1 then amount = 1; end
+			tinsert( currencies, { itemID, amount } );
+		end
+	end
+	if #currencies > 0 then
+		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][4] = currencies;
+		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][5] = nil;
 	else
 		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][4] = nil;
 		EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][Epsilon_MerchantItemEditor.itemIndex][5] = nil;
@@ -113,10 +159,12 @@ function Epsilon_MerchantItemEditor_ClearAllFields()
 	Epsilon_MerchantItemEditor.itemCount:SetText( "" )
 	Epsilon_MerchantItemEditor.itemPrice:SetText( "0" )
 	Epsilon_MerchantItemEditor.stackCount:SetValue( 1 )
-	Epsilon_MerchantItemEditorCurrency.itemID = nil;
-	SetItemButtonTexture(Epsilon_MerchantItemEditorCurrency, "Interface/Icons/inv_misc_questionmark");
-	Epsilon_MerchantItemEditorCurrencyName:SetText( "" );
-	Epsilon_MerchantItemEditorCurrencyAmount:SetText( "0" );
+	for i = 1, 3 do
+		_G["Epsilon_MerchantItemEditorCurrency" .. i].itemID = nil;
+		SetItemButtonTexture(_G["Epsilon_MerchantItemEditorCurrency" .. i], "Interface/Icons/inv_misc_questionmark");
+		_G["Epsilon_MerchantItemEditorCurrency" .. i .. "Name"]:SetText( "" );
+		_G["Epsilon_MerchantItemEditorCurrency" .. i .. "Amount"]:SetText( "0" );
+	end
 end
 
 -------------------------------------------------------------------------------

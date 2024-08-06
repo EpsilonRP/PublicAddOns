@@ -275,6 +275,7 @@ end
 local function processAction(delay, actionType, revertDelay, selfOnly, conditions, vars)
 	if not actionType then return; end
 	local actionData = actionTypeData[actionType]
+	if not actionData.revert then revertDelay = nil end -- Hard-Force no revertDelay if action does not support it.
 	if revertDelay then revertDelay = tonumber(revertDelay) end
 
 	--[[ -- // Replaced with checkDepAndReq
@@ -315,13 +316,13 @@ local function processAction(delay, actionType, revertDelay, selfOnly, condition
 		}
 	elseif delay == 0 then
 		executeAction(varTable, actionData, selfOnly, nil, conditions, nil)
-		if revertDelay and revertDelay > 0 then
+		if actionData.revert and revertDelay and revertDelay > 0 then
 			createRevertTimer(revertDelay, function(self) executeAction(varTable, actionData, selfOnly, true, conditions, self) end)
 		end
 	else
 		local timer = C_Timer.NewTimer(delay, function(self)
 			executeAction(varTable, actionData, selfOnly, nil, conditions, self)
-			if revertDelay and revertDelay > 0 then
+			if actionData.revert and revertDelay and revertDelay > 0 then
 				createRevertTimer(revertDelay, function(self) executeAction(varTable, actionData, selfOnly, true, conditions, self) end)
 			end
 		end)
@@ -344,21 +345,32 @@ local function executeSpellFinal(actionsToCommit, bypassCheck, spellName, spellD
 	spellCastID = spellCastID + 1
 	for index, action in pairs(actionsToCommit) do
 		local vars = action.vars
+		local _actionTypeData = actionTypeData[action.actionType]
 
-		if actionTypeData[action.actionType] then
-			if not actionTypeData[action.actionType].doNotSanitizeNewLines then
+		if _actionTypeData then
+			-- Parse Sanitizing New Lines if needed
+			if not _actionTypeData.doNotSanitizeNewLines then
 				vars = DataUtils.sanitizeNewlinesToCSV(action.vars)
 			end
-			--vars = replaceInputPlaceholders(vars, ...)
+
+			-- Parse any Input Substitutions
 			if vars:find("@.-@") or vars:find("%%") then -- only spend the energy to parse substitutions if we actually see there might be one..
 				vars = StringSubs.parseStringForAllSubs(vars, ...)
 			end
-			processAction(action.delay, action.actionType, action.revertDelay, action.selfOnly, action.conditions, vars)
+
+			-- Force remove reverts if this action does not support it.
+			local revertDelay = action.revertDelay
+			if not _actionTypeData.revert then revertDelay = nil end
+
+			-- Send the Action to processing
+			processAction(action.delay, action.actionType, revertDelay, action.selfOnly, action.conditions, vars)
+
+			-- Determine if we need to extend the 'spell length' because of this action; used for the Castbar.
 			if action.delay > longestDelay then
 				longestDelay = action.delay
 			end
-			if action.revertDelay then
-				local fixedRevertDelay = action.revertDelay + action.delay
+			if revertDelay then
+				local fixedRevertDelay = revertDelay + action.delay
 				if fixedRevertDelay > longestDelay then
 					longestDelay = fixedRevertDelay
 				end
@@ -413,8 +425,8 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 
 		local spellCooldownRemaining, spellCooldownLength = Cooldowns.isSpellOnCooldown(spellData.commID)
 		if spellCooldownRemaining then
-			local cooldownMessage = ("ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spellData.fullName, spellData
-				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2))
+			local cooldownMessage = ("ArcSpell %s (%s) is currently on cooldown.\n(%s remaining)"):format(spellData.fullName, spellData
+				.commID, ns.Utils.Data.secondsToMinuteSecondString(spellCooldownRemaining))
 			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 			PlayVocalErrorSoundID(12);
 			return
@@ -436,8 +448,8 @@ local function executePhaseSpell(commID, bypassCD, ...)
 	if spell then
 		local spellCooldownRemaining, spellCooldownLength = Cooldowns.isSpellOnCooldown(commID, currentPhase)
 		if spellCooldownRemaining then
-			local cooldownMessage = ("Phase ArcSpell %s (%s) is currently on cooldown (%ss remaining)."):format(spell.fullName, spell
-				.commID, ns.Utils.Data.roundToNthDecimal(spellCooldownRemaining, 2))
+			local cooldownMessage = ("Phase ArcSpell %s (%s) is currently on cooldown.\n(%s remaining)."):format(spell.fullName, spell
+				.commID, ns.Utils.Data.secondsToMinuteSecondString(spellCooldownRemaining))
 			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 			PlayVocalErrorSoundID(12);
 			return false

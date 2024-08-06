@@ -4,6 +4,10 @@ local ns = select(2, ...)
 local LibDeflate = ns.Libs.LibDeflate
 local AceSerializer = ns.Libs.AceSerializer
 
+-- This is a global we are going to use to inspect return tables.. Deal with it
+ARC_DATA_SALVAGER_RETURN = {}
+local sparks_last_decompress_str
+
 local function compressForAddonMsg(str)
 	print("original:", str)
 	--str = AceSerializer:Serialize(str)
@@ -81,8 +85,8 @@ local function showSalvagerMenu()
 			},
 		}
 
-		salvagerMenu = CreateFrame("Frame", nil, UIParent)
-		salvagerMenu:SetSize(524, 300)
+		salvagerMenu = CreateFrame("Frame", "Arcanum_DataSalvager", UIParent)
+		salvagerMenu:SetSize(524, 300 + 30)
 		salvagerMenu:SetPoint("CENTER")
 		salvagerMenu:SetFrameStrata("BACKGROUND")
 		salvagerMenu:SetBackdrop(backdrop)
@@ -131,7 +135,7 @@ local function showSalvagerMenu()
 		salvagerMenu.EncodeAddOn = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
 		salvagerMenu.EncodeAddOn:SetSize(128, 24)
 		salvagerMenu.EncodeAddOn:SetPoint("BOTTOM", -64, 9)
-		salvagerMenu.EncodeAddOn:SetText("Encode (AddOn)")
+		salvagerMenu.EncodeAddOn:SetText("Encode (AD)")
 		salvagerMenu.EncodeAddOn:SetScript("OnClick", function(self)
 			local str = self:GetParent().Text:GetText()
 			str = compressForAddonMsg(str)
@@ -141,7 +145,7 @@ local function showSalvagerMenu()
 		salvagerMenu.DecodeAddOn = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
 		salvagerMenu.DecodeAddOn:SetSize(128, 24)
 		salvagerMenu.DecodeAddOn:SetPoint("RIGHT", salvagerMenu.EncodeAddOn, "LEFT", 0, 0)
-		salvagerMenu.DecodeAddOn:SetText("Decode (AddOn)")
+		salvagerMenu.DecodeAddOn:SetText("Decode (AD)")
 		salvagerMenu.DecodeAddOn:SetScript("OnClick", function(self)
 			local str = self:GetParent().Text:GetText()
 			str = decompressForAddonMsg(str)
@@ -151,7 +155,7 @@ local function showSalvagerMenu()
 		salvagerMenu.EncodeExport = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
 		salvagerMenu.EncodeExport:SetSize(128, 24)
 		salvagerMenu.EncodeExport:SetPoint("BOTTOM", 64, 9)
-		salvagerMenu.EncodeExport:SetText("Encode (Export)")
+		salvagerMenu.EncodeExport:SetText("Encode (EX)")
 		salvagerMenu.EncodeExport:SetScript("OnClick", function(self)
 			local str = self:GetParent().Text:GetText()
 			str = compressForExport(str)
@@ -161,16 +165,50 @@ local function showSalvagerMenu()
 		salvagerMenu.DecodeExport = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
 		salvagerMenu.DecodeExport:SetSize(128, 24)
 		salvagerMenu.DecodeExport:SetPoint("LEFT", salvagerMenu.EncodeExport, "RIGHT", 0, 0)
-		salvagerMenu.DecodeExport:SetText("Decode (Export)")
+		salvagerMenu.DecodeExport:SetText("Decode (EX)")
 		salvagerMenu.DecodeExport:SetScript("OnClick", function(self)
 			local str = self:GetParent().Text:GetText()
 			str = decompressForImport(str)
 			self:GetParent().Text:SetText(str)
 		end)
 
-		salvagerMenu.SF = CreateFrame("ScrollFrame", "$parent_DF", salvagerMenu, "UIPanelScrollFrameTemplate")
+		salvagerMenu.Deserialize = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
+		salvagerMenu.Deserialize:SetSize(128, 24)
+		salvagerMenu.Deserialize:SetPoint("BOTTOM", salvagerMenu.EncodeAddOn, "TOP", 0, 3)
+		salvagerMenu.Deserialize:SetText("Deserialize")
+		salvagerMenu.Deserialize:SetScript("OnClick", function(self)
+			local str = self:GetParent().Text:GetText()
+			local success
+			success, str = AceSerializer:Deserialize(str)
+			if success and type(str) == "table" then
+				ARC_DATA_SALVAGER_RETURN = str
+				salvagerMenu.ExportSparks:Enable()
+			else
+				salvagerMenu.ExportSparks:Disable()
+			end
+		end)
+
+		salvagerMenu.ExportSparks = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
+		salvagerMenu.ExportSparks:SetSize(128, 24)
+		salvagerMenu.ExportSparks:SetPoint("LEFT", salvagerMenu.Deserialize, "RIGHT", 0, 0)
+		salvagerMenu.ExportSparks:SetText("EXPORT*")
+		salvagerMenu.ExportSparks:Disable()
+		salvagerMenu.ExportSparks:SetScript("OnClick", function(self)
+			ns.UI.ImportExport.exportCustomSparks(ARC_DATA_SALVAGER_RETURN)
+		end)
+
+		salvagerMenu.DumpSparks = CreateFrame("Button", "$parentSpawn", salvagerMenu, "UIPanelButtonTemplate")
+		salvagerMenu.DumpSparks:SetSize(128, 24)
+		salvagerMenu.DumpSparks:SetPoint("LEFT", salvagerMenu.EncodeExport, "RIGHT", 0, 30)
+		salvagerMenu.DumpSparks:SetText("Dump Sparks")
+		salvagerMenu.DumpSparks:Disable()
+		salvagerMenu.DumpSparks:SetScript("OnClick", function(self)
+			salvagerMenu.Text:SetText(sparks_last_decompress_str)
+		end)
+
+		salvagerMenu.SF = CreateFrame("ScrollFrame", "$parent_SF", salvagerMenu, "UIPanelScrollFrameTemplate")
 		salvagerMenu.SF:SetPoint("TOPLEFT", salvagerMenu, 12, -30)
-		salvagerMenu.SF:SetPoint("BOTTOMRIGHT", salvagerMenu, -30, 35)
+		salvagerMenu.SF:SetPoint("BOTTOMRIGHT", salvagerMenu, -30, 35 + 30)
 		salvagerMenu.SF:SetScript("OnMouseUp", function(self)
 			salvagerMenu.Text:SetFocus()
 			salvagerMenu.Text:SetCursorPosition(salvagerMenu.Text:GetNumLetters())
@@ -183,7 +221,7 @@ local function showSalvagerMenu()
 		salvagerMenu.SF.backdrop:SetFrameLevel(2)
 
 
-		salvagerMenu.Text = CreateFrame("EditBox", "$parent_DF_Text", salvagerMenu)
+		salvagerMenu.Text = CreateFrame("EditBox", "$parent_SF_Text", salvagerMenu)
 		salvagerMenu.Text:SetMultiLine(true)
 		salvagerMenu.Text:SetSize(salvagerMenu.SF:GetWidth() - 5, salvagerMenu.SF:GetHeight())
 		salvagerMenu.Text:SetPoint("TOPLEFT", salvagerMenu.SF)
@@ -200,7 +238,12 @@ local function showSalvagerMenu()
 	salvagerMenu:SetShown(not salvagerMenu:IsShown())
 end
 
+local function saveLastSparkStr(str)
+	sparks_last_decompress_str = str
+end
+
 ---@class UI_DataSalvager
 ns.UI.DataSalvager = {
-	showSalvagerMenu = showSalvagerMenu
+	showSalvagerMenu = showSalvagerMenu,
+	saveLastSparkStr = saveLastSparkStr,
 }

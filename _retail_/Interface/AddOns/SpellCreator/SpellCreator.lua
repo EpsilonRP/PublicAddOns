@@ -128,6 +128,8 @@ local function loadSpell(spellToLoad)
 		return
 	end
 
+	UIFrameFadeIn(SCForgeMainFrame.Inset.Bg.Overlay, 0.1, 0.05, 0.8)
+	ns.UI.MainFrame.Basement.doFlicker(SCForgeMainFrame, 0.1)
 	Attic.updateInfo(spellToLoad)
 
 	---@type VaultSpellAction[]
@@ -347,6 +349,9 @@ local function getPhaseVaultDataFromKeys(keys, callback)
 			else
 				--dprint("Spell found & adding to Phase Vault Table: " .. interAction.commID)
 				tempVaultSpellTable[expectedCommID] = interAction
+
+				-- Migrate Spell on load if needed
+				ns.Actions.Migrations.migrateSpell(interAction, false)
 			end
 			phaseVaultLoadingCount = phaseVaultLoadingCount + 1
 			dprint("phaseVaultLoadingCount: " .. phaseVaultLoadingCount .. " | phaseVaultLoadingExpected: " .. phaseVaultLoadingExpected)
@@ -860,10 +865,16 @@ saveSpell = function(overwriteBypass, fromPhaseVaultID, manualData, sendLearnedM
 	if not fromPhaseVaultID and not manualData then
 		for i = 1, SpellRow.getNumActiveRows() do
 			local rowData = SpellRow.getRowAction(i)
+			local _actionTypeData = actionTypeData[rowData.actionType]
 
 			if rowData and rowData.delay >= 0 then
-				if actionTypeData[rowData.actionType] then
-					table.insert(newSpellData.actions, CopyTable(rowData))
+				if _actionTypeData then
+					local copiedActionData = CopyTable(rowData)
+
+					-- remove revert if not supported by this action
+					if not _actionTypeData.revert then copiedActionData.revertDelay = nil end
+
+					table.insert(newSpellData.actions, copiedActionData)
 					dprint(false, "Action Row " .. i .. " Captured successfully.. pending final save to data..")
 				else
 					dprint(false, "Action Row " .. i .. " Failed to save - invalid Action Type.")
@@ -1197,7 +1208,7 @@ local function addonLoadedHandler()
 	--SparkPopups.SparkPopups.setSparkKeybind(SpellCreatorMasterTable.Options.sparkKeybind) -- handled by delayed one now
 	Quickcast.init()
 	ns.UI.ItemIntegration.scripts.updateCache(true)
-	C_Timer.After(5, ns.UI.ActionButton.loadActionButtonsFromRegister)
+	--C_Timer.After(5, ns.UI.ActionButton.loadActionButtonsFromRegister) --// Moved to Delayed Init so it's faster and still safe
 
 	hooksecurefunc("SetUIVisibility", function(shown)
 		if shown then
@@ -1238,7 +1249,7 @@ local function addonLoadedHandler()
 	Options.newOptionsInit()
 
 	-- Gen the first few spell rows
-	C_Timer.After(0, function() -- TODO: Check if this is actually efficient or just making it worse lol
+	C_Timer.After(0, function()
 		SpellRow.addRow()
 		SpellRow.addRow()
 		SpellRow.addRow()
@@ -1263,10 +1274,18 @@ local function addonLoadedHandler()
 		--	titleText:SetText("Spell Forge - " .. ADDON_COLORS.UPDATED:GenerateHexColorMarkup() .. "UPDATED|r to v" .. addonVersion)
 		--	titleText.Backdrop:SetSize(titleText:GetWidth() - 4, titleText:GetHeight() / 2)
 	end
+
+	-- Run Spell Migrations on Personal Vault
+	print("MIGS", SpellCreatorSavedSpells)
+	for commID, arc_spell in pairs(SpellCreatorSavedSpells) do
+		ns.Actions.Migrations.migrateSpell(arc_spell)
+	end
 end
 
 local function addonLoadedHandler_Delayed(...)
 	SavedVariables.delayed_init(...)
+
+	C_Timer.After(0.5, ns.UI.ActionButton.loadActionButtonsFromRegister)
 end
 
 ------------------------------------

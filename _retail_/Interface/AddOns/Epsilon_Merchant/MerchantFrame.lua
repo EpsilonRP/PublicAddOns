@@ -116,7 +116,7 @@ local function GetMerchantItemInfo( index )
 			price = tonumber( price )
 			stackCount = tonumber( stackCount )
 			local extendedCost = false;
-			if currency and amount then
+			if currency and ( type(currency)=="table" or amount ) then
 				extendedCost = true;
 			end
 			return name, texture, price, stackCount, -1, true, true, extendedCost, currency or nil, amount or nil;
@@ -147,7 +147,7 @@ local function CanAffordMerchantItem( index )
 		return
 	end
 
-	local _, _, price, stackCount, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo(index);
+	local _, _, price, stackCount, _, _, _, extendedCost, currency, currencyAmount = GetMerchantItemInfo(index);
 
 	local canAfford;
 	if (price and price > 0) then
@@ -157,9 +157,18 @@ local function CanAffordMerchantItem( index )
 	end
 
 	if (extendedCost) then
-		local myCount = GetItemCount(currencyID, false, false, true);
-		if myCount < tonumber( currencyAmount ) then
-			return false, ERR_NOT_ENOUGH_CURRENCY;
+		if type(currency) == "table" then
+			for i = 1, #currency do
+				local myCount = GetItemCount(currency[i][1], false, false, true);
+				if myCount < tonumber( currency[i][2] ) then
+					return false, ERR_NOT_ENOUGH_CURRENCY;
+				end
+			end
+		else
+			local myCount = GetItemCount(currency, false, false, true);
+			if myCount < tonumber( currencyAmount ) then
+				return false, ERR_NOT_ENOUGH_CURRENCY;
+			end
 		end
 	end
 
@@ -205,16 +214,25 @@ local function GetMerchantItemCostItem( index, itemIndex )
 	end
 
 	-- Until multiple currencies are made possible, this will do the trick:
-	if itemIndex > 1 then
-		return
-	end
+	-- if itemIndex > 1 then
+		-- return
+	-- end
 
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][1] == index and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
-			local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
-			local amount = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][5] );
-			local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);
-			return texture, amount, link, name;
+			if type(EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4]) == "table" then
+				if itemIndex and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4][itemIndex] then
+					local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4][itemIndex][1] );
+					local amount = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4][itemIndex][2] );
+					local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);
+					return texture, amount, link, name;
+				end
+			else
+				local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
+				local amount = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][5] );
+				local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);
+				return texture, amount, link, name;
+			end
 		end
 	end
 	return nil, nil, nil, nil;
@@ -232,14 +250,21 @@ local function GetMerchantItemCostItemID( index, itemIndex )
 	end
 
 	-- Until multiple currencies are made possible, this will do the trick:
-	if itemIndex > 1 then
-		return
-	end
+	-- if itemIndex > 1 then
+		-- return
+	-- end
 
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][1] == index and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
-			local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
-			return currency;
+			if type(EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4]) == "table" then
+				if itemIndex and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4][itemIndex] then
+					local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4][itemIndex][1] );
+					return currency;
+				end
+			else
+				local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
+				return currency;
+			end
 		end
 	end
 	return
@@ -259,10 +284,22 @@ local function GetMerchantCurrencies()
 
 	local currencies = {};
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
-		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
-			local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
-			if not( tContains(currencies, currency) ) and currency > 0 then
-				tinsert( currencies, currency );
+		local currencyStore = EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] or nil;
+		if currencyStore then
+			if type(currencyStore) == "table" then
+				for index = 1, 3 do
+					if currencyStore[index] then
+						local currency = tonumber( currencyStore[index][1] );
+						if not( tContains(currencies, currency) ) and currency > 0 then
+							tinsert( currencies, currency );
+						end
+					end
+				end
+			else
+				local currency = tonumber( currencyStore );
+				if not( tContains(currencies, currency) ) and currency > 0 then
+					tinsert( currencies, currency );
+				end
 			end
 		end
 	end
@@ -496,7 +533,13 @@ local function BuyEpsilon_MerchantItem( itemID, amount )
 			SendCommand( "mod money -" .. (price * amount) )
 		end
 		if extendedCost then
-			SendCommand( "additem "..currencyID.." -"..currencyAmount )
+			if type(currencyID) == "table" then
+				for i = 1, 3 do
+					SendCommand( "additem "..currencyID[i][1].." -"..currencyID[i][2] );
+				end
+			else
+				SendCommand( "additem "..currencyID.." -"..currencyAmount );
+			end
 		end
 
 		if not( stackCount ) then
@@ -541,7 +584,13 @@ local function SellEpsilon_MerchantItem( bag, slot )
 			end
 
 			if extendedCost then
-				SendCommand( "additem "..currencyID.." "..currencyAmount )
+				if type(currencyID) == "table" then
+					for i = 1, 3 do
+						SendCommand( "additem "..currencyID[i][1].." "..currencyID[i][2] );
+					end
+				else
+					SendCommand( "additem "..currencyID.." "..currencyAmount );
+				end
 			end
 			--PlaySound(895)
 
@@ -580,7 +629,13 @@ local function BuybackEpsilon_MerchantItem( itemID, amount )
 					SendCommand( "mod money -" .. price )
 				end
 				if extendedCost then
-					SendCommand( "additem "..currencyID.." -"..currencyAmount )
+					if type(currencyID) == "table" then
+						for i = 1, 3 do
+							SendCommand( "additem "..currencyID[i][1].." -"..currencyID[i][2] );
+						end
+					else
+						SendCommand( "additem "..currencyID.." -"..currencyAmount );
+					end
 				end
 
 				SendCommand( "additem " .. itemID .. " " .. count )
@@ -623,6 +678,10 @@ end)
 local function SetInventoryCursor( self )
 	if ( Epsilon_MerchantFrame:IsShown() and Epsilon_MerchantFrame.selectedTab == 1 ) and not Epsilon_MerchantCursorOverlay:IsShown() then
 		local itemID = GetContainerItemID( self:GetParent():GetID(), self:GetID() );
+		if not itemID then
+			ResetCursor();
+			return
+		end
 		local _, _, price = GetMerchantItemInfo( itemID );
 		if price and price > 0 then
 			SetCursor("BUY_CURSOR")
@@ -1545,8 +1604,6 @@ end
 
 function Epsilon_MerchantFrame_UpdateCurrencies()
 	local currencies = GetMerchantCurrencies();
-
-	print(#currencies);
 
 	if ( #currencies == 0 ) then	-- common case
 		Epsilon_MerchantFrame:UnregisterEvent("CURRENCY_DISPLAY_UPDATE");

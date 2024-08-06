@@ -12,6 +12,10 @@ local HTML = ns.Utils.HTML
 local phaseVault = Vault.phase
 local Logging = ns.Logging
 
+local Libs = ns.Libs
+local AceConfig = Libs.AceConfig
+local AceConfigDialog = Libs.AceConfigDialog
+
 local cprint, dprint, eprint = Logging.cprint, Logging.dprint, Logging.eprint
 local cmdWithDotCheck = Cmd.cmdWithDotCheck
 local cmd = Cmd.cmd
@@ -28,12 +32,14 @@ local strtrim = strtrim
 local find = string.find
 local next = next
 
+local useGreenColor = CreateColor(0, 1, 0)
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 --#region ArcSpell <-> Item System - Direct Links Management
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 local itemsWithSpellsCache = {
-	[19222] = { phase = { "some test?" }, personal = { "drunk" } } -- example default, gets overwritten when updateCache is called.
+	[19222] = { phase = { "someSpell" }, personal = { "drunk" } } -- example default, gets overwritten when updateCache is called.
 }
 
 ---@param itemID number
@@ -239,7 +245,7 @@ local itemTag_Scripts = {
 	end,
 
 	---@param payload itemTag_ScriptPayload
-	consume = function(payload)
+	generic_consume = function(payload)
 		cmd("cast 165290")
 
 		-- Force add _del extension tag, then run extension checks - if it's there twice, it still only gets ran once anyways.
@@ -264,24 +270,43 @@ local itemTag_Tags = {
 		copy = { script = itemTag_Scripts.copy },
 		eat = { script = itemTag_Scripts.food },
 		drink = { script = itemTag_Scripts.drink },
-		consume = { script = itemTag_Scripts.consume },
+		consume = { script = itemTag_Scripts.generic_consume },
 	},
 }
 
+
+local function ensureTablePath(table, ...)
+	if not table then error("Your table must exist first, counter-productively..") end
+	for k, v in ipairs({ ... }) do
+		if not table[v] then table[v] = {} end
+		table = table[v]
+	end
+
+	return table
+end
+
 local itemDescARC_Cache = {}
+local onUseLines = {}
 
 ---@param itemID integer|number
 ---@param fontStringObject FontString
 local function testAndReplaceArcLinks(itemID, fontStringObject)
 	itemID = tonumber(itemID)
+	if not itemID then return end  -- // So LuaLS stops yelling at me
 	if itemDescARC_Cache[itemID] then -- reset our cache for that item
 		tWipe(itemDescARC_Cache[itemID]) -- already existed, reuse the table
 	else
 		itemDescARC_Cache[itemID] = {}
 	end
 
+	tWipe(ensureTablePath(onUseLines, itemID))
+	local thisItemLines = onUseLines[itemID]
+
 	local description = fontStringObject:GetText()
 	if description and description ~= "" then
+		-- remove the trailing " for now, we will add it back at the end
+		description = description:sub(1, -2)
+
 		while description and description:match(itemTag_Tags.default) do
 			local itemDescPayload = description:match(itemTag_Tags.capture) -- capture the tag
 			local strTag, strArg = strsplit(":", itemDescPayload, 2) -- split the tag from the data
@@ -304,14 +329,40 @@ local function testAndReplaceArcLinks(itemID, fontStringObject)
 				end)
 			end
 
-			if (IsShiftKeyDown() or IsControlKeyDown()) then -- Update the text
-				fontStringObject:SetText(description:gsub(itemTag_Tags.default, Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(itemTag_Tags.preview .. itemDescPayload .. ">"), 1));
-			else
-				fontStringObject:SetText(description:gsub(itemTag_Tags.default, "", 1));
+			-- If Shift or Control is down, we should KEEP the tag, for transparency sake to players
+			local tagOverride = ""
+			if (IsShiftKeyDown() or IsControlKeyDown()) then
+				tagOverride = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(itemTag_Tags.preview .. itemDescPayload .. ">")
 			end
+
+			-- Let's have some fun here. Any text AFTER the tag will captured to show as a 'Use:' line instead.
+			local tagStart, tagEnd = description:find(itemTag_Tags.default)
+
+			local thisTagUseText = description:match(itemTag_Tags.default .. "([^<]*)") -- This is any description found after, OR BETWEEN tags. Basically, if someone is crazy and uses 2 arctags...
+			local stringLength = #description
+
+			if thisTagUseText then thisTagUseText = strtrim(thisTagUseText) end -- trim it just incase it's only a space or something..
+
+			if (tagEnd == (stringLength - 1)) or (thisTagUseText == "") then
+				-- The tag has nothing after it, so we cannot add Use: text, so default to old behavior (no fun tag..)
+				description = description:gsub(itemTag_Tags.default, tagOverride, 1)
+			else
+				-- Create & Store the cool Use: tag, then remove it from the item description
+				local useText = useGreenColor:WrapTextInColorCode("Use: " .. thisTagUseText .. " |T" .. ns.UI.Gems.gemPath("Prismatic") .. ":16|t" .. tagOverride)
+				tinsert(thisItemLines, useText)                 -- Save the line for later use
+				description = description:gsub(itemTag_Tags.default, "", 1) -- Just remove it
+				description = description:gsub(thisTagUseText, "", 1) -- Also remove the description
+			end
+
+			fontStringObject:SetText(description);
+
 			dprint("Saw an Item Desc Tag, Item: " .. itemID .. " | Tag: " .. mainTag .. " | Spell: " .. (strArg or "none"))
 			description = fontStringObject:GetText()
 		end
+
+		description = description .. '"' -- add back the trailing "
+
+		fontStringObject:SetText(description)
 	end
 end
 
@@ -510,30 +561,57 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 		end
 	end
 
-	-- Handle Caching Data & Removing ArcTags
-	-- Iterate through all of the lines on our tooltip.
-	for i = 1, tooltip:NumLines() do
+	itemId = tonumber(itemId) -- make it  a number instead of string
+
+	-- Store all text and text colours of the original tooltip lines.
+	local leftText = {}
+	local leftTextR = {}
+	local leftTextG = {}
+	local leftTextB = {}
+
+	local rightText = {}
+	local rightTextR = {}
+	local rightTextG = {}
+	local rightTextB = {}
+
+	-- Store the number of lines for after ClearLines().
+	local numLines = tooltip:NumLines()
+
+	-- Store all lines of the original tooltip.
+	local offset = 0;
+	for i = 1, numLines, 1 do
+		-- handle ArcTags first
 		local left = _G[tooltip:GetName() .. "TextLeft" .. i]
 		local lText = left:GetText()
-		local lR, lG, lB = left:GetTextColor()
-
-		local right = _G[tooltip:GetName() .. "TextRight1"]
-		-- Ignore any lines that have "Feral Attack Power" in them. Add everything else to a table used to reconstruct our tooltip later on.
 		if lText:find("<arc") then
 			testAndReplaceArcLinks(itemId, left)
-			right:SetText(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("ArcCast"))
-			right:Show()
-			--tooltip:Show()
+			rightText[1] = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("ArcCast") -- Add ArcCast tag to line 1 right, aka item name
+		end
+
+		-- Store line
+		leftText[i] = left:GetText()
+		leftTextR[i], leftTextG[i], leftTextB[i] = left:GetTextColor()
+
+		local right = _G[tooltip:GetName() .. "TextRight" .. i]
+		rightText[i] = right:GetText()
+		rightTextR[i], rightTextG[i], rightTextB[i] = right:GetTextColor()
+
+		if leftText[i]:match("ItemID") then
+			offset = 2;
 		end
 	end
 
-	-- handle adding ArcSpell Descriptions:
-	if itemId and itemsWithSpellsCache[tonumber(itemId)] then
-		tooltip:AddLine(" ") --blank line
-
+	local tagOverride = ""
+	if (IsShiftKeyDown() or IsControlKeyDown()) then
+		tagOverride = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(" %s: %s")
+	end
+	-- Add ArcSpell descriptions to Use: text.
+	if itemId and (itemsWithSpellsCache[tonumber(itemId)] or onUseLines[tonumber(itemId)]) then
+		tooltip:ClearLines()
+		local greenText;
 		local missingCommIDs = ""
 		local data = itemsWithSpellsCache[tonumber(itemId)]
-		if next(data.personal) then
+		if data and next(data.personal) then
 			local spells, numSpells, lastSpellCommID = "", 0, ""
 			local spellDesc
 			for k, commID in ipairs(data.personal) do
@@ -554,13 +632,12 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 			spells = strtrim(spells, " ,")
 			local ttLine = "Use: Cast Personal ArcSpell" .. (numSpells > 1 and "s" or "") .. ": "
 			if numSpells == 1 and spellDesc and spellDesc ~= "" then
-				if (IsShiftKeyDown() or IsControlKeyDown()) then spellDesc = spellDesc .. " (ArcSpell: " .. lastSpellCommID .. ")" end
-				tooltip:AddLine(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Use: " .. spellDesc), nil, nil, nil, true)
+				greenText = "Use: " .. spellDesc .. " |T" .. ns.UI.Gems.gemPath("Violet") .. ":16|t" .. (tagOverride):format("Cast (Personal)", spells);
 			elseif spells ~= "" then
-				tooltip:AddLine(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(ttLine .. spells), nil, nil, nil, true)
+				greenText = ttLine .. spells .. " |T" .. ns.UI.Gems.gemPath("Violet") .. ":16|t";
 			end
 		end
-		if next(data.phase) then
+		if data and next(data.phase) then
 			local spells, numSpells = "", 0
 			local spellDesc
 			for k, commID in ipairs(data.phase) do
@@ -578,19 +655,55 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 			spells = strtrim(spells, " ,")
 			local ttLine = "Use: Cast Phase ArcSpell" .. (numSpells > 1 and "s" or "") .. ": "
 			if numSpells == 1 and spellDesc and spellDesc ~= "" then
-				tooltip:AddLine(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Use (P): " .. spellDesc), nil, nil, nil, true)
+				greenText = "Use: " .. spellDesc .. " |T" .. ns.UI.Gems.gemPath("Blue") .. ":16|t" .. (tagOverride):format("Cast (Phase)", spells);
 			elseif spells ~= "" then
-				tooltip:AddLine(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(ttLine .. spells), nil, nil, nil, true)
+				greenText = ttLine .. spells .. " |T" .. ns.UI.Gems.gemPath("Blue") .. ":16|t";
 			end
 		end
+
+		-- Refill the tooltip with the stored lines plus my added lines.
+		local found;
+		for i = 1, numLines do
+			if rightText[i] then
+				tooltip:AddDoubleLine(leftText[i], rightText[i], leftTextR[i], leftTextG[i], leftTextB[i], rightTextR[i], rightTextG[i], rightTextB[i])
+			else
+				-- TODO: Unfortunately I do not know how to store the "indented word wrap".
+				--       Therefore, we have to put wrap=true for all lines in the new tooltip.
+				if not (found) and (leftText[i]:find("^Use:") or leftText[i]:find("^Equip:") or leftText[i]:match("[\"].-[\"]") or leftText[i]:find("^Requires") or leftText[i]:find("^Durability") or leftText[i]:match("ItemID")) then
+					found = true;
+					if onUseLines[itemId] then
+						for k, v in ipairs(onUseLines[itemId]) do
+							tooltip:AddLine(v, 0, 1, 0, true)
+						end
+					end
+					tooltip:AddLine(greenText, 0, 1, 0, true)
+				end
+
+				if leftText[i] ~= [[""]] and leftText[i] ~= "" then -- force skip blank description lines if there was one.
+					tooltip:AddLine(leftText[i], leftTextR[i], leftTextG[i], leftTextB[i], true)
+				end
+
+				if not (found) and i == (numLines - offset) then
+					if onUseLines[itemId] then
+						for k, v in ipairs(onUseLines[itemId]) do
+							tooltip:AddLine(v, 0, 1, 0, true)
+						end
+					end
+					tooltip:AddLine(greenText, 0, 1, 0, true)
+				end
+			end
+		end
+
 		if missingCommIDs ~= "" then
 			missingCommIDs = strtrim(missingCommIDs, " ,")
 			tooltip:AddLine(Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode("The following ArcSpells are missing and could not be loaded:"), nil, nil, nil, true)
 			tooltip:AddLine(Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(missingCommIDs), nil, nil, nil, true)
 		end
 	end
+
 	tooltip:Show() -- refreshes the tooltip layout
 end
+
 
 GameTooltip:HookScript("OnTooltipSetItem", GameTooltip_OnTooltipSetItem)
 ItemRefTooltip:HookScript("OnTooltipSetItem", GameTooltip_OnTooltipSetItem)
@@ -629,6 +742,237 @@ hooksecurefunc("SetItemRef", function(link, ...)
 	GameTooltip_OnTooltipSetItem(ItemRefTooltip)
 end)
 --]]
+
+--#endregion
+
+--#region Hooking Right-Click on Items with ALT pressed to show our custom context menu
+
+local contextMenuLastItem = {}
+
+local itemContextMenu_PhaseVaultDropdown = Libs.AceGUI:Create("Dropdown") --[[@as AceGUIDropdown]]
+itemContextMenu_PhaseVaultDropdown:SetCallback("OnValueChanged", function(widget, callback, key, toggled)
+	local spell = Vault.phase.getSpellByIndex(key)
+	if not spell then error("Arc Error: No Spell with CommID (" .. key .. ") found in the phase vault. How?") end
+	if toggled then
+		-- link item
+		ns.Logging.cprint("Linking item " .. contextMenuLastItem.id .. " with Phase ArcSpell: " .. spell.commID)
+		ns.UI.ItemIntegration.manageUI.ConnectItemAndSpell(nil, contextMenuLastItem.id, spell, true)
+	else
+		-- unlink item
+		ns.Logging.cprint("Unlinking item " .. contextMenuLastItem.id .. " from Phase ArcSpell: " .. spell.commID)
+		ns.UI.ItemIntegration.manageUI.DisconnectItemAndSpell(nil, contextMenuLastItem.id, spell, true)
+	end
+end)
+itemContextMenu_PhaseVaultDropdown:SetWidth(200)
+itemContextMenu_PhaseVaultDropdown:SetPoint("CENTER")
+itemContextMenu_PhaseVaultDropdown:SetMultiselect(true)
+itemContextMenu_PhaseVaultDropdown.frame:Hide()
+Mixin(itemContextMenu_PhaseVaultDropdown.pullout.frame, UIDropDownCustomMenuEntryMixin)
+
+local itemContextMenu_PersonalVaultDropdown = Libs.AceGUI:Create("Dropdown") --[[@as AceGUIDropdown]]
+itemContextMenu_PersonalVaultDropdown:SetCallback("OnValueChanged", function(widget, callback, key, toggled)
+	local spell = Vault.personal.findSpellByID(key)
+	if not spell then error("Arc Error: No Spell with CommID (" .. key .. ") found in the personal vault. How?") end
+	if toggled then
+		-- link item
+		ns.Logging.cprint("Linking item " .. contextMenuLastItem.id .. " with Personal ArcSpell: " .. spell.commID)
+		ns.UI.ItemIntegration.manageUI.ConnectItemAndSpell(nil, contextMenuLastItem.id, spell, false)
+	else
+		-- unlink item
+		ns.Logging.cprint("Unlinking item " .. contextMenuLastItem.id .. " from Personal ArcSpell: " .. spell.commID)
+		ns.UI.ItemIntegration.manageUI.DisconnectItemAndSpell(nil, contextMenuLastItem.id, spell, false)
+	end
+end)
+itemContextMenu_PersonalVaultDropdown:SetWidth(200)
+itemContextMenu_PersonalVaultDropdown:SetPoint("CENTER")
+itemContextMenu_PersonalVaultDropdown:SetMultiselect(true)
+itemContextMenu_PersonalVaultDropdown.frame:Hide()
+Mixin(itemContextMenu_PersonalVaultDropdown.pullout.frame, UIDropDownCustomMenuEntryMixin)
+
+---@param vaultType? string|VaultType
+---@return table spellKVTable Spells Map by CommID = Spell Icon + Name + CommID String
+---@return table spellSortTable Sorted Array of CommIDs
+local function getSpellsForItemContext(vaultType)
+	if not vaultType or not VAULT_TYPE[vaultType:upper()] then vaultType = 'personal' end
+	vaultType = vaultType:lower()
+
+	local spells = {}
+	local sort = {}
+	for commID, spell in pairs(Vault[vaultType].getSpells()) do
+		local iconHeight = 16
+		local icon = CreateTextureMarkup(ns.UI.Icons.getFinalIcon(spell.icon), 24, 24, iconHeight, iconHeight, 0, 1, 0, 1)
+		spells[commID] = ("%s %s (%s)"):format(icon, spell.fullName, spell.commID)
+		table.insert(sort, commID)
+	end
+	table.sort(sort)
+
+	return spells, sort
+end
+
+
+--[[
+-- // Disabled Forge stuff, doesn't make sense to include here tbh, especially since we don't know if they even 'own' this item in order to edit it.
+local forgeCommands = {}
+
+local function safeGetTablePath(table, ...)
+	if not table then return false end
+
+	local tableRef = table
+	local keys = { ... }
+	while #keys > 0 do
+		local innerTable = tableRef[tremove(keys, 1)]
+		if innerTable then
+			tableRef = innerTable
+		else
+			-- that key was unavailable, break out
+			return false
+		end
+	end
+	return tableRef
+end
+
+local function getItemInfoByArgNum(id, num)
+	if not id then id = contextMenuLastItem.id end
+	return select(num, GetItemInfo(id))
+end
+
+local function _GetItemInfoWrapper(num)
+	return function(self, id) return getItemInfoByArgNum(id, num) end
+end
+
+local forgeExtensions = {
+	{ key = "name",          func = _GetItemInfoWrapper(1) },
+	{ key = "link",          func = _GetItemInfoWrapper(2) },
+	{ key = "quality",       func = _GetItemInfoWrapper(3) },
+	{ key = "inventorytype", func = function() return C_Item.GetItemInventoryTypeByID(contextMenuLastItem.id) end },
+	{ key = "class",         func = _GetItemInfoWrapper(12) },
+	{ key = "subclass",      func = _GetItemInfoWrapper(13) },
+}
+
+local forgeExtMap = {}
+for k, v in ipairs(forgeExtensions) do
+	forgeExtMap[v.key] = v.func
+end
+
+local nullFunc = function() end
+local function getExtensionFunc(ext)
+	return forgeExtMap[ext] or nullFunc
+end
+
+local function addForgeCommands()
+	if EpsilonLib then
+		local commands = EpsilonLib.CommandDefinitions
+		if not commands then return end
+
+		local commandDefs = safeGetTablePath(commands, "forge", "item", "set")
+		if not commandDefs then return end
+
+		for k, commandBase in pairs(commandDefs) do
+			if commandBase._info and forgeExtMap[k] then
+				local name = "Set " .. k
+				local syntax = commandBase._info.syntax
+				local full = commandBase._info.full
+				table.insert(forgeCommands, Dropdown.input(name, {
+					set = function(self, text)
+						local command = strjoin(" ", full, contextMenuLastItem.id, text)
+						ARC:CMD(command)
+					end,
+					get = getExtensionFunc(k),
+					placeholder = function() return syntax end,
+				}))
+			end
+		end
+	end
+end
+addForgeCommands()
+--]]
+
+local itemContextMenuList = {
+	Dropdown.header(function() return (contextMenuLastItem.name or "Unknown Item") end),
+	Dropdown.submenu("Link to ArcSpell", {
+		Dropdown.customFrame("Personal", itemContextMenu_PersonalVaultDropdown.pullout.frame),
+		Dropdown.customFrame("Phase", itemContextMenu_PhaseVaultDropdown.pullout.frame, { hidden = function() return not ns.Permissions.isMemberPlus() end }),
+	}),
+	Dropdown.execute("Refresh Item", function() ARC:CMD("forge item request " .. contextMenuLastItem.id) end,
+		{
+			tooltipTitle = function() return ".forge item request " .. contextMenuLastItem.id end,
+			tooltipText = "Requests the custom ItemForge Hotfix data for this item again. Typically not needed, but if information is incorrect, use this to force an update.",
+			hidden = function() return not (contextMenuLastItem.id and contextMenuLastItem.id > 10000000) end
+		}),
+	--[[
+	-- // Disabled Forge stuff, doesn't make sense to include here tbh, especially since we don't know if they even 'own' this item in order to edit it.
+	Dropdown.spacer({ hidden = function() return not (contextMenuLastItem.id and contextMenuLastItem.id > 10000000) end }),
+	Dropdown.submenu("Forge", forgeCommands, {
+		hidden = function() return not (contextMenuLastItem.id and contextMenuLastItem.id > 10000000) end,
+		disabled = function() return #forgeCommands < 1 end,
+	})
+	--]]
+}
+
+
+hooksecurefunc("ContainerFrameItemButton_OnModifiedClick", function(self, button)
+	if (not IsAltKeyDown()) or (button ~= "RightButton") then return end -- Only listen if Alt pressed
+	local itemLocation = ItemLocation:CreateFromBagAndSlot(self:GetParent():GetID(), self:GetID());
+	local itemIsValidItem = itemLocation:IsValid() and C_Item.DoesItemExist(itemLocation);
+	if not itemIsValidItem then return end
+
+	contextMenuLastItem = { id = C_Item.GetItemID(itemLocation), name = C_Item.GetItemName(itemLocation) }
+
+	itemContextMenu_PersonalVaultDropdown:SetList(getSpellsForItemContext(VAULT_TYPE.PERSONAL))
+	itemContextMenu_PersonalVaultDropdown.pullout:Open("TOPLEFT", itemContextMenu_PersonalVaultDropdown.frame, "BOTTOMLEFT", 0, 0)
+	itemContextMenu_PersonalVaultDropdown.pullout.frame:Hide()
+
+	itemContextMenu_PhaseVaultDropdown:SetList(getSpellsForItemContext(VAULT_TYPE.PHASE))
+	itemContextMenu_PhaseVaultDropdown.pullout:Open("TOPLEFT", itemContextMenu_PersonalVaultDropdown.frame, "BOTTOMLEFT", 0, 0)
+	itemContextMenu_PhaseVaultDropdown.pullout.frame:Hide()
+
+	-- kill the 'close' buttons
+	do
+		local self = itemContextMenu_PersonalVaultDropdown.pullout
+		local closebutton = self.items[#self.items]
+		closebutton = tremove(self.items, #self.items)
+		closebutton.frame:Hide()
+
+		local h = #self.items * 16
+		self.itemFrame:SetHeight(h)
+		self.frame:SetHeight(min(h + 34, self.maxHeight)) -- +34: 20 for scrollFrame placement (10 offset) and +14 for item placement
+	end
+	do
+		local self = itemContextMenu_PhaseVaultDropdown.pullout
+		local closebutton = self.items[#self.items]
+		closebutton = tremove(self.items, #self.items)
+		closebutton.frame:Hide()
+
+		local h = #self.items * 16
+		self.itemFrame:SetHeight(h)
+		self.frame:SetHeight(min(h + 34, self.maxHeight)) -- +34: 20 for scrollFrame placement (10 offset) and +14 for item placement
+	end
+
+	local spellsOnThisItemTable = itemsWithSpellsCache[contextMenuLastItem.id]
+
+	if spellsOnThisItemTable then
+		local phaseSpells = spellsOnThisItemTable.phase
+		local personalSpells = spellsOnThisItemTable.personal
+
+		if phaseSpells then
+			for i = 1, #phaseSpells do
+				local spellCommID = phaseSpells[i]
+				local spellIndex = Vault.phase.findSpellIndexByID(spellCommID)
+				itemContextMenu_PhaseVaultDropdown:SetItemValue(spellIndex, true)
+			end
+		end
+
+		if personalSpells then
+			for i = 1, #personalSpells do
+				local spellCommID = personalSpells[i]
+				itemContextMenu_PersonalVaultDropdown:SetItemValue(spellCommID, true)
+			end
+		end
+	end
+
+
+	Dropdown.open(itemContextMenuList, Dropdown.genericDropdownHolder, "cursor")
+end)
 
 --#endregion
 

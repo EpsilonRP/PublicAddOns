@@ -5,6 +5,9 @@ local addonName = ...
 local Constants = ns.Constants
 local Icons = ns.UI.Icons
 local Logging = ns.Logging
+local Utils = ns.Utils
+
+local secondsToMinuteSecondString = Utils.Data.secondsToMinuteSecondString
 
 local eprint = Logging.eprint
 
@@ -160,18 +163,37 @@ local function _ABHook_SetTooltip(self)
 		return
 	end
 	local icon = Icons.getFinalIcon(spell.icon)
+
+	local lines = ns.UI.SpellTooltip.getLines("actionbar", spell, false, true)
+	ns.Utils.Tooltip.rawSetTooltip(self, ns.UI.SpellTooltip.getTitle("actionbar", spell), lines, icon, true)
+
+	--[[
 	GameTooltip:SetText(CreateTextureMarkup(icon, 24, 24, 24, 24, 0, 1, 0, 1) .. spell.fullName, 0.81, 0.18, 1, 1, true)
 
 	if spell.cooldown then
-		GameTooltip:AddDoubleLine(" ", WrapTextInColorCode(("Cooldown: %ss"):format(spell.cooldown), "FFFFFFFF"))
+		GameTooltip:AddDoubleLine(" ", WrapTextInColorCode(("Cooldown: %s"):format(secondsToMinuteSecondString(spell.cooldown)), "FFFFFFFF"))
 	end
+
+	local cooldownRemaining = ns.Actions.Cooldowns.isSpellOnCooldown(spell.commID)
+	if cooldownRemaining then
+		GameTooltip:AddLine(WrapTextInColorCode(
+			("Cooldown remaining: %s"):format(secondsToMinuteSecondString(cooldownRemaining)), "FFFFFFFF"))
+		self.tooltipRefresher = C_Timer.NewTimer(0.33, function() if GameTooltip:GetOwner() == self then self:SetTooltip() end end)
+	end
+
 	if spell.description then
 		GameTooltip:AddLine(NORMAL_FONT_COLOR_CODE .. spell.description .. FONT_COLOR_CODE_CLOSE, 1, 1, 1, true)
 		GameTooltip:AddLine(" ")
 	end
 
 	GameTooltip:AddDoubleLine("Arcanum ID:", WrapTextInColorCode(spell.commID, "FFFFFFFF"))
+	--]]
+
 	GameTooltip:Show()
+
+	C_Timer.After(0, function()
+		if GameTooltip:GetOwner() == self then self:SetTooltip() end
+	end) -- // Hack - Redraw next frame to force it to always be 'up to date'.
 end
 --hooksecurefunc("ActionButton_SetTooltip", _AB_SetTooltip)
 hooksecurefunc(ActionBarActionButtonMixin, "SetTooltip", _ABHook_SetTooltip)
@@ -180,6 +202,9 @@ local function hookTooltip(self)
 	if self.isTTHookedByArc then return end
 	self.isTTHookedByArc = true
 	hooksecurefunc(self, "SetTooltip", _ABHook_SetTooltip)
+	self:HookScript("OnLeave", function(self)
+		if self.tooltipRefresher then self.tooltipRefresher:Cancel() end
+	end)
 end
 
 local function updateButton(self, spellData)
@@ -322,7 +347,7 @@ local function dropSpell(slotFrom)
 end
 
 local function clearButton(self, fromLoad)
---	local actionID = ActionButton_CalculateAction(self)
+	--	local actionID = ActionButton_CalculateAction(self)
 	local actionID = self:CalculateAction()
 
 	PickupAction(actionID)
@@ -401,7 +426,7 @@ dragIcon:SetScript("OnHide", function()
 
 		if not SecureButton_GetModifiedAttribute(slotTo, "type") then return end -- not an action bar button
 		--if not ActionButton_CalculateAction(slotTo) then return end        -- not an action bar button
-		if not slotTo.CalculateAction or not slotTo:CalculateAction() then return end        -- not an action bar button
+		if not slotTo.CalculateAction or not slotTo:CalculateAction() then return end -- not an action bar button
 
 		--print(slotTo:GetName(), slotTo)
 		assignActionButtonArcSpell(slotTo, dragIcon.commID)
@@ -439,10 +464,8 @@ local function makeButtonDraggableToActionBar(button)
 end
 
 local function loadActionButtonsFromRegister()
-
 	for buttonName, commID in pairs(savedActionButtons) do
-
-		if InCombatLockdown() then               -- wait to load until out of combat
+		if InCombatLockdown() then -- wait to load until out of combat
 			eprint("WARNING: You are in Combat. Arcanum cannot load ActionBar overrides while in combat and will attempt to load them again once you exit combat.")
 			local f = CreateFrame("frame")
 			f:RegisterEvent("PLAYER_LEAVE_COMBAT")

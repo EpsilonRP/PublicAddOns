@@ -167,6 +167,22 @@ end
 
 local parseStringToArgs = getCSVArgsFromString
 
+---comment
+---@param seconds number length in seconds
+---@return string timeString the time in either '1m 10s' or '10s' format
+local function secondsToMinuteSecondString(seconds)
+	local timeString
+	if seconds > 60 then
+		-- minute handler..
+		local _min = math.floor(seconds / 60)
+		local _sec = math.ceil(seconds % 60)
+		timeString = _min .. "m " .. _sec .. "s"
+	else
+		timeString = math.ceil(seconds) .. "s"
+	end
+	return timeString
+end
+
 ---------------------------------------------------------
 --- Link Helpers
 ---------------------------------------------------------
@@ -329,8 +345,8 @@ local function indexOf(array, value)
 	return -1
 end
 
-local function do_tables_match_concat( a, b )
-    return table.concat(a) == table.concat(b)
+local function do_tables_match_concat(a, b)
+	return table.concat(a) == table.concat(b)
 end
 
 local function areTablesFunctionallyEquivalent(tableA, tableB)
@@ -339,13 +355,13 @@ local function areTablesFunctionallyEquivalent(tableA, tableB)
 	-- determine which table is larger to get the end
 	-- of our iterator
 	local mismatch = false;
-	for i=1,#longerTable do
-	  if not(tableB[i] == tableA[i]) then
-		mismatch = true;
-		break
-	  end
+	for i = 1, #longerTable do
+		if not (tableB[i] == tableA[i]) then
+			mismatch = true;
+			break
+		end
 	end
-	if not(mismatch) then return true end
+	if not (mismatch) then return true end
 	return false
 end
 ---------------------------------------------------------
@@ -456,6 +472,21 @@ local function isTodayAfterOrEqualDate(date)
 	if rightNow > whatDate then return true else return false end
 end
 
+local function adjustNumbersInRange(inputStr, lowerBound, upperBound, adjustment)
+	local adjustedStr = inputStr
+	local hadUpdate = false
+	for numStr in string.gmatch(inputStr, "%d+") do
+		local num = tonumber(numStr)
+		if num >= lowerBound and num <= upperBound then
+			local newNum = num + adjustment
+			hadUpdate = true
+			adjustedStr = adjustedStr:gsub(num, tostring(newNum))
+		end
+	end
+
+	return adjustedStr, hadUpdate
+end
+
 ---@class Utils_Data
 ns.Utils.Data = {
 	isNotDefined = isNotDefined,
@@ -467,6 +498,8 @@ ns.Utils.Data = {
 	sanitizeNewlinesToCSV = sanitizeNewlinesToCSV,
 	--getCSVArgsFromString = getCSVArgsFromString,
 	parseStringToArgs = parseStringToArgs,
+	secondsToMinuteSecondString = secondsToMinuteSecondString,
+	adjustNumbersInRange = adjustNumbersInRange,
 
 	strsplitTrimTable = strsplitTrimTable,
 	strsplitTrim = strsplitTrim,

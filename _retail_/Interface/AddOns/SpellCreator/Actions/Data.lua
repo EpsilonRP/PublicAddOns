@@ -165,8 +165,12 @@ local ACTION_TYPE = {
 
 	PlayLocalSoundKit = "PlayLocalSoundKit",
 	PlayLocalSoundFile = "PlayLocalSoundFile",
-	--StopLocalSound = "StopLocalSound",
+	StopLocalSoundKit = "StopLocalSoundKit",
+	StopLocalSoundFile = "StopLocalSoundFile",
 	PlayPhaseSound = "PlayPhaseSound",
+
+	PlayMusic = "PlayMusic",
+	StopMusic = "StopMusic",
 
 	TRP3e_Sound_playLocalSoundID = "TRP3e_Sound_playLocalSoundID", -- Broadcast to play a sound by ID to all nearby people // TRP3_API.utils.music.playLocalSoundID(soundID, channel, distance, source)
 	TRP3e_Sound_stopLocalSoundID = "TRP3e_Sound_stopLocalSoundID", -- Broadcast to stop playing a sound to all nearby people // TRP3_API.utils.music.stopLocalSoundID(soundID, channel)
@@ -698,8 +702,17 @@ local actionTypeData = {
 	--#region Sound
 	-- -- -- -- -- -- -- -- --
 
-	[ACTION_TYPE.PlayLocalSoundKit] = scriptAction("Local Sound (Kit)", {
-		command = function(vars) if tonumber(vars) then PlaySound(vars) else PlaySound(SOUNDKIT[vars]) end end,
+	[ACTION_TYPE.PlayLocalSoundKit] = scriptAction("Play Sound (Self - Kit)", {
+		command = function(vars)
+			local soundID = tonumber(vars)
+			if not soundID then soundID = (SOUNDKIT[vars] or SOUNDKIT[string.upper(vars)]) end
+			if not soundID then
+				Logging.eprint(("No Sound Found for '%s'."):format(ns.Utils.Tooltip.genContrastText("vars")))
+				return
+			end
+
+			Scripts.sounds.playSoundID(soundID)
+		end,
 		description = "Play a sound locally (to yourself only), by SoundKit/Sound ID or SoundKit Constant.",
 		dataName = "SoundKit ID / Name",
 		inputDescription = "Accepts multiple IDs/Names, separated by commas, to play multiple sounds at once.",
@@ -707,18 +720,86 @@ local actionTypeData = {
 			Tooltip.genContrastText("IG_BACKPACK_OPEN") ..
 			" or SoundKit ID " ..
 			Tooltip.genContrastText("862") .. " to play the Backpack Opened sound.\n\rUse " .. Tooltip.genContrastText('wowhead.com/sounds') .. " or similar to search for SoundKit/Sound IDs.",
-		revert = nil,
+		revertDesc = "Stops any/all instances of this sound kit ID that was played via Arcanum.",
+		revert = function(vars)
+			local soundID = tonumber(vars)
+			if not soundID then soundID = (SOUNDKIT[vars] or SOUNDKIT[string.upper(vars)]) end
+			if not soundID then
+				Logging.eprint(("No Sound Found for '%s'."):format(ns.Utils.Tooltip.genContrastText("vars")))
+				return
+			end
+
+			Scripts.sounds.stopSoundID(soundID, 0.5)
+		end,
 		selfAble = false,
 	}),
-	[ACTION_TYPE.PlayLocalSoundFile] = scriptAction("Local Sound (File)", {
-		command = function(vars) PlaySoundFile(vars) end,
+	[ACTION_TYPE.PlayLocalSoundFile] = scriptAction("Play Sound (Self - File)", {
+		command = function(vars)
+			--PlaySoundFile(vars)
+			if not vars or vars == "" then return end
+			Scripts.sounds.playSoundFile(vars)
+		end,
 		description = "Play a sound locally (to yourself only), by File ID.",
 		dataName = "File ID",
-		inputDescription = "Accepts multiple IDs, separated by commas, to equip multiple items at once.",
+		inputDescription = "Accepts multiple IDs, separated by commas, to play multiple sounds at once.",
 		example = "Use File ID " .. Tooltip.genContrastText("569593") .. " to play the Level-Up sound.\n\rUse " .. Tooltip.genContrastText('WoW.tools') .. " or similar to look for sound File IDs.",
-		revert = nil,
+		revertDesc = "Stops any/all instances of this sound file ID that was played via Arcanum.",
+		revert = function(vars)
+			if not vars or vars == "" then return end
+			Scripts.sounds.stopSoundFile(vars, 0.5)
+		end,
 		selfAble = false,
 	}),
+	[ACTION_TYPE.StopLocalSoundKit] = scriptAction("Stop Sound (Self - Kit)", {
+		command = function(vars)
+			local soundID = tonumber(vars)
+			if not soundID then soundID = (SOUNDKIT[vars] or SOUNDKIT[string.upper(vars)]) end
+			if not soundID then
+				Logging.eprint(("No Sound Found for '%s'."):format(ns.Utils.Tooltip.genContrastText("vars")))
+				return
+			end
+
+			Scripts.sounds.stopSoundID(soundID, 0.5)
+		end,
+		description = "Stops any/all instances of this sound kit ID that was played via Arcanum.",
+		dataName = "SoundKit ID / Name",
+		inputDescription = "Accepts multiple IDs/names, separated by commas, to stop multiple sounds at once.",
+		example = "Use " ..
+			Tooltip.genContrastText("IG_BACKPACK_OPEN") ..
+			" or SoundKit ID " ..
+			Tooltip.genContrastText("862") .. " to STOP the Backpack Opened sound.\n\rUse " .. Tooltip.genContrastText('wowhead.com/sounds') .. " or similar to search for SoundKit/Sound IDs.",
+		revertDesc = "Play the sound locally (to yourself only), by Sound Kit ID/Name.",
+		revert = function(vars)
+			local soundID = tonumber(vars)
+			if not soundID then soundID = (SOUNDKIT[vars] or SOUNDKIT[string.upper(vars)]) end
+			if not soundID then
+				Logging.eprint(("No Sound Found for '%s'."):format(ns.Utils.Tooltip.genContrastText("vars")))
+				return
+			end
+
+			Scripts.sounds.playSoundID(soundID)
+		end,
+		selfAble = false,
+	}),
+	[ACTION_TYPE.StopLocalSoundFile] = scriptAction("Stop Sound (Self - File)", {
+		command = function(vars)
+			--PlaySoundFile(vars)
+			if not vars or vars == "" then return end
+			Scripts.sounds.stopSoundFile(vars, 0.5)
+		end,
+		description = "Stops any/all instances of this sound file ID that was played via Arcanum.",
+		dataName = "File ID",
+		inputDescription = "Accepts multiple file IDs, separated by commas, to stop multiple sounds at once.",
+		example = "Use File ID " .. Tooltip.genContrastText("569593") .. " to STOP the Level-Up sound.\n\rUse " .. Tooltip.genContrastText('WoW.tools') .. " or similar to look for sound File IDs.",
+		revertDesc = "Play the sound locally (to yourself only), by File ID.",
+		revert = function(vars)
+			if not vars or vars == "" then return end
+			Scripts.sounds.playSoundFile(vars)
+		end,
+		selfAble = false,
+	}),
+
+
 	[ACTION_TYPE.PlayPhaseSound] = serverAction("Phase Sound", {
 		command = "phase playsound @N@",
 		description = "Play a sound to the whole phase. Requires Phase Officer permissions.",
@@ -728,6 +809,31 @@ local actionTypeData = {
 			Tooltip.genContrastText("11466") ..
 			" to play Illidan's 'You are Not Prepared!' voice line to the entire phase.\n\rUse " .. Tooltip.genContrastText('wowhead.com/sounds') .. " to find Sound IDs to use.",
 		revert = nil,
+		selfAble = false,
+	}),
+
+	[ACTION_TYPE.PlayMusic] = scriptAction("Play Music (Self)", {
+		command = Scripts.sounds.playMusic,
+		description =
+			"Play music locally (to yourself only), by File ID only. Music plays on loop until cancelled with a Stop Music action, or a revert.\n\rUse " ..
+			Tooltip.genContrastText("https://old.wow.tools/files/#search=sound/music") .. " to find music IDs.",
+		dataName = "Sound File ID",
+		inputDescription = "The File ID of a sound.",
+		example = Tooltip.genContrastText("53184") .. " to play Darnassus music. RIP Darnassus.",
+		revert = Scripts.sounds.stopMusic,
+		revertDesc =
+		"Stops this specific music, if it's still playing. If another Play Music (Self) action was used after this action but before the revert, this will fail. Use another Stop Music (Self) action instead if needed.",
+		selfAble = false,
+	}),
+	[ACTION_TYPE.StopMusic] = scriptAction("Stop Music (Self)", {
+		command = Scripts.sounds.stopMusic,
+		description = "Stops the currently playing music, or, if an ID is given, only stops it if that was the last played music by a Play Music (Self) action.",
+		dataName = "Blank / Sound File ID",
+		inputDescription = "The File ID of a sound, or leave blank to stop any / all music.",
+		example = "Leave blank to stop ANY currently playing music, OR, i.e., use " ..
+			Tooltip.genContrastText("53184") .. " to only stop the music if the last played music is the Darnassus music (53184).",
+		revert = Scripts.sounds.playMusic,
+		revertDesc = "If given a File ID, a revert will then start playing that music again. Does not work if input is blank however, as it cannot remember what that last music ID was.",
 		selfAble = false,
 	}),
 
@@ -1977,7 +2083,7 @@ local actionTypeData = {
 		command = Scripts.camera.EnableMouselook,
 		description =
 			"Enters mouse look mode; alters the character's movement/facing direction to where your mouse is aiming.\n\rInput: The Key to Exit Mouselook Mode. Exit Keys can accept modifiers (alt, shift, and ctrl) by adding them before the key, separated by a dash (" ..
-			Tooltip.genTooltipText("example", "ALT-SHIFT-Z") .. ").\n\r" .. Tooltip.genContrastText("You must provide an Exit Key!"),
+			Tooltip.genTooltipText("example", "ALT-SHIFT-Z") .. ").\n\r" .. Tooltip.genContrastText("If not given, exit key defaults to 'Escape'."),
 		dataName = "Exit Key",
 		inputDescription =
 		"The Key-Binding to use to Exit Mouselook Mode. Exit Key binds are also cleared as soon as they are ran, meaning you can use it to override a key, and then that key will return to original behavior after done.\n\rEx: Using Z will override Z for Sheathe while in Mouselook mode, but once Mouselook mode is exited, Z will return to Sheathe control.",

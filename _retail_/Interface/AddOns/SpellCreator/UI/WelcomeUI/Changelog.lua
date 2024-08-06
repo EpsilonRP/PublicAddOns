@@ -31,6 +31,8 @@ local versions = {
 			"Talking Heads! #Fancy",
 			"UnitPowerBars!",
 			"New Item ArcTags for making food, drink, and consumables!",
+			"ArcSpell Linked Items now show a better 'Use' text!",
+			"Item ArcTags now support automatic 'Use' text by adding it directly after a tag! (i.e., '<arc_drink>Take a drink!' turns into 'Use: Take a drink!')",
 			"And a whole bunch of bug fixes, quality of life improvements, and Democracy.",
 			"",
 			"##New Features!",
@@ -89,10 +91,18 @@ local versions = {
 				},
 			},
 			"",
-			"Added new 'eat', 'drink', and 'consume' ArcTags for Item Integration. This allows you to quickly and easily make an item a consumable.",
+			"Item Integration Updates",
 			{
-				"'eat' and 'drink' tags will automatically perform an eat or drink animation, respectively. Consume will consume the item, but performs no animation itself.",
-				"Example: `.forge item set desc $item-link Use: Take a drink! <arc_drink>",
+				"ArcSpell descriptions on Linked Items now show in a more natural 'Use' text manner, with an Arc Gem icon to let you know it's an Arcanum.",
+				"Added new 'eat', 'drink', and 'consume' ArcTags for Item Integration. This allows you to quickly and easily make an item a consumable.",
+				{
+					"'eat' and 'drink' tags will automatically perform an eat or drink animation, respectively. Consume will consume the item, but performs no animation itself.",
+					"Example: `.forge item set desc $item-link Use: Take a drink! <arc_drink>",
+				},
+				"ArcTags in item descriptions now support automatic 'Use' text formatting by adding text directly after an ArcTag.",
+				{
+					"Example: Put '<arc_drink>Take a drink!' into an item description & it turns into 'Use: Take a drink!'"
+				}
 			},
 			"",
 			"##Bug Fixes & QOL Changes:",

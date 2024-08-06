@@ -130,6 +130,8 @@ end
 function SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, sound, chatType, timeout)
 	local frame = SCForgeTalkingHeadFrame;
 
+	if not textureKit then textureKit = "Normal" end
+	if not chatType then chatType = "SAY" end
 	textureKit = strlower(textureKit):gsub("^%l", string.upper) -- convert to Proper case
 	chatType = strupper(chatType)                            -- always all caps
 

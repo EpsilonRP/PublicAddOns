@@ -345,7 +345,6 @@ function Epsilon_Merchant_GetPortrait()
 				if ( text ~= "" ) then
 					Epsilon_MerchantFrame_ShowPortrait(Epsilon_MerchantFrame, nil, text, -3, -42)
 				else
-					--print('not works')
 					Epsilon_MerchantFrame_HidePortrait();
 				end
 			end
