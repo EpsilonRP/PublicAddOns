@@ -147,11 +147,13 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
       if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too much result ("..maxgobs.."+), ending the search.") break; end
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
-         currentCatalog[result.fileid] = result
-         currentCatalog[result.fileid].entries = {} --for future usage
+         if not string.find(result.fileid.name, ".wmo") then
+            currentCatalog[result.fileid] = result
+            currentCatalog[result.fileid].entries = {} --for future usage
+         end
          --[[
       else
-         local insert = {text = result.entry, value = #currentCatalog[result.fileid].entries+1}
+         local insert = {text = result.displayid, value = #currentCatalog[result.fileid].entries+1}
          tinsert(currentCatalog[result.fileid].entries, insert)
          ]]
       end
@@ -197,10 +199,10 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
          if (filter == nil or filter:len() < 2) or string.match(gobName:lower(), filter) then
             if not epstiles then --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
-                  tinsert(resultList, {fid = iFileData, name = gobName, entry = gobData.entry--[[, entries = gobData.entries]]})
+                  tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
                end
             else
-               tinsert(resultList, {fid = iFileData, name = gobName, entry = gobData.entry--[[, entries = gobData.entries]]})
+               tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
             end
          end
       end
@@ -212,10 +214,10 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
          if string.match(gobName:lower(), filter) then
             if not epstiles then  --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
-                  tinsert(resultList, {fid = iFileData, name = gobName, entry = gobData.entry--[[, entries = gobData.entries]]})
+                  tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
                end
             else
-               tinsert(resultList, {fid = iFileData, name = gobName, entry = gobData.entry--[[, entries = gobData.entries]]})
+               tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
             end
          else --remove from Epsilon's results catalog the unwanted results
             currentCatalog[iFileData] = nil
@@ -264,8 +266,8 @@ end
 local function setSpawnTooltip(self, gridObject, gobData)
    local null = {}
    if not gobData then gobData = null end
-   --self:SetText(("Left Click to Spawn %s (%s)\nRight Click to select others versions"):format(getGobName(gridObject:GetModelFileID()), gobData.entry or 804602))
-   self:SetText(("Left Click to Spawn %s (%s).\nRight Click to lookup."):format(getGobName(gridObject:GetModelFileID()), gobData.entry or 804602))
+   --self:SetText(("Left Click to Spawn %s (%s)\nRight Click to select others versions"):format(getGobName(gridObject:GetModelFileID()), gobData.displayid or 804602))
+   self:SetText(("Left Click to Spawn %s (%s).\nRight Click to lookup."):format(getGobName(gridObject:GetModelFileID()), gobData.displayid or 804602))
 end
 
 local function ShowGobBrowser()
@@ -356,7 +358,7 @@ local function ShowGobBrowser()
             if not gameObjectsGrid[i][j].buttonSelect.selected and not isGobAlreadyInThere then
                   gameObjectsGrid[i][j].buttonSelect.selected = true
                   gameObjectsGrid[i][j].buttonSelect:LockHighlight()
-                  tinsert(selectedGobs, { id = gameObjectsGrid[i][j]:GetModelFileID(), entry = gameObjectsGrid[i][j].gobData.entry--[[, entries = gameObjectsGrid[i][j].gobData.entries]]} )
+                  tinsert(selectedGobs, { id = gameObjectsGrid[i][j]:GetModelFileID(), displayid = gameObjectsGrid[i][j].gobData.displayid--[[, entries = gameObjectsGrid[i][j].gobData.entries]]} )
             elseif gameObjectsGrid[i][j].buttonSelect.selected then
                gameObjectsGrid[i][j].buttonSelect.selected = false
                gameObjectsGrid[i][j].buttonSelect:UnlockHighlight()
@@ -374,18 +376,18 @@ local function ShowGobBrowser()
 
          --Button for gob spawn
          gameObjectsGrid[i][j].buttonSpawn = StdUi:Button(g, ButtonWSize, ButtonHSize, "Spawn");
-         --gameObjectsGrid[i][j].entryDropdown = StdUi:Dropdown(gameObjectsGrid[i][j].buttonSpawn, ButtonWSize, ButtonHSize, testTable, 1) --entryDropdown declaration
+         --gameObjectsGrid[i][j].displayidDropdown = StdUi:Dropdown(gameObjectsGrid[i][j].buttonSpawn, ButtonWSize, ButtonHSize, testTable, 1) --displayidDropdown declaration
          gameObjectsGrid[i][j].buttonSpawn:SetHighlightTexture("interface\\buttons\\ui-listbox-highlight.blp","ADD")
          gameObjectsGrid[i][j].buttonSpawn:RegisterForClicks("RightButtonUp", "LeftButtonUp")
          gameObjectsGrid[i][j].buttonSpawn:SetScript("OnClick", function(self, arg1) --Will tell us what button was used to click it.
             if arg1 == "LeftButton" then --Spawning
                local gobName = getGobName(gameObjectsGrid[i][j]:GetModelFileID())
                local gobID
-               if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobID = 804602 else gobID = gameObjectsGrid[i][j].gobData.entry end --if talktomequestion_ltblue then entry is...
+               if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobID = -804602 else gobID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Spawning : "..gobName)
                SendChatMessage(".gob spawn "..gobID, "GUILD")
             else --Lookup
-               --gameObjectsGrid[i][j].entryDropdown:ToggleOptions()
+               --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
                local gobName = getGobName(gameObjectsGrid[i][j]:GetModelFileID())
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
                SendChatMessage(".lo ob "..gobName, "GUILD")
@@ -393,7 +395,7 @@ local function ShowGobBrowser()
 
          end)
          StdUi:GlueBottom(gameObjectsGrid[i][j].buttonSpawn, g, (-40 * (4/columns)), 0, "RIGHT");
-         gameObjectsGrid[i][j].buttonSpawn:SetFrameLevel(10) --Force SpawnButton to be on top of entryDropdown
+         gameObjectsGrid[i][j].buttonSpawn:SetFrameLevel(10) --Force SpawnButton to be on top of displayidDropdown
          gameObjectsGrid[i][j].buttonSpawn.toolTip = StdUi:FrameTooltip(gameObjectsGrid[i][j].buttonSpawn, function(self)
                setSpawnTooltip(self, gameObjectsGrid[i][j], gameObjectsGrid[i][j].gobData)
             end,
@@ -403,11 +405,11 @@ local function ShowGobBrowser()
 
          --[[ 
 
-         --Dropdown to select the gob's entry, declared in buttonspawn.
+         --Dropdown to select the gob's displayid, declared in buttonspawn.
 
-         gameObjectsGrid[i][j].entryDropdown:SetFrameLevel(9) --Force spawnButton to be on top
-         gameObjectsGrid[i][j].entryDropdown.optsFrame:SetFrameLevel(11) --but allow the dropdown to overthrow every other button
-         StdUi:GlueBottom(gameObjectsGrid[i][j].entryDropdown, gameObjectsGrid[i][j].buttonSpawn, 0, 0, "RIGHT");
+         gameObjectsGrid[i][j].displayidDropdown:SetFrameLevel(9) --Force spawnButton to be on top
+         gameObjectsGrid[i][j].displayidDropdown.optsFrame:SetFrameLevel(11) --but allow the dropdown to overthrow every other button
+         StdUi:GlueBottom(gameObjectsGrid[i][j].displayidDropdown, gameObjectsGrid[i][j].buttonSpawn, 0, 0, "RIGHT");
          
          --Button for lo ob
          gameObjectsGrid[i][j].buttonLob = StdUi:Button(g, ButtonWSize, ButtonHSize, "Lookup"); 
@@ -527,7 +529,7 @@ local function ShowGobBrowser()
    local function deleteCatalog(catalogValue)
       -- Verify if catalog's position is valid
       if catalogValue > 1 and catalogValue <= #g.db.catalogNameList then
-         -- Delete the entry of catalogNameList
+         -- Delete the displayid of catalogNameList
          local deletedName = g.db.catalogNameList[catalogValue].text
          table.remove(g.db.catalogNameList, catalogValue)
 
@@ -538,7 +540,7 @@ local function ShowGobBrowser()
                end
          end
 
-         -- Delete the entry in userCatalogs
+         -- Delete the displayid in userCatalogs
          catalogValue = catalogValue - 1
          table.remove(g.db.userCatalogs, catalogValue)
          catalogListScrollDown:SetOptions(g.db.catalogNameList)
@@ -756,7 +758,7 @@ local function ShowGobBrowser()
                         else
                            DoesAnyGobWereAdded = true
                            addedGobs = addedGobs..""..getGobName(j.id).."; "
-                           g.db.userCatalogs[value][j.id] = { name = getGobPath(j.id), entry = j.entry--[[, entries = j.entries]]}
+                           g.db.userCatalogs[value][j.id] = { name = getGobPath(j.id), displayid = j.displayid--[[, entries = j.entries]]}
                         end
                      end
 

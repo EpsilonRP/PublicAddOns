@@ -87,11 +87,13 @@ end)
 
 frame:SetScript("OnSizeChanged", function(self)
 	local height, width = self:GetSize()
+	print(height, width)
+	if width < 10 then return end
+
 	local newHeight = width * size.wRatio
 	print(newHeight)
-	self:SetHeight(newHeight)
+	--	self:SetHeight(newHeight)
 end)
-
 
 local function hideSplash()
 	frame:Hide()
