@@ -220,6 +220,12 @@ local itemTag_Scripts = {
 		runExtensionChecks(payload)
 	end,
 
+	togaura = function(payload)
+		if not tonumber(payload.arg) then return end
+		ns.Utils.Aura.toggleAura(tonumber(payload.arg))
+		runExtensionChecks(payload)
+	end,
+
 	---@param payload itemTag_ScriptPayload
 	food = function(payload)
 		cmd("cast 168117")
@@ -271,6 +277,7 @@ local itemTag_Tags = {
 		eat = { script = itemTag_Scripts.food },
 		drink = { script = itemTag_Scripts.drink },
 		consume = { script = itemTag_Scripts.generic_consume },
+		togaura = { script = itemTag_Scripts.togaura },
 	},
 }
 

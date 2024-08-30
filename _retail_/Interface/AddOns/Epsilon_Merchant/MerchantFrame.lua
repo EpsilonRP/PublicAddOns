@@ -78,6 +78,31 @@ StaticPopupDialogs["EPSILON_MERCHANT_SET_SOUND"] = {
 }
 
 -------------------------------------------------------------------------------
+
+StaticPopupDialogs["EPSILON_MERCHANT_SELL_JUNK"] = {
+    text = "Are you sure you want to sell all junk items?",
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    OnAccept = function()
+		for x = 0, NUM_BAG_FRAMES do
+			for y = 1, GetContainerNumSlots(x) do
+				local itemID = GetContainerItemID(x, y);
+				local _, _, _, quality = GetContainerItemInfo(x, y);
+				if quality == Enum.ItemQuality.Poor then
+					local count = GetItemCount( itemID );
+					local name = GetItemInfo( itemID );
+					SendCommand( "additem ".. itemID .." -"..count );
+				end
+			end
+		end
+		Epsilon_MerchantFrame_UpdateRepairButtons()
+    end,
+	showAlert = true,
+	hideOnEscape = true,
+	enterClicksFirstButton = true,
+}
+
+-------------------------------------------------------------------------------
 -- MERCHANT INFO FUNCTIONS
 -------------------------------------------------------------------------------
 
@@ -335,7 +360,7 @@ end
 -- @params itemID The itemID of the item.
 --
 function Epsilon_MerchantRemoveItem( itemID )
-	if not Me.IsPhaseOwner() then
+	if not( Me.IsPhaseOwner() and C_Epsilon.IsDM ) then
 		return
 	end
 	if itemID and type(itemID) == "number" and itemID > 0 and GetItemInfo(itemID) then
@@ -359,7 +384,7 @@ end
 -- @params itemID The itemID of the item.
 --
 function Epsilon_MerchantAddItem( itemID )
-	if not Me.IsPhaseOwner() then
+	if not( Me.IsPhaseOwner() and C_Epsilon.IsDM ) then
 		return
 	end
 	if itemID and type(itemID) == "number" and itemID > 0 and GetItemInfo(itemID) then
@@ -397,7 +422,7 @@ end
 -- @params price The price of the item (in copper).
 --
 function Epsilon_MerchantPriceItem( itemID, price )
-	if not( Me.IsPhaseOwner() and itemID and price ) then
+	if not( Me.IsPhaseOwner() and C_Epsilon.IsDM and itemID and price ) then
 		return
 	end
 	itemID = tonumber( itemID )
@@ -419,7 +444,7 @@ end
 -- *Note: This will PERMANENTLY erase the vendor's stock.
 --
 function Epsilon_MerchantDeleteVendor()
-	if not Me.IsPhaseOwner() then
+	if not( Me.IsPhaseOwner() and C_Epsilon.IsDM ) then
 		return
 	end
 	if Epsilon_MerchantFrame.merchantID then
@@ -547,8 +572,11 @@ local function BuyEpsilon_MerchantItem( itemID, amount )
 		end
 
 		SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
-		C_Timer.After( 0.5, function() Epsilon_Merchant_PlaySound( "buyitem" ) end )
-		Epsilon_MerchantFrame_Update()
+		C_Timer.After( 0.5, function() 
+			Epsilon_Merchant_PlaySound( "buyitem" )
+			Epsilon_MerchantFrame_Update()
+			Epsilon_MerchantFrame_UpdateCurrencies() 
+		end )
 	else
 		PlaySound( 47355 );
 		UIErrorsFrame:AddMessage( select(2, CanAffordMerchantItem( itemID )), 1.0, 0.0, 0.0, 53, 5 );
@@ -565,22 +593,28 @@ end
 local function SellEpsilon_MerchantItem( bag, slot )
 	local itemID = GetContainerItemID( bag, slot );
 	local _, count = GetContainerItemInfo( bag, slot );
+	local vanillaPrice;
+	if itemID then
+		_, _, _, _, _, _, _, _, _, _, vanillaPrice = GetItemInfo( itemID );
+	end
 	if count and count > 0 then
 		Epsilon_MerchantFrame.makingPurchase = true
 		local _, _, price, stackSize, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID )
-		local pricePerUnit = price / stackSize;
-		if ( price and tonumber( price ) ~= nil and price > 0 ) or ( extendedCost and currencyID and currencyAmount ) then
+		if ( price and tonumber( price ) ~= nil ) or ( extendedCost and currencyID ) then
+			local pricePerUnit = price / stackSize;
 			if price then
 				SendCommand( "mod money " .. ( pricePerUnit * count) )
 				SendCommand( "additem "..itemID.." -"..count )
 
-				local item = {
-					itemID = itemID;
-					price = pricePerUnit * count;
-					stackCount = count;
-				}
+				if not( extendedCost ) then
+					local item = {
+						itemID = itemID;
+						price = pricePerUnit * count;
+						stackCount = count;
+					}
 
-				tinsert( EPSILON_ITEM_BUYBACK, 1, item );
+					tinsert( EPSILON_ITEM_BUYBACK, 1, item );
+				end
 			end
 
 			if extendedCost then
@@ -600,13 +634,34 @@ local function SellEpsilon_MerchantItem( bag, slot )
 					tremove( EPSILON_ITEM_BUYBACK, 12 + i );
 				end
 			end
+		elseif EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and not price and vanillaPrice then
+			SendCommand( "mod money " .. ( vanillaPrice * count) );
+			SendCommand( "additem "..itemID.." -"..count );
+			
+			local item = {
+				itemID = itemID;
+				price = vanillaPrice * count;
+				stackCount = count;
+			}
+
+			tinsert( EPSILON_ITEM_BUYBACK, 1, item );
+
+			-- Purge any item data beyond the 12 item cap.
+			if #EPSILON_ITEM_BUYBACK > 12 then
+				for i = 1, #EPSILON_ITEM_BUYBACK do
+					tremove( EPSILON_ITEM_BUYBACK, 12 + i );
+				end
+			end
 		else
 			PlaySound( 47355 );
 			UIErrorsFrame:AddMessage( ERR_VENDOR_NOT_INTERESTED, 1.0, 0.0, 0.0, 53, 5 );
 			return
 		end
 	end
-	Epsilon_MerchantFrame_Update()
+	C_Timer.After( 0.5, function() 
+		Epsilon_MerchantFrame_Update()
+		Epsilon_MerchantFrame_UpdateCurrencies() 
+	end )
 end
 
 -------------------------------------------------------------------------------
@@ -650,6 +705,10 @@ local function BuybackEpsilon_MerchantItem( itemID, amount )
 			break
 		end
 	end
+	C_Timer.After( 0.5, function() 
+		Epsilon_MerchantFrame_Update()
+		Epsilon_MerchantFrame_UpdateCurrencies()
+	end )
 end
 
 -------------------------------------------------------------------------------
@@ -683,7 +742,8 @@ local function SetInventoryCursor( self )
 			return
 		end
 		local _, _, price = GetMerchantItemInfo( itemID );
-		if price and price > 0 then
+		local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo( itemID );
+		if price or ( EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ].allowSellJunk and sellPrice ) then
 			SetCursor("BUY_CURSOR")
 		else
 			SetCursor("BUY_ERROR_CURSOR")
@@ -701,33 +761,81 @@ local function HookCursor()
 end
 
 -------------------------------------------------------------------------------
+-- Update inventory buttons.
+--
+local function UpdateInventoryButtons( self )
+	if not( Epsilon_MerchantFrame.merchantID ) then
+		return
+	end
+
+	local id = self:GetID();
+	local name = self:GetName();
+
+	for i = 1, self.size, 1 do
+		local itemButton = _G[name.."Item"..i];
+		itemButton.JunkIcon:Hide();
+		local _, _, _, quality, _, _, _, _, noValue, itemID = GetContainerItemInfo(id, itemButton:GetID());
+		if itemID then
+			local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo(itemID);
+			if EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and quality == Enum.ItemQuality.Poor then
+				itemButton.JunkIcon:Show();
+			end
+		end
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Check if we have junk items in our inventory to sell.
+--
+local function HaveJunkItems()
+	if not( Epsilon_MerchantFrame.merchantID ) then
+		return
+	end
+
+	local hasJunkItems = false;
+	for x = 0, NUM_BAG_FRAMES do
+		for y = 1, GetContainerNumSlots(x) do
+			local itemID = GetContainerItemID(x, y);
+			local _, _, _, quality = GetContainerItemInfo(x, y);
+			if quality == Enum.ItemQuality.Poor then
+				hasJunkItems = true;
+				break
+			end
+		end
+	end
+	return hasJunkItems
+end
+
+-------------------------------------------------------------------------------
 -- Yo-ho, yo-ho,
 -- Near the hooks I'll never go...
 --
 hooksecurefunc("ContainerFrameItemButton_OnEnter", SetInventoryCursor)
 hooksecurefunc("ContainerFrameItemButton_OnUpdate", SetInventoryCursor)
+hooksecurefunc("ContainerFrame_Update", UpdateInventoryButtons)
 -- hooksecurefunc("ResetCursor", HookCursor)
 -- hooksecurefunc("SetCursor", HookCursor)
 
 function Epsilon_MerchantRefreshItemButtons()
 	if not Epsilon_MerchantFrame.ItemButtons then
-		Epsilon_MerchantFrame.ItemButtons = {}
+		Epsilon_MerchantFrame.ItemButtons = {};
 	end
 
 	local index = 1
 	for x = 0, NUM_BAG_FRAMES, 1 do
 		if ( GetContainerNumSlots(x) > 0 ) then
 			for y = 1, GetContainerNumSlots(x) do
-				local itemButton = Epsilon_MerchantFrame.ItemButtons[index]
+				local originalButton = ContainerFrameUtil_GetItemButtonAndContainer(x, y);
+				local itemButton = Epsilon_MerchantFrame.ItemButtons[index];
 				if not( itemButton ) then
-					itemButton = CreateFrame("Button", "Epsilon_MerchantItemButtonDummy".. (x+1) .."Item"..y, _G["ContainerFrame".. (x+1) .."Item"..y], "Epsilon_MerchantItemButtonDummyTemplate")
-					tinsert( Epsilon_MerchantFrame.ItemButtons, itemButton )
+					itemButton = CreateFrame("Button", "Epsilon_MerchantItemButtonDummy".. (x+1) .."Item"..y, originalButton, "Epsilon_MerchantItemButtonDummyTemplate");
+					tinsert( Epsilon_MerchantFrame.ItemButtons, itemButton );
 				end
-				itemButton:SetPoint("CENTER", _G["ContainerFrame".. (x+1) .."Item"..y], "CENTER", 0, 0)
-				itemButton.x = x
-				itemButton.y = y
-				itemButton:Show()
-				index = index + 1
+				itemButton:SetPoint("CENTER", _G["ContainerFrame".. (x+1) .."Item"..y], "CENTER", 0, 0);
+				itemButton.x = x;
+				itemButton.y = y;
+				itemButton:Show();
+				index = index + 1;
 			end
 		end
 	end
@@ -765,14 +873,22 @@ end
 -------------------------------------------------------------------------------
 
 function Epsilon_MerchantFrame_OnEvent(self, event, ...)
-	if ( event == "UNIT_INVENTORY_CHANGED" ) then
+	if ( event == "UNIT_INVENTORY_CHANGED" or event == "BAG_UPDATE" ) then
 		Epsilon_MerchantFrame_Update();
+		Epsilon_MerchantFrame_UpdateRepairButtons();
+	elseif ( event == "UI_ERROR_MESSAGE" ) then
+		local errorType, msg = ...
+		if msg == "DM mode is ON" then
+			C_Epsilon.IsDM = true;
+		elseif msg == "DM mode is OFF" then
+			C_Epsilon.IsDM = false;
+		end
 	elseif ( event == "GOSSIP_SHOW" ) then
 		Epsilon_Merchant_PlaySound( "greeting" )
 		-- Revert the GossipFrame and MerchantFrame to default.
 		MerchantFrame:SetAlpha(1)
 		MerchantFrame:EnableMouse(true)
-		if Me.IsPhaseOwner() then
+		if Me.IsPhaseOwner() and C_Epsilon.IsDM then
 			GossipFrameEditSoundsButton:Show()
 		else
 			GossipFrameEditSoundsButton:Hide()
@@ -822,15 +938,16 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 						GossipFrame:EnableMouse(false)
 					end)
 					GossipTitleButtonAddVendor:Hide()
-					if Me.IsPhaseOwner() then
+					if Me.IsPhaseOwner() and C_Epsilon.IsDM then
 						GossipTitleButtonRemoveVendor:Show()
 					end
 					break
 				end
 			end
 			if found then
+				Epsilon_Merchant_GetOptions()
 				Epsilon_Merchant_LoadVendor()
-			elseif not( found ) and Me.IsPhaseOwner() then
+			elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
 				GossipTitleButtonAddVendor:Show()
 				GossipTitleButtonRemoveVendor:Hide()
 			end
@@ -896,6 +1013,7 @@ function Epsilon_MerchantFrame_OnShow(self)
 	OpenAllBags(self, forceUpdate);
 
 	Epsilon_MerchantFrame_UpdateCanRepairAll();
+	Epsilon_MerchantFrame_UpdateRepairButtons();
 	PanelTemplates_SetTab(Epsilon_MerchantFrame, 1);
 	Epsilon_MerchantFrame.page = 1;
 
@@ -903,7 +1021,7 @@ function Epsilon_MerchantFrame_OnShow(self)
 	Epsilon_MerchantFrame_Update();
 
 	Epsilon_Merchant_GetPortrait();
-	self.EditMerchantButton:SetShown(Me.IsPhaseOwner())
+	self.EditMerchantButton:SetShown(Me.IsPhaseOwner() and C_Epsilon.IsDM)
 
 	PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN);
 end
@@ -949,7 +1067,7 @@ function Epsilon_MerchantFrame_Update()
 		Epsilon_MerchantFrame.lastTab = Epsilon_MerchantFrame.selectedTab;
 	end
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
-		Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo();
+		Epsilon_MerchantFrame_UpdateMerchantInfo();
 	else
 		Epsilon_MerchantFrame_UpdateBuybackInfo();
 	end
@@ -1015,7 +1133,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo()
+function Epsilon_MerchantFrame_UpdateMerchantInfo()
 	Epsilon_MerchantNameText:SetText(UnitName("NPC"));
 	SetPortraitTexture(Epsilon_MerchantFramePortrait, "NPC");
 
@@ -1041,7 +1159,7 @@ function Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo()
 		local merchantRemove = _G["Epsilon_MerchantItem"..i.."RemoveButton"];
 		-- local merchantRestock = _G["Epsilon_MerchantItem"..i.."RestockButton"];
 		local merchantPrice = _G["Epsilon_MerchantItem"..i.."PriceButton"];
-		if ( itemIndex == numMerchantItems + 1 and Me.IsPhaseOwner() ) then
+		if ( itemIndex == numMerchantItems + 1 and Me.IsPhaseOwner() and C_Epsilon.IsDM ) then
 			-- the "Add Item" button, appended to the vendor's last item
 			SetItemButtonCount(itemButton, 0)
 			SetItemButtonStock(itemButton, 0)
@@ -1165,7 +1283,7 @@ function Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo()
 				SetItemButtonNormalTextureVertexColor(itemButton, 1.0, 1.0, 1.0);
 			end
 
-			if ( Me.IsPhaseOwner() and Epsilon_MerchantFrame.selectedTab == 1 ) then
+			if ( Me.IsPhaseOwner() and C_Epsilon.IsDM and Epsilon_MerchantFrame.selectedTab == 1 ) then
 				merchantRemove:Show();
 				-- if numAvailable == 0 then
 					-- merchantRestock:Show();
@@ -1241,7 +1359,7 @@ function Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo()
 	end
 
 	--
-	if Me.IsPhaseOwner() then
+	if Me.IsPhaseOwner() and C_Epsilon.IsDM then
 		Epsilon_MerchantFrameAddItemButton:Show()
 		Epsilon_MerchantFrameRemoveItemButton:Show()
 	else
@@ -1250,6 +1368,7 @@ function Epsilon_MerchantFrame_UpdateEpsilon_MerchantInfo()
 	end
 
 	-- Show all merchant related items
+	Epsilon_MerchantSellAllJunkButton:Show()
 	Epsilon_MerchantBuyBackItem:Show();
 	Epsilon_MerchantFrameBottomLeftBorder:Show();
 	Epsilon_MerchantFrameBottomRightBorder:Show();
@@ -1369,8 +1488,9 @@ function Epsilon_MerchantFrame_UpdateBuybackInfo()
 	end
 
 	-- Hide all merchant related items
-	Epsilon_MerchantRepairAllButton:Hide()
-	Epsilon_MerchantRepairItemButton:Hide()
+	Epsilon_MerchantSellAllJunkButton:Hide();
+	Epsilon_MerchantRepairAllButton:Hide();
+	Epsilon_MerchantRepairItemButton:Hide();
 	Epsilon_MerchantBuyBackItem:Hide();
 	Epsilon_MerchantPrevPageButton:Hide();
 	Epsilon_MerchantNextPageButton:Hide();
@@ -1582,6 +1702,14 @@ function Epsilon_MerchantFrame_UpdateCanRepairAll()
 end
 
 function Epsilon_MerchantFrame_UpdateRepairButtons()
+	if EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and HaveJunkItems() then
+		Epsilon_MerchantSellAllJunkButton.Icon:SetDesaturated(false);
+		Epsilon_MerchantSellAllJunkButton:Enable();
+	else
+		Epsilon_MerchantSellAllJunkButton.Icon:SetDesaturated(true);
+		Epsilon_MerchantSellAllJunkButton:Disable();
+	end
+
 	if ( CanMerchantRepair() ) then
 		Epsilon_MerchantRepairAllButton:SetWidth(36);
 		Epsilon_MerchantRepairAllButton:SetHeight(36);

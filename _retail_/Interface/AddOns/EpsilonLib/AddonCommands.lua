@@ -172,7 +172,7 @@ C_ChatInfo.RegisterAddonMessagePrefix(EPSI_ADDON_PREFIX)
 --#region API Commands
 -- EpsilonLib.AddonCommands 	...
 -- 	.Register(name <string>, showMessages <boolean>)	-> SendAddonCommand<func>: command<string>, callback<function>, forceShowMessage<boolean>
---  .Send(AddonName <string>, command <string>, callback <function>, forceShowMessage <boolean>)
+--  .Send(AddonName <string>, command <string>, callback <function: success<boolean>, returnMessages[]>, forceShowMessage <boolean>)
 -------------------------------------------
 
 ---Register for AddonCommands, returning a dedicated function for sending commands using our queue & log system for reporting & handling return data.

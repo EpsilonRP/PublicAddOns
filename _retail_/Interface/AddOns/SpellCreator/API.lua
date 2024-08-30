@@ -637,6 +637,8 @@ do
 			}
 		--]]
 	ARC.XAPI.UI.castbar = ns.UI.Castbar
+
+	ARC.XAPI.UI.tooltip = ns.Utils.Tooltip
 end
 
 ARC.XAPI.Sounds = ns.Actions.Data_Scripts.sounds

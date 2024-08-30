@@ -33,8 +33,99 @@ if not Epsilon_Splash then Epsilon_Splash = {} end
 ---------------------------------------------------------------------
 
 local frame = CreateFrame("Frame", "EpsilonSplashFrame", UIParent) -- Our Frame :)
+local size = { x = 882, y = 584 }
+size.wRatio = size.x / size.y
+size.hRatio = size.y / size.x
+
+frame:SetPoint("CENTER")
+frame:SetSize(size.x, size.y)
+
+frame:SetMovable(true)
+frame:EnableMouse(true)
+frame:SetResizable(true)
+frame:SetMaxResize(size.x, size.y)
+frame:SetMinResize(size.x / 2, size.y / 2)
+
+frame:Hide()
+tinsert(UISpecialFrames, frame:GetName())
+
+frame:RegisterForDrag("LeftButton")
+frame:SetScript("OnDragStart", function(self)
+	self:EnableMouse(true)
+	self:RegisterForDrag("LeftButton")
+	self:SetScript("OnMouseDown", function(self)
+		self:Raise()
+	end)
+	self:SetScript("OnDragStart", function(self)
+		self:StartMoving()
+	end)
+	self:SetScript("OnDragStop", function(self)
+		self:StopMovingOrSizing()
+	end)
+end)
+
+local resizeDragger = CreateFrame("BUTTON", nil, frame)
+resizeDragger:SetSize(16, 16)
+resizeDragger:SetPoint("BOTTOMRIGHT", -2, 2)
+resizeDragger:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+resizeDragger:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+resizeDragger:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+resizeDragger:SetScript("OnMouseDown", function(self, button)
+	if button == "LeftButton" then
+		local parent = self:GetParent()
+		self.isScaling = true
+		parent:StartSizing("BOTTOMRIGHT")
+	end
+end)
+resizeDragger:SetScript("OnMouseUp", function(self, button)
+	if button == "LeftButton" then
+		local parent = self:GetParent()
+		self.isScaling = false
+		parent:StopMovingOrSizing()
+	end
+end)
+
+frame:SetScript("OnSizeChanged", function(self)
+	local height, width = self:GetSize()
+	local newHeight = width * size.wRatio
+	print(newHeight)
+	self:SetHeight(newHeight)
+end)
+
+
 local function hideSplash()
 	frame:Hide()
+end
+
+---comment Quick Set-up a On-Click Context Menu in a Region by using quickMenu to handle it.
+---@param self Frame The Frame / Region being called on. Typically just self, so self here too
+---@param menuList table The actual MenuList table to use
+---@param nameOfMenuList? string Optional name to save the menuList to the frame under. I.e., "zones" for the 'Zones' menu to teleport to. Otherwise saved under 'self._menuList'
+local function quickMenu(self, menuList, nameOfMenuList)
+	if not self or not menuList or type(menuList) ~= "table" then return error("Cannot have an empty self-frame or MenuList.") end
+
+	--[[ -- This seems.. pointless. We don't need to save it, the contextual generation is minimal impact to performance?
+	local subTableName = "_menuList"
+	if nameOfMenuList and type(nameOfMenuList) == "string" then
+		subTableName = nameOfMenuList
+	end
+
+	if not self[subTableName] then
+		self[subTableName] = menuList
+	end
+	local subTable_menuList = self[subTableName]
+	--]]
+
+	if not self.contextMenuFrame then
+		self.contextMenuFrame = CreateFrame("Frame", nil, self, "UIDropDownMenuTemplate")
+	end
+	EasyMenu(menuList, self.contextMenuFrame, "cursor", 0, 0, "MENU")
+end
+
+-- Generic Menu Funcs - Input is (self, arg1, arg2)
+-- Lookup Gob
+local function lookupGob(self, term)
+	cmd(("lookup object %s"):format(term))
 end
 
 local defaultSplashWidthOffset = 0.12
@@ -75,46 +166,41 @@ local splashVersions = {
 				title = "New Lands!",
 				lines = "Experience the Shadowlands like never before!\n\rClick to choose a new zone to teleport to!",
 				callback = function(self)
-					if not self.zones then
-						self.zones = {
-							{ text = "Teleport to:",  isTitle = true,      notCheckable = true },
-							{ text = "Ardenweald",    notCheckable = true, func = function() cmd("tele ardenweald") end },
-							{ text = "Bastion",       notCheckable = true, func = function() cmd("tele bastion") end },
-							{ text = "Exile's Reach", notCheckable = true, func = function() cmd("tele exilesreach") end },
-							{ text = "Korthia",       notCheckable = true, func = function() cmd("tele korthia") end },
-							{ text = "The Maw",       notCheckable = true, func = function() cmd("tele themaw") end },
-							{ text = "Maldraxxus",    notCheckable = true, func = function() cmd("tele maldraxxus") end },
-							{ text = "Oribos",        notCheckable = true, func = function() cmd("tele oribos") end },
-							{ text = "Revendreth",    notCheckable = true, func = function() cmd("tele revendreth") end },
-							{
-								text = "Tazavesh",
-								notCheckable = true,
-								hasArrow = true,
-								menuList = {
-									{
-										text = "Main World",
-										notCheckable = true,
-										func = function()
-											cmd("tele tazavesh_mainmap")
-										end
-									},
-									{
-										text = "Instance",
-										notCheckable = true,
-										func = function()
-											cmd("tele tazavesh_instance")
-										end
-									}
+					local menuList = {
+						{ text = "Teleport to:",  isTitle = true,      notCheckable = true },
+						{ text = "Ardenweald",    notCheckable = true, func = function() cmd("tele ardenweald") end },
+						{ text = "Bastion",       notCheckable = true, func = function() cmd("tele bastion") end },
+						{ text = "Exile's Reach", notCheckable = true, func = function() cmd("tele exilesreach") end },
+						{ text = "Korthia",       notCheckable = true, func = function() cmd("tele korthia") end },
+						{ text = "The Maw",       notCheckable = true, func = function() cmd("tele themaw") end },
+						{ text = "Maldraxxus",    notCheckable = true, func = function() cmd("tele maldraxxus") end },
+						{ text = "Oribos",        notCheckable = true, func = function() cmd("tele oribos") end },
+						{ text = "Revendreth",    notCheckable = true, func = function() cmd("tele revendreth") end },
+						{
+							text = "Tazavesh",
+							notCheckable = true,
+							hasArrow = true,
+							menuList = {
+								{
+									text = "Main World",
+									notCheckable = true,
+									func = function()
+										cmd("tele tazavesh_mainmap")
+									end
+								},
+								{
+									text = "Instance",
+									notCheckable = true,
+									func = function()
+										cmd("tele tazavesh_instance")
+									end
 								}
-							},
-							{ text = "Zereth Mortis", notCheckable = true, func = function() cmd("tele zerethmortis") end },
-						}
-					end
+							}
+						},
+						{ text = "Zereth Mortis", notCheckable = true, func = function() cmd("tele zerethmortis") end },
+					}
 
-					if not self.contextMenuFrame then
-						self.contextMenuFrame = CreateFrame("Frame", nil, self, "UIDropDownMenuTemplate")
-					end
-					EasyMenu(self.zones, self.contextMenuFrame, "cursor", 0, 0, "MENU")
+					quickMenu(self, menuList)
 				end,
 			},
 			{
@@ -123,7 +209,7 @@ local splashVersions = {
 				x2 = 871,
 				y2 = 333,
 				title = "New Character Options!",
-				lines = "And did we mention, '.cheat barber' is working again!\n\rClick to start customizing!",
+				lines = "And did we mention, '.cheat barber' is working again!\n\rClick to open the barbershop & start customizing!",
 				callback = function()
 					hideSplash(); cmd("cheat barber")
 				end
@@ -135,13 +221,12 @@ local splashVersions = {
 				y2 = 482,
 				title = "Object Viewer!",
 				lines =
-				"Search, View, and Catalogue objects to your hearts content, thanks to our new Object Viewer AddOn from Warli!\n\rClick to open the viewer!",
+				"Search, Preview, and Catalogue objects to your hearts content, thanks to our new Object Viewer AddOn from Warli!\n\rClick to open the viewer!",
 				callback = function()
 					if IsAddOnLoaded("Epsilon_Viewer") then
 						SlashCmdList["EPSV"]()
 					else
-						print(
-							"Epsilon Viewer doesn't seem to be loaded. Check you have the AddOn enabled!")
+						print("Epsilon Viewer doesn't seem to be loaded. Check you have the AddOn enabled!")
 					end
 				end
 			},
@@ -150,22 +235,43 @@ local splashVersions = {
 				y1 = 338,
 				x2 = 632,
 				y2 = 482,
-				title = "Epsilon Editor Updated!",
+				title = "Over 2,000 new custom objects!",
 				lines =
-				"The Epsilon Editor has been overhauled. First things first, it now works on Windows 11 again!\n\rClick to open the editor!",
-				callback = function()
-					clickMMIcon("Epsilon Editor")
+				"We're not talking Shadowlands objects, no.. Over 2,000 new custom objects unique to Epsilon!\n\rClick to see a list of object categories added & quickly look them up!",
+				callback = function(self)
+					local menuList = {
+						{ text = "Categories (Click to search):", isTitle = true,      notCheckable = true },
+						{ text = "Path Decals",                   notCheckable = true, arg1 = "eps_pathdecal",          func = lookupGob },
+						{ text = "Alien",                         notCheckable = true, arg1 = "eps_alien",              func = lookupGob },
+						{ text = "Astronomer",                    notCheckable = true, arg1 = "eps_astronomer",         func = lookupGob },
+						{ text = "Badlands",                      notCheckable = true, arg1 = "eps_badlands",           func = lookupGob },
+						{ text = "Builder's Haven - Tint",        notCheckable = true, arg1 = "eps_buildershaven_tint", func = lookupGob },
+						{ text = "Ethereal",                      notCheckable = true, arg1 = "eps_ethereal",           func = lookupGob },
+						{ text = "Eversong",                      notCheckable = true, arg1 = "eps_eversong",           func = lookupGob },
+						{ text = "Light Blessed",                 notCheckable = true, arg1 = "eps_lightblessed",       func = lookupGob },
+						{ text = "Mystic",                        notCheckable = true, arg1 = "eps_mystic",             func = lookupGob },
+						{ text = "Opulent",                       notCheckable = true, arg1 = "eps_opulent",            func = lookupGob },
+						{ text = "Pristine",                      notCheckable = true, arg1 = "eps_pristine",           func = lookupGob },
+						{ text = "Royal",                         notCheckable = true, arg1 = "eps_royal",              func = lookupGob },
+						{ text = "Sand Fury",                     notCheckable = true, arg1 = "eps_sandfury",           func = lookupGob },
+						{ text = "Temporal",                      notCheckable = true, arg1 = "eps_temporal",           func = lookupGob },
+						{ text = "Void Elf",                      notCheckable = true, arg1 = "eps_voidelf",            func = lookupGob },
+						{ text = "Void Touched",                  notCheckable = true, arg1 = "eps_voidtouched",        func = lookupGob },
+					}
+
+					for k, v in ipairs(menuList) do
+						v.tooltipTitle = "Look-up Name:"
+						v.tooltipText = v.arg1
+						v.tooltipOnButton = 1
+					end
+
+					quickMenu(self, menuList)
 				end
 			},
-			{ x1 = 635, y1 = 338, x2 = 873, y2 = 482, title = "What is more? MORE!", lines = "..." },
+			{ x1 = 635, y1 = 338, x2 = 873, y2 = 482, title = "Plus more to come!", lines = "This is just the start, we have more cooking! Keep your eyes peeled for upcoming updates & news!" },
 		}
 	},
 }
-
-frame:SetPoint("CENTER")
-frame:SetSize(882, 584)
-frame:Hide()
-tinsert(UISpecialFrames, frame:GetName())
 
 local function highlightFrame_OnEnter(self)
 	self:SetAlpha(1)
@@ -318,7 +424,7 @@ frame:SetScript("OnEvent", eventHandler);
 SLASH_SPLASH1 = '/splash';
 function SlashCmdList.SPLASH(msg, editbox)
 	if msg == "help" then
-		print("CVAR: " .. GetCVar("splashScreenNormal") .. " | LastUpdateVersion: " .. LastUpdateVersion)
+		print("CVAR: " .. GetCVar("splashScreenNormal") .. " | Epsilon_Splash.lastSplash: " .. Epsilon_Splash.lastSplash .. " | Build: " .. build)
 	elseif msg and msg ~= "" then
 		epsilonShowSplash(msg)
 	else

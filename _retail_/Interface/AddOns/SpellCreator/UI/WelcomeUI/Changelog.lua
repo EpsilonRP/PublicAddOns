@@ -57,7 +57,9 @@ local versions = {
 			{
 				"Sparks have received a small overhaul to introduce Spark Types (and added SL ExtraButton Textures)!",
 				"Spark Types allow you to control how a Spark is displayed, and what triggers that Spark.",
-				"New Spark Types include 'Emote' & 'Chat'. These Sparks do not show up with the standard Spark button, and are instead triggered by performing the required emote or saying the correct phrase that is assigned to it in chat.",
+				"New Spark Types include 'Multi-Spark', 'Emote' & 'Chat'.",
+				"Multi-Spark's allow you to include up to 4 ArcSpells on a single 'Spark' frame, using custom made multi-spark frame borders.",
+				"Emote & Chat Sparks do not show up with the standard Spark button, and are instead triggered by performing the required emote or saying the correct phrase that is assigned to it in chat.",
 				ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode(
 					"Example: You can create a Emote-Type Spark at the base of a statue, with %s as the activation emote. You then have to /kneel infront of the statue to activate the Spark!"):format(
 					ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("/kneel")),
@@ -68,9 +70,9 @@ local versions = {
 			{
 				"This includes things like ..",
 				{
-					"Targetting stuff!",
+					"Targeting stuff!",
 					"Importing an ArcSpell - Or Casting an ArcSpell using it's Export code directly! (AKA: Embedding Spells in Spells!)",
-					"Targetting other stuff!",
+					"Targeting other stuff!",
 					"Casting Spells using /cast functionality.",
 					"Follow & various movement modifiers.Versions",
 					"Got another function that's blocked and doesn't have an action? Let us know & we can look into adding it!",
@@ -106,6 +108,7 @@ local versions = {
 			},
 			"",
 			"##Bug Fixes & QOL Changes:",
+			"Spells using Skybox data will be automatically migrated to update their spell IDs upon first load in.",
 			"XAPI calls to check Spark Cooldowns have been added for power-users. See: /dump ARC.XAPI.sparks.Cooldowns",
 			"isSpellOnCooldown XAPI function now accepts 'true' as the phase value to use your current phase instead of specifying a phase ID specifically.",
 			"Added option to Shift-Click the + button on rows in the Forge Editor to copy that row instead of just making a blank row.",

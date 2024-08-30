@@ -173,6 +173,13 @@
 						</Texture>
 					</Layer>
 				</Layers>
+				<Animations>
+					<AnimationGroup parentKey="Hover" looping="REPEAT">
+						<Rotation startDelay="0" smoothing="NONE" childKey="Icon" duration="2" order="1" degrees="360">
+							<Origin point="CENTER"/>
+						</Rotation>
+					</AnimationGroup>
+				</Animations>
 				<Scripts>
 					<OnMouseDown>
 						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
@@ -181,18 +188,20 @@
 						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
 					</OnMouseUp>
 					<OnEnter>
-						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-						GameTooltip:AddLine("|TInterface/Buttons/UI-OptionsButton:12|t Edit Item", 1, 1, 1)
-						GameTooltip:AddLine("Edit the price, stack size, and amount available of this item.", 1.0, 0.81, 0.0, true)
-						GameTooltip:Show()
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("|TInterface/Buttons/UI-OptionsButton:12|t Edit Item", 1, 1, 1);
+						GameTooltip:AddLine("Edit the price, stack size, and amount available of this item.", 1.0, 0.81, 0.0, true);
+						GameTooltip:Show();
+						self.Hover:Play();
 					</OnEnter>
 					<OnClick>
-						PlaySound(83)
-						Epsilon_MerchantItemEditor_Open()
-						Epsilon_MerchantItemEditor_LoadItem( self:GetParent().ItemButton.slotID )
+						PlaySound(83);
+						Epsilon_MerchantItemEditor_Open();
+						Epsilon_MerchantItemEditor_LoadItem( self:GetParent().ItemButton.slotID );
 					</OnClick>
 					<OnLeave>
 						GameTooltip:Hide()
+						self.Hover:Stop();
 					</OnLeave>
 				</Scripts>
 			</Button>
@@ -273,7 +282,7 @@
 						<Anchor point="BOTTOM" x="0" y="86"/>
 					</Anchors>
 				</FontString>
-				<FontString name="Epsilon_MerchantRepairText" inherits="GameFontHighlightSmall" text="REPAIR_ITEMS">
+				<FontString name="Epsilon_MerchantRepairText" inherits="GameFontHighlightSmall" text="REPAIR_ITEMS" hidden="true">
 				  <Anchors>
 					<Anchor point="BOTTOMLEFT" x="16" y="40"/>
 				  </Anchors>
@@ -403,7 +412,40 @@
 					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem11" relativePoint="TOPRIGHT" x="12" y="0"/>
 				</Anchors>
 			</Frame>
-			<Button name="Epsilon_MerchantRepairAllButton">
+			<Button name="Epsilon_MerchantSellAllJunkButton">
+				<Size x="36" y="36"/>
+				<Anchors>
+				  <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" x="157" y="33"/>
+				</Anchors>
+				<Layers>
+				  <Layer level="BACKGROUND">
+					<Texture file="Interface\Buttons\UI-EmptySlot">
+					  <Size x="64" y="64"/>
+					  <Anchors>
+						<Anchor point="TOPLEFT" x="-13" y="14"/>
+					  </Anchors>
+					</Texture>
+				  </Layer>
+				  <Layer level="BORDER">
+					<Texture parentKey="Icon" file="Interface\AddOns\Epsilon_Merchant-dev\Icons\SellJunk">
+					</Texture>
+				  </Layer>
+				</Layers>
+				<Scripts>
+				  <OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:SetText("Sell All Junk Items");
+					GameTooltip:Show();
+				  </OnEnter>
+				  <OnLeave function="GameTooltip_Hide"/>
+				  <OnClick>
+					StaticPopup_Show("EPSILON_MERCHANT_SELL_JUNK");
+				  </OnClick>
+				</Scripts>
+				<PushedTexture file="Interface\Buttons\UI-Quickslot-Depress"/>
+				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+			</Button>
+			<Button name="Epsilon_MerchantRepairAllButton" hidden="true">
 				<Size x="36" y="36"/>
 				<Anchors>
 				  <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" x="172" y="11"/>
@@ -452,7 +494,7 @@
 				<PushedTexture file="Interface\Buttons\UI-Quickslot-Depress"/>
 				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
 			  </Button>
-			<Button name="Epsilon_MerchantRepairItemButton">
+			<Button name="Epsilon_MerchantRepairItemButton" hidden="true">
 				<Size x="36" y="36"/>
 				<Anchors>
 				  <Anchor point="RIGHT" relativeTo="Epsilon_MerchantRepairAllButton" relativePoint="LEFT" x="-2" y="0"/>

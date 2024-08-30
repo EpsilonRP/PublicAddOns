@@ -211,7 +211,7 @@ end
 ---@field updateOnClick boolean?
 ---@field delay (integer | function)?
 ---@field forced boolean?
----@field anchor string?
+---@field anchor string? Custom anchor position - If not given, defaults to left, as standard in WoW
 ---@field predicate function?
 ---@field updateOnUpdate boolean?
 ---@field icon? string | fun(self): string

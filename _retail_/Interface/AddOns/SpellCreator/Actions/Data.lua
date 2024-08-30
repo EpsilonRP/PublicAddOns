@@ -2103,7 +2103,7 @@ local actionTypeData = {
 			MoveViewOutStop()
 			MouselookStop()
 		end,
-		description = "Stops Left & Right Camera Rotations. " ..
+		description = "Stops All Camera Rotations, including Mouselook. " ..
 			Tooltip.genTooltipText("warning", "You should really use a revert delay on the original rotate action instead of this! This can get skipped/cancelled and leave the camera in rotate hell!"),
 		revert = nil,
 		revertAlternative = "another rotate camera action",

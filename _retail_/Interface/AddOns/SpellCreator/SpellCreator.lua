@@ -1276,7 +1276,6 @@ local function addonLoadedHandler()
 	end
 
 	-- Run Spell Migrations on Personal Vault
-	print("MIGS", SpellCreatorSavedSpells)
 	for commID, arc_spell in pairs(SpellCreatorSavedSpells) do
 		ns.Actions.Migrations.migrateSpell(arc_spell)
 	end

@@ -1,15 +1,19 @@
 ### 1.6
 - Added phase ownership checks so only phase owners/officers can access certain features from the Merchant Frame.
-- Merchant will now override the icon for its gossip option to always be the vendor icon.
+- Epsilon: Merchant will now override the icon for its gossip option to always be the vendor icon.
+- Expanded the currency cost options for vendor items to accept up to 3 currency items.
+- Added an 'Allow Players to Sell Junk' option to the Edit Vendor frame.
+	- Vendors with this option enabled can be sold any unlisted item for gold (using its default 'sell price').
 - Fixed an issue where the Merchant Frame was displaying duplicate currencies.
 - Fixed an issue where sellback items were not dispensing and consuming the correct stack count and price.
+- Fixed an issue where the currency frame of the Merchant Frame was not updating after transactions.
 - Inventory tooltips now display sell price based on the given stack count (instead of total stack size).
-- Added silent command calls for (most) commands.
+- Added silent command calls for commands.
 - You can no longer sellback items with no set price.
-- 
 - Changed GOSSIP_SHOW event logic to be less intrusive.
 - Updated for Shadowlands!
 - Gossip functions moved to the C_GossipInfo namespace.
+- Added spin animations to the Edit Item/Vendor 'gear' buttons! :)
 
 ### 1.5
 - Temporarily disabled CanMerchantRepair() until I feel like implementing that...

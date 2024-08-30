@@ -13,46 +13,55 @@ local Me = Epsilon_Merchant;
 --
 function Epsilon_MerchantEditor_Load()
 	Epsilon_Merchant_GetPortrait();
+	Epsilon_Merchant_GetOptions();
 end
 
 -------------------------------------------------------------------------------
 -- Save changes.
 --
 function Epsilon_MerchantEditor_Save()
+	local allowSellJunk = Epsilon_MerchantEditor.allowSellJunk:GetChecked();
 	local greetingEnabled = Epsilon_MerchantEditor.enableGreeting:GetChecked();
+
+	-- Create a table of extra options for vendors.
+	-- (we can expand this later maybe?)
+	--
+
+	local options = {
+		allowSellJunk = allowSellJunk;
+	};
 	
-	if not( greetingEnabled ) then
-		Epsilon_Merchant_SavePortrait( "" );
-		return
+	local greeting = "";
+	if greetingEnabled then
+		greeting = Epsilon_MerchantEditor.greeting.EditBox:GetText();
+	
+		if ( greeting ) then
+			greeting = tostring( greeting );
+		end
+	
+		if string.len( greeting ) < 1 then
+			PlaySound( 47355 );
+			UIErrorsFrame:AddMessage( "That greeting is too short.", 1.0, 0.0, 0.0, 53, 5 );
+			return
+		elseif string.len( greeting ) > 500 then
+			PlaySound( 47355 );
+			UIErrorsFrame:AddMessage( "That greeting is too long.", 1.0, 0.0, 0.0, 53, 5 );
+			return
+		elseif not( Me.IsPhaseOwner() ) then
+			PlaySound( 47355 );
+			UIErrorsFrame:AddMessage( "Only the phase owner and phase officers can change that.", 1.0, 0.0, 0.0, 53, 5 );
+			return
+		end
 	end
 	
-	local greeting = Epsilon_MerchantEditor.greeting.EditBox:GetText();
-	
-	if ( greeting ) then
-		greeting = tostring( greeting );
-	end
-	
-	if string.len( greeting ) < 1 then
-		PlaySound( 47355 );
-		UIErrorsFrame:AddMessage( "That greeting is too short.", 1.0, 0.0, 0.0, 53, 5 );
-		return
-	elseif string.len( greeting ) > 500 then
-		PlaySound( 47355 );
-		UIErrorsFrame:AddMessage( "That greeting is too long.", 1.0, 0.0, 0.0, 53, 5 );
-		return
-	elseif not( Me.IsPhaseOwner() ) then
-		PlaySound( 47355 );
-		UIErrorsFrame:AddMessage( "Only the phase owner and phase officers can change that.", 1.0, 0.0, 0.0, 53, 5 );
-		return
-	end
-	
+	Epsilon_Merchant_SaveOptions( options );
 	Epsilon_Merchant_SavePortrait( greeting );
 	
-	PrintMessage( "SYSTEM", "Vendor greeting saved." )
+	PrintMessage( "SYSTEM", "Vendor options saved." )
 	
+	PlaySound( 83 );
 	Epsilon_MerchantFrame_UpdateCurrencies();
 	Epsilon_MerchantFrame_Update();
-	PlaySound( 83 );
 end
 
 -------------------------------------------------------------------------------
@@ -60,6 +69,7 @@ end
 --
 function Epsilon_MerchantEditor_ClearAllFields()
 	Epsilon_MerchantEditor.greeting.EditBox:SetText( "" );
+	Epsilon_MerchantEditor.allowSellJunk:SetChecked( false );
 	Epsilon_MerchantEditor.enableGreeting:SetChecked( false );
 end
 
