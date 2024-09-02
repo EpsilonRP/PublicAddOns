@@ -304,6 +304,7 @@ do -- item functions
 
 	function mog.Item_FrameUpdate(self, data)
 		local item = data.item
+		self:Undress()
 		self:ApplyDress()
 		-- hack for items not returning any transmog info
 		if not item then return end

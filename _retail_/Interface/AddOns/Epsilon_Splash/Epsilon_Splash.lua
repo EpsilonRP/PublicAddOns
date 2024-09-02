@@ -45,54 +45,61 @@ frame:EnableMouse(true)
 frame:SetResizable(true)
 frame:SetMaxResize(size.x, size.y)
 frame:SetMinResize(size.x / 2, size.y / 2)
+frame:SetClampedToScreen(true)
+frame:SetClampRectInsets(size.x / 2, -size.x / 2, -size.y / 4, size.y / 2)
 
 frame:Hide()
 tinsert(UISpecialFrames, frame:GetName())
 
 frame:RegisterForDrag("LeftButton")
+frame:SetScript("OnMouseDown", function(self)
+	self:Raise()
+end)
 frame:SetScript("OnDragStart", function(self)
-	self:EnableMouse(true)
-	self:RegisterForDrag("LeftButton")
-	self:SetScript("OnMouseDown", function(self)
-		self:Raise()
-	end)
-	self:SetScript("OnDragStart", function(self)
-		self:StartMoving()
-	end)
-	self:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-	end)
+	self:StartMoving()
+end)
+frame:SetScript("OnDragStop", function(self)
+	self:StopMovingOrSizing()
+	self:SetUserPlaced(false) -- don't save..
 end)
 
 local resizeDragger = CreateFrame("BUTTON", nil, frame)
 resizeDragger:SetSize(16, 16)
-resizeDragger:SetPoint("BOTTOMRIGHT", -2, 2)
+resizeDragger:SetPoint("BOTTOMRIGHT", -20, 22)
 resizeDragger:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 resizeDragger:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
 resizeDragger:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+
+-- Dragging functionality
+local initialCursorX, initialCursorY
+local initialScale
+
 resizeDragger:SetScript("OnMouseDown", function(self, button)
 	if button == "LeftButton" then
-		local parent = self:GetParent()
+		-- Store initial cursor position and scale
+		initialCursorX, initialCursorY = GetCursorPosition()
+		initialScale = frame:GetScale()
 		self.isScaling = true
-		parent:StartSizing("BOTTOMRIGHT")
 	end
 end)
+
 resizeDragger:SetScript("OnMouseUp", function(self, button)
 	if button == "LeftButton" then
-		local parent = self:GetParent()
 		self.isScaling = false
-		parent:StopMovingOrSizing()
 	end
 end)
 
-frame:SetScript("OnSizeChanged", function(self)
-	local height, width = self:GetSize()
-	print(height, width)
-	if width < 10 then return end
+resizeDragger:SetScript("OnUpdate", function(self)
+	if not self.isScaling then return end
+	if self:IsMouseEnabled() and initialCursorX and initialCursorY then
+		local currentCursorX, currentCursorY = GetCursorPosition()
+		local scaleChange = (currentCursorX - initialCursorX) / frame:GetWidth()
+		local newScale = math.max(0.5, initialScale + scaleChange) -- Ensure scale doesn't go below 0.5
+		newScale = math.min(newScale, 1)                     -- Ensure scale doesn't go above 1
 
-	local newHeight = width * size.wRatio
-	print(newHeight)
-	--	self:SetHeight(newHeight)
+		-- Apply new scale to the main frame
+		frame:SetScale(newScale)
+	end
 end)
 
 local function hideSplash()
@@ -493,6 +500,7 @@ end
 
 local function showOurSplashInstead(self)
 	if not self then self = SplashFrame end
+	C_SplashScreen.AcknowledgeSplash()
 	self:Hide()
 	showLatestSplash()
 end
