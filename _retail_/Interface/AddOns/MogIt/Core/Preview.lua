@@ -1,4 +1,4 @@
-local MogIt,mog = ...;
+local MogIt, mog = ...;
 local L = mog.L;
 
 local LBI = LibStub("LibBabble-Inventory-3.0"):GetUnstrictLookupTable();
@@ -6,9 +6,9 @@ local LBI = LibStub("LibBabble-Inventory-3.0"):GetUnstrictLookupTable();
 local TITANS_GRIP_SPELLID = 46917
 
 
-mog.view = CreateFrame("Frame","MogItPreview",UIParent);
+mog.view = CreateFrame("Frame", "MogItPreview", UIParent);
 mog.view:SetAllPoints();
-mog.view:SetScript("OnShow",function(self)
+mog.view:SetScript("OnShow", function(self)
 	if #mog.previews == 0 then
 		mog:CreatePreview();
 	end
@@ -16,22 +16,22 @@ mog.view:SetScript("OnShow",function(self)
 		ShowUIPanel(mog.previews[1]);
 	end
 end);
-mog.view:SetScript("OnHide",function(self)
+mog.view:SetScript("OnHide", function(self)
 	if mog.db.profile.singlePreview then
 		HideUIPanel(mog.previews[1]);
 	end
 end);
-tinsert(UISpecialFrames,"MogItPreview");
+tinsert(UISpecialFrames, "MogItPreview");
 --ShowUIPanel(mog.view);
 
 
 function mog:ActivatePreview(preview)
 	mog.activePreview = preview;
-	preview.Bg:SetVertexColor(0.8,0.3,0.8);
+	preview.Bg:SetVertexColor(0.8, 0.3, 0.8);
 	preview.activate:Disable();
-	for k,v in ipairs(mog.previews) do
+	for k, v in ipairs(mog.previews) do
 		if v ~= preview then
-			v.Bg:SetVertexColor(1,1,1);
+			v.Bg:SetVertexColor(1, 1, 1);
 			v.activate:Enable();
 		end
 	end
@@ -39,7 +39,6 @@ function mog:ActivatePreview(preview)
 		mog:UpdateScroll();
 	end
 end
-
 
 --// Preview Functions
 local function raiseAll(self, ...)
@@ -57,8 +56,8 @@ end
 
 local function resizeOnMouseDown(self)
 	local f = self:GetParent();
-	f:SetMinResize(335,385);
-	f:SetMaxResize(GetScreenWidth(),GetScreenHeight());
+	f:SetMinResize(335, 385);
+	f:SetMaxResize(GetScreenWidth(), GetScreenHeight());
 	f:StartSizing();
 end
 
@@ -99,7 +98,7 @@ local function slotOnEnter(self)
 	if self.item then
 		mog.ShowItemTooltip(self, self.item, self.item);
 	else
-		GameTooltip:SetOwner(self,"ANCHOR_RIGHT");
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 		GameTooltip:SetText(_G[strupper(self.slot)]);
 	end
 end
@@ -143,33 +142,30 @@ local function slotOnClick(self, button)
 	elseif button == "LeftButton" and IsControlKeyDown() then
 		if self.item then
 			--print(self.item)
-		local bonusID = self.item:match(":1:(%d*)")
-		--local itemID = self.item:gsub("item:",""):gsub(":0","");
-		local itemID = self.item:match("item:(%d*)");
-		if itemID:match(":1:%d*") then
-
-			--has bonus still
-			--bonusID = itemID:gsub("%d*:", "")
-		end
-		if bonusID ~= nil then
-			--message = "|cff00ccff[MogIt]|r adding item: "..itemID.." with bonus: "..bonusID;
-			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r adding item: "..itemID.." with bonus: "..bonusID);
+			local bonusID = self.item:match(":1:(%d*)")
+			--local itemID = self.item:gsub("item:",""):gsub(":0","");
+			local itemID = self.item:match("item:(%d*)");
+			if itemID:match(":1:%d*") then
+				--has bonus still
+				--bonusID = itemID:gsub("%d*:", "")
 			end
+			if bonusID ~= nil then
+				--message = "|cff00ccff[MogIt]|r adding item: "..itemID.." with bonus: "..bonusID;
+				if not mog.db.profile.toggleMessages then
+					print("|cff00ccff[MogIt]|r adding item: " .. itemID .. " with bonus: " .. bonusID);
+				end
 
-			SendChatMessage(".additem "..itemID.." 1 "..bonusID, "GUILD")
-		--SendChatMessage(".add "..itemID)
-		else
-			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r adding item: "..itemID);
+				SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
+				--SendChatMessage(".add "..itemID)
+			else
+				if not mog.db.profile.toggleMessages then
+					print("|cff00ccff[MogIt]|r adding item: " .. itemID);
+				end
+				SendChatMessage(".add " .. itemID, "GUILD")
 			end
-			SendChatMessage(".add "..itemID, "GUILD")
-		end
-
 		else
 			--do nothing
 		end
-
 	else
 		mog.Item_OnClick(self, button, self, nil, true);
 		-- dropdown is normally not shown for empty slots
@@ -214,7 +210,9 @@ end
 
 local function setWeaponEnchant(self, preview, enchant)
 	preview.data.weaponEnchant = enchant;
-	self.owner:Rebuild(2);
+	if self.owner then
+		self.owner:Rebuild(2);
+	end
 	mog:UpdateScroll();
 	local mainHandItem = preview.slots["MainHandSlot"].item;
 	local offHandItem = preview.slots["SecondaryHandSlot"].item;
@@ -224,6 +222,10 @@ local function setWeaponEnchant(self, preview, enchant)
 	if offHandItem then
 		preview.model:TryOn(format("item:%s:%d", offHandItem:match("item:(%d+)"), preview.data.weaponEnchant), "SecondaryHandSlot");
 	end
+end
+
+function mog:SetPreviewEnchant(preview, enchant)
+	setWeaponEnchant(preview, preview, enchant)
 end
 
 local previewMenu = {
@@ -345,14 +347,14 @@ local function equipNPC(self)
 		print("|cff00ccff[MogIt]|r debug:", currentPreview.data.displayRace, currentPreview.data.displayGender)
 	end
 
-	SendChatMessage(".ph forge npc outfit race "..currentPreview.data.displayRace, "GUILD");
+	SendChatMessage(".ph forge npc outfit race " .. currentPreview.data.displayRace, "GUILD");
 
 	if currentPreview.data.displayGender == 0 then
 		npcGender = "male";
 	else
 		npcGender = "female";
 	end
-	SendChatMessage(".ph forge npc outfit gender "..npcGender, "GUILD");
+	SendChatMessage(".ph forge npc outfit gender " .. npcGender, "GUILD");
 
 	for slot, v in pairs(currentPreview.slots) do
 		--print(v.item);
@@ -361,15 +363,15 @@ local function equipNPC(self)
 			local itemID = v.item:match("item:(%d*)")
 			local bonusID = v.item:match(":1:(%d*)")
 			if itemID then
-				local message = "|cff00ccff[MogIt]|r equipping npc with item: "..itemID;
+				local message = "|cff00ccff[MogIt]|r equipping npc with item: " .. itemID;
 				if bonusID ~= nil then
 					--print("[bonus] itemID "..itemID.." bonusID: "..bonusID)
-					message = message.." bonus: "..bonusID;
-					SendChatMessage(".ph forge npc outfit equip "..itemID.." 1 "..bonusID, "GUILD")
-				--SendChatMessage(".add "..itemID)
+					message = message .. " bonus: " .. bonusID;
+					SendChatMessage(".ph forge npc outfit equip " .. itemID .. " 1 " .. bonusID, "GUILD")
+					--SendChatMessage(".add "..itemID)
 				else
 					--print("[no bonus] itemID "..itemID)
-					SendChatMessage(".ph forge npc outfit equip "..itemID, "GUILD")
+					SendChatMessage(".ph forge npc outfit equip " .. itemID, "GUILD")
 				end
 				if not mog.db.profile.toggleMessages then
 					print(message)
@@ -387,15 +389,15 @@ local function addItems(self)
 			local itemID = v.item:match("item:(%d*)")
 			local bonusID = v.item:match(":1:(%d*)")
 			if itemID then
-				local message = "|cff00ccff[MogIt]|r adding item: "..itemID;
+				local message = "|cff00ccff[MogIt]|r adding item: " .. itemID;
 				if bonusID ~= nil then
 					--print("[bonus] itemID "..itemID.." bonusID: "..bonusID)
-					message = message.." with bonus: "..bonusID;
-					SendChatMessage(".additem "..itemID.." 1 "..bonusID, "GUILD")
+					message = message .. " with bonus: " .. bonusID;
+					SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
 					--SendChatMessage(".add "..itemID)
 				else
 					--print("[no bonus] itemID "..itemID)
-					SendChatMessage(".add "..itemID, "GUILD")
+					SendChatMessage(".add " .. itemID, "GUILD")
 				end
 				if not mog.db.profile.toggleMessages then
 					print(message)
@@ -407,18 +409,16 @@ local function addItems(self)
 end
 
 local function NPCGearLink(self, items)
-
 	local tbl = {};
-			for k, v in pairs(currentPreview.slots) do
-				if v.item then
-					table.insert(tbl, v.item);
+	for k, v in pairs(currentPreview.slots) do
+		if v.item then
+			table.insert(tbl, v.item);
+		end
+	end
+	ChatFrame1EditBox:SetFocus();
+	ChatEdit_InsertLink(mog:NPCSetToLink(tbl, currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant));
 
-				end
-			end
-			ChatFrame1EditBox:SetFocus();
-			ChatEdit_InsertLink(mog:NPCSetToLink(tbl,currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant));
-
-			--currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant
+	--currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant
 end
 
 --EPSILON FUNCS
@@ -437,16 +437,16 @@ local forgeRaces = {
 	"Blood Elf",
 	"Goblin",
 	"Pandaren",
-	"Fel Orc", --12
-	"Naga", --13
-	"Broken", --14
-	"Skeleton", --15
+	"Fel Orc",         --12
+	"Naga",            --13
+	"Broken",          --14
+	"Skeleton",        --15
 	"Vrykul",
-	"Tuskarr", --17
-	"Forest Troll", --18
-	"Taunka", --19
+	"Tuskarr",         --17
+	"Forest Troll",    --18
+	"Taunka",          --19
 	"Northrend Skeleton", --20
-	"Ice Troll", --21
+	"Ice Troll",       --21
 	"Void Elf",
 	"Highmountain Tauren",
 	"Lightforged Draenei",
@@ -458,9 +458,9 @@ local forgeRaces = {
 	"Vulpera",
 	"ThinHuman",
 	"Mechagnome",
- }
+}
 
- local forgeRaceID = {
+local forgeRaceID = {
 	["Human"] = 1,
 	["Orc"] = 2,
 	["Dwarf"] = 3,
@@ -496,7 +496,7 @@ local forgeRaces = {
 	["Mag'har Orc"] = 36,
 	["Mechagnome"] = 37,
 
- }
+}
 
 
 local itemSlots = {
@@ -517,18 +517,17 @@ local itemSlots = {
 };
 
 
-local function setNPCRace(self,_,raceID)
+local function setNPCRace(self, _, raceID)
 	--print(raceID);
-	SendChatMessage(".ph forge npc outfit race "..raceID, "GUILD")
+	SendChatMessage(".ph forge npc outfit race " .. raceID, "GUILD")
 end
 
 local function getItemBagPosition(itemID, bonusID)
-
 	local matchItem = 0;
 
-	for k,v in pairs(itemSlots) do
+	for k, v in pairs(itemSlots) do
 		if GetInventoryItemID("player", v) ~= nil then
-		local eItem = tostring(GetInventoryItemID("player", v));
+			local eItem = tostring(GetInventoryItemID("player", v));
 			if eItem == itemID then
 				matchItem = 1;
 			else
@@ -538,7 +537,7 @@ local function getItemBagPosition(itemID, bonusID)
 
 	for bag = 0, NUM_BAG_SLOTS do
 		for slot = 1, GetContainerNumSlots(bag) do
-			local invItem = GetContainerItemLink(bag,slot);
+			local invItem = GetContainerItemLink(bag, slot);
 			if invItem ~= nil and itemID ~= 0 then
 				if invItem:match(itemID) then
 					--equip item and set item exist flag to 1
@@ -547,15 +546,12 @@ local function getItemBagPosition(itemID, bonusID)
 			else
 			end
 		end
-
 	end
 	if matchItem == 0 and itemID ~= 0 then
-
-		SendChatMessage(".additem "..itemID.." 1 "..bonusID, "GUILD");
-
+		SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD");
 	end
 
---/script for bag = 1, NUM_BAG_SLOTS do	for slot = 1, GetContainerNumSlots(bag) do print(GetContainerItemID(bag,slot)) end end
+	--/script for bag = 1, NUM_BAG_SLOTS do	for slot = 1, GetContainerNumSlots(bag) do print(GetContainerItemID(bag,slot)) end end
 end
 
 local function equipItemFromBag(itemID, slot)
@@ -566,13 +562,12 @@ local function equipItemFromBag(itemID, slot)
 			EquipItemByName(itemID, slot);
 		end, 1)
 		EquipPendingItem(slot);
-end
+	end
 end
 
-local function equipPreviewItems(self,item)
-
+local function equipPreviewItems(self, item)
 	--first unequip all items equipped by player
-	for k,v in pairs(itemSlots) do
+	for k, v in pairs(itemSlots) do
 		PickupInventoryItem(v);
 		if mog.db.profile.delItemsOnEquip then
 			DeleteCursorItem();
@@ -581,46 +576,42 @@ local function equipPreviewItems(self,item)
 		end
 	end
 
---second check if items are in backpack
-for k,v in pairs(currentPreview.slots) do
-	local item = 0;
-	local itemBonus = 0;
-	if v.item ~= nil then
-		item, itemBonus = v.item:match("item%:(%d*)%:(%d*)");
-	end
-	--print(k, v, item, itemBonus)
-	if item ~= nil then
-
-		getItemBagPosition(item, itemBonus)
+	--second check if items are in backpack
+	for k, v in pairs(currentPreview.slots) do
+		local item = 0;
+		local itemBonus = 0;
+		if v.item ~= nil then
+			item, itemBonus = v.item:match("item%:(%d*)%:(%d*)");
+		end
+		--print(k, v, item, itemBonus)
+		if item ~= nil then
+			getItemBagPosition(item, itemBonus)
 			local slotID = GetInventorySlotInfo(k);
 			equipItemFromBag(item, slotID);
 			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r equipping item: "..item)
+				print("|cff00ccff[MogIt]|r equipping item: " .. item)
 			end
-		if k == "MainHandSlot" then
-			--print("MAINHAND", item, GetInventorySlotInfo(k))
-			equipItemFromBag(item, 16)
-			EquipPendingItem(16)
-		end
-		if k == "SecondaryHandSlot" then
-			C_Timer.NewTicker(0.5, function(self)
-				equipItemFromBag(item, slotID);
-			end, 1)
+			if k == "MainHandSlot" then
+				--print("MAINHAND", item, GetInventorySlotInfo(k))
+				equipItemFromBag(item, 16)
+				EquipPendingItem(16)
+			end
+			if k == "SecondaryHandSlot" then
+				C_Timer.NewTicker(0.5, function(self)
+					equipItemFromBag(item, slotID);
+				end, 1)
+			end
 		end
 	end
-end
 
 
--- if not - then add them and equip them
---nested loop
-
+	-- if not - then add them and equip them
+	--nested loop
 end
 --currentPreview.slots ARRAY
 
 local function undressNPC()
-
-	for k,v in pairs(itemSlots) do
-
+	for k, v in pairs(itemSlots) do
 		if k == "OFFHAND" or k == "MAINHAND" or k == "RANGED" then
 			--do nothing
 		else
@@ -629,17 +620,13 @@ local function undressNPC()
 				k = "BODY";
 			end
 
-			SendChatMessage(".ph forge npc outfit unequip "..k, "GUILD");
+			SendChatMessage(".ph forge npc outfit unequip " .. k, "GUILD");
 		end
-
 	end
-
-
 end
 
-local function setNPCGender(self,raceID,genderID)
-
-	SendChatMessage(".ph forge npc outfit race "..raceID, "GUILD")
+local function setNPCGender(self, raceID, genderID)
+	SendChatMessage(".ph forge npc outfit race " .. raceID, "GUILD")
 
 	local genderString = "male";
 	if genderID == 0 then
@@ -648,13 +635,13 @@ local function setNPCGender(self,raceID,genderID)
 		genderString = "female";
 	end
 
-	SendChatMessage(".ph forge npc outfit gender "..genderString, "GUILD")
+	SendChatMessage(".ph forge npc outfit gender " .. genderString, "GUILD")
 end
 
 local function previewInitialize(self, level)
 	if level == 1 then
 		currentPreview = self.parent;
-		
+
 		for i, info in ipairs(previewMenu) do
 			UIDropDownMenu_AddButton(info, level);
 		end
@@ -677,7 +664,7 @@ local function previewInitialize(self, level)
 			info.notCheckable = true;
 			info.func = equipPreviewItems;
 			info.keepShownOnClick = true;
-			self:AddButton(info,level);
+			self:AddButton(info, level);
 
 			info.text = "|cff00ccffToggle Weapon Sheathe|r";
 			info.notCheckable = true;
@@ -716,7 +703,7 @@ local function previewInitialize(self, level)
 		elseif level == 3 then
 			for i, race in ipairs(forgeRaces) do
 				local info = UIDropDownMenu_CreateInfo();
-				info.text = "|cff00ccff"..race.."|r";
+				info.text = "|cff00ccff" .. race .. "|r";
 				--info.checked = selectedRace == raceID[race];
 				--bigRaceID = forgeRaceID[race] -- this isn't even used?
 				info.arg1 = "self.parent";
@@ -731,7 +718,7 @@ local function previewInitialize(self, level)
 		elseif level == 4 then
 			for i = 0, 1 do
 				local info = UIDropDownMenu_CreateInfo();
-				info.text = "|cff00ccff"..gender[i].."|r";
+				info.text = "|cff00ccff" .. gender[i] .. "|r";
 				info.func = setNPCGender;
 				info.notCheckable = true;
 				info.arg1 = self.tier[4];
@@ -740,9 +727,6 @@ local function previewInitialize(self, level)
 				self:AddButton(info, level);
 			end
 		end
-
-
-
 	elseif self.tier[2] == "weaponEnchant" then
 		if level == 2 then
 			local info = UIDropDownMenu_CreateInfo();
@@ -753,7 +737,7 @@ local function previewInitialize(self, level)
 			info.checked = (self.parent.data.weaponEnchant == nil);
 			info.keepShownOnClick = true;
 			self:AddButton(info, level);
-			
+
 			for i, enchantCategory in ipairs(mog.enchants) do
 				local info = UIDropDownMenu_CreateInfo();
 				info.text = enchantCategory.name;
@@ -781,7 +765,7 @@ end
 
 
 --// Save Menu
-local newSet = {items = {}}
+local newSet = { items = {} }
 
 local function onClick(self, set)
 	newSet.name = set
@@ -795,7 +779,7 @@ end
 
 local function newSetOnClick(self)
 	wipe(newSet.items)
-	newSet.name = currentPreview.data.title or ("Set "..(#mog.wishlist:GetSets() + 1))
+	newSet.name = currentPreview.data.title or ("Set " .. (#mog.wishlist:GetSets() + 1))
 	newSet.previewFrame = currentPreview
 	for slot, v in pairs(currentPreview.slots) do
 		newSet.items[slot] = v.item
@@ -805,14 +789,14 @@ end
 
 local function saveInitialize(self, level)
 	currentPreview = self.parent;
-	
+
 	local info = UIDropDownMenu_CreateInfo()
 	info.text = L["New set..."]
 	info.func = newSetOnClick
 	info.colorCode = GREEN_FONT_COLOR_CODE
 	info.notCheckable = true
 	self:AddButton(info, level)
-	
+
 	mog.wishlist:AddSetMenuItems(level, onClick)
 end
 --//
@@ -826,17 +810,17 @@ end
 
 local function loadInitialize(self, level)
 	currentPreview = self.parent;
-	
+
 	if level == 1 then
 		mog.wishlist:AddSetMenuItems(level, onClick)
-		
+
 		local info = UIDropDownMenu_CreateInfo()
 		info.text = L["Other profiles"]
 		info.value = "profiles"
 		info.hasArrow = true
 		info.notCheckable = true
 		self:AddButton(info, level)
-		
+
 		local info = UIDropDownMenu_CreateInfo()
 		info.text = "Wardrobe outfits"
 		info.value = "outfits"
@@ -889,48 +873,48 @@ end;
 
 --// Toolbar
 local function helpOnEnter(self)
-	self.nt:SetColorTexture(1,0.82,0,1);
+	self.nt:SetColorTexture(1, 0.82, 0, 1);
 	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT");
 	GameTooltip:AddLine(L["How to use"]);
 	GameTooltip:AddLine(" ");
 	GameTooltip:AddLine(L["Basic Controls"]);
-	GameTooltip:AddLine(L["Left click and drag horizontally to rotate"],1,1,1);
-	GameTooltip:AddLine(L["Left click and drag vertically to zoom"],1,1,1);
-	GameTooltip:AddLine(L["Right click and drag to move"],1,1,1);
-	GameTooltip:AddLine(L["Click the bottom right corner and drag to resize"],1,1,1);
-	GameTooltip:AddLine(L["Click the \"Activate\" button to set this as the active preview"],1,1,1);
+	GameTooltip:AddLine(L["Left click and drag horizontally to rotate"], 1, 1, 1);
+	GameTooltip:AddLine(L["Left click and drag vertically to zoom"], 1, 1, 1);
+	GameTooltip:AddLine(L["Right click and drag to move"], 1, 1, 1);
+	GameTooltip:AddLine(L["Click the bottom right corner and drag to resize"], 1, 1, 1);
+	GameTooltip:AddLine(L["Click the \"Activate\" button to set this as the active preview"], 1, 1, 1);
 	GameTooltip:AddLine(" ");
 	GameTooltip:AddLine(L["Slot Controls"]);
-	GameTooltip:AddLine(L["Shift + Left click to link an item to chat"],1,1,1);
-	GameTooltip:AddLine(L["Ctrl + Left click to try on an item"],1,1,1);
-	GameTooltip:AddLine(L["|cff00ccffCtrl + Left click to add an item to inventory"],1,1,1);
-	GameTooltip:AddLine(L["Right click to show the item menu"],1,1,1);
-	GameTooltip:AddLine(L["Shift + Right click to show a URL for the item"],1,1,1);
-	GameTooltip:AddLine(L["Ctrl + Right click to remove the item from the preview"],1,1,1);
+	GameTooltip:AddLine(L["Shift + Left click to link an item to chat"], 1, 1, 1);
+	GameTooltip:AddLine(L["Ctrl + Left click to try on an item"], 1, 1, 1);
+	GameTooltip:AddLine(L["|cff00ccffCtrl + Left click to add an item to inventory"], 1, 1, 1);
+	GameTooltip:AddLine(L["Right click to show the item menu"], 1, 1, 1);
+	GameTooltip:AddLine(L["Shift + Right click to show a URL for the item"], 1, 1, 1);
+	GameTooltip:AddLine(L["Ctrl + Right click to remove the item from the preview"], 1, 1, 1);
 	GameTooltip:Show();
 end
 
 local function helpOnLeave(self)
 	GameTooltip:Hide();
-	self.nt:SetColorTexture(0,0,0,0);
+	self.nt:SetColorTexture(0, 0, 0, 0);
 end
 
 local function createMenuBar(parent)
 	local menuBar = mog.CreateMenuBar(parent)
-	
+
 	menuBar.preview = menuBar:CreateMenu(L["Preview"], previewInitialize);
 	menuBar.preview:SetPoint("TOPLEFT", parent, 62, -31);
 
 	menuBar.load = menuBar:CreateMenu(L["Load"], loadInitialize);
 	menuBar.load:SetPoint("LEFT", menuBar.preview, "RIGHT", 5, 0);
-	
+
 	menuBar.save = menuBar:CreateMenu(L["Save"], saveInitialize);
 	menuBar.save:SetPoint("LEFT", menuBar.load, "RIGHT", 5, 0);
-	
+
 	menuBar.help = menuBar:CreateMenu(L["Help"]);
 	menuBar.help:SetPoint("LEFT", menuBar.save, "RIGHT", 5, 0);
-	menuBar.help:SetScript("OnEnter",helpOnEnter);
-	menuBar.help:SetScript("OnLeave",helpOnLeave);
+	menuBar.help:SetScript("OnEnter", helpOnEnter);
+	menuBar.help:SetScript("OnLeave", helpOnLeave);
 end
 --//
 
@@ -964,28 +948,28 @@ function mog:CreatePreview()
 		initPreview(f, leastIndex);
 		f:Show();
 		mog:ActivatePreview(f);
-		tremove(mog.previewBin,1);
+		tremove(mog.previewBin, 1);
 		tinsert(mog.previews, f);
 		return f;
 	end
-	
+
 	mog.previewNum = mog.previewNum + 1;
 	local id = mog.previewNum;
-	local f = CreateFrame("Frame", "MogItPreview"..id, mog.view, "ButtonFrameTemplate");
+	local f = CreateFrame("Frame", "MogItPreview" .. id, mog.view, "ButtonFrameTemplate");
 	initPreview(f, id);
-	
+
 	f:SetToplevel(true);
 	f:SetClampedToScreen(true);
 	f:EnableMouse(true);
 	f:SetMovable(true);
 	f:SetResizable(true);
 	f:Raise();
-	
+
 	f.onCloseCallback = previewOnClose;
-	f.Bg = _G["MogItPreview"..id.."Bg"];
+	f.Bg = _G["MogItPreview" .. id .. "Bg"];
 	--f.Bg:SetVertexColor(0.8,0.3,0.8);
 	ButtonFrameTemplate_HidePortrait(f);
-	
+
 	f.resize = CreateFrame("Button", nil, f);
 	f.resize:SetSize(16, 16);
 	f.resize:SetPoint("BOTTOMRIGHT", -4, 3);
@@ -997,7 +981,7 @@ function mog:CreatePreview()
 	f.resize:SetNormalTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up]]);
 	f.resize:SetPushedTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
 	f.resize:SetHighlightTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]])
-	
+
 	f.slots = {};
 	for i, slotIndex in ipairs(mog.slots) do
 		local slot = CreateFrame("ItemButton", nil, f);
@@ -1007,9 +991,9 @@ function mog:CreatePreview()
 		elseif i == 8 then
 			slot:SetPoint("TOPRIGHT", f.Inset, "TOPRIGHT", -7, -8);
 		elseif i == 12 then
-			slot:SetPoint("TOP", f.slots[mog:GetSlot(i-1)], "BOTTOM", 0, -45);
+			slot:SetPoint("TOP", f.slots[mog:GetSlot(i - 1)], "BOTTOM", 0, -45);
 		else
-			slot:SetPoint("TOP", f.slots[mog:GetSlot(i-1)], "BOTTOM", 0, -4);
+			slot:SetPoint("TOP", f.slots[mog:GetSlot(i - 1)], "BOTTOM", 0, -4);
 		end
 		slot:RegisterForClicks("AnyUp");
 		slot:SetScript("OnClick", slotOnClick);
@@ -1020,7 +1004,7 @@ function mog:CreatePreview()
 		f.slots[slotIndex] = slot;
 		slotTexture(f, slotIndex);
 	end
-	
+
 	f.model = mog:CreateModelFrame(f);
 	f.model.type = "preview";
 	f.model:Show();
@@ -1028,22 +1012,22 @@ function mog:CreatePreview()
 	f.model:SetScript("OnMouseWheel", modelOnMouseWheel);
 	f.model:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 49, -8);
 	f.model:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -49, 8);
-	
-	f.activate = CreateFrame("Button", "MogItPreview"..id.."Activate", f, "MagicButtonTemplate");
+
+	f.activate = CreateFrame("Button", "MogItPreview" .. id .. "Activate", f, "MagicButtonTemplate");
 	f.activate:SetText(L["Activate"]);
 	f.activate:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 5, 5);
 	f.activate:SetWidth(100);
 	f.activate:SetScript("OnClick", previewActivate);
-	
+
 	f:SetScript("OnMouseDown", f.StartMoving);
 	f:SetScript("OnMouseUp", stopMovingOrSizing);
-	
+
 	createMenuBar(f);
 	mog:ActivatePreview(f);
-	
+
 	-- child frames occasionally appears behind the parent for whatever reason, so we raise them here
 	raiseAll(f, f:GetChildren())
-	
+
 	tinsert(mog.previews, f);
 	return f;
 end
@@ -1051,16 +1035,16 @@ end
 function mog:DeletePreview(f)
 	HideUIPanel(f);
 	f:ClearAllPoints();
-	f:SetPoint("CENTER",mog.view,"CENTER");
+	f:SetPoint("CENTER", mog.view, "CENTER");
 	mog.view:Undress(f);
 	wipe(f.data);
 	for k, slot in pairs(f.slots) do
 		slot.history = {};
 	end
-	tinsert(mog.previewBin,f);
-	for k,v in ipairs(mog.previews) do
+	tinsert(mog.previewBin, f);
+	for k, v in ipairs(mog.previews) do
 		if v == f then
-			tremove(mog.previews,k);
+			tremove(mog.previews, k);
 			break;
 		end
 	end
@@ -1166,9 +1150,9 @@ local playerClass = select(2, UnitClass("player"));
 
 function mog.view.AddItem(item, preview, forceSlot, setItem)
 	if not (item and preview) then return end;
-	
+
 	item = mog:NormaliseItemString(item);
-	
+
 	local itemInfo = mog:GetItemInfo(item, "PreviewAddItem");
 	if not itemInfo then
 		tinsert(doCache, {
@@ -1180,7 +1164,7 @@ function mog.view.AddItem(item, preview, forceSlot, setItem)
 		return;
 	end
 	local invType = itemInfo.invType;
-	
+
 	local slot = mog:GetSlot(invType);
 	if type(forceSlot) == "string" then
 		slot = forceSlot;
@@ -1193,14 +1177,14 @@ function mog.view.AddItem(item, preview, forceSlot, setItem)
 					invType = "INVTYPE_WEAPON";
 				end
 			end
-			
+
 			if invType == "INVTYPE_WEAPON" then
 				-- put one handed weapons in the off hand if: main hand is occupied, off hand is free and a two handed weapon isn't equipped
 				if preview.slots["MainHandSlot"].item and not preview.slots["SecondaryHandSlot"].item and not preview.data.twohand then
 					slot = "SecondaryHandSlot";
 				end
 			end
-			
+
 			if invType == "INVTYPE_2HWEAPON" or invType == "INVTYPE_RANGED" or (invType == "INVTYPE_RANGEDRIGHT" and itemInfo.subType ~= LBI["Wands"]) then
 				-- if any two handed weapon is being equipped, first clear up both hands
 				mog.view.DelItem("MainHandSlot", preview);
@@ -1215,7 +1199,7 @@ function mog.view.AddItem(item, preview, forceSlot, setItem)
 				end
 			end
 		end
-		
+
 		if item ~= preview.slots[slot].item then
 			local history = preview.slots[slot].history
 			for i, v in ipairs(history) do
@@ -1241,7 +1225,7 @@ function mog.view.AddItem(item, preview, forceSlot, setItem)
 			end
 			preview.model:TryOn(item, slot);
 			if preview.data.title and not setItem then
-				preview.TitleText:SetText("*"..preview.data.title);
+				preview.TitleText:SetText("*" .. preview.data.title);
 			end
 		end
 	end
@@ -1255,9 +1239,9 @@ function mog.view.DelItem(slot, preview)
 	-- make sure there's never more than five items
 	history[6] = nil;
 	preview.slots[slot].item = nil;
-	slotTexture(preview,slot);
+	slotTexture(preview, slot);
 	if preview.data.title then
-		preview.TitleText:SetText("*"..preview.data.title);
+		preview.TitleText:SetText("*" .. preview.data.title);
 	end
 	if preview:IsVisible() then
 		if invType == "INVTYPE_RANGED" then
@@ -1270,7 +1254,7 @@ end
 function mog:AddToPreview(item, preview, title)
 	if not item then return end;
 	preview = mog:GetPreview(preview or mog.activePreview);
-	
+
 	ShowUIPanel(mog.view);
 	if type(item) == "table" then
 		mog.view:Undress(preview);
@@ -1284,11 +1268,11 @@ function mog:AddToPreview(item, preview, title)
 	else
 		mog.view.AddItem(item, preview);
 	end
-	
+
 	if mog.db.profile.gridDress == "preview" and mog.activePreview == preview then
 		mog:UpdateScroll();
 	end
-	
+
 	return preview;
 end
 
@@ -1313,18 +1297,19 @@ function mog:PreviewFromOutfit(preview, appearanceSources, mainHandEnchant, offH
 	appearanceSources["SecondaryHandSlot"] = select(6, C_TransmogCollection.GetAppearanceSourceInfo(appearanceSources[secondaryHandSlotID]));
 	appearanceSources[mainHandSlotID] = nil;
 	appearanceSources[secondaryHandSlotID] = nil;
-	
+
 	mog:AddToPreview(appearanceSources, preview);
 end
+
 --//
 
 
 --// Hooks
 if not ModifiedItemClickHandlers then
 	ModifiedItemClickHandlers = {};
-	
+
 	local origHandleModifiedItemClick = HandleModifiedItemClick;
-	
+
 	function HandleModifiedItemClick(link)
 		if not link then
 			return false;
@@ -1395,50 +1380,46 @@ local function hookInspectUI()
 		end
 	end
 	for k, v in ipairs(mog.slots) do
-		_G["Inspect"..v]:RegisterForClicks("AnyUp");
-		_G["Inspect"..v]:SetScript("OnClick", onClick);
+		_G["Inspect" .. v]:RegisterForClicks("AnyUp");
+		_G["Inspect" .. v]:SetScript("OnClick", onClick);
 	end
-	
+
 	InspectPaperDollFrame.ViewButton:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 	InspectPaperDollFrame.ViewButton:SetScript("OnClick", function(self, button)
 		if IsControlKeyDown() and button == "RightButton" then
-			mog:PreviewFromOutfit(mog:GetPreview(), C_TransmogCollection.GetInspectSources());
+			mog:PreviewFromOutfit(mog:GetPreview(), C_TransmogCollection.GetInspectItemTransmogInfoList());
 		else
 			InspectPaperDollViewButton_OnClick(self);
 		end
 	end);
-	
+
 	hookInspectUI = nil;
 end
 
 if InspectFrame then
 	hookInspectUI();
 else
-	mog.view:SetScript("OnEvent",function(self, event, addon)
+	mog.view:SetScript("OnEvent", function(self, event, addon)
 		if addon == "Blizzard_AuctionUI" then
 			for i = 1, NUM_BROWSE_TO_DISPLAY do
-				local frame = _G["BrowseButton"..i];
+				local frame = _G["BrowseButton" .. i];
 				if frame then
 					frame:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 				end
-				local iconFrame = _G["BrowseButton"..i.."Item"];
+				local iconFrame = _G["BrowseButton" .. i .. "Item"];
 				if iconFrame then
 					iconFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 				end
 			end
 		end
-		if addon == "Blizzard_EncounterJournal" then
-			for i, button in ipairs(EncounterJournal.encounter.info.lootScroll.buttons) do
-				button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			end
-			
-			-- removed in BFA, to return??
-			-- local LegendariesFrame = EncounterJournal.LootJournal.LegendariesFrame
-			-- for i, button in ipairs(LegendariesFrame.buttons) do
-				-- button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-				-- LegendariesFrame.rightSideButtons[i]:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			-- end
-		end
+		-- if addon == "Blizzard_EncounterJournal" then
+		-- removed in BFA, to return??
+		-- local LegendariesFrame = EncounterJournal.LootJournal.LegendariesFrame
+		-- for i, button in ipairs(LegendariesFrame.buttons) do
+		-- button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		-- LegendariesFrame.rightSideButtons[i]:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		-- end
+		-- end
 		if addon == "Blizzard_InspectUI" then
 			hookInspectUI();
 		end
@@ -1456,15 +1437,15 @@ end
 local function onAccept(self, preview)
 	local text = self.editBox:GetText();
 	if text then
-		local id,bonus = mog:ToNumberItem(text);
+		local id, bonus = mog:ToNumberItem(text);
 		if not id then
-			id,bonus = text:match("item=(%d+)"),text:match("bonus=(%d+)");
+			id, bonus = text:match("item=(%d+)"), text:match("bonus=(%d+)");
 		end
 		if not id then
 			id = text:match("(%d+).-$");
 			bonus = nil;
 		end
-		mog:AddToPreview(mog:ToStringItem(tonumber(id),tonumber(bonus)), preview);
+		mog:AddToPreview(mog:ToStringItem(tonumber(id), tonumber(bonus)), preview);
 	end
 end
 
@@ -1481,7 +1462,7 @@ StaticPopupDialogs["MOGIT_PREVIEW_ADDITEM"] = {
 		onAccept(parent, data);
 		parent:Hide();
 	end,
-	EditBoxOnEscapePressed = HideParentPanel;
+	EditBoxOnEscapePressed = HideParentPanel,
 	exclusive = true,
 	whileDead = true,
 };
@@ -1511,8 +1492,8 @@ StaticPopupDialogs["MOGIT_PREVIEW_IMPORT"] = {
 		local str;
 		for k, v in pairs(preview.slots) do
 			if v.item then
-				local id,bonus = mog:ToNumberItem(v.item);
-				str = (str and str..":" or L["http://www.wowhead.com/"].."compare?items=")..id..(bonus and ".0.0.0.0.0.0.0.0.0."..bonus or "")
+				local id, bonus = mog:ToNumberItem(v.item);
+				str = (str and str .. ":" or L["http://www.wowhead.com/"] .. "compare?items=") .. id .. (bonus and ".0.0.0.0.0.0.0.0.0." .. bonus or "")
 			end
 		end
 		self.editBox:SetText(str or "");

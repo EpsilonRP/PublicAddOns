@@ -1,54 +1,54 @@
-local MogIt,mog = ...;
+local MogIt, mog = ...;
 local L = mog.L;
 
 local LBR = LibStub("LibBabble-Race-3.0"):GetUnstrictLookupTable();
 
 local races = {
-   "Human",
-   "Dwarf",
-   "Night Elf",
-   "Gnome",
-   "Draenei",
-   "Worgen",
-   "Orc",
-   "Undead",
-   "Tauren",
-   "Troll",
-   "Blood Elf",
-   "Goblin",
-   "Pandaren",
-   "Lightforged Draenei",
-   "Void Elf",
-   "Dark Iron Dwarf",
-   "Kul Tiran",
-   "Highmountain Tauren",
-   "Nightborne",
-   "Mag'har Orc",
-   "Zandalari Troll",
+	"Human",
+	"Dwarf",
+	"Night Elf",
+	"Gnome",
+	"Draenei",
+	"Worgen",
+	"Orc",
+	"Undead",
+	"Tauren",
+	"Troll",
+	"Blood Elf",
+	"Goblin",
+	"Pandaren",
+	"Lightforged Draenei",
+	"Void Elf",
+	"Dark Iron Dwarf",
+	"Kul Tiran",
+	"Highmountain Tauren",
+	"Nightborne",
+	"Mag'har Orc",
+	"Zandalari Troll",
 }
 
 local raceID = {
-   ["Human"] = 1,
-   ["Orc"] = 2,
-   ["Dwarf"] = 3,
-   ["Night Elf"] = 4,
-   ["Undead"] = 5,
-   ["Tauren"] = 6,
-   ["Gnome"] = 7,
-   ["Troll"] = 8,
-   ["Goblin"] = 9,
-   ["Blood Elf"] = 10,
-   ["Draenei"] = 11,
-   ["Worgen"] = 22,
-   ["Pandaren"] = 24,
-   ["Nightborne"] = 27,
-   ["Highmountain Tauren"] = 28,
-   ["Void Elf"] = 29,
-   ["Lightforged Draenei"] = 30,
-   ["Zandalari Troll"] = 31,
-   ["Kul Tiran"] = 32,
-   ["Dark Iron Dwarf"] = 34,
-   ["Mag'har Orc"] = 36,
+	["Human"] = 1,
+	["Orc"] = 2,
+	["Dwarf"] = 3,
+	["Night Elf"] = 4,
+	["Undead"] = 5,
+	["Tauren"] = 6,
+	["Gnome"] = 7,
+	["Troll"] = 8,
+	["Goblin"] = 9,
+	["Blood Elf"] = 10,
+	["Draenei"] = 11,
+	["Worgen"] = 22,
+	["Pandaren"] = 24,
+	["Nightborne"] = 27,
+	["Highmountain Tauren"] = 28,
+	["Void Elf"] = 29,
+	["Lightforged Draenei"] = 30,
+	["Zandalari Troll"] = 31,
+	["Kul Tiran"] = 32,
+	["Dark Iron Dwarf"] = 34,
+	["Mag'har Orc"] = 36,
 }
 
 -- UnitRace returns differently for the following races, so need to include exceptions
@@ -74,11 +74,11 @@ mog.displayGender = myGender
 mog.sheathe = false
 
 local ModelFramePrototype = CreateFrame("Button")
-local ModelFrame_MT = {__index = ModelFramePrototype}
+local ModelFrame_MT = { __index = ModelFramePrototype }
 
 --// mog.frame
 mog.frame:SetPoint("CENTER");
-mog.frame:SetSize(252,108);
+mog.frame:SetSize(252, 108);
 mog.frame:SetToplevel(true);
 mog.frame:SetClampedToScreen(true);
 mog.frame:EnableMouse(true);
@@ -94,20 +94,20 @@ local function stopMovingOrSizing(self)
 end
 mog.frame:SetScript("OnMouseUp", stopMovingOrSizing);
 mog.frame:SetScript("OnHide", stopMovingOrSizing);
-tinsert(UISpecialFrames,"MogItFrame");
+tinsert(UISpecialFrames, "MogItFrame");
 
 mog.frame.TitleText:SetText("MogIt");
-mog.frame.TitleText:SetPoint("RIGHT",mog.frame,"RIGHT",-28,0);
+mog.frame.TitleText:SetPoint("RIGHT", mog.frame, "RIGHT", -28, 0);
 mog.frame.portrait:SetTexture("Interface\\AddOns\\MogIt\\Images\\MogIt");
-mog.frame.portrait:SetTexCoord(0,106/128,0,105/128);
-MogItFrameBg:SetVertexColor(0.8,0.3,0.8);
+mog.frame.portrait:SetTexCoord(0, 106 / 128, 0, 105 / 128);
+MogItFrameBg:SetVertexColor(0.8, 0.3, 0.8);
 
-mog.frame.resize = CreateFrame("Button",nil,mog.frame);
-mog.frame.resize:SetSize(16,16);
-mog.frame.resize:SetPoint("BOTTOMRIGHT",-4,3);
+mog.frame.resize = CreateFrame("Button", nil, mog.frame);
+mog.frame.resize:SetSize(16, 16);
+mog.frame.resize:SetPoint("BOTTOMRIGHT", -4, 3);
 mog.frame.resize:SetHitRectInsets(0, -4, 0, -3)
 mog.frame.resize:SetScript("OnMouseDown", function(self)
-	mog.frame:SetMinResize(510,350);
+	mog.frame:SetMinResize(510, 350);
 	mog.frame:SetMaxResize(GetScreenWidth(), GetScreenHeight());
 	mog.frame:StartSizing();
 end);
@@ -120,11 +120,11 @@ mog.frame.resize:SetNormalTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up
 mog.frame.resize:SetPushedTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
 mog.frame.resize:SetHighlightTexture([[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]])
 
-mog.frame.path = mog.frame:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");
-mog.frame.path:SetPoint("BOTTOMLEFT",mog.frame,"BOTTOMLEFT",17,10);
+mog.frame.path = mog.frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
+mog.frame.path:SetPoint("BOTTOMLEFT", mog.frame, "BOTTOMLEFT", 17, 10);
 
-mog.frame.page = mog.frame:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall");
-mog.frame.page:SetPoint("BOTTOMRIGHT",mog.frame,"BOTTOMRIGHT",-17,10);
+mog.frame.page = mog.frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
+mog.frame.page:SetPoint("BOTTOMRIGHT", mog.frame, "BOTTOMRIGHT", -17, 10);
 --//
 
 
@@ -142,49 +142,49 @@ function mog:CreateModelFrame(parent)
 		f.parent = parent;
 		f:SetParent(parent);
 		--f:Show();
-		tremove(mog.modelBin,1);
+		tremove(mog.modelBin, 1);
 		return f;
 	end
-	
-	local f = setmetatable(CreateFrame("Button",nil,parent), ModelFrame_MT);
+
+	local f = setmetatable(CreateFrame("Button", nil, parent), ModelFrame_MT);
 	f:Hide();
-	
+
 	f.parent = parent;
 	f.data = {};
 	f.indicators = {};
-	
-	f.model = CreateFrame("DressUpModel",nil,f);
+
+	f.model = CreateFrame("DressUpModel", nil, f);
 	f.model:SetAllPoints(f);
 	f.model:SetModelScale(2);
 	f.model:SetUnit("PLAYER");
-	f.model:SetPosition(0,0,0);
+	f.model:SetPosition(0, 0, 0);
 	f.model:SetLight(true, false, 0, 0.8, -1, 1, 1, 1, 1, 0.3, 1, 1, 1);
-	
-	f.bg = f:CreateTexture(nil,"BACKGROUND");
+
+	f.bg = f:CreateTexture(nil, "BACKGROUND");
 	f.bg:SetAllPoints(f);
-	f.bg:SetColorTexture(0.3,0.3,0.3,0.2);
-	
+	f.bg:SetColorTexture(0.3, 0.3, 0.3, 0.2);
+
 	f:RegisterForClicks("AnyUp");
-	f:RegisterForDrag("LeftButton","RightButton");
-	f:SetScript("OnShow",f.OnShow);
-	f:SetScript("OnHide",f.OnHide);
-	f:SetScript("OnUpdate",f.OnUpdate);
-	f:SetScript("OnDragStart",f.OnDragStart);
-	f:SetScript("OnDragStop",f.OnDragStop);
-	
+	f:RegisterForDrag("LeftButton", "RightButton");
+	f:SetScript("OnShow", f.OnShow);
+	f:SetScript("OnHide", f.OnHide);
+	f:SetScript("OnUpdate", f.OnUpdate);
+	f:SetScript("OnDragStart", f.OnDragStart);
+	f:SetScript("OnDragStop", f.OnDragStop);
+
 	return f;
 end
 
 function mog:DeleteModelFrame(f)
 	f:Hide();
 	f:ClearAllPoints();
-	f:SetScript("OnClick",nil);
-	f:SetScript("OnEnter",nil);
-	f:SetScript("OnLeave",nil);
-	f:SetScript("OnMouseWheel",nil);
+	f:SetScript("OnClick", nil);
+	f:SetScript("OnEnter", nil);
+	f:SetScript("OnLeave", nil);
+	f:SetScript("OnMouseWheel", nil);
 	f.model:SetSheathed(false);
 	f:EnableMouseWheel(false);
-	for ind,frame in pairs(f.indicators) do
+	for ind, frame in pairs(f.indicators) do
 		frame:Hide();
 	end
 	wipe(f.data);
@@ -207,7 +207,6 @@ function mog:DeleteCatalogueModel(n)
 	mog:DeleteModelFrame(mog.models[n]);
 	tremove(mog.models, n);
 end
-
 
 function ModelFramePrototype:OnClick(button, ...)
 	if mog.active and mog.active.OnClick then
@@ -232,7 +231,7 @@ end
 function ModelFramePrototype:OnShow()
 	local lvl = self:GetParent():GetFrameLevel();
 	if self:GetFrameLevel() <= lvl then
-		self:SetFrameLevel(lvl+1);
+		self:SetFrameLevel(lvl + 1);
 	end
 	self:ResetModel();
 	if self.type == "preview" then
@@ -252,7 +251,7 @@ function ModelFramePrototype:OnHide()
 	if mog.modelUpdater.model == self then
 		mog:StopModelUpdater();
 	end
-	self.model:SetPosition(0,0,0);
+	self.model:SetPosition(0, 0, 0);
 end
 
 function ModelFramePrototype:OnUpdate()
@@ -292,7 +291,7 @@ local tryOnSlots = {
 
 function ModelFramePrototype:TryOn(item, slot, itemAppearanceModID)
 	if type(item) == "number" then
-		item = "item:"..item
+		item = "item:" .. item
 	end
 	self.model:TryOn(item, tryOnSlots[slot] or slot, itemAppearanceModID);
 end
@@ -304,8 +303,9 @@ function ModelFramePrototype:Undress()
 		local item = GetInventoryItemLink("player", slot);
 		if item then
 			self:TryOn(item);
-			self:UndressSlot(slot);
+			--self:UndressSlot(slot);
 		end
+		self:UndressSlot(slot)
 	end
 	self:UndressSlot(GetInventorySlotInfo("MainHandSlot"));
 	self:UndressSlot(GetInventorySlotInfo("SecondaryHandSlot"));
@@ -354,7 +354,7 @@ function mog.DressFromPreview(model, previewFrame)
 	if not previewFrame then
 		return;
 	end
-	
+
 	for id, slot in pairs(previewFrame.slots) do
 		if slot.item then
 			model:TryOn(format(gsub(slot.item, "item:(%d+):0", "item:%1:%%d"), previewFrame.data.weaponEnchant), slot.slot, slot.itemAppearanceModID);
@@ -364,17 +364,18 @@ function mog.DressFromPreview(model, previewFrame)
 		end
 	end
 end
+
 --//
 
 
 --// Model Updater
-mog.modelUpdater = CreateFrame("Frame",nil,UIParent);
+mog.modelUpdater = CreateFrame("Frame", nil, UIParent);
 mog.modelUpdater:Hide();
-mog.modelUpdater:SetScript("OnUpdate",function(self,elapsed)
-	local cX,cY = GetCursorPosition();
-	local dX = (cX-self.pX)/50;
-	local dY = (cY-self.pY)/50;
-	
+mog.modelUpdater:SetScript("OnUpdate", function(self, elapsed)
+	local cX, cY = GetCursorPosition();
+	local dX = (cX - self.pX) / 50;
+	local dY = (cY - self.pY) / 50;
+
 	if (mog.db.profile.sync or self.model.type == "catalogue") then
 		if self.btn == "LeftButton" then
 			mog.posZ = mog.posZ + dY;
@@ -383,7 +384,7 @@ mog.modelUpdater:SetScript("OnUpdate",function(self,elapsed)
 			mog.posX = mog.posX + dX;
 			mog.posY = mog.posY + dY;
 		end
-		for id,model in ipairs(mog.models) do
+		for id, model in ipairs(mog.models) do
 			model:PositionModel();
 		end
 		if mog.db.profile.sync then
@@ -402,14 +403,14 @@ mog.modelUpdater:SetScript("OnUpdate",function(self,elapsed)
 		end
 		self.model:PositionModel();
 	end
-	
-	self.pX,self.pY = cX,cY;
+
+	self.pX, self.pY = cX, cY;
 end);
 
 function mog:StartModelUpdater(model, btn)
 	mog.modelUpdater.btn = btn;
 	mog.modelUpdater.model = model;
-	mog.modelUpdater.pX,mog.modelUpdater.pY = GetCursorPosition();
+	mog.modelUpdater.pX, mog.modelUpdater.pY = GetCursorPosition();
 	mog.modelUpdater:Show();
 end
 
@@ -418,16 +419,18 @@ function mog:StopModelUpdater()
 	mog.modelUpdater.btn = nil;
 	mog.modelUpdater.model = nil;
 end
+
 --//
 
 
 --// Indicators
 mog.indicators = {};
 
-function mog:CreateIndicator(name,func)
+function mog:CreateIndicator(name, func)
 	if mog.indicators[name] then return end;
 	mog.indicators[name] = func;
 end
+
 --//
 
 
@@ -441,32 +444,32 @@ updater:SetScript("OnUpdate", function(self)
 end);
 
 
-mog.scroll = CreateFrame("Slider","MogItScroll",mog.frame,"UIPanelScrollBarTrimTemplate");
+mog.scroll = CreateFrame("Slider", "MogItScroll", mog.frame, "UIPanelScrollBarTrimTemplate");
 mog.scroll:Hide();
-mog.scroll:SetPoint("TOPRIGHT",mog.frame.Inset,"TOPRIGHT",1,-17);
-mog.scroll:SetPoint("BOTTOMRIGHT",mog.frame.Inset,"BOTTOMRIGHT",1,16);
+mog.scroll:SetPoint("TOPRIGHT", mog.frame.Inset, "TOPRIGHT", 1, -17);
+mog.scroll:SetPoint("BOTTOMRIGHT", mog.frame.Inset, "BOTTOMRIGHT", 1, 16);
 mog.scroll:SetValueStep(1);
-mog.scroll:SetScript("OnValueChanged",function(self,value,isUserInput)
+mog.scroll:SetScript("OnValueChanged", function(self, value, isUserInput)
 	if isUserInput then
 		self:SetValue(value);
 		value = self:GetValue();
 	end
-	self:update(nil,nil,value);
+	self:update(nil, nil, value);
 end);
 
 mog.scroll.up = MogItScrollScrollUpButton;
 mog.scroll.down = MogItScrollScrollDownButton;
-mog.scroll.up:SetScript("OnClick",function(self)
-	mog.scroll:update(nil,-1);
+mog.scroll.up:SetScript("OnClick", function(self)
+	mog.scroll:update(nil, -1);
 end);
-mog.scroll.down:SetScript("OnClick",function(self)
-	mog.scroll:update(nil,1);
+mog.scroll.down:SetScript("OnClick", function(self)
+	mog.scroll:update(nil, 1);
 end);
 
 function mog.scroll.update(self, value, offset, onscroll)
 	local models = #mog.models;
-	local total = ceil(#mog.list/models);
-	
+	local total = ceil(#mog.list / models);
+
 	if onscroll then
 		value = onscroll;
 	else
@@ -478,7 +481,7 @@ function mog.scroll.update(self, value, offset, onscroll)
 		else
 			self:Hide();
 		end
-		
+
 		local old = self:GetValue();
 		value = (value or old or 1) + (offset or 0);
 		if value ~= old then
@@ -497,17 +500,17 @@ function mog.scroll.update(self, value, offset, onscroll)
 	else
 		self.down:Enable();
 	end
-	
+
 	if mog.Item_Menu:IsShown() or mog.Set_Menu:IsShown() then
 		HideDropDownMenu(1);
 	end
-	
+
 	if mog.active and mog.active.OnScroll then
 		mog.active:OnScroll();
 	end
-	
+
 	for id, frame in ipairs(mog.models) do
-		local index = ((value-1)*models)+id;
+		local index = ((value - 1) * models) + id;
 		local value = mog.list[index];
 		wipe(frame.data);
 		if value then
@@ -536,14 +539,14 @@ function mog.scroll.update(self, value, offset, onscroll)
 			frame:Disable();
 		end
 	end
-	
+
 	if total > 0 then
 		mog.frame.page:SetText(MERCHANT_PAGE_NUMBER:format(value, total));
 		mog.frame.page:Show();
 	else
 		mog.frame.page:Hide();
 	end
-	
+
 	-- incorrect models may be tried on when items aren't cached, this queues another update if uncached items were found
 	if mog.doModelUpdate then
 		updater:Show();
@@ -563,56 +566,58 @@ function mog:ModelUpdate(frame, value)
 		mog.active:FrameUpdate(frame, value);
 	end
 end
+
 --//
 
 
 --// GUI
 function mog:GetModelSize()
-	local x = floor((mog.db.profile.gridWidth+5-(4+10)-(10+18+4))/mog.db.profile.columns)-5;
-	local y = floor((mog.db.profile.gridHeight+5-(60+10)-(10+26))/mog.db.profile.rows)-5;
-	return x,y;
+	local x = floor((mog.db.profile.gridWidth + 5 - (4 + 10) - (10 + 18 + 4)) / mog.db.profile.columns) - 5;
+	local y = floor((mog.db.profile.gridHeight + 5 - (60 + 10) - (10 + 26)) / mog.db.profile.rows) - 5;
+	return x, y;
 end
 
 function mog:UpdateGUI(resize)
 	local profile = mog.db.profile;
-	local rows,columns = profile.rows,profile.columns;
-	local total = rows*columns;
+	local rows, columns = profile.rows, profile.columns;
+	local total = rows * columns;
 	local current = #mog.models;
-	local modelWidth,modelHeight = mog:GetModelSize();
-	
+	local modelWidth, modelHeight = mog:GetModelSize();
+
 	if not resize then
 		if current > total then
-			for i=current,(total+1),-1 do
+			for i = current, (total + 1), -1 do
 				mog:DeleteCatalogueModel(i);
 			end
 		elseif current < total then
-			for i=(current+1),total,1 do
+			for i = (current + 1), total, 1 do
 				mog:CreateCatalogueModel();
 			end
 		end
 		mog.frame:SetPoint(profile.point, profile.x, profile.y);
-		mog.frame:SetSize(profile.gridWidth,profile.gridHeight);
+		mog.frame:SetSize(profile.gridWidth, profile.gridHeight);
 		if mog.frame:IsShown() then
 			mog.scroll:update();
 		end
 	end
-	
-	for row=1,rows do
-		for column=1,columns do
-			local n = ((row-1)*columns)+column;
+
+	for row = 1, rows do
+		for column = 1, columns do
+			local n = ((row - 1) * columns) + column;
 			if not resize then
-				if n==1 then
-					mog.models[n]:SetPoint("TOPLEFT",mog.frame.Inset,"TOPLEFT",10,-10);
-				elseif column==1 then
-					mog.models[n]:SetPoint("TOPLEFT",mog.models[n-columns],"BOTTOMLEFT",0,-5);
+				if n == 1 then
+					mog.models[n]:SetPoint("TOPLEFT", mog.frame.Inset, "TOPLEFT", 10, -10);
+				elseif column == 1 then
+					mog.models[n]:SetPoint("TOPLEFT", mog.models[n - columns], "BOTTOMLEFT", 0, -5);
 				else
-					mog.models[n]:SetPoint("TOPLEFT",mog.models[n-1],"TOPRIGHT",5,0);
+					mog.models[n]:SetPoint("TOPLEFT", mog.models[n - 1], "TOPRIGHT", 5, 0);
 				end
 			end
-			mog.models[n]:SetSize(modelWidth,modelHeight);
+			mog.models[n]:SetSize(modelWidth, modelHeight);
 		end
 	end
 end
+
 --//
 
 
@@ -642,11 +647,11 @@ local function menuOnEnter(self)
 			self.menuBar:ToggleMenu(nil, self);
 		end
 	end
-	self.nt:SetColorTexture(1,0.82,0,1);
+	self.nt:SetColorTexture(1, 0.82, 0, 1);
 end
 
 local function menuOnLeave(self)
-	self.nt:SetColorTexture(0,0,0,0);
+	self.nt:SetColorTexture(0, 0, 0, 0);
 end
 
 local function createMenu(menuBar, label, func)
@@ -654,22 +659,22 @@ local function createMenu(menuBar, label, func)
 	f:SetText(label);
 	f:SetNormalFontObject(GameFontNormal);
 	f:SetHighlightFontObject(GameFontBlack);
-	f:SetSize(f:GetFontString():GetStringWidth()+10, f:GetFontString():GetStringHeight()+10);
+	f:SetSize(f:GetFontString():GetStringWidth() + 10, f:GetFontString():GetStringHeight() + 10);
 	f.menuBar = menuBar
 	f.menuBar.xOffset = 0
 	f.menuBar.yOffset = 0
-	
-	f.nt = f:CreateTexture(nil,"BACKGROUND");
+
+	f.nt = f:CreateTexture(nil, "BACKGROUND");
 	--nt:SetColorTexture(0.8,0.3,0.8,1);
-	f.nt:SetColorTexture(0,0,0,0);
+	f.nt:SetColorTexture(0, 0, 0, 0);
 	f.nt:SetAllPoints(f);
 	f:SetNormalTexture(f.nt);
-	
+
 	f.func = func;
-	f:SetScript("OnClick",menuOnClick);
-	f:SetScript("OnEnter",menuOnEnter);
-	f:SetScript("OnLeave",menuOnLeave);
-	
+	f:SetScript("OnClick", menuOnClick);
+	f:SetScript("OnEnter", menuOnEnter);
+	f:SetScript("OnLeave", menuOnLeave);
+
 	return f;
 end
 
@@ -695,27 +700,27 @@ mog.menu.modules = mog.menu:CreateMenu(L["Modules"], function(self, tier)
 		info.isTitle = true;
 		info.notCheckable = true;
 		info.justifyH = "CENTER";
-		UIDropDownMenu_AddButton(info,tier);
-		
-		for k,v in ipairs(mog.moduleList) do
+		UIDropDownMenu_AddButton(info, tier);
+
+		for k, v in ipairs(mog.moduleList) do
 			if v.base and v.Dropdown then
 				v:Dropdown(tier);
 			end
 		end
-		
+
 		info = UIDropDownMenu_CreateInfo();
 		info.isTitle = true;
 		info.notCheckable = true;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		info = UIDropDownMenu_CreateInfo();
 		info.text = L["Extra Modules"];
 		info.isTitle = true;
 		info.notCheckable = true;
 		info.justifyH = "CENTER";
-		UIDropDownMenu_AddButton(info,tier);
-		
-		for k,v in ipairs(mog.moduleList) do
+		UIDropDownMenu_AddButton(info, tier);
+
+		for k, v in ipairs(mog.moduleList) do
 			if (not v.base) and v.Dropdown then
 				v:Dropdown(tier);
 			end
@@ -813,61 +818,61 @@ mog.menu.catalogue = mog.menu:CreateMenu(L["Catalogue"], function(self, tier)
 		info.text = mog.filt:IsShown() and L["Hide Filters"] or L["Show Filters"];
 		info.notCheckable = true;
 		info.func = mog.ToggleFilters;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = L["Sorting"];
 		info.value = "sorting";
 		info.notCheckable = true;
 		info.hasArrow = true;
 		info.disabled = not (mog.active and mog.active.sorting and #mog.active.sorting > 0);
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = RACE;
 		info.value = "race";
 		info.notCheckable = true;
 		info.hasArrow = true;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = "Gender";
 		info.value = "gender";
 		info.notCheckable = true;
 		info.hasArrow = true;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = L["Weapon enchant"];
 		info.value = "weaponEnchant";
 		info.notCheckable = true;
 		info.hasArrow = true;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = L["Dress models"];
 		info.value = "gridDress";
 		info.notCheckable = true;
 		info.hasArrow = true;
-		UIDropDownMenu_AddButton(info,tier);
-		
+		UIDropDownMenu_AddButton(info, tier);
+
 		local info = UIDropDownMenu_CreateInfo();
 		info.text = L["Sheathe weapons"];
 		info.checked = mog.sheathe;
 		info.isNotRadio = true;
 		info.func = setSheathe;
-		UIDropDownMenu_AddButton(info,tier);
+		UIDropDownMenu_AddButton(info, tier);
 	elseif self.tier[2] == "sorting" then
 		if tier == 2 then
 			if mog.active and mog.active.sorting then
-				for k,v in ipairs(mog.active.sorting) do
+				for k, v in ipairs(mog.active.sorting) do
 					if mog.sorting[v] and mog.sorting[v].Dropdown then
-						mog.sorting[v].Dropdown(self,mog.active,tier);
+						mog.sorting[v].Dropdown(self, mog.active, tier);
 					end
 				end
 			end
 		elseif self.tier[3] and self.tier[3].Dropdown then
-			self.tier[3].Dropdown(mog.active,tier);
+			self.tier[3].Dropdown(mog.active, tier);
 		end
 	elseif self.tier[2] == "race" then
 		mog:CreateRaceMenu(self, tier, setDisplayModel, mog.displayRace)
@@ -882,7 +887,7 @@ mog.menu.catalogue = mog.menu:CreateMenu(L["Catalogue"], function(self, tier)
 			info.checked = mog.weaponEnchant == nil;
 			info.keepShownOnClick = true;
 			self:AddButton(info, tier);
-			
+
 			for i, enchantCategory in ipairs(mog.enchants) do
 				local info = UIDropDownMenu_CreateInfo();
 				info.text = enchantCategory.name;
@@ -912,7 +917,7 @@ mog.menu.catalogue = mog.menu:CreateMenu(L["Catalogue"], function(self, tier)
 				info.func = setGridDress;
 				info.checked = mog.db.profile.gridDress == k;
 				info.keepShownOnClick = true;
-				self:AddButton(info,tier);
+				self:AddButton(info, tier);
 			end
 		end
 	end
@@ -941,21 +946,21 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 		info.text = L["New Preview"];
 		info.notCheckable = true;
 		info.func = newPreview;
-		UIDropDownMenu_AddButton(info,tier);
+		UIDropDownMenu_AddButton(info, tier);
 	end
-	
+
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = mog.view:IsShown() and L["Hide Previews"] or L["Show Previews"];
 	info.notCheckable = true;
 	info.func = mog.TogglePreview;
-	UIDropDownMenu_AddButton(info,tier);
-	
+	UIDropDownMenu_AddButton(info, tier);
+
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = L["Synchronize Positioning"];
 	info.checked = mog.db.profile.sync;
 	info.func = syncPreviews;
 	info.isNotRadio = true;
-	UIDropDownMenu_AddButton(info,tier);
+	UIDropDownMenu_AddButton(info, tier);
 
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = L["|cff00ccffAuto-Preview MogIt NPC Names|r"];
@@ -967,7 +972,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.func = togOption;
 	info.arg1 = "autoShowMogNPCNamePreviews"
 	info.isNotRadio = true;
-	UIDropDownMenu_AddButton(info,tier);
+	UIDropDownMenu_AddButton(info, tier);
 
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = L["|cff00ccffUse Character for Auto-Preview|r"];
@@ -979,7 +984,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.func = togOption;
 	info.arg1 = "useCurrentCharForMogAutoPreviews"
 	info.isNotRadio = true;
-	UIDropDownMenu_AddButton(info,tier);
+	UIDropDownMenu_AddButton(info, tier);
 end);
 mog.menu.preview:SetPoint("LEFT", mog.menu.catalogue, "RIGHT", 5, 0);
 --//
@@ -1011,7 +1016,7 @@ help:SetScript("OnEnter", function(self)
 	GameTooltip:AddLine(L["Left click and drag vertically to zoom"], 1, 1, 1);
 	GameTooltip:AddLine(L["Right click and drag to move"], 1, 1, 1);
 	GameTooltip:AddLine(L["|cff00ccffFind links in MogIt's options to submit bug reports/missing items.|r"], 1, 1, 1);
-	GameTooltip:AddLine(L["|cff00ccffPress "..GetBindingKey("TOGGLESHEATH").." to toggle weapon sheathe.|r"], 1, 1, 1);
+	GameTooltip:AddLine(L["|cff00ccffPress " .. GetBindingKey("TOGGLESHEATH") .. " to toggle weapon sheathe.|r"], 1, 1, 1);
 
 
 	local info = mog.active and mog.active.Help
