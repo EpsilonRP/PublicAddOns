@@ -308,7 +308,7 @@ local function autoOrder(isGroup)
 end
 
 local addonOptions = {
-	name = "Epsilon Minimap Launcher Tray - Options",
+	name = "Epsilon Minimap Tray - Options",
 	handler = addon,
 	type = "group",
 	args = {
@@ -368,7 +368,7 @@ end
 
 local launcherLDB = LibStub("LibDataBroker-1.1"):NewDataObject(ADDON_NAME, {
 	type = "data source",
-	text = "Epsilon AddOns Launcher",
+	text = "Epsilon AddOns Tray",
 	icon = CONSTANTS.assetsPath .. "EpsilonTrayIcon",
 	OnClick = function(self, button)
 		if button == "RightButton" then

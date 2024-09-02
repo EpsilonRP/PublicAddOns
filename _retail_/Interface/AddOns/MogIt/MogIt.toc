@@ -1,7 +1,7 @@
 ## Interface: 90207
 ## Title: MogIt
 ## Author: Aelobin (The Maelstrom EU) & Lombra (Defias Brotherhood EU)
-## Version: v3.9.7
+## Version: v3.9.7e
 ## SavedVariables: MogItDB, MogItWishlist
 ## OptionalDeps: DataStore_Containers
 ## Notes: Transmogrification Assistant, edited for Epsilon
