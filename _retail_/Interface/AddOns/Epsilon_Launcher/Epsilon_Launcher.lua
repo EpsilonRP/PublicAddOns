@@ -53,7 +53,8 @@ local _defaultDB = {
 	profile = {
 		minimap = {
 			hide = false,
-			maxCols = 4
+			maxCols = 4,
+			minimapPos = 244.8523982880371
 		},
 	},
 }
