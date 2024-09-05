@@ -147,7 +147,7 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
       if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too much result ("..maxgobs.."+), ending the search.") break; end
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
-         if not string.find(result.fileid.name, ".wmo") then
+         if not string.find(result.name, ".wmo") then
             currentCatalog[result.fileid] = result
             currentCatalog[result.fileid].entries = {} --for future usage
          end
@@ -167,12 +167,14 @@ local function getGobName(fid)
    elseif fid == 130738 then
       return "talktomequestionmark.m2" --Since i'm not using the GobList anymore, need to make sure of that.
    else
-      local baseName = currentCatalog[fid].name or "(no name found)"
-      local gobName = string.match(baseName, ".*/(.-%.m2)")
+      --local baseName = currentCatalog[fid].name or "(no name found)"
+      --local gobName = string.match(baseName, ".*/(.-%.m2)")
+      local gobName = currentCatalog[fid].name or "(no name found)"
       return gobName
    end
 end
 
+--[[ Don't need this anymore
 local function getGobPath(fid)
    if fid == 1 then
       return " "
@@ -183,7 +185,7 @@ local function getGobPath(fid)
       local gobPath = string.match(baseName, "(.-%.m2)")
       return gobPath
    end
-end
+end]] 
 
 local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to build resultTable
    --no filter or bad filter
@@ -758,7 +760,7 @@ local function ShowGobBrowser()
                         else
                            DoesAnyGobWereAdded = true
                            addedGobs = addedGobs..""..getGobName(j.id).."; "
-                           g.db.userCatalogs[value][j.id] = { name = getGobPath(j.id), displayid = j.displayid--[[, entries = j.entries]]}
+                           g.db.userCatalogs[value][j.id] = { name = getGobName(j.id), displayid = j.displayid--[[, entries = j.entries]]}
                         end
                      end
 
