@@ -1,10 +1,10 @@
-## Interface: 80300
+## Interface: 90207
 ## Author: Epsilon Development Team
-## Version: 3.6.5
+## Version: v3.9.7e
 ## LoadOnDemand: 1
 ## RequiredDeps: MogIt
 ## X-MogItModuleVersion: 3
-## X-Curse-Packaged-Version: 3.6.5
+## X-Curse-Packaged-Version: 3.9.7e
 ## X-Curse-Project-Name: MogIt
 ## X-Curse-Project-ID: mogit
 ## X-Curse-Repository-ID: wow/mogit/mainline

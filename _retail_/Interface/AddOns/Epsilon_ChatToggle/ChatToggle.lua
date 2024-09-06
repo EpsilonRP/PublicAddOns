@@ -2,7 +2,7 @@ local addonName, ns = ...
 
 ---@type string
 local addonPath = "Interface/AddOns/" .. tostring(addonName)
-local assetsPath = addonPath.."/assets/"
+local assetsPath = addonPath .. "/assets/"
 
 ---@enum
 local scopes = {
@@ -27,15 +27,15 @@ local function evaluate(value)
 	return value
 end
 
----Finds & returns the currently scoped table (Account vs Character) from the master (account) table's setting. 
+---Finds & returns the currently scoped table (Account vs Character) from the master (account) table's setting.
 ---@return table scopedTable
 local function getScopedTable()
 	return _G["Epsilon_ChatToggle_" .. Epsilon_ChatToggle_Account.scope]
 end
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Options Loading
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 local Epsilon_ChatToggle_Account_Defaults = {
 	scope = "Character",
@@ -70,9 +70,9 @@ local function loadDefaultsIntoMaster(settings, master)
 	end
 end
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Create the chat frame button & menu holding frame
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 local updateButtonLabels
 
@@ -117,11 +117,11 @@ end)
 
 local function UIMenuButton_OnClick_OVERRIDE(self)
 	local func = self.func;
-	if ( func ) then
+	if (func) then
 		func(self);
 	end
 
-	if ( not self.dontHideParentOnClick ) then
+	if (not self.dontHideParentOnClick) then
 		self:GetParent():Hide();
 	end
 
@@ -130,19 +130,19 @@ end
 
 local menuName = announceMenu:GetName()
 for id = 1, UIMENU_NUMBUTTONS do
-	local button = _G[menuName.."Button"..id];
+	local button = _G[menuName .. "Button" .. id];
 	button:SetScript("OnClick", UIMenuButton_OnClick_OVERRIDE)
 end
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Functions for the buttons when clicked
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 local function toggleAnn(button_fromUI)
 	cmd("toggle announce")
 
-	if button_fromUI then 
-		local shortcutString = _G[button_fromUI:GetName().."ShortcutText"];
+	if button_fromUI then
+		local shortcutString = _G[button_fromUI:GetName() .. "ShortcutText"];
 		shortcutString:SetText("...");
 	end
 end
@@ -150,8 +150,8 @@ end
 local function toggleEventAnn(button_fromUI)
 	cmd("toggle event")
 
-	if button_fromUI then 
-		local shortcutString = _G[button_fromUI:GetName().."ShortcutText"];
+	if button_fromUI then
+		local shortcutString = _G[button_fromUI:GetName() .. "ShortcutText"];
 		shortcutString:SetText("...");
 	end
 end
@@ -159,8 +159,8 @@ end
 local function toggleGuildAnn(button_fromUI)
 	cmd("toggle guild")
 
-	if button_fromUI then 
-		local shortcutString = _G[button_fromUI:GetName().."ShortcutText"];
+	if button_fromUI then
+		local shortcutString = _G[button_fromUI:GetName() .. "ShortcutText"];
 		shortcutString:SetText("...");
 	end
 end
@@ -174,7 +174,6 @@ local function toggleScope()
 		-- was account, switch to character, copy settings from account->character to match current settings
 		Epsilon_ChatToggle_Account.scope = scopes.CHARACTER
 		Epsilon_ChatToggle_Character.AnnounceEnabled = CopyTable(Epsilon_ChatToggle_Account.AnnounceEnabled)
-
 	end
 
 	updateButtonLabels()
@@ -186,9 +185,9 @@ local function toggleIgnore()
 	updateButtonLabels()
 end
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Button Info table & helper functions
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 ---@class buttonInfo
 ---@field tag string? the tag to reference within the AnnounceEnabled sub table
@@ -199,18 +198,18 @@ end
 
 ---@type buttonInfo[]
 local buttonsList = {
-	[1] = { tag = "ann", text = "Toggle Announce", shortcut = function() return (getScopedTable().AnnounceEnabled.ann and "Enabled" or "Disabled") end, func = toggleAnn, keepOpen = true},
-	[2] = { tag = "event", text = "Toggle Event Announce", shortcut = function() return (getScopedTable().AnnounceEnabled.event and "Enabled" or "Disabled") end, func = toggleEventAnn, keepOpen = true},
-	[3] = { tag = "guild", text = "Toggle Guild Announce", shortcut = function() return (getScopedTable().AnnounceEnabled.guild and "Enabled" or "Disabled") end, func = toggleGuildAnn, keepOpen = true},
+	{ tag = "ann",               text = "Toggle Announce",                                          shortcut = function() return (getScopedTable().AnnounceEnabled.ann and "Enabled" or "Disabled") end,   func = toggleAnn,      keepOpen = true },
+	{ tag = "event",             text = "Toggle Event Announce",                                    shortcut = function() return (getScopedTable().AnnounceEnabled.event and "Enabled" or "Disabled") end, func = toggleEventAnn, keepOpen = true },
+	{ tag = "guild",             text = "Toggle Guild Announce",                                    shortcut = function() return (getScopedTable().AnnounceEnabled.guild and "Enabled" or "Disabled") end, func = toggleGuildAnn, keepOpen = true },
 
-	[4] = { text = " ", disabled = true },
+	{ text = " ",                disabled = true },
 
-	[5] = { text = "Sync Toggles to:", shortcut = function() return Epsilon_ChatToggle_Account.scope end, func = toggleScope, keepOpen = true},
-	[6] = { text = "Ann Respects Ignore:", shortcut = function() return (Epsilon_ChatToggle_Account.ignore and "Enabled" or "Disabled") end, func = toggleIgnore, keepOpen = true},
+	{ text = "Sync Toggles to:", shortcut = function() return Epsilon_ChatToggle_Account.scope end, func = toggleScope,                                                                                    keepOpen = true },
+	-- { text = "Ann Respects Ignore:", shortcut = function() return (Epsilon_ChatToggle_Account.ignore and "Enabled" or "Disabled") end, func = toggleIgnore, keepOpen = true },
 
-	[7] = { text = " ", disabled = true },
+	{ text = " ",                disabled = true },
 
-	[8] = { text = "Close"}
+	{ text = "Close" }
 }
 
 ---Gets the proper text & shortcutText of a button from the buttonsList by index, accounting for function returns
@@ -225,7 +224,7 @@ local function getTextForButton(index)
 
 	-- no if because if you don't give text you should get an error lol
 	text = evaluate(buttonInfo.text) --[[@as string]]
-	
+
 	if buttonInfo.tag then
 		text = text .. " " .. (scopedTable.AnnounceEnabled[buttonInfo.tag] and "Off" or "On")
 	end
@@ -237,8 +236,8 @@ end
 
 updateButtonLabels = function()
 	for i = 1, #buttonsList do
-		local button = _G["EpsilonChatMenuButton"..i]
-		local shortcut = _G["EpsilonChatMenuButton"..i.."ShortcutText"]
+		local button = _G["EpsilonChatMenuButton" .. i]
+		local shortcut = _G["EpsilonChatMenuButton" .. i .. "ShortcutText"]
 		local text, shortcutText = getTextForButton(i)
 		button:SetText(text)
 		shortcut:SetText(shortcutText)
@@ -252,7 +251,7 @@ local function initMenu()
 		local v = buttonsList[k]
 		local text, shortcutText = getTextForButton(k)
 		UIMenu_AddButton(announceMenu, text, shortcutText, v.func)
-		local button = _G["EpsilonChatMenuButton"..k]
+		local button = _G["EpsilonChatMenuButton" .. k]
 		if v.keepOpen then button.dontHideParentOnClick = true end
 		if v.disabled then button:Disable() end
 	end
@@ -260,9 +259,9 @@ local function initMenu()
 	updateButtonLabels()
 end
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Event Frame for Loading & Restore Toggles, and init menu
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 local listener = CreateFrame("Frame")
 listener:SetScript("OnEvent", function(self, event, addon)
@@ -273,9 +272,9 @@ listener:SetScript("OnEvent", function(self, event, addon)
 	loadDefaultsIntoMaster(Epsilon_ChatToggle_Character_Defaults, Epsilon_ChatToggle_Character)
 
 	local scopedTable = getScopedTable()
-	for k,v in pairs( scopedTable.AnnounceEnabled ) do
+	for k, v in pairs(scopedTable.AnnounceEnabled) do
 		if v == false then
-			C_Timer.After(2, function() cmd("toggle "..k.." off") end)
+			C_Timer.After(2, function() cmd("toggle " .. k .. " off") end)
 		end
 	end
 
@@ -283,16 +282,16 @@ listener:SetScript("OnEvent", function(self, event, addon)
 end)
 listener:RegisterEvent("ADDON_LOADED")
 
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 --- Message Filters to Capture & Handle Announce Toggled Messages
--- -- -- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- -- -- --
 
 ---Update the Saved State in our Scoped Table for if that Announce Type is enabled or not.
 ---@param annType "ann"|"event"|"guild" direct string reference for that announce type, based on the table construction
 ---@param toggled boolean if the type is enabled or not
 local function setAnnounceToggled(annType, toggled)
 	local scope = Epsilon_ChatToggle_Account.scope
-	_G["Epsilon_ChatToggle_"..scope].AnnounceEnabled[annType] = toggled
+	_G["Epsilon_ChatToggle_" .. scope].AnnounceEnabled[annType] = toggled
 	updateButtonLabels()
 end
 
@@ -325,7 +324,8 @@ local function announceToggleListener(self, event, message)
 		return false
 	end
 
-	-- Ignore Filter
+	-- Ignore Filter --// Deprecated in favor of the server handling this instead, meaning it also respects announce via #main also!
+	--[[
 	if Epsilon_ChatToggle_Account.ignore then
 		local playerName = message:match("|Hplayer:(.-)|h")
 		if playerName then
@@ -335,6 +335,7 @@ local function announceToggleListener(self, event, message)
 			end
 		end
 	end
+	--]]
 end
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", announceToggleListener)
