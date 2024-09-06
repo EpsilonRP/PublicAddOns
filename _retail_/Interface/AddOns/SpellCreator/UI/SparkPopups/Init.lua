@@ -93,6 +93,8 @@ local function isSparkConditionsMet(sparkData)
 		end
 		if ns.Cmd.runMacroText(script) then
 			shouldShowSpark = true
+		else
+			shouldShowSpark = false
 		end
 	end
 
