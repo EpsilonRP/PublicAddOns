@@ -238,11 +238,6 @@ local function GetMerchantItemCostItem( index, itemIndex )
 		return
 	end
 
-	-- Until multiple currencies are made possible, this will do the trick:
-	-- if itemIndex > 1 then
-		-- return
-	-- end
-
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][1] == index and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
 			if type(EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4]) == "table" then
@@ -252,7 +247,7 @@ local function GetMerchantItemCostItem( index, itemIndex )
 					local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);
 					return texture, amount, link, name;
 				end
-			else
+			elseif itemIndex == 1 then
 				local currency = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] );
 				local amount = tonumber( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][5] );
 				local name, link, _, _, _, _, _, _, _, texture, _ = GetItemInfo(currency);

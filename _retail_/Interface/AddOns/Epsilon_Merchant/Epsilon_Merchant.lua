@@ -692,9 +692,9 @@ function Epsilon_Merchant:OnInitialize()
 					elseif prefixType == "options" then
 						if text == nil then text = "" end
 						text = (loadstring or load)("return "..text)()
-						EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ] = text;
+						EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ] = text or {};
 						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
-							local allowSellJunk = text.allowSellJunk or false;
+							local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ] and EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ].allowSellJunk ) or false;
 							Epsilon_MerchantEditor.allowSellJunk:SetChecked( allowSellJunk );
 						end
 					elseif prefixType == "text" then

@@ -18,7 +18,7 @@ local directX11Avail
 -------------------------------------------------------------------------------
 
 local function EpsilonOverlayUI_MinimapButton_OnClick(self)
-	if C_CVar.GetCVar("gxApi"):find("D3D11") then
+	if C_CVar.GetCVar("gxApi"):find("D3D11_LEGACY") then
 		C_Epsilon.ShowMenu()
 	else
 		if not graphicsAPIs then
@@ -26,15 +26,16 @@ local function EpsilonOverlayUI_MinimapButton_OnClick(self)
 		end
 
 		if directX11Avail == nil then
-			for k,v in pairs(graphicsAPIs) do
-				if v:find("D3D11") then directX11Avail = true; return end
+			for k, v in pairs(graphicsAPIs) do
+				if v:find("D3D11_LEGACY") then
+					directX11Avail = true; return
+				end
 			end
 			directX11Avail = false -- fallback
 		end
 
 		if not directX11Avail then
 			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and DirectX 11 is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
-
 		else
 			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor. Please change your Graphics API in System Settings > Advanced to DirectX 11 (Legacy).")
 			OptionsFrame_OpenToCategory(VideoOptionsFrame, "Advanced")
@@ -56,4 +57,3 @@ local function init()
 end
 
 ns.Launcher.registerForInit(init)
-
