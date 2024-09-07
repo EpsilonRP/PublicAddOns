@@ -150,11 +150,11 @@ function Strings.nilToEmpty(text)
 end
 
 local SANITIZATION_PATTERNS = {
-	["|c%x%x%x%x%x%x%x%x"] = "", -- color start
-	["|r"] = "", -- color end
-	["|H.-|h(.-)|h"] = "%1", -- links
-	["|T.-|t"] = "", -- textures
-	["|A.-|a"] = "", -- atlases
+	--["|c%x%x%x%x%x%x%x%x"] = "", -- color start
+	--["|r"] = "", -- color end
+	--["|H.-|h(.-)|h"] = "%1", -- links
+	--["|T.-|t"] = "", -- textures
+	--["|A.-|a"] = "", -- atlases
 }
 
 ---Sanitize a given text, removing potentially harmful escape sequences that could have been added by a end user (to display huge icons in their tooltips, for example).

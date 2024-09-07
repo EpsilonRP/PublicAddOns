@@ -427,7 +427,7 @@
 					</Texture>
 				  </Layer>
 				  <Layer level="BORDER">
-					<Texture parentKey="Icon" file="Interface\AddOns\Epsilon_Merchant-dev\Icons\SellJunk">
+					<Texture parentKey="Icon" file="Interface\AddOns\Epsilon_Merchant\Icons\SellJunk">
 					</Texture>
 				  </Layer>
 				</Layers>

@@ -865,9 +865,10 @@ saveSpell = function(overwriteBypass, fromPhaseVaultID, manualData, sendLearnedM
 	if not fromPhaseVaultID and not manualData then
 		for i = 1, SpellRow.getNumActiveRows() do
 			local rowData = SpellRow.getRowAction(i)
-			local _actionTypeData = actionTypeData[rowData.actionType]
 
 			if rowData and rowData.delay >= 0 then
+				local _actionTypeData = actionTypeData[rowData.actionType]
+
 				if _actionTypeData then
 					local copiedActionData = CopyTable(rowData)
 

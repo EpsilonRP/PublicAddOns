@@ -133,7 +133,7 @@ function Epsilon_MerchantSoundPicker_BindSound( self )
 	self:SetText( Epsilon_MerchantSoundPicker.selectedName )
 	Epsilon_Merchant_SaveSound( self.soundType, Epsilon_MerchantSoundPicker.selectedSound )
 	PlaySound(840);
-	PrintSystemMessage( "Sound successfully bound." )
+	PrintMessage( "Sound successfully bound." )
 end
 
 -------------------------------------------------------------------------
@@ -159,7 +159,7 @@ function Epsilon_MerchantSoundPicker_UnbindSound( self )
 	self:SetText( "(Not Bound)" )
 	Epsilon_Merchant_SaveSound( self.soundType, 0 )
 	PlaySound(840);
-	PrintSystemMessage( "Sound successfully unbound." )
+	PrintMessage( "Sound successfully unbound." )
 end
 
 -------------------------------------------------------------------------------

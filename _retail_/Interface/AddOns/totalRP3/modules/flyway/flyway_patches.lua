@@ -46,7 +46,7 @@ TRP3_API.flyway.patches["5"] = function()
 	TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_FINISH, function()
 		local sanitizeFullProfile = TRP3_API.register.sanitizeFullProfile;
 		for _, profile in pairs(TRP3_Register.profiles) do
-			sanitizeFullProfile(profile);
+			--sanitizeFullProfile(profile);
 		end
 	end)
 end
