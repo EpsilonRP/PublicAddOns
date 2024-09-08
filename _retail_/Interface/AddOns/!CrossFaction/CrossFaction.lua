@@ -7,12 +7,11 @@ function UnitFactionGroup(unit, name)
 end
 
 UnitFullNameOld = UnitFullName
-local realmname = select(2, UnitFullName("player"))
 function UnitFullName(unit)
-	return (UnitFullNameOld(unit)), realmname
+	return (UnitFullNameOld(unit)), select(2, UnitFullNameOld("player"))
 end
 
 SLASH_CFACT1, SLASH_CFACT2 = '/cf', '/crossfaction'; -- 3.
-function SlashCmdList.CFACT(msg, editbox) -- 4.
-	print("CrossFaction v"..currentVersion.." by "..author.." running.")
+function SlashCmdList.CFACT(msg, editbox)            -- 4.
+	print("CrossFaction v" .. currentVersion .. " by " .. author .. " running.")
 end

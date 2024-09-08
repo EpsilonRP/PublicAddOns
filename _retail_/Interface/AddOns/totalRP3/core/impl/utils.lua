@@ -54,7 +54,7 @@ local getZoneText, getSubZoneText = GetZoneText, GetSubZoneText;
 
 function Utils.pcall(func, ...)
 	if func then
-		return {pcall(func, ...)};
+		return { pcall(func, ...) };
 	end
 end
 
@@ -112,11 +112,11 @@ local messageTypes = Utils.message.type;
 -- Display a simple message. Nil free.
 Utils.message.displayMessage = function(message, messageType, noPrefix, chatFrameIndex)
 	if not messageType or messageType == messageTypes.CHAT_FRAME then
-		local chatFrame = _G["ChatFrame"..tostring(chatFrameIndex)] or getChatFrame();
+		local chatFrame = _G["ChatFrame" .. tostring(chatFrameIndex)] or getChatFrame();
 		if noPrefix then
 			chatFrame:AddMessage(tostring(message), 1, 1, 1);
 		else
-			chatFrame:AddMessage(MESSAGE_PREFIX..tostring(message), 1, 1, 1);
+			chatFrame:AddMessage(MESSAGE_PREFIX .. tostring(message), 1, 1, 1);
 		end
 	elseif messageType == messageTypes.ALERT_POPUP then
 		TRP3_API.popup.showAlertPopup(tostring(message));
@@ -149,13 +149,13 @@ local function tableDump(table, level, withCount)
 				key = "[\"" .. key .. "\"]"
 			end
 			if type(value) == "table" then
-				log(dumpIndent .. dumpColor2 .. key .. "|r=".. dumpColor3 .. "{", Log.level.DEBUG);
+				log(dumpIndent .. dumpColor2 .. key .. "|r=" .. dumpColor3 .. "{", Log.level.DEBUG);
 				tableDump(value, level + 1);
 				log(dumpIndent .. dumpColor3 .. "}", Log.level.DEBUG);
 			elseif type(value) == "function" then
-				log(dumpIndent .. dumpColor2 .. key .. "|r=" .. dumpColor4 .. " <" .. type(value) ..">", Log.level.DEBUG);
+				log(dumpIndent .. dumpColor2 .. key .. "|r=" .. dumpColor4 .. " <" .. type(value) .. ">", Log.level.DEBUG);
 			else
-				log(dumpIndent .. dumpColor2 .. key .. "|r=" .. dumpColor3 .. tostring(value) .. dumpColor4 .. " <" .. type(value) ..">", Log.level.DEBUG);
+				log(dumpIndent .. dumpColor2 .. key .. "|r=" .. dumpColor3 .. tostring(value) .. dumpColor4 .. " <" .. type(value) .. ">", Log.level.DEBUG);
 			end
 			i = i + 1;
 		end
@@ -167,7 +167,7 @@ local function tableDump(table, level, withCount)
 end
 
 Utils.table.dump = function(table, withCount)
-	log(dumpColor1 .. "Dump: ".. tostring(table), Log.level.DEBUG);
+	log(dumpColor1 .. "Dump: " .. tostring(table), Log.level.DEBUG);
 	if table then
 		tableDump(table, 1, withCount);
 	end
@@ -177,8 +177,8 @@ end
 -- Argument "destination" must be a non nil table reference.
 local function tableCopy(destination, source)
 	if destination == nil or source == nil then return end
-	for k,v in pairs(source) do
-		if(type(v)=="table") then
+	for k, v in pairs(source) do
+		if (type(v) == "table") then
 			destination[k] = {};
 			tableCopy(destination[k], v);
 		else
@@ -192,7 +192,7 @@ Utils.table.copy = tableCopy;
 -- Less effective than #table but works for hash table as well (#hashtable don't).
 local function tableSize(table)
 	local count = 0;
-	for _,_ in pairs(table) do
+	for _, _ in pairs(table) do
 		count = count + 1;
 	end
 	return count;
@@ -221,12 +221,12 @@ function Utils.table.keys(table)
 end
 
 -- Create a weak tables pool.
-local TABLE_POOL = setmetatable( {}, { __mode = "k" } );
+local TABLE_POOL = setmetatable({}, { __mode = "k" });
 
 -- Return an already created table, or a new one if the pool is empty
 -- It ultra mega important to release the table once you finished using it !
 function Utils.table.getTempTable()
-	local t = next( TABLE_POOL );
+	local t = next(TABLE_POOL);
 	if t then
 		TABLE_POOL[t] = nil;
 		return wipe(t);
@@ -236,7 +236,7 @@ end
 
 -- Release a temp table.
 function Utils.table.releaseTempTable(table)
-	TABLE_POOL[ table ] = true;
+	TABLE_POOL[table] = true;
 end
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -255,13 +255,13 @@ Utils.str.match = function(stringToCheck, pattern)
 end
 
 local ID_CHARS = {};
-for i=48, 57 do
+for i = 48, 57 do
 	tinsert(ID_CHARS, string.char(i));
 end
-for i=65, 90 do
+for i = 65, 90 do
 	tinsert(ID_CHARS, string.char(i));
 end
-for i=97, 122 do
+for i = 97, 122 do
 	tinsert(ID_CHARS, string.char(i));
 end
 local sID_CHARS = #ID_CHARS;
@@ -271,7 +271,7 @@ local sID_CHARS = #ID_CHARS;
 --- ID's have a id_length characters length
 local function generateID()
 	local ID = date("%m%d%H%M%S");
-	for _=1, 5 do
+	for _ = 1, 5 do
 		ID = ID .. ID_CHARS[math.random(1, sID_CHARS)];
 	end
 	return ID;
@@ -397,7 +397,7 @@ end
 
 -- Return a color tag based on a letter
 function Utils.str.color(color)
-	color = color or "w"; -- default color if bad argument
+	color = color or "w";                     -- default color if bad argument
 	if color == "r" then return "|cffff0000" end -- red
 	if color == "g" then return "|cff00ff00" end -- green
 	if color == "b" then return "|cff0000ff" end -- blue
@@ -450,6 +450,17 @@ local escapes = {
 	--["|K.-|k"] = "", -- protected strings
 	["|W(.-)|w"] = "%1", -- word wrapping
 }
+
+local allEscapes = {
+	["|c........"] = "",  -- color start
+	["|cn[^:]+:"] = "",   -- 10.0 color start
+	["|r"] = "",          -- color end
+	["|H.-|h(.-)|h"] = "%1", -- links
+	["|T.-|t"] = "",      -- textures
+	["|A.-|a"] = "",      -- atlas textures
+	["|K.-|k"] = "",      -- protected strings
+	["|W(.-)|w"] = "%1",  -- word wrapping
+}
 function Utils.str.sanitize(text)
 	if not text then return end
 	-- Repeat until nested tags are eliminated.
@@ -465,7 +476,12 @@ end
 function Utils.str.crop(text, size)
 	text = string.trim(text or "");
 
-	if strlenutf8(text) > size then
+	local sanitizedText = text
+	for k, v in pairs(allEscapes) do
+		sanitizedText = sanitizedText:gsub(k, v);
+	end
+
+	if strlenutf8(sanitizedText) > size then
 		text = string.utf8sub(text, 1, size - 1) .. "…";
 	end
 
@@ -542,7 +558,6 @@ function Utils.str.convertSpecialChars(text)
 	local convertedText = text:gsub("[%z\1-\127\194-\244][\128-\191]*", tableAccents);
 	return convertedText;
 end
-
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 -- GUID
@@ -627,12 +642,12 @@ Utils.color.colorCode = colorCode;
 
 --- Values must be 0..1 based
 Utils.color.colorCodeFloat = function(red, green, blue)
-	return colorCode(math.ceil(red*255), math.ceil(green*255), math.ceil(blue*255));
+	return colorCode(math.ceil(red * 255), math.ceil(green * 255), math.ceil(blue * 255));
 end
 
 --- From r, g, b tab
 Utils.color.colorCodeFloatTab = function(tab)
-	return colorCode(math.ceil(tab.r*255), math.ceil(tab.g*255), math.ceil(tab.b*255));
+	return colorCode(math.ceil(tab.r * 255), math.ceil(tab.g * 255), math.ceil(tab.b * 255));
 end
 
 ---
@@ -753,7 +768,7 @@ function Utils.color.getUnitColorByGUID(GUID, useCustomColors, lightenColorUntil
 		end
 	end
 
-	return color ;
+	return color;
 end
 
 function Utils.color.extractColorFromText(text)
@@ -811,19 +826,18 @@ local directReplacements = {
 };
 
 local function convertTextTag(tag)
-
-	if directReplacements[tag] then -- Direct replacement
+	if directReplacements[tag] then          -- Direct replacement
 		return directReplacements[tag];
-	elseif tag:match("^col%:%a$") then -- Color replacement
+	elseif tag:match("^col%:%a$") then       -- Color replacement
 		return Utils.str.color(tag:match("^col%:(%a)$"));
 	elseif tag:match("^col:%x%x%x%x%x%x$") then -- Hexa color replacement
-		return "|cff"..tag:match("^col:(%x%x%x%x%x%x)$");
+		return "|cff" .. tag:match("^col:(%x%x%x%x%x%x)$");
 	elseif tag:match("^icon%:[^:]+%:%d+$") then -- Icon
 		local icon, size = tag:match("^icon%:([^:]+)%:(%d+)$");
 		return Utils.str.icon(icon, size);
 	end
 
-	return "{"..tag.."}";
+	return "{" .. tag .. "}";
 end
 
 local function convertTextTags(text)
@@ -890,11 +904,11 @@ local function GenerateLinkFormatter(line, defaultLinkColor, includeBraces, isMa
 		local hexColor   = string.sub(line, position - 12, position - 1);
 
 		if string.find(shortColor, "^{col:%w}$") then
-			linkColor = nil;  -- Preceeded by a short color tag, ignore.
+			linkColor = nil;     -- Preceeded by a short color tag, ignore.
 		elseif string.find(hexColor, "^{col:%x%x%x%x%x%x}$") then
-			linkColor = nil;  -- Preceeded by a hexadecimal color tag, ignore.
+			linkColor = nil;     -- Preceeded by a hexadecimal color tag, ignore.
 		else
-			linkColor = defaultLinkColor;  -- No preceeding color, use default.
+			linkColor = defaultLinkColor; -- No preceeding color, use default.
 		end
 
 		if isMarkdown then
@@ -918,7 +932,6 @@ end
 
 -- Convert the given text by his HTML representation
 Utils.str.toHTML = function(text, noColor, noBrackets)
-
 	local linkColor = "00ff00";
 	if noColor then
 		linkColor = nil;
@@ -949,9 +962,8 @@ Utils.str.toHTML = function(text, noColor, noBrackets)
 	end
 
 	local tab = {};
-	local i=1;
-	while text:find("<") and i<500 do
-
+	local i = 1;
+	while text:find("<") and i < 500 do
 		local before;
 		before = text:sub(1, text:find("<") - 1);
 		if #before > 0 then
@@ -962,7 +974,7 @@ Utils.str.toHTML = function(text, noColor, noBrackets)
 
 		local tag = text:match("</(.-)>");
 		if tag then
-			tagText = text:sub( text:find("<"), text:find("</") + #tag + 2);
+			tagText = text:sub(text:find("<"), text:find("</") + #tag + 2);
 			if #tagText == #tag + 3 then
 				return loc.PATTERN_ERROR;
 			end
@@ -980,7 +992,7 @@ Utils.str.toHTML = function(text, noColor, noBrackets)
 		--- 	Log.log("tagText ("..(#tagText).."): "..tagText);
 		--- 	Log.log("after ("..(#before).."): "..after);
 
-		i = i+1;
+		i = i + 1;
 		if i == 500 then
 			log("HTML overfloooow !", Log.level.SEVERE);
 		end
@@ -993,7 +1005,6 @@ Utils.str.toHTML = function(text, noColor, noBrackets)
 
 	local finalText = "";
 	for _, line in pairs(tab) do
-
 		if not line:find("<") then
 			line = "<P>" .. line .. "</P>";
 		end
@@ -1043,28 +1054,28 @@ Utils.str.toHTML = function(text, noColor, noBrackets)
 			return Utils.str.icon(icon, tonumber(size) or 25);
 		end);
 
-		do  -- Markdown Links
+		do -- Markdown Links
 			local includeBraces = true;
 			local isMarkdown    = true;
 			local formatter     = GenerateLinkFormatter(line, linkColor, includeBraces, isMarkdown);
 
-			line = line:gsub("()%[(.-)%]%((.-)%)", formatter);
+			line                = line:gsub("()%[(.-)%]%((.-)%)", formatter);
 		end
 
-		do  -- Link tags with embedded icons
+		do -- Link tags with embedded icons
 			local includeBraces = false;
 			local isMarkdown    = false;
 			local formatter     = GenerateLinkFormatter(line, linkColor, includeBraces, isMarkdown);
 
-			line = line:gsub("(){link%*([^*]+)%*({icon:[^}]+})}", formatter);
+			line                = line:gsub("(){link%*([^*]+)%*({icon:[^}]+})}", formatter);
 		end
 
-		do  -- Link tags
+		do -- Link tags
 			local includeBraces = not noBrackets;
 			local isMarkdown    = false;
 			local formatter     = GenerateLinkFormatter(line, linkColor, includeBraces, isMarkdown);
 
-			line = line:gsub("(){link%*([^*]+)%*([^}]+)}", formatter);
+			line                = line:gsub("(){link%*([^*]+)%*([^}]+)}", formatter);
 		end
 
 		line = line:gsub("{twitter%*(.-)%*(.-)}", "<a href=\"twitter%1\">|cff61AAEE%2|r</a>");
@@ -1176,7 +1187,7 @@ function Utils.music.playSoundID(soundID, channel, source)
 	assert(soundID, "soundID can't be nil.")
 	local willPlay, handlerID = PlaySound(soundID, channel, false);
 	if willPlay then
-		tinsert(soundHandlers, {channel = channel, id = soundID, handlerID = handlerID, source = source, date = date("%H:%M:%S"), stopped = false});
+		tinsert(soundHandlers, { channel = channel, id = soundID, handlerID = handlerID, source = source, date = date("%H:%M:%S"), stopped = false });
 		if TRP3_SoundsHistoryFrame then
 			TRP3_SoundsHistoryFrame.onSoundPlayed();
 		end
@@ -1188,7 +1199,7 @@ function Utils.music.playSoundFileID(soundFileID, channel, source)
 	assert(soundFileID, "soundFileID can't be nil.")
 	local willPlay, handlerID = PlaySoundFile(soundFileID, channel);
 	if willPlay then
-		tinsert(soundHandlers, {channel = channel, id = soundFileID, handlerID = handlerID, source = source, date = date("%H:%M:%S"), stopped = false, soundFile = true});
+		tinsert(soundHandlers, { channel = channel, id = soundFileID, handlerID = handlerID, source = source, date = date("%H:%M:%S"), stopped = false, soundFile = true });
 		if TRP3_SoundsHistoryFrame then
 			TRP3_SoundsHistoryFrame.onSoundPlayed();
 		end
@@ -1227,7 +1238,7 @@ function Utils.music.playMusic(music, source)
 	Utils.music.stopMusic();
 	Log.log("Playing music: " .. music);
 	PlayMusic(music);
-	tinsert(soundHandlers, {channel = "Music", id = Utils.music.getTitle(music), handlerID = 0, source = source or Globals.player_id, date = date("%H:%M:%S"), stopped = false});
+	tinsert(soundHandlers, { channel = "Music", id = Utils.music.getTitle(music), handlerID = 0, source = source or Globals.player_id, date = date("%H:%M:%S"), stopped = false });
 	if TRP3_SoundsHistoryFrame then
 		TRP3_SoundsHistoryFrame.onSoundPlayed();
 	end
@@ -1268,7 +1279,7 @@ Utils.texture.applyRoundTexture = function(textureFrame, texturePath, failTextur
 end
 
 local function Rainbow(value, max)
-	local movedValue = value - 1;    -- screw Lua lmao
+	local movedValue = value - 1; -- screw Lua lmao
 	local fifth = (max - 1) / 5;
 	if movedValue < fifth then
 		return TRP3_API.Ellyb.Color(1, 0.3 + 0.7 * movedValue / fifth, 0.3)
@@ -1305,7 +1316,7 @@ end
 TRP3_API.utils.Rainbowify = Rainbowify;
 
 local function OldgodCharacterColor(value, max)
-	local movedValue = value - 1;    -- screw Lua lmao
+	local movedValue = value - 1; -- screw Lua lmao
 	local third = (max - 1) / 3;
 	if movedValue < 2 * third then
 		return TRP3_API.Ellyb.Color(0.5 + 0.5 * movedValue / (2 * third), 0.3, 1 - 0.7 * movedValue / (2 * third))

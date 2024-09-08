@@ -18,6 +18,23 @@ Wishlist.filters = {
 	"hasItem",
 }
 
+local itemSlots = {
+	["HEAD"] = 1,
+	["SHOULDER"] = 3,
+	["SHIRT"] = 4,
+	["CHEST"] = 5,
+	["WAIST"] = 6,
+	["LEGS"] = 7,
+	["FEET"] = 8,
+	["WRIST"] = 9,
+	["HANDS"] = 10,
+	["BACK"] = 15,
+	["MAINHAND"] = 16,
+	["OFFHAND"] = 17,
+	["RANGED"] = 18,
+	["TABARD"] = 19,
+};
+
 Wishlist.Help = {
 	L["Right click for additional options"],
 	L["Shift-left click to link"],
@@ -53,18 +70,18 @@ local defaults = {
 function Wishlist:MogItLoaded()
 	local db = LibStub("AceDB-3.0"):New("MogItWishlist", defaults)
 	self.db = db
-	
+
 	local _, _, _, tocversion = GetBuildInfo()
-	
+
 	-- add alternate items table to sets
 	for i, set in ipairs(db.profile.sets) do
 		set.alternateItems = set.alternateItems or {}
 	end
-	
+
 	-- convert all bows into main hand instead of off hand
 	convertBowSlots()
-	
-	do	-- convert to 6.0 string format
+
+	do -- convert to 6.0 string format
 		for k, profile in pairs(self.db.profiles) do
 			if profile.items then
 				for k, item in pairs(profile.items) do
@@ -73,7 +90,7 @@ function Wishlist:MogItLoaded()
 					end
 				end
 			end
-			
+
 			if profile.sets then
 				for i, set in ipairs(profile.sets) do
 					for k, item in pairs(set.items) do
@@ -85,19 +102,19 @@ function Wishlist:MogItLoaded()
 			end
 		end
 	end
-	
+
 	-- convert item strings to 6.2 format
 	if not db.global.version then
 		local origPattern = MogIt.itemStringPattern
 		MogIt.itemStringPattern = "item:(%d+):%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:(%d+):([%d:]+)";
-		
+
 		for k, profile in pairs(self.db.profiles) do
 			if profile.items then
 				for k, item in pairs(profile.items) do
 					profile.items[k] = MogIt:NormaliseItemString(item)
 				end
 			end
-			
+
 			if profile.sets then
 				for i, set in ipairs(profile.sets) do
 					for k, item in pairs(set.items) do
@@ -106,18 +123,18 @@ function Wishlist:MogItLoaded()
 				end
 			end
 		end
-		
+
 		MogIt.itemStringPattern = origPattern
 	end
-	
-	do	-- update item strings wherever possible as the format changes
+
+	do -- update item strings wherever possible as the format changes
 		for k, profile in pairs(self.db.profiles) do
 			if profile.items then
 				for k, item in pairs(profile.items) do
 					profile.items[k] = MogIt:NormaliseItemString(item)
 				end
 			end
-			
+
 			if profile.sets then
 				for i, set in ipairs(profile.sets) do
 					for k, item in pairs(set.items) do
@@ -127,9 +144,9 @@ function Wishlist:MogItLoaded()
 			end
 		end
 	end
-	
+
 	db.global.version = tocversion
-	
+
 	db.RegisterCallback(self, "OnProfileChanged", onProfileUpdated)
 	db.RegisterCallback(self, "OnProfileCopied", onProfileUpdated)
 	db.RegisterCallback(self, "OnProfileReset", onProfileUpdated)
@@ -148,7 +165,7 @@ local function newSetOnClick(self)
 end
 
 local setMenu = {
-	{	--Epsilon function
+	{ --Epsilon function
 		text = L["|cff00ccffEquip Set|r"],
 		func = function(self)
 		end,
@@ -441,16 +458,16 @@ local setFuncs = {
 function Wishlist:DeleteProfileSet(setName, noConfirm, profile)
 	if noConfirm then
 		local sets = Wishlist:GetSets(profile)
-		for k,set in ipairs(sets) do
+		for k, set in ipairs(sets) do
 			if set.name == setName then
-				tremove(sets,k)
+				tremove(sets, k)
 				break
 			end
 		end
 		print("|cff00ccff[MogIt]|r deleted set", setName, "from profile", profile)
 		MogIt:BuildList(nil, "Wishlist")
 	else
-		StaticPopup_Show("MOGIT_WISHLIST_DELETE_PROFILE_SET", profile,setName)
+		StaticPopup_Show("MOGIT_WISHLIST_DELETE_PROFILE_SET", profile, setName)
 	end
 end
 
@@ -459,7 +476,7 @@ function Wishlist:AddSetMenuItems(level, func, arg2, profile)
 	if not sets then
 		return
 	end
-	
+
 	local onehand
 	if type(func) ~= "function" then
 		func = setFuncs[func]
@@ -475,7 +492,7 @@ function Wishlist:AddSetMenuItems(level, func, arg2, profile)
 		info.arg1 = set.name
 		info.arg2 = arg2
 		if onehand then
-			info.tooltipTitle = "|cffffd200"..L["Shift-click to add to off hand"].."|r"
+			info.tooltipTitle = "|cffffd200" .. L["Shift-click to add to off hand"] .. "|r"
 			info.tooltipOnButton = true
 		end
 		UIDropDownMenu_AddButton(info, level)
@@ -514,7 +531,7 @@ do
 			parent:Hide()
 		end,
 		OnShow = function(self, data)
-			self.editBox:SetText(data and data.name or ("Set "..(#Wishlist:GetSets() + 1)))
+			self.editBox:SetText(data and data.name or ("Set " .. (#Wishlist:GetSets() + 1)))
 			self.editBox:HighlightText()
 		end,
 		whileDead = true,
@@ -532,7 +549,7 @@ do
 		data.name = text
 		MogIt:BuildList(nil, "Wishlist")
 	end
-	
+
 	StaticPopupDialogs["MOGIT_WISHLIST_RENAME_SET"] = {
 		text = L["Enter new set name"],
 		button1 = ACCEPT,
@@ -590,9 +607,9 @@ local function getBagPos(itemID, bonusID)
 	--CHECK SLOTS
 	local matchItem = 0;
 
-	for k,v in pairs(itemSlots) do
+	for k, v in pairs(itemSlots) do
 		if GetInventoryItemID("player", v) ~= nil then
-		eItem = tostring(GetInventoryItemID("player", v));
+			eItem = tostring(GetInventoryItemID("player", v));
 			if eItem == itemID then
 				matchItem = 1;
 			else
@@ -602,27 +619,26 @@ local function getBagPos(itemID, bonusID)
 
 	for bag = 0, NUM_BAG_SLOTS do
 		for slot = 1, GetContainerNumSlots(bag) do
-			local invItem = GetContainerItemLink(bag,slot);
+			local invItem = GetContainerItemLink(bag, slot);
 			if invItem ~= nil and itemID ~= 0 then
 				if invItem:match(itemID) then
 					--equip item and set item exist flag to 1
 					matchItem = 1;
-				end				
+				end
 			else
 			end
 		end
 	end
 	if matchItem == 0 and itemID ~= 0 then
-		SendChatMessage(".additem "..itemID.." 1 "..bonusID, "GUILD");
+		SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD");
 	end
-
 end
 
 local function equipItem(itemID, slot)
 	if itemID ~= 0 then
 		C_Timer.NewTicker(1.5, function(self)
 			if not MogIt.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r equipping item: "..itemID)
+				print("|cff00ccff[MogIt]|r equipping item: " .. itemID)
 			end
 			EquipItemByName(itemID);
 			EquipPendingItem(0);
@@ -631,13 +647,12 @@ local function equipItem(itemID, slot)
 end
 
 function Wishlist:equipLinkItems(set)
-
 	--unequip everything first
-	for k,v in pairs(itemSlots) do
+	for k, v in pairs(itemSlots) do
 		PickupInventoryItem(v);
 		PutItemInBackpack();
 	end
-	for k,v in pairs(set) do
+	for k, v in pairs(set) do
 		local item = 0;
 		local itemBonus = 0;
 		if v ~= nil then
@@ -657,17 +672,16 @@ function Wishlist:equipLinkItems(set)
 			end
 		end
 	end
-
 end
 
-function Wishlist:mogequipWishlistItems(set,items)
+function Wishlist:mogequipWishlistItems(set, items)
 	--unequip everything first
-	for k,v in pairs(itemSlots) do
+	for k, v in pairs(itemSlots) do
 		PickupInventoryItem(v);
 		PutItemInBackpack();
 	end
 	--second check if items are in backpack
-	for k,v in pairs(items) do
+	for k, v in pairs(items) do
 		local itemSlot = GetInventorySlotInfo(k);
 		local item = 0;
 		local itemBonus = 0;
@@ -690,14 +704,11 @@ function Wishlist:mogequipWishlistItems(set,items)
 	end
 end
 
-
-
 local function GetProfileFromString(profile)
-
-local profileString = "";
+	local profileString = "";
 	for k, v in pairs(MogIt.wishlist.db.profiles) do
 		for word in k:gmatch("[^%s]+") do
-			for k1,v1 in pairs(profile) do
+			for k1, v1 in pairs(profile) do
 				if v1:lower() == word:lower() then
 					profileString = profileString .. word;
 					if profileString .. "-Apertus" == k:gsub("%s*", "") then
@@ -716,7 +727,6 @@ local profileString = "";
 end
 
 local function GetSet(profile, setName)
-
 	local setItems = nil;
 	local sets = Wishlist:GetSets(profile)
 	if sets then
@@ -732,47 +742,42 @@ local function GetSet(profile, setName)
 end
 
 local function ClearSet()
-
 	local _slots =
-    {   1,  --head
-        2,  --neck
-        3,  --shoulder
-        4,  --shirt
-        5,  --chest
-        6,  --belt
-        7,  --legs
-        8,  --feet
-        9,  --wrist
-        10, --gloves
-        11, --ring1
-        12, --ring2
-        13, --trinket1
-        14, --trinket2
-        15, --back
-        16, --main hand
-        17, --off hand
-        19  }; --tabard
+	{ 1,       --head
+		2,     --neck
+		3,     --shoulder
+		4,     --shirt
+		5,     --chest
+		6,     --belt
+		7,     --legs
+		8,     --feet
+		9,     --wrist
+		10,    --gloves
+		11,    --ring1
+		12,    --ring2
+		13,    --trinket1
+		14,    --trinket2
+		15,    --back
+		16,    --main hand
+		17,    --off hand
+		19 };  --tabard
 
-    for k,v in pairs(_slots) do
-        PickupInventoryItem(v); 
-        PutItemInBackpack(); 
-    end
-
+	for k, v in pairs(_slots) do
+		PickupInventoryItem(v);
+		PutItemInBackpack();
+	end
 end
 
 local function CleanBags()
-
-	for bag=0,4 do 
-        for slot=1, GetContainerNumSlots(bag) do 
-            PickupContainerItem(bag,slot); 
-            DeleteCursorItem(); 
-        end 
-    end
-
+	for bag = 0, 4 do
+		for slot = 1, GetContainerNumSlots(bag) do
+			PickupContainerItem(bag, slot);
+			DeleteCursorItem();
+		end
+	end
 end
 
 local function filterArgs(args)
-
 	if args[1] == "clear" then
 		print("|cff00ccff[MogIt]|r Clearing equipped items.")
 		ClearSet();
@@ -786,27 +791,25 @@ local function filterArgs(args)
 	end
 
 	local argString = "";
-	for k,v in pairs(args) do
+	for k, v in pairs(args) do
 		argString = argString .. v;
 	end
 
 	local profile = GetProfileFromString(args);
-	if not profile then 
+	if not profile then
 		print("|cff00ccff[MogIt]|r profile not found.")
 	else
-		local setString = argString:gsub("%s*", ""):gsub(" - " ..GetRealmName(), ""):lower()
-		local setS = setString:gsub(profile:gsub("-%s"..GetRealmName(), ""):gsub("%s*", ""):lower(), "")
+		local setString = argString:gsub("%s*", ""):gsub(" - " .. GetRealmName(), ""):lower()
+		local setS = setString:gsub(profile:gsub("-%s" .. GetRealmName(), ""):gsub("%s*", ""):lower(), "")
 		local set, setItems = GetSet(profile, setS);
-	
+
 		if set and setItems then
 			MogIt.wishlist:mogequipWishlistItems(set, setItems);
 			print("|cff00ccff[MogIt]|r Equipping set:", set, "from profile", profile)
 		else
 			print("|cff00ccff[MogIt]|r Set not found.")
 		end
-
 	end
-	
 end
 
 
@@ -816,7 +819,6 @@ function Wishlist:EquipItems(profile, setName)
 
 	local found = false;
 	for k, v in pairs(self.db.profiles) do
-		
 		if k:match(profile) then
 			local sets = Wishlist:GetSets(profile)
 			for i, set in pairs(sets) do
@@ -829,48 +831,41 @@ function Wishlist:EquipItems(profile, setName)
 					end
 				end
 			end
-
 		end
 	end
 	if not found then
-		print("|cff00ccff[MogIt]|r set|cff00ccff", setName, "|rfrom profile|cff00ccff",profile,"|rnot found.")
+		print("|cff00ccff[MogIt]|r set|cff00ccff", setName, "|rfrom profile|cff00ccff", profile, "|rnot found.")
 	end
 end
-
 
 --// Bindings
 SLASH_MOGITE1 = "/moge";
 SLASH_MOGITE2 = "/mogitequip";
 local function handler(message, editBox)
+	local messageContents = {}
+	local arg = "";
+	for word in message:gmatch("[^%s]+") do
+		table.insert(messageContents, word)
+	end
 
-local messageContents = {}
-local arg = ""; 
-for word in message:gmatch("[^%s]+") do
-	table.insert(messageContents, word)
-end
-
-for i = 2, table.getn(messageContents) do
-	arg = arg .. messageContents[i];
-end
+	for i = 2, table.getn(messageContents) do
+		arg = arg .. messageContents[i];
+	end
 
 	filterArgs(messageContents);
 
--- --First argument must be profile name, or help
--- local profile = messageContents[1];
--- local itemSet = "";
--- if profile:match("[Hh]elp") then
--- 	print("|cff00ccff[MogIt - Equip]|r Syntax: /mogitequip, /moge $profile $set.|ne.g. /moge John Long Trousers")
--- else
--- 	for i = 2, #messageContents do
--- 		itemSet = itemSet .. " " .. messageContents[i];
--- 	end
--- 	if profile and itemSet then
--- 		Wishlist:EquipItems(profile, itemSet)
--- 	end
--- end
-
-
-
-
+	-- --First argument must be profile name, or help
+	-- local profile = messageContents[1];
+	-- local itemSet = "";
+	-- if profile:match("[Hh]elp") then
+	-- 	print("|cff00ccff[MogIt - Equip]|r Syntax: /mogitequip, /moge $profile $set.|ne.g. /moge John Long Trousers")
+	-- else
+	-- 	for i = 2, #messageContents do
+	-- 		itemSet = itemSet .. " " .. messageContents[i];
+	-- 	end
+	-- 	if profile and itemSet then
+	-- 		Wishlist:EquipItems(profile, itemSet)
+	-- 	end
+	-- end
 end
 SlashCmdList["MOGITE"] = handler;
