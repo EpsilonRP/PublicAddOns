@@ -184,8 +184,6 @@ function Strings.crop(text, size, appendEllipsisAtTheEnd)
 		return
 	end
 
-	print("???")
-
 	-- EPSI EDIT: Ignore color tags
 	local sanitizedText = text
 	for k, v in pairs(SANITIZATION_PATTERNS) do
@@ -201,8 +199,6 @@ function Strings.crop(text, size, appendEllipsisAtTheEnd)
 
 	text = strtrim(text or "");
 	sanitizedText = strtrim(sanitizedText or "");
-
-	print(sanitizedText:len(), text:len())
 
 	if sanitizedText:len() > size then
 		text = text:sub(1, size);
