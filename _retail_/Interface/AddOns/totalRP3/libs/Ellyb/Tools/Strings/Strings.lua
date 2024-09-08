@@ -35,7 +35,8 @@ end
 -- Only used for French related stuff, it's okay if non-latin characters are not here
 -- Note: We have a list of lowercase and uppercase letters here, because string.lower doesn't
 -- like accentuated uppercase letters at all, so we can't have just lowercase letters and apply a string.lower.
-local VOWELS = { "a", "e", "i", "o", "u", "y", "A"; "E", "I", "O", "U", "Y", "À", "Â", "Ä", "Æ", "È", "É", "Ê", "Ë", "Î", "Ï", "Ô", "Œ", "Ù", "Û", "Ü", "Ÿ", "à", "â", "ä", "æ", "è", "é", "ê", "ë", "î", "ï", "ô", "œ", "ù", "û", "ü", "ÿ" };
+local VOWELS = { "a", "e", "i", "o", "u", "y", "A", "E", "I", "O", "U", "Y", "À", "Â", "Ä", "Æ", "È", "É", "Ê", "Ë", "Î", "Ï", "Ô", "Œ", "Ù", "Û", "Ü", "Ÿ", "à", "â", "ä", "æ", "è", "é", "ê", "ë", "î",
+	"ï", "ô", "œ", "ù", "û", "ü", "ÿ" };
 VOWELS = tInvert(VOWELS); -- Invert the table so it is easier to check if something is a vowel
 
 ---@param letter string A single letter as a string (can be uppercase or lowercase)
@@ -150,11 +151,11 @@ function Strings.nilToEmpty(text)
 end
 
 local SANITIZATION_PATTERNS = {
-	--["|c%x%x%x%x%x%x%x%x"] = "", -- color start
-	--["|r"] = "", -- color end
-	--["|H.-|h(.-)|h"] = "%1", -- links
-	--["|T.-|t"] = "", -- textures
-	--["|A.-|a"] = "", -- atlases
+	["|c%x%x%x%x%x%x%x%x"] = "", -- color start
+	["|r"] = "",              -- color end
+	["|H.-|h(.-)|h"] = "%1",  -- links
+	["|T.-|t"] = "",          -- textures
+	["|A.-|a"] = "",          -- atlases
 }
 
 ---Sanitize a given text, removing potentially harmful escape sequences that could have been added by a end user (to display huge icons in their tooltips, for example).
@@ -164,9 +165,11 @@ function Strings.sanitize(text)
 	if not text then
 		return
 	end
+	--[[
 	for k, v in pairs(SANITIZATION_PATTERNS) do
 		text = text:gsub(k, v);
 	end
+	--]]
 	return text;
 end
 
@@ -181,6 +184,14 @@ function Strings.crop(text, size, appendEllipsisAtTheEnd)
 		return
 	end
 
+	print("???")
+
+	-- EPSI EDIT: Ignore color tags
+	local sanitizedText = text
+	for k, v in pairs(SANITIZATION_PATTERNS) do
+		sanitizedText = sanitizedText:gsub(k, v);
+	end
+
 	Ellyb.Assertions.isType(size, "number", "size");
 	assert(size > 0, "Size has to be a positive number.");
 
@@ -189,7 +200,11 @@ function Strings.crop(text, size, appendEllipsisAtTheEnd)
 	end
 
 	text = strtrim(text or "");
-	if text:len() > size then
+	sanitizedText = strtrim(sanitizedText or "");
+
+	print(sanitizedText:len(), text:len())
+
+	if sanitizedText:len() > size then
 		text = text:sub(1, size);
 		if appendEllipsisAtTheEnd then
 			text = text .. "…";
