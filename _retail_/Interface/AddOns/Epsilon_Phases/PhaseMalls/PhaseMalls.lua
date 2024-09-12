@@ -2,6 +2,7 @@
 local phases, EPSILON_PHASES = ...
 local EpsiLib = EpsilonLib;
 
+do return end -- not reliable atm
 
 local mallPhases = EpsiLib.ContainerTemplate.Headers.createHeader("Mall Phases", EpsilonPhases);
 

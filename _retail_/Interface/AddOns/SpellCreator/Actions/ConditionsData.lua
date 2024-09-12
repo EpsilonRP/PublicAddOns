@@ -684,7 +684,7 @@ local conditions = {
 					end
 					if getDistanceBetweenPoints(x, y, x2, y2) < range then
 						if z and getDistanceBetweenPoints(z, z2) > range then return false end -- If Z and if distance greater than range allowed then fail
-						return true                                          -- everything semes good, continue
+						return true                                          -- everything seems good, continue
 					end
 					return false                                             -- if you made it here, then something failed
 				end,

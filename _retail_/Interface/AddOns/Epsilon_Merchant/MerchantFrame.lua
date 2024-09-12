@@ -554,7 +554,7 @@ local function BuyEpsilon_MerchantItem( itemID, amount )
 		end
 		if extendedCost then
 			if type(currencyID) == "table" then
-				for i = 1, 3 do
+				for i = 1, #currencyID do
 					SendCommand( "additem "..currencyID[i][1].." -"..currencyID[i][2] );
 				end
 			else
@@ -614,7 +614,7 @@ local function SellEpsilon_MerchantItem( bag, slot )
 
 			if extendedCost then
 				if type(currencyID) == "table" then
-					for i = 1, 3 do
+					for i = 1, #currencyID do
 						SendCommand( "additem "..currencyID[i][1].." "..currencyID[i][2] );
 					end
 				else

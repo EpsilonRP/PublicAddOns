@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Dice Master (C) 2019 <The League of Lordaeron> - Moon Guard -- Borrowed with permission from Skylar. Thank you Skylar!!
+-- DiceMaster (C) 2024 - For Epsilon -- Borrowed with permission from Skylar. Thank you Skylar!!
 -------------------------------------------------------------------------------
 
 --

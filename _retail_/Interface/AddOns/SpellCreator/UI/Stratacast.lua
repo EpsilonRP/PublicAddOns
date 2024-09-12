@@ -9,8 +9,8 @@ local Logging = ns.Logging
 local cprint = Logging.cprint
 
 local stratacastDB = { -- Example, overwritten when the DB gets retargetted anyways
-	{ commID = "drunk",    code = { "up", "up", "down" } },
-	{ commID = "arcsmash", code = { "up", "right", "left" } },
+	-- { commID = "drunk",    code = { "up", "up", "down" } },
+	-- { commID = "arcsmash", code = { "up", "right", "left" } },
 }
 
 local strataKey = "LCTRL"
