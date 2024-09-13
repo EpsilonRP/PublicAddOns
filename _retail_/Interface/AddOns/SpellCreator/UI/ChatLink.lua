@@ -100,7 +100,7 @@ local function setupSpellTooltip(spellName, spellDesc, spellComm, numActions, ch
 		end
 
 		ItemRefTooltip:Show()
-		if ItemRefTooltipTextLeft1:GetRight() > ItemRefCloseButton:GetLeft() then
+		if ItemRefTooltipTextLeft1:GetRight() > ItemRefTooltip.CloseButton:GetLeft() then
 			ItemRefTooltip:SetPadding(16, 0)
 		end
 	end)

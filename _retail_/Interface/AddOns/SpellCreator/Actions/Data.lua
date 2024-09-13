@@ -124,6 +124,12 @@ local ACTION_TYPE = {
 	StartAutoRun = "StartAutoRun",      -- StartAutoRun
 	StopAutoRun = "StopAutoRun",        -- StopAutoRun
 
+	SendSay = "SendSay",                -- SendChatMessage("SAY")
+	SendYell = "SendYell",              -- SendChatMessage("YELL")
+	SendEmote = "SendEmote",            -- SendChatMessage("EMOTE")
+	SendChannel = "SendChannel",        -- SendChatMessage("CHANNEL")
+	SendRaidWarning = "SendRaidWarning", -- SendChatMessage("RAID_WARNING")
+
 	RunMacro = "RunMacro",              -- RunMacro
 	RunMacroText = "RunMacroText",      -- RunMacroText
 	StopMacro = "StopMacro",            -- StopMacro
@@ -962,7 +968,8 @@ local actionTypeData = {
 		end,
 		description = "Cast another exported Arcanum Spell.",
 		dataName = "Import Code",
-		inputDescription = "The export/import code from exporting an ArcSpell in your vault.\n\rNote: ArcSpells exported are a snap-shot of that spell at that exact moment. Any edits you make to that spell later, will not be reflected in this export, and thus casting via import will not be updated either. You'd need to re-export the spell and update the input.",
+		inputDescription =
+		"The export/import code from exporting an ArcSpell in your vault.\n\rNote: ArcSpells exported are a snap-shot of that spell at that exact moment. Any edits you make to that spell later, will not be reflected in this export, and thus casting via import will not be updated either. You'd need to re-export the spell and update the input.",
 		example = "Right-Click an ArcSpell in your vault, then click 'Export'. Copy that code and paste it here.",
 		revert = nil,
 	}),
@@ -2978,13 +2985,35 @@ local actionTypeData = {
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
 
+	-- SendSay = "SendSay",              -- SendChatMessage("SAY")
+	[ACTION_TYPE.SendSay] = scriptAction("/say", {
+		command = function(vars)
+			local rps_command = ("SendChatMessage('%s', 'SAY')"):format(vars:gsub("'", "\\'"))
+			RunPrivileged(rps_command)
+		end,
+		description =
+		"Sends a /say chat message.",
+		dataName = 'Message to Say',
+		doNotDelimit = true,
+		revertAlternative = "You can't unsay things..",
+		selfAble = false,
+		requirement = "C_Epsilon.RunPrivileged",
+		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
+	}),
+
+	-- SendYell = "SendYell",            -- SendChatMessage("YELL")
+	-- SendEmote = "SendEmote",          -- SendChatMessage("EMOTE")
+	-- SendChannel = "SendChannel",      -- SendChatMessage("CHANNEL")
+	-- SendRaidWarning = "SendRaidWarning", -- SendChatMessage("RAID_WARNING")
+
+
+
 	-- TBD if we want to use these..
 	-- RunMacro = "RunMacro",                                -- RunMacro(id or name) #protected - Executes a macro.
 	-- RunMacroText = "RunMacroText",                        -- RunMacroText(macro) #protected - Executes a string as if it was a macro.
 	-- StopMacro = "StopMacro",                              -- StopMacro() #protected - Stops the currently executing macro.
 
 }
-
 
 
 ---End Point for Registering a New Action; Other AddOns can use this to add their own actions to the database. // We should convert the above to use this instead in another data library file for easier organization..
