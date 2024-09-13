@@ -88,8 +88,8 @@ end
 
 local null = {}
 ---@param text string string to parse into csv arguments, returned as an array of args.
----@param limit number
----@return string[]|table
+---@param limit? number
+---@return string[]|table, number?
 local function getCSVArgsFromString(text, limit)
 	local _csvTable = {}
 	if not text then return _csvTable end
@@ -166,6 +166,31 @@ local function csv2seq(s)
 end
 
 local parseStringToArgs = getCSVArgsFromString
+
+---A wrapper for parseStringToArgs that handles failure fallback, along with arg limits
+---@param string any
+---@param limit? any
+---@return table|string[]
+---@return number?
+local parseArgsWrapper = function(string, limit)
+	local success, argTable, numArgs = pcall(parseStringToArgs, string, limit)
+	if not success then
+		ns.Logging.eprint("Error Parsing String to Args (Are you missing a \" ?)")
+		ns.Logging.dprint(argTable)
+		return
+	end
+	return argTable, numArgs
+end
+
+---@param string string CSV Delimited String of Args
+---@param limit? number Max number of args to grab
+---@return ... All the args, capped at the limit or the max number found if no limit given, including nils
+local function getArgs(string, limit)
+	local argsTable, numArgs = parseArgsWrapper(string, limit)
+	if not argsTable then error("Error Parsing String to Args (Are you missing a \" ?)") end
+	return unpack(argsTable, 1, numArgs)
+end
+
 
 ---comment
 ---@param seconds number length in seconds
@@ -498,6 +523,8 @@ ns.Utils.Data = {
 	sanitizeNewlinesToCSV = sanitizeNewlinesToCSV,
 	--getCSVArgsFromString = getCSVArgsFromString,
 	parseStringToArgs = parseStringToArgs,
+	parseArgsWrapper = parseArgsWrapper,
+	getArgs = getArgs,
 	secondsToMinuteSecondString = secondsToMinuteSecondString,
 	adjustNumbersInRange = adjustNumbersInRange,
 

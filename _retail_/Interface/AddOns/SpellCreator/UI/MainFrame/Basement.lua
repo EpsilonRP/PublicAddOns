@@ -140,8 +140,10 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 	executeSpellButton:SetSize(24 * 4, 24)
 	executeSpellButton:SetText(ACTION_SPELL_CAST_SUCCESS:gsub("^%l", string.upper))
 	executeSpellButton:SetMotionScriptsWhileDisabled(true)
+	executeSpellButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-	executeSpellButton:SetScript("OnClick", function()
+
+	executeSpellButton:SetScript("OnClick", function(self, button)
 		local maxDelay = 0
 		local actionsToCommit = getForgeActions()
 		for _, actionData in ipairs(actionsToCommit) do
@@ -152,7 +154,11 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 
 		local spellInfo = Attic.getInfo()
 		local spellName = spellInfo.fullName
-		local spellData = { ["icon"] = Icons.getFinalIcon(spellInfo.icon), commID = spellInfo.commID, castbar = spellInfo.castbar } ---@as VaultSpell
+		local spellData = { ["icon"] = Icons.getFinalIcon(spellInfo.icon), commID = spellInfo.commID, castbar = spellInfo.castbar, conditions = spellInfo.conditions } ---@as VaultSpell
+
+		if button == "RightButton" then
+			spellData.conditions = nil
+		end
 
 		Execute.executeSpell(actionsToCommit, nil, spellName, spellData)
 
@@ -169,7 +175,7 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 		"Cast the above Actions!",
 		function(self)
 			if self:IsEnabled() then
-				return "Useful to test your spell before saving."
+				return { "Useful to test your spell before saving.", "Right-Click to ignore spell-level conditions, for testing." }
 			end
 			return "You cannot cast spells in main-phase " .. START_ZONE_NAME .. "."
 		end

@@ -147,8 +147,9 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
       if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too much result ("..maxgobs.."+), ending the search.") break; end
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
-         if not string.find(result.name, ".wmo") then
-            currentCatalog[result.fileid] = result
+		if not string.find(result.name, "%.wmo") and
+		not string.find(result.name, "^secret_eps") and
+		not string.find(result.name, "^eps_secret") then            currentCatalog[result.fileid] = result
             currentCatalog[result.fileid].entries = {} --for future usage
          end
          --[[

@@ -135,7 +135,8 @@ end
 
 local Conditions = ns.Actions.ConditionsData
 
----@param conditions ConditionDataTable
+---@param conditions any
+---@return boolean
 local function checkConditions(conditions)
 	if not conditions then return true end
 	if conditions and #conditions == 0 then return true end -- No Conditions, pass the check!

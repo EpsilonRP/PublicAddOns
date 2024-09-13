@@ -192,6 +192,12 @@ local baseMenuList = {
 	})),
 
 	header("Commands / Other"),
+	--[[
+	selectmenu("Chat", {
+		action(ACTION.SendSay),
+		--action(ACTION.SendYell),
+	}),
+	--]]
 	selectmenu("Target", {
 		action(ACTION.secTarget),  -- TargetUnit([name, exactMatch]) #protected - Targets the specified unit.
 		action(ACTION.secAssist),  -- AssistUnit([name, exactMatch]) #protected - Assists the unit by targeting the same target.

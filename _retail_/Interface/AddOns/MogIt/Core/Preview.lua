@@ -288,8 +288,10 @@ local previewMenu = {
 					table.insert(tbl, v.item);
 				end
 			end
-			ChatEdit_InsertLink(mog:SetToLink(tbl, currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant));
-			--ChatFrame_OpenChat(link);
+			local link = mog:SetToLink(tbl, currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant)
+			if not ChatEdit_InsertLink(link) then
+				ChatFrame_OpenChat(link);
+			end
 		end,
 	},
 	{

@@ -70,13 +70,15 @@ local condStatusName = {
 	["fail"] = 2,
 	["error"] = 3,
 	["disabled"] = 4,
+	["pending"] = 5,
 }
 local condStatusID = {
 	[0] = { isMet = nil, icon = conMetDisplayIcon_Unknown, text = "Unknown (No Condition?)" },
 	[1] = { isMet = true, icon = conMetDisplayIcon_Success, text = "Success - Condition Met!" },
 	[2] = { isMet = false, icon = conMetDisplayIcon_Failed, text = "Failed - Condition not met." },
 	[3] = { isMet = nil, icon = conMetDisplayIcon_Error, text = "Error - Invalid Condition Data" },
-	[4] = { isMet = nil, icon = conMetDisplayIcon_Disabled, text = "Disabled - Not Checking Condition" }
+	[4] = { isMet = nil, icon = conMetDisplayIcon_Disabled, text = "Disabled - Not Checking Condition" },
+	[5] = { isMet = nil, icon = conMetDisplayIcon_Unknown, text = "Pending - Waiting on Input Entry" },
 }
 
 ---@param display AceGUIInteractiveLabel
@@ -286,9 +288,7 @@ local function genConditionRow(group, index)
 	input:SetLabel("Input")
 	input:SetRelativeWidth(0.5)
 	if input.DisableButton then input:DisableButton(true) end
-	input:SetCallback("OnTextChanged", function(_, _, val)
-		setDataByName(row, "Input", val and val or nil)
-	end)
+
 	input:SetDisabled(true)
 	-- OnFocusLost handlers moved down below conditionMetDisplay
 
@@ -334,7 +334,7 @@ local function genConditionRow(group, index)
 		end
 
 		local func = conditionData.script
-		local retOK, retConditionSuccess = pcall(func, unpack(ns.Utils.Data.parseStringToArgs(conditionInput)))
+		local retOK, retConditionSuccess = pcall(func, ns.Utils.Data.getArgs(conditionInput))
 		if not retOK then
 			local errorText = strmatch(retConditionSuccess, ".*:%d+:(.*)")
 			setMetIconStatus(conditionMetDisplay, "error", errorText)
@@ -368,6 +368,10 @@ local function genConditionRow(group, index)
 		updateMetIcon()
 	end
 
+	input:SetCallback("OnTextChanged", function(_, _, val)
+		setDataByName(row, "Input", val and val or nil)
+		setMetIconStatus(conditionMetDisplay, "pending", "Finish Input Entry to Calculate")
+	end)
 	input:SetCallback("OnEditFocusLost", input_LostFocused) -- Works on MultiLineEditBox
 	input:SetCallback("OnEnterPressed", input_LostFocused) -- Uses MAW-Editbox OnFocusLost redirected from OnEnterPressed instead for normal..
 

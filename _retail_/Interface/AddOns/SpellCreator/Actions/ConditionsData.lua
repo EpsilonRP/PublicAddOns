@@ -278,6 +278,16 @@ local conditions = {
 					return (fileID and ns.Actions.Data_Scripts.sounds.isSoundFilePlaying(tonumber(fileID) and tonumber(fileID) or fileID) or false)
 				end,
 			},
+			{
+				key = "isMusicPlaying",
+				name = "Is Music File Playing",
+				description =
+				"If the given Music File ID is currently playing from an Arcanum Spell / Action / ARC.XAPI. Cannot tell if sounds are playing if played from another source.\n\rSounds played by File are considered to be 'playing' forever until explicitly told to stop, including music. If you need better control / knowledge if a sound is actually still playing, you need to either use a SoundKit based Play Sound, or manually 'stop' it after the proper time via revert or separate action.",
+				inputs = { input("File ID", "string"), },
+				script = function(fileID)
+					return (fileID and (tonumber(fileID) and (tonumber(fileID) == ns.Actions.Data_Scripts.sounds.getLastMusicID())))
+				end,
+			},
 		}
 	},
 
@@ -684,7 +694,7 @@ local conditions = {
 					end
 					if getDistanceBetweenPoints(x, y, x2, y2) < range then
 						if z and getDistanceBetweenPoints(z, z2) > range then return false end -- If Z and if distance greater than range allowed then fail
-						return true                                          -- everything semes good, continue
+						return true                                          -- everything seems good, continue
 					end
 					return false                                             -- if you made it here, then something failed
 				end,

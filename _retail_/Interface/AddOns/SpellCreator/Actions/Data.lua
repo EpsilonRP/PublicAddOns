@@ -124,6 +124,12 @@ local ACTION_TYPE = {
 	StartAutoRun = "StartAutoRun",      -- StartAutoRun
 	StopAutoRun = "StopAutoRun",        -- StopAutoRun
 
+	SendSay = "SendSay",                -- SendChatMessage("SAY")
+	SendYell = "SendYell",              -- SendChatMessage("YELL")
+	SendEmote = "SendEmote",            -- SendChatMessage("EMOTE")
+	SendChannel = "SendChannel",        -- SendChatMessage("CHANNEL")
+	SendRaidWarning = "SendRaidWarning", -- SendChatMessage("RAID_WARNING")
+
 	RunMacro = "RunMacro",              -- RunMacro
 	RunMacroText = "RunMacroText",      -- RunMacroText
 	StopMacro = "StopMacro",            -- StopMacro
@@ -960,10 +966,11 @@ local actionTypeData = {
 			end
 			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
 		end,
-		description = "Cast another Arcanum Spell from your Personal Vault.",
-		dataName = "Spell Command",
-		inputDescription = "The command ID (commID) used to cast the ArcSpell",
-		example = "From " .. Tooltip.genContrastText('/sf MySpell') .. ", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.",
+		description = "Cast another exported Arcanum Spell.",
+		dataName = "Import Code",
+		inputDescription =
+		"The export/import code from exporting an ArcSpell in your vault.\n\rNote: ArcSpells exported are a snap-shot of that spell at that exact moment. Any edits you make to that spell later, will not be reflected in this export, and thus casting via import will not be updated either. You'd need to re-export the spell and update the input.",
+		example = "Right-Click an ArcSpell in your vault, then click 'Export'. Copy that code and paste it here.",
 		revert = nil,
 	}),
 	[ACTION_TYPE.ArcSpellPhase] = scriptAction("Cast ArcSpell (Phase)", {
@@ -1003,7 +1010,7 @@ local actionTypeData = {
 	[ACTION_TYPE.ArcImport] = scriptAction("Import ArcSpell", {
 		command = function(data)
 			local importString, vocal = strsplit(",", data, 2)
-			vocal = strtrim(vocal)
+			if vocal then vocal = strtrim(vocal) end
 			if vocal and (vocal == "false" or vocal == "nil" or vocal == "0") then vocal = nil end
 			if vocal and vocal == "true" then vocal = true end
 			ns.UI.ImportExport.importSpell(importString, vocal)
@@ -2978,13 +2985,35 @@ local actionTypeData = {
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
 
+	-- SendSay = "SendSay",              -- SendChatMessage("SAY")
+	[ACTION_TYPE.SendSay] = scriptAction("/say", {
+		command = function(vars)
+			local rps_command = ("SendChatMessage('%s', 'SAY')"):format(vars:gsub("'", "\\'"))
+			RunPrivileged(rps_command)
+		end,
+		description =
+		"Sends a /say chat message.",
+		dataName = 'Message to Say',
+		doNotDelimit = true,
+		revertAlternative = "You can't unsay things..",
+		selfAble = false,
+		requirement = "C_Epsilon.RunPrivileged",
+		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
+	}),
+
+	-- SendYell = "SendYell",            -- SendChatMessage("YELL")
+	-- SendEmote = "SendEmote",          -- SendChatMessage("EMOTE")
+	-- SendChannel = "SendChannel",      -- SendChatMessage("CHANNEL")
+	-- SendRaidWarning = "SendRaidWarning", -- SendChatMessage("RAID_WARNING")
+
+
+
 	-- TBD if we want to use these..
 	-- RunMacro = "RunMacro",                                -- RunMacro(id or name) #protected - Executes a macro.
 	-- RunMacroText = "RunMacroText",                        -- RunMacroText(macro) #protected - Executes a string as if it was a macro.
 	-- StopMacro = "StopMacro",                              -- StopMacro() #protected - Stops the currently executing macro.
 
 }
-
 
 
 ---End Point for Registering a New Action; Other AddOns can use this to add their own actions to the database. // We should convert the above to use this instead in another data library file for easier organization..
@@ -3019,5 +3048,8 @@ ns.Actions.Data = {
 	ACTION_TYPE = ACTION_TYPE,
 	actionTypeData = actionTypeData,
 
-	registerActionData = registerActionData
+	registerActionData = registerActionData,
+
+	parseArgsWrapper = parseArgsWrapper,
+	getArgs = getArgs
 }
