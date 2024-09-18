@@ -98,11 +98,11 @@ local function getCSVArgsFromString(text, limit)
 	text = replaceEmptyVars(text) -- replacing any empty vars with nil
 	if not text then return _csvTable end
 
-	local spat, epat, buf, quoted = [=[^(['"])]=], [=[(['"])$]=]
+	local spat, epat, buf, quoted = [=[^(["])]=], [=[(["])$]=]
 	for str in text:gmatch("[^,]+") do
 		local squoted = str:match(spat)
 		local equoted = str:match(epat)
-		local escaped = str:match([=[(\*)['"]$]=])
+		local escaped = str:match([=[(\*)["]$]=])
 		if squoted and not quoted and not equoted then
 			buf, quoted = str, squoted
 		elseif buf and equoted == quoted and #escaped % 2 == 0 then
@@ -143,34 +143,73 @@ local function getCSVArgsFromString(text, limit)
 	return _csvTable, returnLength
 end
 
-local function csv2seq(s)
-	s = replaceEmptyVars(s)
+local function getArguments(input, limit)
+	local _args = {}
+	local currentArg = ""
+	local inQuotes = false
+	local escapeNext = false
+	local numArgs = 0
 
-	local t = {}
-	for m in s:gsub('""', '⸂Q⸃'):gsub('%b""', -- change '""' to '\\"' if you want backslash escapes
-		function(q)
-			return q:sub(2, -2):gsub(',', '⸂C⸃')
-		end):gmatch('([^,]+),? *') do -- change * to ? to only trim one space after comma
-		t[#t + 1] = m:gsub('⸂Q⸃', '"'):gsub('⸂C⸃', ',')
-	end
+	if not input then return _args end
+	input = input:gsub(', *"', ',"') -- replace , " with ,"
+	input = input:gsub('" *,', '",') -- replace " , with ",
+	input = replaceEmptyVars(input) -- replacing any empty vars with nil
+	if not input then return _args end
 
-	local trueLength = #t
+	-- Iterate over the input string character by character
+	for i = 1, #input do
+		local char = input:sub(i, i)
 
-	for k, v in ipairs(t) do
-		if v == "nil" then
-			t[k] = nil
+		if escapeNext then
+			-- If the previous character was a backslash, append this character and reset flag
+			currentArg = currentArg .. char
+			escapeNext = false
+		elseif char == "\\" then
+			-- If we encounter a backslash, set escapeNext flag to true and skip processing this character
+			escapeNext = true
+		elseif char == '"' then
+			-- Toggle inQuotes when encountering an unescaped double quote
+			inQuotes = not inQuotes
+			--currentArg = currentArg .. char -- don't save unescaped quotes?
+		elseif char == "," and not inQuotes then
+			-- If we reach a comma and we are not inside a quoted string
+			numArgs = numArgs + 1 -- Increment argument count
+			if #currentArg == 0 or strtrim(currentArg) == "nil" or strtrim(currentArg) == "" then
+				_args[numArgs] = nil -- Blank arguments, or nil direct, are inserted as nil
+			else
+				_args[numArgs] = strtrim(currentArg)
+			end
+			currentArg = "" -- Reset current argument
+
+			-- If the limit is reached, collect the rest as a single string
+			if limit and numArgs == limit - 1 then
+				currentArg = input:sub(i + 1)
+				break
+			end
+		else
+			-- Collect the current character
+			currentArg = currentArg .. char
 		end
 	end
 
-	return t, trueLength
+	-- Insert the last argument after finishing the loop
+	numArgs = numArgs + 1
+	if #currentArg == 0 then
+		_args[numArgs] = nil
+	else
+		_args[numArgs] = currentArg
+	end
+
+	return _args, numArgs
 end
 
-local parseStringToArgs = getCSVArgsFromString
+
+local parseStringToArgs = getArguments
 
 ---A wrapper for parseStringToArgs that handles failure fallback, along with arg limits
 ---@param string any
 ---@param limit? any
----@return table|string[]
+---@return table|string[]?
 ---@return number?
 local parseArgsWrapper = function(string, limit)
 	local success, argTable, numArgs = pcall(parseStringToArgs, string, limit)

@@ -35,29 +35,31 @@ local function unauraClick(buffs, debuffs, targetType)
 	for i = 1, buffs do
 		--print(i)
 		--_G[buffButtonName..i]:RegisterForClicks("LeftButtonUp")
-		_G[buffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
-		_G[buffButtonName .. i]:SetScript("OnClick", function(self, event)
-			--print("BUFFCLICK", event)
-			local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i);
-			--print("buff click",name,spellId,IsShiftKeyDown())
-			if IsShiftKeyDown() == true then
-				--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
-				print("")
-				ChatFrame1EditBox:SetFocus()
-				ChatFrame1EditBox:SetText("|cff71d5ff|Hspell:" .. spellId .. ":0|h[" .. name .. "]|h|r")
-			else
-				if targetType == "target" then
-					--print("buff",name,spellId)
-					if IsControlKeyDown() == true then
-						SendChatMessage(".unaura " .. spellId, "GUILD");
-					else
-						SendChatMessage(".aura " .. spellId, "GUILD");
-					end
+		if _G[buffButtonName .. i] then
+			_G[buffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
+			_G[buffButtonName .. i]:SetScript("OnClick", function(self, event)
+				--print("BUFFCLICK", event)
+				local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i);
+				--print("buff click",name,spellId,IsShiftKeyDown())
+				if IsShiftKeyDown() == true then
+					--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
+					print("")
+					ChatFrame1EditBox:SetFocus()
+					ChatFrame1EditBox:SetText("|cff71d5ff|Hspell:" .. spellId .. ":0|h[" .. name .. "]|h|r")
 				else
-					SendChatMessage(".unaura " .. spellId, "GUILD");
+					if targetType == "target" then
+						--print("buff",name,spellId)
+						if IsControlKeyDown() == true then
+							SendChatMessage(".unaura " .. spellId, "GUILD");
+						else
+							SendChatMessage(".aura " .. spellId, "GUILD");
+						end
+					else
+						SendChatMessage(".unaura " .. spellId, "GUILD");
+					end
 				end
-			end
-		end)
+			end)
+		end
 	end
 
 	for i = 1, debuffs do

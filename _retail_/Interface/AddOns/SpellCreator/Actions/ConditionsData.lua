@@ -313,6 +313,14 @@ local conditions = {
 		catName = "Player or Target .. ",
 		catItems = {
 			{
+				key = "isDead",
+				name = "Is Dead",
+				description = "Continues only if the specified unit is currently dead.",
+				inputDesc = "Defaults to player if no input is given.",
+				inputs = { input("Unit", "unit?"), },
+				script = function(unit) return UnitIsDead(unit and lower(unit) or "player") end,
+			},
+			{
 				key = "isFlying",
 				name = "Is Flying",
 				description = "Continues only if the specified unit is currently flying. This includes flying mounts, spell effects, and `.cheat fly`.",

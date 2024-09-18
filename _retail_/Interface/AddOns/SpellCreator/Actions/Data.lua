@@ -66,6 +66,7 @@ local ACTION_TYPE = {
 	ArcTrigCooldown = "ArcTrigCooldown",
 
 	Anim = "Anim",
+	AnimKit = "AnimKit",
 	Standstate = "Standstate",
 	ResetAnim = "ResetAnim",
 	ResetStandstate = "ResetStandstate",
@@ -222,6 +223,7 @@ local ACTION_TYPE = {
 	OpenSendMail = "OpenSendMail",
 	SendMail = "SendMail",
 	TalkingHead = "TalkingHead",
+	ShowBook = "ShowBook",
 	UnitPowerBar = "UnitPowerBar",
 	UnitPowerBarValue = "UnitPowerBarValue",
 
@@ -434,6 +436,15 @@ local actionTypeData = {
 		revert = "mod stand 30",
 		revertDesc = "Reset to Standstate 30 (none)",
 		selfAble = false,
+		convertLinks = true,
+	}),
+	[ACTION_TYPE.AnimKit] = serverAction("Anim Kit", {
+		command = "mod animkit @N@",
+		description = "Modifies target's current animation kit using 'mod animkit'.",
+		dataName = "AnimKit ID",
+		inputDescription = "Accepts multiple IDs, separated by commas, to do multiple animkits at once, stacking them.",
+		revertAlternative = "Cannot revert AnimKits, however they are one-shot and end.. sooner or later, depending on how long that animkit is.",
+		selfAble = true,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.ResetAnim] = serverAction("Reset Emote/Anim", {
@@ -1639,6 +1650,26 @@ local actionTypeData = {
 			table.concat({ "SAY", "WHISPER", "YELL", "EMOTE", "NONE" }, "|r, " .. Constants.ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup()) .. "|r\n\r",
 		example = [["Message text goes here.", John Doe, 21, , Normal, SAY, 10]],
 		revert = nil,
+		doNotDelimit = true,
+	}),
+	-- ShowBook = "ShowBook"
+	[ACTION_TYPE.ShowBook] = scriptAction("Show Book", {
+		command = function(vars)
+			local success, guid = pcall(getArgs, vars);
+			if not (guid) then
+				return
+			end
+			EpsilonBook_LoadBook(guid);
+		end,
+		description =
+		"Displays a Book from the current phase's Book Library.\n\nMust be currently in the correct phase or the book will not load.",
+		dataName = "GUID",
+		inputDescription =
+			"Syntax: GUID\r" ..
+			commaDelimitedText .. "\nThe GUID of the book. GUIDs are case sensitive.",
+		example = [[1E2P3_S4I5L60N]],
+		revertDesc = "Closes the Book frame.",
+		revert = function() EpsilonBookFrame_Hide(); end,
 		doNotDelimit = true,
 	}),
 	-- UnitPowerBar = "UnitPowerBar"

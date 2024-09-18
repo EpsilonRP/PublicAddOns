@@ -1,11 +1,11 @@
 --[[
 
-   ____       _  __     ___                        
-  / ___| ___ | |_\ \   / (_) _____      _____ _ __ 
+   ____       _  __     ___
+  / ___| ___ | |_\ \   / (_) _____      _____ _ __
  | |  _ / _ \| '_ \ \ / /| |/ _ \ \ /\ / / _ \ '__|
- | |_| | (_) | |_) \ V / | |  __/\ V  V /  __/ |   
-  \____|\___/|_.__/ \_/  |_|\___| \_/\_/ \___|_|   
-                                                  
+ | |_| | (_) | |_) \ V / | |  __/\ V  V /  __/ |
+  \____|\___/|_.__/ \_/  |_|\___| \_/\_/ \___|_|
+
                by Warli 🇫🇷 for Epsilon
 ---------------------------------------------------------
 
@@ -36,8 +36,31 @@ local default = {
    includeEpsilonTiles = true
 }
 
+local object_name_replacements = {
+	["eps_secret"] = "eps",
+	["secret_eps"] = "eps",
+}
+
+local function perform_name_replacements(text)
+	for pat, repl in pairs(object_name_replacements) do
+		text = text:gsub(pat, repl)
+	end
+	return text
+end
+
+local object_names_hidden = {
+	-- Broken objects, so hide them from viewer until they're fixed :(
+	-- Warning: Broken objects may crash client when displayed
+	"alphabet_caligo",
+	"alphabet_futhark",
+	"alphabet_mechanical",
+	"alphabet_morpheus",
+	"alphabet_romansd",
+	"alphabet_suastornad",
+}
+
 local function OnEvent(self, event, addOnName)
-   if addOnName == "Epsilon_Viewer" then
+   if addOnName == addonName then
       Epsilon_ViewerDB = Epsilon_ViewerDB or {}
       self.db = Epsilon_ViewerDB
       self:InitializeOptions()
@@ -118,7 +141,7 @@ g:RegisterEvent("ADDON_LOADED")
 g:SetScript("OnEvent", OnEvent)
 
 local isOVOpen = nil
-local function toogleOV(frame)
+local function toggleOV(frame)
    if not isOVOpen then
       isOVOpen = frame
    elseif isOVOpen:IsVisible() then
@@ -139,7 +162,37 @@ local function selectedCatalog(value)
    end
 end
 
-local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
+local function checkIfStringHasAny(text, filterArray)
+	if #filterArray == 0 then
+		return true
+	end
+
+	for _, filter in pairs(filterArray) do
+		if text:find(filter) then
+			return true
+		end
+	end
+	return false
+end
+
+local function checkIfTableContains(resultName, filterArray)
+   if #filterArray == 0 then
+      return true
+   end
+
+   -- Run through each searchTerm in the filterArray, and check if it does not exist - if found, continue, if not, return false out
+   for _, filter in pairs(filterArray) do
+      if not string.find(resultName, filter) then
+         return false
+      end
+   end
+
+   -- Made it through the whole search and did not fail, so return true
+   return true
+end
+
+
+local function getListFromEpsilon(filter, filterArray, maxgobs) --C_Epsilon is the best
    currentCatalog = nil
    currentCatalog = {}
 
@@ -147,11 +200,15 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
       if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too much result ("..maxgobs.."+), ending the search.") break; end
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
-		if not string.find(result.name, "%.wmo") and
-		not string.find(result.name, "^secret_eps") and
-		not string.find(result.name, "^eps_secret") then            currentCatalog[result.fileid] = result
-            currentCatalog[result.fileid].entries = {} --for future usage
-         end
+		if not string.find(result.name, "%.wmo") then -- No WMOs!!
+			if checkIfTableContains(result.name, filterArray) and (not checkIfStringHasAny(result.name, object_names_hidden)) then
+
+				result.name = perform_name_replacements(result.name)
+
+				currentCatalog[result.fileid] = result
+				currentCatalog[result.fileid].entries = {} --for future usage
+			end
+        end
          --[[
       else
          local insert = {text = result.displayid, value = #currentCatalog[result.fileid].entries+1}
@@ -186,13 +243,19 @@ local function getGobPath(fid)
       local gobPath = string.match(baseName, "(.-%.m2)")
       return gobPath
    end
-end]] 
+end]]
 
 local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to build resultTable
    --no filter or bad filter
    local usedList = currentCatalog
    local resultList = {}
+
+   local filterArray = {}
    filter = filter:lower() --Put everything in lowCase
+   for searchTerm in string.gmatch(filter, "%S+") do
+      table.insert(filterArray, #filterArray + 1, searchTerm)
+   end
+   filter = table.remove(filterArray, 1)
 
    if (filter == nil or filter:len() < 2) and catalogValue == 1 then
       return nil
@@ -210,7 +273,7 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
          end
       end
    else
-      getListFromEpsilon(filter, maxgobs)
+      getListFromEpsilon(filter, filterArray, maxgobs)
       usedList = currentCatalog
       for iFileData, gobData in pairs (usedList) do
          local gobName = getGobName(iFileData)
@@ -301,7 +364,7 @@ local function ShowGobBrowser()
          local g = CreateFrame("DressUpModel", nil, gobFrame, "ModelWithZoomTemplate") --create a frame to show the models
          g:SetModel(130738) --"interface/buttons/talktomequestionmark.m2"
 
-          --Zoom of the gob 
+          --Zoom of the gob
          g:SetPortraitZoom(0)
          local camdistance = 3;
          g:SetCamDistanceScale(camdistance)
@@ -406,16 +469,16 @@ local function ShowGobBrowser()
          )
 
 
-         --[[ 
+         --[[
 
          --Dropdown to select the gob's displayid, declared in buttonspawn.
 
          gameObjectsGrid[i][j].displayidDropdown:SetFrameLevel(9) --Force spawnButton to be on top
          gameObjectsGrid[i][j].displayidDropdown.optsFrame:SetFrameLevel(11) --but allow the dropdown to overthrow every other button
          StdUi:GlueBottom(gameObjectsGrid[i][j].displayidDropdown, gameObjectsGrid[i][j].buttonSpawn, 0, 0, "RIGHT");
-         
+
          --Button for lo ob
-         gameObjectsGrid[i][j].buttonLob = StdUi:Button(g, ButtonWSize, ButtonHSize, "Lookup"); 
+         gameObjectsGrid[i][j].buttonLob = StdUi:Button(g, ButtonWSize, ButtonHSize, "Lookup");
          gameObjectsGrid[i][j].buttonLob:SetHighlightTexture("interface\\buttons\\ui-listbox-highlight.blp","ADD")
          gameObjectsGrid[i][j].buttonLob:SetScript("OnClick", function()
 
@@ -492,14 +555,14 @@ local function ShowGobBrowser()
       currentPage = page
       currentPageLabel:SetText(page..'/'..#localResult)
       gobFrameSlider:SetMinMaxValues(1, #localResult)
-      if currentPage == 1 then 
+      if currentPage == 1 then
          gobFrameSlider:SetValue(1)
       end
 
    end
 
    gobFrameSlider:SetScript("OnValueChanged", function(self,value,userInput)
-      
+
       if value ~= currentPage then
          updateGobGrid(currentGobList, value)
       end
@@ -946,10 +1009,10 @@ local function ShowGobBrowser()
    end)
 
 
-
    local searchBox = StdUi:SearchEditBox(gobFrame, 400, 30, 'Keywords') --SearchBox
    searchBox:SetFontSize(16);
-   searchBox:SetScript('OnEnterPressed', function()
+
+   local function startSearch()
       local input = searchBox:GetText()
       if input:len() > 2 then
          selectedCatalog(catalogListScrollDown:GetValue())
@@ -961,9 +1024,21 @@ local function ShowGobBrowser()
          currentGobList = divideGobList(placeHolderTable, columns, rows)
          updateGobGrid(currentGobList, 1)
       end
+   end
+
+   searchBox:SetScript('OnEnterPressed', function(self)
+      startSearch()
+	  self:ClearFocus()
    end);
 
-   --Search Options 
+   local searchTimer = C_Timer.NewTimer(0, function() end)
+   searchBox:HookScript('OnTextChanged', function(self)
+	  -- Cancel last timer, start a new one
+	  searchTimer:Cancel()
+	  searchTimer = C_Timer.NewTimer(1, startSearch)
+   end)
+
+   --Search Options
    local searchOptionsShowed = false
    local searchOptionsButton = utils.SquareButton(gobFrame, 30, 30, 'DOWN');
    StdUi:FrameTooltip(searchOptionsButton, "Show searching options.", "gobvwr_button_searchopts", "TOPRIGHT", true)
@@ -1021,20 +1096,7 @@ local function ShowGobBrowser()
 
    local searchButton = utils.SquareButton(gobFrame, 30, 30, "Interface\\AddOns\\Epsilon_Viewer\\assets\\EpsiIndexSearch"); --SearchButton
    searchButton:SetScript("OnClick", function()
-
-      local input = searchBox:GetText()
-      if input:len() > 2 then
-         selectedCatalog(catalogListScrollDown:GetValue())
-         currentGobList = divideGobList(getGobList(input, catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
-         updateGobGrid(currentGobList, 1)
-      else
-         local placeHolderTable = {}
-         selectedCatalog(1)
-         currentGobList = divideGobList(placeHolderTable, columns, rows)
-         updateGobGrid(currentGobList, 1)
-      end
-
-
+      startSearch()
    end)
 
 
@@ -1056,7 +1118,7 @@ local function ShowGobBrowser()
 
    gobFrame:DoLayout();
    updateNamesLabel()
-   toogleOV(gobFrame)
+   toggleOV(gobFrame)
 
    -- Making the models reappear after closing
    gobFrame:HookScript("OnShow", function(self)
@@ -1076,7 +1138,7 @@ SLASH_EPSV1 = "/epsilonviewer"
 SLASH_EPSV2 = "/viewer"
 SlashCmdList["EPSV"] = function(msg)
    if isOVOpen then
-      toogleOV()
+      toggleOV()
    else ShowGobBrowser()
    end
 end
