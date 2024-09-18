@@ -280,7 +280,7 @@ end
 
 local function cancelPendingPhaseVaultLoadingTimers()
 	for _, timer in pairs(phaseVaultLoadingTimers) do
-		timer:Cancel()
+		timer.timer:Cancel()
 	end
 	table.wipe(phaseVaultLoadingTimers)
 end

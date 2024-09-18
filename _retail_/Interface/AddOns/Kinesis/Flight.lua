@@ -53,8 +53,9 @@ local function castArcStartSpells()
 
 	if not (isNotDefined(flightSettings.arcanumStart) or flightSettings.arcanumStart == false) then
 		ARC:CAST(flightSettings.arcanumStart)
-		arcanumActive = true
 	end
+
+	arcanumActive = true
 end
 
 local function castArcStopSpells()
@@ -64,8 +65,9 @@ local function castArcStopSpells()
 		if not (isNotDefined(flightSettings.arcanumStop) or flightSettings.arcanumStop == false) then
 			ARC:CAST(flightSettings.arcanumStop)
 		end
-		arcanumActive = false
 	end
+
+	arcanumActive = false
 end
 
 local function addSpellToSpellList(id)

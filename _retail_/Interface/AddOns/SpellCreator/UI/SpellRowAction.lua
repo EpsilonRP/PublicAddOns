@@ -146,6 +146,7 @@ local baseMenuList = {
 	selectmenu("Animation", {
 		header("Animation"),
 		action(ACTION.Anim),
+		action(ACTION.AnimKit),
 		action(ACTION.Standstate),
 
 		spacer(),

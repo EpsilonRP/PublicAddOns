@@ -1,7 +1,7 @@
 ## Interface: 90207
 ## Title: |cffFFD700ChatBubble
 ## Author: MindScape
-## Version: 2.3.1
+## Version: 2.4.0
 ## Notes: Allows you to use a multitude of typing indicators, such as <Typing>, chat bubbles, and character animations.
 ## OptionalDeps: Epsilon, EpsilonLib, EpsilonLib-dev
 ## DefaultState: Enabled

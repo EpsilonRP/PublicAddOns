@@ -1,3 +1,14 @@
+V2.4.0 (September 18, 2024)
+	- Refactor code to be much cleaner
+	- Added support for AnimKits
+	- Added support for NPC Say/Emote/Yell. Must have Phase DM enabled.
+
+----------------------------------------
+
+(V2.3.1 - Updated for SL)
+
+----------------------------------------
+
 V2.3.0 (March 13, 2021)
 	- Refactor Spell, Emote, and <Typing> application
 	- Better UI depiction of when the "Enable ChatBubbles" toggle means everything is off
@@ -18,7 +29,7 @@ V2.2.0 (March 20, 2020)
 	- Added <Typing> support, requires Epsilon addon dependency (Cred: Gardener for <Typing> itself)
 		- Toggleable via /cb settings menu, default enabled
 	- Fixed some logic ideas, added redundancy to avoid sometimes not removing the emotes/spells/indicator.
-	
+
 ----------------------------------------
 
 V2.1.0 (July 24, 2018)
@@ -60,15 +71,15 @@ v2.0.0 (Sep. 1, 2017)
 v1.1.0 (Aug. 28, 2017) (UNRELEASED)
 	- New Feature: Diverse Aura's Mode (Red "!" for YELL, Golden "!" for EMOTE, ChatBubble for SAY)
 		- Toggle with "/cb multi" or "/cb diverse" (default: off)
-	
+
 ----------------------------------------
 
-v1.0.0 (Aug. 17, 2017) 
+v1.0.0 (Aug. 17, 2017)
 	- Release Build (See Forum for Features)
-	
+
 ----------------------------------------
 
 v0.0.1 (July, 2017)
 	- Initial Concept - Leaked Alpha
-	
+
 ----------------------------------------
