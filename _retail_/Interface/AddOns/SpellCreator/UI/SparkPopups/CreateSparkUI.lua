@@ -246,6 +246,8 @@ local sparkPopupStyles = { -- You can still use one not listed here technically,
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Maldraxxus-1",       name = "Maldraxxus" },
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Revendreth-1",       name = "Revendreth" },
 
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Aether-1",           name = "Aether (Tint)" },
+
 	-- always last
 	{ tex = addNewSparkPopupStyleTex,                                   name = "Add Other/Custom" },
 	-- 	{ tex = SPARK_ASSETS_PATH .. "CustomFrameFile", name = "Custom Frame 1", requirement = func -> bool (true: Show, false: Hide) },
@@ -313,6 +315,8 @@ local multiSparkStyles = { -- You can still use one not listed here technically,
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Bastion",          name = "Bastion" },
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Maldraxxus",       name = "Maldraxxus" },
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Revendreth",       name = "Revendreth" },
+
+	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Aether",           name = "Aether (Tint)" },
 }
 
 local multiSparkStyles_Map = {}
