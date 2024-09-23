@@ -974,6 +974,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.isNotRadio = true;
 	UIDropDownMenu_AddButton(info, tier);
 
+	--[[ -- Disabled, we're going to just enforce this always instead
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = L["|cff00ccffUse Character for Auto-Preview|r"];
 	info.tooltipTitle = L["|cff00ccffUse Character for Auto-Preview|r"];
@@ -985,6 +986,7 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.arg1 = "useCurrentCharForMogAutoPreviews"
 	info.isNotRadio = true;
 	UIDropDownMenu_AddButton(info, tier);
+	--]]
 end);
 mog.menu.preview:SetPoint("LEFT", mog.menu.catalogue, "RIGHT", 5, 0);
 --//

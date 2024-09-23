@@ -412,7 +412,7 @@ function addon:OnInitialize()
 
 	mmButton._Icons = {} -- dictionary for the icons to call them if needed
 
-	ns.Utils.Tooltip.set(mmButton, "Epsilon AddOns Launcher",
+	ns.Utils.Tooltip.set(mmButton, "Epsilon AddOns Tray",
 		{
 			"|cffFFD700Left-Click|r to open the AddOns tray!",
 			"|cffFFD700Right-Click|r to open settings.",

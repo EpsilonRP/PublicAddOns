@@ -46,7 +46,9 @@ local function runMacroText(command)
 					ran, ret1 = xpcall(ChatEdit_SendText, dummy, MacroEditBox)
 					result = ret1
 					if not ran then
-						eprint("Error in Chat Message (Invalid Escape Code): Double check if you used a  |  in the message - if you meant this for a nameless emote or chat, use a double bar ('||||') instead!", "Error: " .. ret1)
+						eprint(
+							"Error in Chat Message (Invalid Escape Code): Double check if you used a  |  in the message - if you meant this for a nameless emote or chat, use a double bar ('||||') instead!",
+							"Error: " .. ret1)
 					end
 				else
 					eprint("This command failed: " .. command, ret1)

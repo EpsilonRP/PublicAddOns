@@ -334,7 +334,12 @@ local function genConditionRow(group, index)
 		end
 
 		local func = conditionData.script
-		local retOK, retConditionSuccess = pcall(func, ns.Utils.Data.getArgs(conditionInput))
+		local maxArgs
+		if conditionData.maxArgs then
+			maxArgs = conditionData.maxArgs
+		end
+
+		local retOK, retConditionSuccess = pcall(func, ns.Utils.Data.getArgs(conditionInput, maxArgs))
 		if not retOK then
 			local errorText = strmatch(retConditionSuccess, ".*:%d+:(.*)")
 			setMetIconStatus(conditionMetDisplay, "error", errorText)

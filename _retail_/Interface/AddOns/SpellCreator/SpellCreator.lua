@@ -1562,6 +1562,101 @@ local function getSavedSpellFromVaultTable()
 	return savedSpellFromVault
 end
 
+--- AutoCast Stuff
+---
+--- Account
+
+local function getAccountAutoCastTable()
+	local currentSettings = SpellCreatorMasterTable.Options.autoCast
+	if not currentSettings or currentSettings == "" then return {} end
+
+	return { strsplit(":", currentSettings) }
+end
+
+local function isSpellInAccountAutoCast(commID)
+	local _table = getAccountAutoCastTable()
+
+	if tContains(_table, commID) then return true end
+	return false
+end
+
+local function addSpellToAccountAutoCast(commID)
+	local _table = getAccountAutoCastTable()
+
+	if tContains(_table, commID) then return end
+	tinsert(_table, commID)
+
+	local newVal = table.concat(_table, ":")
+	SpellCreatorMasterTable.Options.autoCast = newVal
+end
+
+local function removeSpellFromAccountAutoCast(commID)
+	local _table = getAccountAutoCastTable()
+
+	local removed = tDeleteItem(_table, commID)
+	if removed == 0 then return end
+
+	local newVal = table.concat(_table, ":")
+	SpellCreatorMasterTable.Options.autoCast = newVal
+end
+
+---
+--- Character
+
+local function getCharAutoCastTable()
+	local currentSettings = SpellCreatorCharacterTable.autoCast
+	if not currentSettings or currentSettings == "" then return {} end
+
+	return { strsplit(":", currentSettings) }
+end
+
+local function isSpellInCharAutoCast(commID)
+	local _table = getCharAutoCastTable()
+
+	if tContains(_table, commID) then return true end
+	return false
+end
+
+
+local function addSpellToCharAutoCast(commID)
+	local _table = getCharAutoCastTable()
+
+	if tContains(_table, commID) then return end
+	tinsert(_table, commID)
+
+	local newVal = table.concat(_table, ":")
+	SpellCreatorCharacterTable.autoCast = newVal
+end
+
+local function removeSpellFromCharAutoCast(commID)
+	local _table = getCharAutoCastTable()
+
+	local removed = tDeleteItem(_table, commID)
+	if removed == 0 then return end
+
+	local newVal = table.concat(_table, ":")
+	SpellCreatorCharacterTable.autoCast = newVal
+end
+
+---
+--- Run them
+
+RegisterEventCallback("VARIABLES_LOADED", function()
+	-- run account auto cast spells
+	local acc_table = getAccountAutoCastTable()
+	for i = 1, #acc_table do
+		local commID = acc_table[i]
+		ARC:CAST(commID)
+	end
+
+	-- run char auto cast spells
+	local char_table = getCharAutoCastTable()
+	for i = 1, #char_table do
+		local commID = char_table[i]
+		ARC:CAST(commID)
+	end
+end)
+
 ---@class MainFuncs
 ns.MainFuncs = {
 	updateSpellLoadRows = updateSpellLoadRows,
@@ -1579,6 +1674,17 @@ ns.MainFuncs = {
 
 	resetEditorUI = resetEditorUI,
 	scforge_showhide = scforge_showhide,
+
+	-- auto cast stuff
+	getAccountAutoCastTable = getAccountAutoCastTable,
+	isSpellInAccountAutoCast = isSpellInAccountAutoCast,
+	addSpellToAccountAutoCast = addSpellToAccountAutoCast,
+	removeSpellFromAccountAutoCast = removeSpellFromAccountAutoCast,
+
+	getCharAutoCastTable = getCharAutoCastTable,
+	isSpellInCharAutoCast = isSpellInCharAutoCast,
+	addSpellToCharAutoCast = addSpellToCharAutoCast,
+	removeSpellFromCharAutoCast = removeSpellFromCharAutoCast,
 
 	RegisterEventCallback = RegisterEventCallback,
 }

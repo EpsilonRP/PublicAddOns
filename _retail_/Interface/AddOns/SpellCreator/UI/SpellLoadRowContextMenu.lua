@@ -222,6 +222,40 @@ local function createStratacastMenu(spell)
 end
 
 ---@param spell VaultSpell
+---@return DropdownItem
+local function createAutoCastMenu(spell)
+	return Dropdown.submenu("Toggle AutoCast", {
+		Dropdown.header("AutoCast on Login:"),
+		Dropdown.checkbox("Account-wide", {
+			get = function() return ns.MainFuncs.isSpellInAccountAutoCast(spell.commID) end,
+			set = function(self, value)
+				if value then
+					ns.MainFuncs.addSpellToAccountAutoCast(spell.commID)
+				else
+					ns.MainFuncs.removeSpellFromAccountAutoCast(spell.commID)
+				end
+			end,
+			tooltipTitle = "Account-wide",
+			tooltipText = "Automatically Cast this ArcSpell when you login to any character on this account.\n\r" ..
+				"Note: Spells are cast on a slight delay, to allow the UI to finish loading.",
+		}),
+		Dropdown.checkbox("This Character", {
+			get = function() return ns.MainFuncs.isSpellInCharAutoCast(spell.commID) end,
+			set = function(self, value)
+				if value then
+					ns.MainFuncs.addSpellToCharAutoCast(spell.commID)
+				else
+					ns.MainFuncs.removeSpellFromCharAutoCast(spell.commID)
+				end
+			end,
+			tooltipTitle = "This Character",
+			tooltipText = "Automatically Cast this ArcSpell when you login to this character.\n\r" ..
+				"Note: Spells are cast on a slight delay, to allow the UI to finish loading.",
+		}),
+	}, {})
+end
+
+---@param spell VaultSpell
 ---@return DropdownItem[]
 local function getPersonalSpellItems(spell)
 	local inQuickcast = tContains(SpellCreatorMasterTable.quickCastSpells, spell.commID)
@@ -283,6 +317,7 @@ local function getPersonalSpellItems(spell)
 			end
 		),
 
+		createAutoCastMenu(spell),
 		createStratacastMenu(spell),
 	}
 end

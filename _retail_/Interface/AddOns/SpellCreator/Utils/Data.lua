@@ -150,6 +150,20 @@ local function getArguments(input, limit)
 	local escapeNext = false
 	local numArgs = 0
 
+	-- Special case handler for limit of 1
+	if limit == 1 then
+		if #input == 0 or strtrim(input) == "nil" or strtrim(input) == "" then
+			_args[1] = nil
+		else
+			input = strtrim(input)
+			if input:sub(1, 1) == '"' and input:sub(-1) == '"' then
+				input = input:sub(2, -2)
+			end
+			_args[1] = strtrim(input)
+		end
+		return _args, 1
+	end
+
 	if not input then return _args end
 	input = input:gsub(', *"', ',"') -- replace , " with ,"
 	input = input:gsub('" *,', '",') -- replace " , with ",
@@ -159,23 +173,26 @@ local function getArguments(input, limit)
 	-- Iterate over the input string character by character
 	for i = 1, #input do
 		local char = input:sub(i, i)
+		local nextChar = input:sub(i + 1, i + 1) -- Look ahead at the next character
 
 		if escapeNext then
-			-- If the previous character was a backslash, append this character and reset flag
+			-- If the previous character was a backslash, append the current character and reset escape flag
 			currentArg = currentArg .. char
 			escapeNext = false
-		elseif char == "\\" then
-			-- If we encounter a backslash, set escapeNext flag to true and skip processing this character
+		elseif char == "\\" and nextChar == '"' then
+			-- If we encounter a backslash, set escapeNext flag to true (escape the next character)
 			escapeNext = true
-		elseif char == '"' then
-			-- Toggle inQuotes when encountering an unescaped double quote
-			inQuotes = not inQuotes
-			--currentArg = currentArg .. char -- don't save unescaped quotes?
+		elseif char == '"' and not inQuotes and #currentArg == 0 then
+			-- Start of a quoted section: don't save the quote, just toggle inQuotes
+			inQuotes = true
+		elseif char == '"' and inQuotes and (nextChar == "," or nextChar == nil or nextChar == "") then
+			-- End of a quoted section: don't save the quote, just toggle inQuotes
+			inQuotes = false
 		elseif char == "," and not inQuotes then
-			-- If we reach a comma and we are not inside a quoted string
+			-- If we reach a comma and we are not inside a quoted string, it's an argument delimiter
 			numArgs = numArgs + 1 -- Increment argument count
 			if #currentArg == 0 or strtrim(currentArg) == "nil" or strtrim(currentArg) == "" then
-				_args[numArgs] = nil -- Blank arguments, or nil direct, are inserted as nil
+				_args[numArgs] = nil -- Blank arguments, or "nil", are inserted as nil
 			else
 				_args[numArgs] = strtrim(currentArg)
 			end
@@ -194,10 +211,27 @@ local function getArguments(input, limit)
 
 	-- Insert the last argument after finishing the loop
 	numArgs = numArgs + 1
-	if #currentArg == 0 then
-		_args[numArgs] = nil
+
+	if limit and numArgs == limit then
+		-- Apply the same logic for trimming quotes and setting nil values for the last argument
+		if #currentArg == 0 or strtrim(currentArg) == "nil" or strtrim(currentArg) == "" then
+			_args[numArgs] = nil
+		else
+			-- If the last argument is quoted, remove the surrounding quotes
+			-- trim first
+			currentArg = strtrim(currentArg)
+			if currentArg:sub(1, 1) == '"' and currentArg:sub(-1) == '"' then
+				currentArg = currentArg:sub(2, -2)
+			end
+			_args[numArgs] = strtrim(currentArg)
+		end
 	else
-		_args[numArgs] = currentArg
+		-- Handle the normal case where the last argument is at the end of the loop
+		if #currentArg == 0 then
+			_args[numArgs] = nil
+		else
+			_args[numArgs] = strtrim(currentArg)
+		end
 	end
 
 	return _args, numArgs

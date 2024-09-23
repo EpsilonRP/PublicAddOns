@@ -569,6 +569,18 @@ do
 	}
 end
 
+
+StaticPopupDialogs["MOGIT_WISHLIST_DELETE_PROFILE_SET"] = {
+	text = L["Delete profile %s set '%s'?"],
+	button1 = YES,
+	button2 = NO,
+	OnAccept = function(self, data)
+		--(self.text["text_arg1"], self.text["text_arg2"])
+		Wishlist:DeleteProfileSet(self.text["text_arg2"], true, self.text["text_arg1"])
+	end,
+	whileDead = true,
+}
+
 StaticPopupDialogs["MOGIT_WISHLIST_DELETE_SET"] = {
 	text = L["Delete set '%s'?"],
 	button1 = YES,
@@ -743,24 +755,24 @@ end
 
 local function ClearSet()
 	local _slots =
-	{ 1,       --head
-		2,     --neck
-		3,     --shoulder
-		4,     --shirt
-		5,     --chest
-		6,     --belt
-		7,     --legs
-		8,     --feet
-		9,     --wrist
-		10,    --gloves
-		11,    --ring1
-		12,    --ring2
-		13,    --trinket1
-		14,    --trinket2
-		15,    --back
-		16,    --main hand
-		17,    --off hand
-		19 };  --tabard
+	{ 1, --head
+		2, --neck
+		3, --shoulder
+		4, --shirt
+		5, --chest
+		6, --belt
+		7, --legs
+		8, --feet
+		9, --wrist
+		10, --gloves
+		11, --ring1
+		12, --ring2
+		13, --trinket1
+		14, --trinket2
+		15, --back
+		16, --main hand
+		17, --off hand
+		19 }; --tabard
 
 	for k, v in pairs(_slots) do
 		PickupInventoryItem(v);

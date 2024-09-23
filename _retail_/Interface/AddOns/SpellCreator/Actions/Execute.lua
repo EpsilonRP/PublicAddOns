@@ -147,7 +147,13 @@ local function checkConditions(conditions)
 		for _, rowData in ipairs(groupData) do
 			local conditionData = Conditions.getByKey(rowData.Type)
 			local func = conditionData.script
-			local condInputTable, numInputs = parseStringToArgs(rowData.Input)
+
+			local maxArgs
+			if conditionData.maxArgs then
+				maxArgs = conditionData.maxArgs
+			end
+
+			local condInputTable, numInputs = parseStringToArgs(rowData.Input, maxArgs)
 			continueRow = func(unpack(condInputTable, 1, numInputs))
 			if rowData.IsNot then continueRow = not (continueRow) end
 			if not continueRow then break end -- row failed, break the current group

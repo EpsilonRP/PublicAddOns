@@ -5,6 +5,105 @@ local LBI = LibStub("LibBabble-Inventory-3.0"):GetUnstrictLookupTable();
 
 local TITANS_GRIP_SPELLID = 46917
 
+local gender = {
+	[0] = MALE,
+	[1] = FEMALE,
+}
+
+local forgeRaces = {
+	"Human",
+	"Dwarf",
+	"Night Elf",
+	"Gnome",
+	"Draenei",
+	"Worgen",
+	"Orc",
+	"Undead",
+	"Tauren",
+	"Troll",
+	"Blood Elf",
+	"Goblin",
+	"Pandaren",
+	"Fel Orc",         --12
+	"Naga",            --13
+	"Broken",          --14
+	"Skeleton",        --15
+	"Vrykul",
+	"Tuskarr",         --17
+	"Forest Troll",    --18
+	"Taunka",          --19
+	"Northrend Skeleton", --20
+	"Ice Troll",       --21
+	"Void Elf",
+	"Highmountain Tauren",
+	"Lightforged Draenei",
+	"Nightborne",
+	"Kul Tiran", --735.4
+	"Zandalari Troll",
+	"Mag'har Orc",
+	"Dark Iron Dwarf",
+	"Vulpera",
+	"ThinHuman",
+	"Mechagnome",
+}
+
+local forgeRaceID = {
+	["Human"] = 1,
+	["Orc"] = 2,
+	["Dwarf"] = 3,
+	["Night Elf"] = 4,
+	["Undead"] = 5,
+	["Tauren"] = 6,
+	["Gnome"] = 7,
+	["Troll"] = 8,
+	["Goblin"] = 9,
+	["Blood Elf"] = 10,
+	["Draenei"] = 11,
+	["Fel Orc"] = 12,
+	["Naga"] = 13,
+	["Broken"] = 14,
+	["Skeleton"] = 15,
+	["Vrykul"] = 16,
+	["Tuskarr"] = 17,
+	["Forest Troll"] = 18,
+	["Taunka"] = 19,
+	["Northrend Skeleton"] = 20,
+	["Ice Troll"] = 21,
+	["Worgen"] = 22,
+	["Pandaren"] = 24,
+	["Void Elf"] = 29,
+	["Highmountain Tauren"] = 28,
+	["Lightforged Draenei"] = 30,
+	["Nightborne"] = 27,
+	["Zandalari Troll"] = 31,
+	["Kul Tiran"] = 32,
+	["ThinHuman"] = 33,
+	["Dark Iron Dwarf"] = 34,
+	["Vulpera"] = 35,
+	["Mag'har Orc"] = 36,
+	["Mechagnome"] = 37,
+}
+
+-- // EpsilonLib for AddOnCommands:
+local sendAddonCmd
+
+if EpsilonLib and EpsilonLib.AddonCommands then
+	sendAddonCmd = EpsilonLib.AddonCommands.Register("MogIt-Preview")
+else
+	-- command, callbackFn, forceShowMessages
+	function sendAddonCmd(command, callbackFn, forceShowMessages)
+		if EpsilonLib and EpsilonLib.AddonCommands then
+			-- Reassign it.
+			sendAddonCmd = EpsilonLib.AddonCommands.Register("MogIt-Preview")
+			sendAddonCmd(command, callbackFn, forceShowMessages)
+			return
+		end
+
+		-- Fallback ...
+		print("Had to fallback, fuck")
+		SendChatMessage("." .. command, "GUILD")
+	end
+end
 
 mog.view = CreateFrame("Frame", "MogItPreview", UIParent);
 mog.view:SetAllPoints();
@@ -130,6 +229,7 @@ end
 mog:AddItemOption(previewSlotHistory)
 
 local function slotOnClick(self, button)
+	local showCommandReplies = mog.db.profile.showCommandReplies
 	if button == "RightButton" and IsControlKeyDown() then
 		local preview = self:GetParent();
 		mog.view.DelItem(self.slot, preview);
@@ -155,13 +255,13 @@ local function slotOnClick(self, button)
 					print("|cff00ccff[MogIt]|r adding item: " .. itemID .. " with bonus: " .. bonusID);
 				end
 
-				SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
+				sendAddonCmd("additem " .. itemID .. " 1 " .. bonusID, nil, showCommandReplies)
 				--SendChatMessage(".add "..itemID)
 			else
 				if not mog.db.profile.toggleMessages then
 					print("|cff00ccff[MogIt]|r adding item: " .. itemID);
 				end
-				SendChatMessage(".add " .. itemID, "GUILD")
+				sendAddonCmd("add " .. itemID, nil, showCommandReplies)
 			end
 		else
 			--do nothing
@@ -229,6 +329,7 @@ function mog:SetPreviewEnchant(preview, enchant)
 end
 
 local previewMenu = {
+	--[[
 	{
 		text = RACE,
 		value = "race",
@@ -241,6 +342,7 @@ local previewMenu = {
 		notCheckable = true,
 		hasArrow = true,
 	},
+	--]]
 	{
 		text = L["Weapon enchant"],
 		value = "weaponEnchant",
@@ -288,7 +390,7 @@ local previewMenu = {
 					table.insert(tbl, v.item);
 				end
 			end
-			local link = mog:SetToLink(tbl, currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant)
+			local link = mog:SetToLink(tbl, currentPreview.data.weaponEnchant)
 			if not ChatEdit_InsertLink(link) then
 				ChatFrame_OpenChat(link);
 			end
@@ -345,46 +447,60 @@ local previewMenu = {
 
 local function equipNPC(self)
 	local npcGender
-	if not mog.db.profile.toggleDebug then
+	if mog.db.profile.toggleDebugMode then
 		print("|cff00ccff[MogIt]|r debug:", currentPreview.data.displayRace, currentPreview.data.displayGender)
 	end
+	local showCommandReplies = mog.db.profile.showCommandReplies
 
-	SendChatMessage(".ph forge npc outfit race " .. currentPreview.data.displayRace, "GUILD");
+	--[[
+	sendAddonCmd("ph forge npc outfit race " .. currentPreview.data.displayRace, nil, showCommandReplies);
 
 	if currentPreview.data.displayGender == 0 then
 		npcGender = "male";
 	else
 		npcGender = "female";
 	end
-	SendChatMessage(".ph forge npc outfit gender " .. npcGender, "GUILD");
+	sendAddonCmd("ph forge npc outfit gender " .. npcGender, nil, showCommandReplies);
+	--]]
 
+	local message = "|cff00ccff[MogIt]|r equipping npc with items: ";
 	for slot, v in pairs(currentPreview.slots) do
-		--print(v.item);
-
 		if v.item ~= nil then
 			local itemID = v.item:match("item:(%d*)")
 			local bonusID = v.item:match(":1:(%d*)")
 			if itemID then
-				local message = "|cff00ccff[MogIt]|r equipping npc with item: " .. itemID;
+				message = message .. itemID .. (bonusID and (" w/ Bonus " .. bonusID .. "; ") or "; ");
+				local _, _, _, _, _, classID, subClassID = GetItemInfoInstant(itemID)
+				local isWeapon = (classID == 2) or (classID == 4 and subClassID == 6)
+				local mainHand = (slot == mog:GetSlot("INVTYPE_WEAPONMAINHAND"))
+				local offHand = (slot == mog:GetSlot("INVTYPE_WEAPONOFFHAND"))
+
 				if bonusID ~= nil then
-					--print("[bonus] itemID "..itemID.." bonusID: "..bonusID)
 					message = message .. " bonus: " .. bonusID;
-					SendChatMessage(".ph forge npc outfit equip " .. itemID .. " 1 " .. bonusID, "GUILD")
-					--SendChatMessage(".add "..itemID)
+
+					if isWeapon then
+						sendAddonCmd(("phase forge npc weapon %s %s %s"):format(itemID, (mainHand and "0" or "1"), bonusID), nil, showCommandReplies)
+					else
+						sendAddonCmd("phase forge npc outfit equip " .. itemID .. " 1 " .. bonusID, nil, showCommandReplies)
+					end
 				else
-					--print("[no bonus] itemID "..itemID)
-					SendChatMessage(".ph forge npc outfit equip " .. itemID, "GUILD")
-				end
-				if not mog.db.profile.toggleMessages then
-					print(message)
+					if isWeapon then
+						sendAddonCmd(("phase forge npc weapon %s %s"):format(itemID, (mainHand and "0" or "1")), nil, showCommandReplies)
+					else
+						sendAddonCmd("phase forge npc outfit equip " .. itemID, nil, showCommandReplies)
+					end
 				end
 			end
 		else
 		end
 	end
+	if not mog.db.profile.toggleMessages then
+		print(message)
+	end
 end
 
 local function addItems(self)
+	local showCommandReplies = mog.db.profile.showCommandReplies
 	for slot, v in pairs(currentPreview.slots) do
 		--print(v.item);
 		if v.item ~= nil then
@@ -395,11 +511,11 @@ local function addItems(self)
 				if bonusID ~= nil then
 					--print("[bonus] itemID "..itemID.." bonusID: "..bonusID)
 					message = message .. " with bonus: " .. bonusID;
-					SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
+					sendAddonCmd("additem " .. itemID .. " 1 " .. bonusID, nil, showCommandReplies)
 					--SendChatMessage(".add "..itemID)
 				else
 					--print("[no bonus] itemID "..itemID)
-					SendChatMessage(".add " .. itemID, "GUILD")
+					sendAddonCmd("add " .. itemID, nil, showCommandReplies)
 				end
 				if not mog.db.profile.toggleMessages then
 					print(message)
@@ -418,88 +534,12 @@ local function NPCGearLink(self, items)
 		end
 	end
 	ChatFrame1EditBox:SetFocus();
-	ChatEdit_InsertLink(mog:NPCSetToLink(tbl, currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant));
+	ChatEdit_InsertLink(mog:NPCSetToLink(tbl, currentPreview.data.weaponEnchant));
 
 	--currentPreview.data.displayRace, currentPreview.data.displayGender, currentPreview.data.weaponEnchant
 end
 
 --EPSILON FUNCS
-
-local forgeRaces = {
-	"Human",
-	"Dwarf",
-	"Night Elf",
-	"Gnome",
-	"Draenei",
-	"Worgen",
-	"Orc",
-	"Undead",
-	"Tauren",
-	"Troll",
-	"Blood Elf",
-	"Goblin",
-	"Pandaren",
-	"Fel Orc",         --12
-	"Naga",            --13
-	"Broken",          --14
-	"Skeleton",        --15
-	"Vrykul",
-	"Tuskarr",         --17
-	"Forest Troll",    --18
-	"Taunka",          --19
-	"Northrend Skeleton", --20
-	"Ice Troll",       --21
-	"Void Elf",
-	"Highmountain Tauren",
-	"Lightforged Draenei",
-	"Nightborne",
-	"Kul Tiran", --735.4
-	"Zandalari Troll",
-	"Mag'har Orc",
-	"Dark Iron Dwarf",
-	"Vulpera",
-	"ThinHuman",
-	"Mechagnome",
-}
-
-local forgeRaceID = {
-	["Human"] = 1,
-	["Orc"] = 2,
-	["Dwarf"] = 3,
-	["Night Elf"] = 4,
-	["Undead"] = 5,
-	["Tauren"] = 6,
-	["Gnome"] = 7,
-	["Troll"] = 8,
-	["Goblin"] = 9,
-	["Blood Elf"] = 10,
-	["Draenei"] = 11,
-	["Fel Orc"] = 12,
-	["Naga"] = 13,
-	["Broken"] = 14,
-	["Skeleton"] = 15,
-	["Vrykul"] = 16,
-	["Tuskarr"] = 17,
-	["Forest Troll"] = 18,
-	["Taunka"] = 19,
-	["Northrend Skeleton"] = 20,
-	["Ice Troll"] = 21,
-	["Worgen"] = 22,
-	["Pandaren"] = 24,
-	["Void Elf"] = 29,
-	["Highmountain Tauren"] = 28,
-	["Lightforged Draenei"] = 30,
-	["Nightborne"] = 27,
-	["Zandalari Troll"] = 31,
-	["Kul Tiran"] = 32,
-	["ThinHuman"] = 33,
-	["Dark Iron Dwarf"] = 34,
-	["Vulpera"] = 35,
-	["Mag'har Orc"] = 36,
-	["Mechagnome"] = 37,
-
-}
-
 
 local itemSlots = {
 	["HEAD"] = 1,
@@ -521,10 +561,12 @@ local itemSlots = {
 
 local function setNPCRace(self, _, raceID)
 	--print(raceID);
-	SendChatMessage(".ph forge npc outfit race " .. raceID, "GUILD")
+	local showCommandReplies = mog.db.profile.showCommandReplies
+	sendAddonCmd("ph forge npc outfit race " .. raceID, nil, showCommandReplies)
 end
 
 local function getItemBagPosition(itemID, bonusID)
+	local showCommandReplies = mog.db.profile.showCommandReplies
 	local matchItem = 0;
 
 	for k, v in pairs(itemSlots) do
@@ -550,7 +592,7 @@ local function getItemBagPosition(itemID, bonusID)
 		end
 	end
 	if matchItem == 0 and itemID ~= 0 then
-		SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD");
+		sendAddonCmd("additem " .. itemID .. " 1 " .. bonusID, nil, showCommandReplies);
 	end
 
 	--/script for bag = 1, NUM_BAG_SLOTS do	for slot = 1, GetContainerNumSlots(bag) do print(GetContainerItemID(bag,slot)) end end
@@ -613,6 +655,7 @@ end
 --currentPreview.slots ARRAY
 
 local function undressNPC()
+	local showCommandReplies = mog.db.profile.showCommandReplies
 	for k, v in pairs(itemSlots) do
 		if k == "OFFHAND" or k == "MAINHAND" or k == "RANGED" then
 			--do nothing
@@ -622,13 +665,14 @@ local function undressNPC()
 				k = "BODY";
 			end
 
-			SendChatMessage(".ph forge npc outfit unequip " .. k, "GUILD");
+			sendAddonCmd("ph forge npc outfit unequip " .. k, nil, showCommandReplies);
 		end
 	end
 end
 
 local function setNPCGender(self, raceID, genderID)
-	SendChatMessage(".ph forge npc outfit race " .. raceID, "GUILD")
+	local showCommandReplies = mog.db.profile.showCommandReplies
+	sendAddonCmd("ph forge npc outfit race " .. raceID, nil, showCommandReplies)
 
 	local genderString = "male";
 	if genderID == 0 then
@@ -637,7 +681,7 @@ local function setNPCGender(self, raceID, genderID)
 		genderString = "female";
 	end
 
-	SendChatMessage(".ph forge npc outfit gender " .. genderString, "GUILD")
+	sendAddonCmd("ph forge npc outfit gender " .. genderString, nil, showCommandReplies)
 end
 
 local function previewInitialize(self, level)
@@ -872,6 +916,68 @@ local function loadInitialize(self, level)
 end;
 --//
 
+--// Delete Menu
+
+local function onClickDelete(self, set, profile)
+	--print(set, profile)
+	if not profile then --Deleting from level 1 does not pass profile on, so set it as currentProfile
+		profile = mog.wishlist:GetCurrentProfile()
+	end
+	mog:AddToPreview(mog.wishlist:GetSetItems(set, profile), currentPreview, set)
+	mog.wishlist:DeleteProfileSet(set, false, profile)
+	CloseDropDownMenus()
+end
+
+local function deleteInitialize(self, level)
+	currentPreview = self.parent;
+	if level == 1 then
+		mog.wishlist:AddSetMenuItems(level, onClickDelete)
+		local info = UIDropDownMenu_CreateInfo()
+		info.text = L["Other profiles"]
+		info.value = "profiles"
+		info.hasArrow = true
+		info.notCheckable = true
+		self:AddButton(info, level)
+	elseif level == 2 then
+		if UIDROPDOWNMENU_MENU_VALUE == "profiles" then
+			local curProfile = mog.wishlist:GetCurrentProfile()
+			for i, profile in ipairs(mog.wishlist:GetProfiles()) do
+				if profile ~= curProfile and mog.wishlist:GetSets(profile) then
+					--EPSI
+					EXTERNAL_PROFILE = profile;
+					local info = UIDropDownMenu_CreateInfo()
+					info.text = profile
+					info.hasArrow = true
+					info.notCheckable = true
+					self:AddButton(info, level)
+				end
+			end
+		end
+		if UIDROPDOWNMENU_MENU_VALUE == "outfits" then
+			if #C_TransmogCollection.GetOutfits() > 0 then
+				for i, outfit in ipairs(C_TransmogCollection.GetOutfits()) do
+					local info = UIDropDownMenu_CreateInfo()
+					info.text = "|cffff0000" .. outfit.name .. "|r";
+					info.notCheckable = true
+					info.func = function(self, outfitID)
+						CloseDropDownMenus()
+					end
+					info.arg1 = outfit.outfitID
+					self:AddButton(info, level)
+				end
+			else
+				local info = UIDropDownMenu_CreateInfo()
+				info.text = "No outfits"
+				info.disabled = true
+				info.notCheckable = true
+				self:AddButton(info, level)
+			end
+		end
+	elseif level == 3 then
+		mog.wishlist:AddSetMenuItems(level, onClickDelete, UIDROPDOWNMENU_MENU_VALUE, UIDROPDOWNMENU_MENU_VALUE)
+	end
+end;
+--//
 
 --// Toolbar
 local function helpOnEnter(self)
@@ -913,8 +1019,11 @@ local function createMenuBar(parent)
 	menuBar.save = menuBar:CreateMenu(L["Save"], saveInitialize);
 	menuBar.save:SetPoint("LEFT", menuBar.load, "RIGHT", 5, 0);
 
+	menuBar.delete = menuBar:CreateMenu(L["Delete"], deleteInitialize);
+	menuBar.delete:SetPoint("LEFT", menuBar.save, "RIGHT", 5, 0);
+
 	menuBar.help = menuBar:CreateMenu(L["Help"]);
-	menuBar.help:SetPoint("LEFT", menuBar.save, "RIGHT", 5, 0);
+	menuBar.help:SetPoint("LEFT", menuBar.delete, "RIGHT", 5, 0);
 	menuBar.help:SetScript("OnEnter", helpOnEnter);
 	menuBar.help:SetScript("OnLeave", helpOnLeave);
 end

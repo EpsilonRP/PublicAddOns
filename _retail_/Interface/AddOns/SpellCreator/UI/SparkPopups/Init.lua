@@ -252,6 +252,17 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 	local sparkPopup = self:GetParent()
 	local cdData = self.cdData
 	local spell = self.spell
+
+	if button == "keybind" and not sparkPopup:IsShown() then
+		Logging.dprint("SparkPopups Keybind Pressed, but not shown so skipped.")
+		return
+	end
+	if not spell then
+		Logging.eprint("No spell found on the button. Report this.")
+		return
+	end
+
+
 	local commID = spell.commID
 	if self.isMulti then commID = "(multispark)" end -- use this as your commID for sending CDs
 
@@ -264,14 +275,6 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 			return
 		end
 		SparkPopups.SparkManagerUI.showSparkManagerUI()
-		return
-	end
-	if button == "keybind" and not sparkPopup:IsShown() then
-		Logging.dprint("SparkPopups Keybind Pressed, but not shown so skipped.")
-		return
-	end
-	if not spell then
-		Logging.eprint("No spell found on the button. Report this.")
 		return
 	end
 

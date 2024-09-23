@@ -182,6 +182,8 @@ end
 local function delayed_init() -- These are variables that need to be delayed because blizzard variables need to be loaded first
 	if isNotDefined(SpellCreatorMasterTable.Options.sparkKeybind) then
 		ns.UI.SparkPopups.SparkPopups.setSparkDefaultKeybind()
+	else
+		ns.UI.SparkPopups.SparkPopups.setSparkKeybind(SpellCreatorMasterTable.Options.sparkKeybind)
 	end
 end
 
