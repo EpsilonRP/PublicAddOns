@@ -61,15 +61,15 @@ StaticPopupDialogs["KINESIS_GENERIC_INPUT_BOX"] = {
 
 ---@class GenericInputCustomData
 ---@field text string the text for the confirmation
----@field text_arg1 string formatted into text if provided
----@field text_arg2 string formatted into text if provided
+---@field text_arg1? string formatted into text if provided
+---@field text_arg2? string formatted into text if provided
 ---@field callback fun(text: string) the callback when the player accepts
----@field cancelCallback fun() the callback when the player cancels / not called on accept
----@field acceptText string custom text for the accept button
----@field cancelText string custom text for the cancel button
----@field maxLetters integer the maximum text length that can be entered
----@field countInvisibleLetters boolean used in tandem with maxLetters
----@field inputText string default text for the input box
+---@field cancelCallback? fun() the callback when the player cancels / not called on accept
+---@field acceptText? string custom text for the accept button
+---@field cancelText? string custom text for the cancel button
+---@field maxLetters? integer the maximum text length that can be entered
+---@field countInvisibleLetters? boolean used in tandem with maxLetters
+---@field inputText? string default text for the input box
 
 ---@param customData GenericInputCustomData
 ---@param insertedFrame frame?
