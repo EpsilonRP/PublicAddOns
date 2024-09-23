@@ -187,7 +187,7 @@ function SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, s
 		frame.PortraitFrame.Portrait:SetTexCoord(0, 1, 0, 1);
 		if textureKit == "Normal" then
 			frame.BackgroundFrame.TextBackground:SetAtlas("TalkingHeads-TextBackground")
-			frame.PortraitFrame.Portrait:SetAtlas("TalkingHeads-PortraitFrame")
+			frame.PortraitFrame.Portrait:SetAtlas("TalkingHeads-Neutral-PortraitFrame")
 		else
 			frame.BackgroundFrame.TextBackground:SetAtlas("TalkingHeads-" .. textureKit .. "-TextBackground")
 			frame.PortraitFrame.Portrait:SetAtlas("TalkingHeads-" .. textureKit .. "-PortraitFrame")

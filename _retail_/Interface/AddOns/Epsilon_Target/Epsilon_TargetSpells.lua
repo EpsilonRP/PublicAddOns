@@ -64,28 +64,30 @@ local function unauraClick(buffs, debuffs, targetType)
 
 	for i = 1, debuffs do
 		--_G[debuffButtonName..i]:RegisterForClicks("LeftButtonUp")
-		_G[debuffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
-		_G[debuffButtonName .. i]:SetScript("OnClick", function(self, event)
-			print("BUFFCLICK")
-			local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i, "HARMFUL");
-			--print("buff click",name,spellId,IsShiftKeyDown())
-			if IsShiftKeyDown() == true then
-				--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
-				ChatFrame1EditBox:SetFocus()
-				ChatFrame1EditBox:SetText("|cff71d5ff|Hspell:" .. spellId .. ":0|h[" .. name .. "]|h|r")
-			else
-				if targetType == "target" then
-					--print("debuff",name,spellId)
-					if IsControlKeyDown() == true then
-						SendChatMessage(".unaura " .. spellId, "GUILD");
-					else
-						SendChatMessage(".aura " .. spellId, "GUILD");
-					end
+		if _G[debuffButtonName .. i] then
+			_G[debuffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
+			_G[debuffButtonName .. i]:SetScript("OnClick", function(self, event)
+				--print("BUFFCLICK")
+				local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i, "HARMFUL");
+				--print("buff click",name,spellId,IsShiftKeyDown())
+				if IsShiftKeyDown() == true then
+					--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
+					ChatFrame1EditBox:SetFocus()
+					ChatFrame1EditBox:SetText("|cff71d5ff|Hspell:" .. spellId .. ":0|h[" .. name .. "]|h|r")
 				else
-					SendChatMessage(".unaura " .. spellId, "GUILD");
+					if targetType == "target" then
+						--print("debuff",name,spellId)
+						if IsControlKeyDown() == true then
+							SendChatMessage(".unaura " .. spellId, "GUILD");
+						else
+							SendChatMessage(".aura " .. spellId, "GUILD");
+						end
+					else
+						SendChatMessage(".unaura " .. spellId, "GUILD");
+					end
 				end
-			end
-		end)
+			end)
+		end
 	end
 end
 

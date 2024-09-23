@@ -8,16 +8,16 @@
 -- local tabs = utils.tabs
 
 -- local main = Epsilon.main
-local MYADDON, MyAddOn = ...
-local addonVersion, addonAuthor, addonName = GetAddOnMetadata(MYADDON, "Version"), GetAddOnMetadata(MYADDON, "Author"),
-	GetAddOnMetadata(MYADDON, "Title")
+local ADDON_NAME, ns = ...
+local addonVersion, addonAuthor, addonName = GetAddOnMetadata(ADDON_NAME, "Version"), GetAddOnMetadata(ADDON_NAME, "Author"),
+	GetAddOnMetadata(ADDON_NAME, "Title")
 
 local addonColor = "|cff" .. "FFD700"
 
 local useAddonMsgCommands = true
 
 local OPmoveLength, OPmoveWidth, OPmoveHeight, MessageCount, ObjectClarifier, SpawnClarifier, ScaleClarifier, RotateClarifier, OPObjectSpell, cmdPref, isGroupSelected, m, rateLimited =
-	0, 0, 0, 0, false, false, false, false, nil, "go", nil, nil, false
+	0, 0, 0, 0, false, false, false, false, nil, "gobject", nil, nil, false
 BINDING_HEADER_OBJECTMANIP, SLASH_OM_SHOWCLOSE1, SLASH_OM_SHOWCLOSE2, SLASH_OM_SHOWCLOSE3 = "Object Mover", "/obj", "/om",
 	"/op"
 
@@ -124,6 +124,32 @@ local function updateChatFilterQ(com, num)
 	chatFilterCounter.com.count = chatFilterCounter.com.count + num
 end
 
+---@class SelectedObjectData
+---@field [1] guid
+---@field [2] entryID
+---@field [3] fileName
+---@field [4] fileDataID
+---@field [5] x
+---@field [6] y
+---@field [7] z
+---@field [8] orientation
+---@field [9] rx
+---@field [10] ry
+---@field [11] rz
+---@field [12] hasTint
+---@field [13] red
+---@field [14] green
+---@field [15] blue
+---@field [16] alpha
+---@field [17] spell
+---@field [18] scale
+---@field [19] groupLeaderID
+---@field [20] objType
+---@field [21] saturation
+---@field [22] rGUIDLow
+---@field [23] rGUIDHigh
+---@field [24] isEditable
+
 -------------------------------------------------------------------------------
 -- Simple Chat & Print Functions
 -------------------------------------------------------------------------------
@@ -155,13 +181,13 @@ local function dprint(force, text, ...)
 	end
 end
 
-local function eprint(text, rest)
+local function eprint(text, ...)
 	local line = strmatch(debugstack(2), ":(%d+):")
+
 	if line then
-		print(addonColor .. addonName .. " Error @ " .. line .. ": " .. text ..
-			" | " .. (rest and " | " .. rest or "") .. " |r")
+		print(addonColor .. addonName .. " Error @ " .. line .. ": " .. text, ...)
 	else
-		print(addonColor .. addonName .. " @ ERROR: " .. text .. " | " .. rest .. " |r")
+		print(addonColor .. addonName .. " @ ERROR: " .. text, ...)
 		print(debugstack(2))
 	end
 end
@@ -179,8 +205,8 @@ else
 	end
 end
 
-local function cmd(text)
-	if useAddonMsgCommands and OPShowMessagesToggle:GetChecked() ~= true then
+local function cmd(text, forceShowReply)
+	if useAddonMsgCommands and OPShowMessagesToggle:GetChecked() ~= true and not forceShowReply then
 		sendAddonCmd(text)
 	else -- Send as a normal command if we have show messages enabled
 		SendChatMessage("." .. text, "GUILD");
@@ -195,12 +221,52 @@ end
 
 function OPManagerCMD(mainCom, text, groupCheck)
 	if groupCheck then
-		if isGroupSelected then mainCom = "go group" else mainCom = "go" end
+		if isGroupSelected then mainCom = "gobject group" else mainCom = "gobject" end
 	end
 	if mainCom and text then
 		cmd(mainCom .. " " .. text)
 	else
 		cmd(mainCom)
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Utils
+-------------------------------------------------------------------------------
+
+local function euler_to_quaternion(x_deg, y_deg, z_deg)
+	-- The inputs are in X (pitch), Y (yaw), Z (roll) order but the rotation is applied in YXZ order
+	-- We will map the input directly to yaw (Y), pitch (X), and roll (Z)
+
+	-- Convert degrees to radians
+	local pitch = math.rad(x_deg) -- X-axis (Pitch)
+	local yaw = math.rad(y_deg) -- Y-axis (Yaw)
+	local roll = math.rad(z_deg) -- Z-axis (Roll)
+
+	-- Compute cosines and sines for half angles
+	local cy = math.cos(yaw * 0.5) -- yaw (Y rotation)
+	local sy = math.sin(yaw * 0.5)
+	local cx = math.cos(pitch * 0.5) -- pitch (X rotation)
+	local sx = math.sin(pitch * 0.5)
+	local cz = math.cos(roll * 0.5) -- roll (Z rotation)
+	local sz = math.sin(roll * 0.5)
+
+	-- Quaternion based on YXZ order
+	local qw = cy * cx * cz + sy * sx * sz
+	local qx = cy * sx * cz + sy * cx * sz
+	local qy = sy * cx * cz - cy * sx * sz
+	local qz = cy * cx * sz - sy * sx * cz
+
+	-- Return the quaternion components
+	return qx, qy, qz, qw
+end
+
+-- Function to format numbers conditionally
+local function formatNumber(num)
+	if math.floor(num) == num then
+		return tostring(num)                      -- Integer, no decimals needed
+	else
+		return ("%.14f"):format(num):gsub("%.?0+$", "") -- Keep up to 12 decimals, remove trailing zeroes
 	end
 end
 
@@ -289,10 +355,11 @@ else
 	dontUseClientRotation = true
 end
 
+
 local OPAddon_OnLoad = CreateFrame("frame", "OPAddon_OnLoad");
 OPAddon_OnLoad:RegisterEvent("ADDON_LOADED");
 OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
-	if name == addonName or name == addonName .. "-dev" then
+	if name == ADDON_NAME then
 		OPMiniMapLoadPosition()
 		loadMasterTable()
 
@@ -820,7 +887,7 @@ function OPForward()
 	updateDimensions("length")
 	if OPmoveLength and OPmoveLength ~= "" and OPmoveLength ~= 0 and OPmoveLength ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			if RelativeToPlayerToggle:GetChecked() then
 				cmd(cmdPref .. " relative forward " .. OPmoveLength)
 			else
@@ -842,7 +909,7 @@ function OPBackward()
 	updateDimensions("length")
 	if OPmoveLength and OPmoveLength ~= "" and OPmoveLength ~= 0 and OPmoveLength ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			if RelativeToPlayerToggle:GetChecked() then
 				cmd(cmdPref .. " relative back " .. OPmoveLength)
 			else
@@ -864,7 +931,7 @@ function OPLeft()
 	updateDimensions("width")
 	if OPmoveWidth and OPmoveWidth ~= "" and OPmoveWidth ~= 0 and OPmoveWidth ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			if RelativeToPlayerToggle:GetChecked() then
 				cmd(cmdPref .. " relative left " .. OPmoveWidth)
 			else
@@ -886,7 +953,7 @@ function OPRight()
 	updateDimensions("width")
 	if OPmoveWidth and OPmoveWidth ~= "" and OPmoveWidth ~= 0 and OPmoveWidth ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			if RelativeToPlayerToggle:GetChecked() then
 				cmd(cmdPref .. " relative right " .. OPmoveWidth)
 			else
@@ -908,7 +975,7 @@ function OPUp()
 	updateDimensions("height")
 	if OPmoveHeight and OPmoveHeight ~= "" and OPmoveHeight ~= 0 and OPmoveHeight ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			cmd(cmdPref .. " move up " .. OPmoveHeight)
 		else
 			cmd("gps up " .. OPmoveHeight)
@@ -926,7 +993,7 @@ function OPDown()
 	updateDimensions("height")
 	if OPmoveHeight and OPmoveHeight ~= "" and OPmoveHeight ~= 0 and OPmoveHeight ~= nil then
 		if not OPMovePlayerInstead:GetChecked() then
-			if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+			if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 			cmd(cmdPref .. " move down " .. OPmoveHeight)
 		else
 			cmd("gps down " .. OPmoveHeight)
@@ -953,13 +1020,13 @@ function OPSpawn()
 end
 
 function OPTeletoObject()
-	if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+	if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 	cmd(cmdPref .. " go")
 	--print("Command was "..cmdPref)
 end
 
 function OPScaleObject(scale)
-	cmd("go scale " .. scale)
+	cmd("gobject scale " .. scale)
 end
 
 -- Overlay Stuff
@@ -984,7 +1051,7 @@ function OPOverlayObject()
 		local b = OPOverlaySliderB:GetValue()
 		local t = OPOverlaySliderT:GetValue()
 		local s = 100 - OPOverlaySliderS:GetValue()
-		if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+		if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 		if OPMasterTable.Options["useOverlayMethod"] == true then
 			cmd(cmdPref .. " overlay " .. r .. " " .. g .. " " .. b .. " " .. s .. " " .. t)
 		else
@@ -1046,7 +1113,19 @@ local function updateSpellButton()
 	end
 end
 
+local function canEditLastSelectedObj()
+	if C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() then return true end
+	if C_Epsilon.IsMember() and (OPLastSelectedObjectData[24] == "1") then return true end
+	return false
+end
+
 function OPRotateObject(sendToServer)
+	if not OPLastSelectedObjectData then
+		dprint("Cannot Rotate - No Object Selected Data")
+		return
+	end
+	if not canEditLastSelectedObj() then return end
+
 	--if RotateClarifier == false then
 	--RotateClarifier = true
 	--end
@@ -1054,10 +1133,11 @@ function OPRotateObject(sendToServer)
 		if rateLimited == true and not sendToServer then return; end
 		local RotationZ1 = OPRotationSliderZ:GetValue()
 		local RotationZ2 = tonumber(OPLastSelectedGroupRotZ) or tonumber(OPLastSelectedObjectData[11])
-		if RotationZ2 < 0 then RotationZ2 = RotationZ2 + 360 elseif RotationZ2 > 360 then RotationZ2 = RotationZ2 - 360 end
+		--if RotationZ2 < 0 then RotationZ2 = RotationZ2 + 360 elseif RotationZ2 > 360 then RotationZ2 = RotationZ2 - 360 end
+		RotationZ2 = (RotationZ2 % 360) -- Ensure it's within the 0-360 range by modulus instead
 		local newRotZ = RotationZ1 - RotationZ2
 		--updateRotateClarifierQ(1)
-		cmd("go group turn " .. newRotZ)
+		cmd("gobject group turn " .. newRotZ)
 		OPLastSelectedGroupRotZ = RotationZ1
 		rateLimited = true
 		C_Timer.After(1, function() rateLimited = false end)
@@ -1065,6 +1145,7 @@ function OPRotateObject(sendToServer)
 		local RotationX = tonumber(OPRotationSliderX:GetValue())
 		local RotationY = tonumber(OPRotationSliderY:GetValue())
 		local RotationZ = tonumber(OPRotationSliderZ:GetValue())
+		local scale = tonumber(OPLastSelectedObjectData[18])
 		local localGUIDLow = OPLastSelectedObjectData[22]
 		local localGUIDHigh = OPLastSelectedObjectData[23]
 		if RotationX < 0 then
@@ -1078,11 +1159,29 @@ function OPRotateObject(sendToServer)
 		end
 		if sendToServer or dontUseClientRotation then
 			--updateRotateClarifierQ(1)
-			cmd("go rot " .. RotationX .. " " .. RotationY .. " " .. RotationZ)
+			-- from Azar: Fuck Eulers!
+			--            GO QUATS!
+			local qX, qY, qZ, qW = C_Epsilon.RotateObject(localGUIDLow, localGUIDHigh, RotationX, RotationY, RotationZ, scale)
+			if not qX or not qY or not qZ or not qW then
+				dprint("Warning: OM Did not receive proper quaternions from the DLL! Fallback on Lua conversions...")
+				dprint(false, "Received (DLL): ", qX, qY, qZ, qW)
+				qX, qY, qZ, qW = euler_to_quaternion(RotationX, RotationY, RotationZ) -- Fallback on our own code incase the DLL isn't sending proper data
+				dprint(false, "Expected (LUA): ", qX, qY, qZ, qW)
+			end
+			if qX and qY and qZ and qW then
+				local rotateCommand = ("gobject rotate %s %s %s %s %s %s %s"):format(
+					formatNumber(qX), formatNumber(qY), formatNumber(qZ), formatNumber(qW),
+					formatNumber(RotationX), formatNumber(RotationY), formatNumber(RotationZ)
+				)
+				cmd(rotateCommand)
+				dprint(false, "quatsD:", qX, qY, qZ, qW)
+			else
+				eprint("Warning: Invalid Quats Received. Got: ", qX, qY, qZ, qW)
+			end
 		else
-			C_Epsilon.RotateObject(localGUIDLow, localGUIDHigh, RotationX, RotationY, RotationZ)
+			C_Epsilon.RotateObject(localGUIDLow, localGUIDHigh, RotationX, RotationY, RotationZ, scale)
 			dprint("C_Epsilon.RotateObject(" ..
-				localGUIDLow .. "," .. localGUIDHigh .. "," .. RotationX .. "," .. RotationY .. "," .. RotationZ .. ")")
+				localGUIDLow .. "," .. localGUIDHigh .. "," .. RotationX .. "," .. RotationY .. "," .. RotationZ .. ", " .. scale .. ")")
 		end
 	end
 end
@@ -1096,7 +1195,7 @@ function OPSpellButtonFunc(button)
 	if button == "LeftButton" then
 		StaticPopup_Show("OP_TINTS_SPELL")
 	elseif button == "RightButton" then
-		if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+		if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 		cmd(cmdPref .. " spell 0")
 	end
 end
@@ -1107,7 +1206,7 @@ StaticPopupDialogs["OP_TINTS_SPELL"] = {
 	button2 = CANCEL,
 	OnAccept = function(self)
 		local spell = self.editBox:GetText()
-		if isGroupSelected then cmdPref = "go group" else cmdPref = "go" end
+		if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject" end
 		if tonumber(spell) ~= nil then
 			if tonumber(spell) > 0 then
 				cmd(cmdPref .. " spell " .. self.editBox:GetText())
@@ -1160,16 +1259,16 @@ StaticPopupDialogs["OP_OBJ_VISIBILITY"] = {
 	button2 = CANCEL,
 	OnAccept = function(self)
 		local numberFromUser = self.editBox:GetText()
-		if isGroupSelected then cmdPref = "go group" else cmdPref = "go set" end
+		if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject set" end
 		local cmdName = "vis"
 		if tonumber(numberFromUser) ~= nil then
 			if tonumber(numberFromUser) > 0 then
-				cmd(cmdPref .. " " .. cmdName .. " " .. numberFromUser)
+				cmd(cmdPref .. " " .. cmdName .. " " .. numberFromUser, true)
 			else
-				cmd(cmdPref .. " " .. cmdName .. " 0")
+				cmd(cmdPref .. " " .. cmdName .. " 0", true)
 			end
 		else
-			cmd(cmdPref .. " " .. cmdName .. " 0")
+			cmd(cmdPref .. " " .. cmdName .. " 0", true)
 		end
 	end,
 	EditBoxOnTextChanged = function(self)
@@ -1208,16 +1307,16 @@ StaticPopupDialogs["OP_OBJ_ANIMATION"] = {
 	button2 = CANCEL,
 	OnAccept = function(self)
 		local numberFromUser = self.editBox:GetText()
-		cmdPref = "go"
+		cmdPref = "gobject"
 		local cmdName = "anim"
 		if tonumber(numberFromUser) ~= nil then
 			if tonumber(numberFromUser) > 0 then
-				cmd(cmdPref .. " " .. cmdName .. " " .. numberFromUser)
+				cmd(cmdPref .. " " .. cmdName .. " " .. numberFromUser, true)
 			else
-				cmd(cmdPref .. " " .. cmdName .. " 0")
+				cmd(cmdPref .. " " .. cmdName .. " 0", true)
 			end
 		else
-			cmd(cmdPref .. " " .. cmdName .. " 0")
+			cmd(cmdPref .. " " .. cmdName .. " 0", true)
 		end
 	end,
 	EditBoxOnTextChanged = function(self)
@@ -1320,10 +1419,10 @@ local wordGenCharOffsets = {
 local function spawnCharWithOffset(letterID, offsetX)
 	if wordGenCharOffsets[letterID] then
 		local charData = wordGenCharOffsets[letterID]
-		cmd("go spawn " .. letterID .. " move left " .. offsetX .. " move up " .. charData.y)
+		cmd("gobject spawn " .. letterID .. " move left " .. offsetX .. " move up " .. charData.y)
 		dprint("object required y-offset by " .. charData.y)
 	else
-		cmd("go spawn " .. letterID .. " move left " .. offsetX)
+		cmd("gobject spawn " .. letterID .. " move left " .. offsetX)
 	end
 end
 
@@ -1341,9 +1440,8 @@ local function resumeProcessingObjectSpawning()
 			for k in pairs(objectSpawningData) do
 				local letterID, offset = objectSpawningData[k][1], objectSpawningData[k][2]
 				spawnCharWithOffset(letterID, offset)
-				cmd("go group add " .. groupLeaderID)
-				dprint("Spawned object (" .. letterID .. ") left (" .. offset ..
-					") to GUID (" .. groupLeaderID .. ")'s group.")
+				cmd("gobject group add " .. groupLeaderID)
+				dprint("Spawned object (" .. letterID .. ") left (" .. offset .. ") to GUID (" .. groupLeaderID .. ")'s group.")
 			end
 			table.wipe(objectSpawningData)
 			dprint("Wiping objectSpawningData table")
@@ -1401,13 +1499,14 @@ StaticPopupDialogs["OP_TOOLS_WORDGEN"] = {
 ----------- Management Tab
 -- Visiblity Button
 function OPSetObjVis(num)
-	if isGroupSelected then cmdPref = "go group" else cmdPref = "go set" end
-	cmd(cmdPref .. " vis " .. num)
+	local cmdPref
+	if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject set" end
+	cmd(cmdPref .. " vis " .. num, true)
 end
 
 -- Anim Button
 function OPSetObjAnim(num)
-	cmd("go anim " .. num)
+	cmd("gobject anim " .. num, true)
 end
 
 -------------------------------------------------------------------------------
@@ -1491,7 +1590,7 @@ function OPSaveMenuParamSaveForReal(name, newKey)
 	OPMasterTable.ParamPresetContent[name].Width = OPWidthBox:GetText()
 	OPMasterTable.ParamPresetContent[name].Height = OPHeightBox:GetText()
 	OPMasterTable.ParamPresetContent[name].Scale = OPScaleBox:GetText()
-	print("ObjectMover: Saved new Parameter Pre-set with name: " .. name)
+	cprint("Saved new Parameter Pre-set with name: " .. name)
 	OPMainSaveFrame:Hide()
 end
 
@@ -1541,7 +1640,7 @@ function OPSaveMenuRotSaveForReal(name, newKey)
 	OPMasterTable.RotPresetContent[name].RotX = OPRotationSliderX:GetValue()
 	OPMasterTable.RotPresetContent[name].RotY = OPRotationSliderY:GetValue()
 	OPMasterTable.RotPresetContent[name].RotZ = OPRotationSliderZ:GetValue()
-	print("ObjectMover: Saved new Rotation Pre-set with name: " .. name)
+	cprint("Saved new Rotation Pre-set with name: " .. name)
 	OPMainSaveFrame:Hide()
 end
 
@@ -1806,9 +1905,10 @@ local function OMChatFilter(Self, Event, Message)
 			isWaitingForGroupData = true
 			dprint("Listening for Group Data")
 		elseif OPRotAutoUpdate:GetChecked() then
-			groupID = clearmsg:find("with leader.*DBGUID: (%d)")
+			groupID = clearmsg:match("with leader.*DBGUID: (%d+)%)")
 			if groupID then
-				cmd("go group sel " .. groupID)
+				print(groupID, clearmsg)
+				cmd("gobject group sel " .. groupID)
 				dprint("Added objects to a group, re-selecting group to capture the rotation..")
 			else
 				cprint(
@@ -1912,118 +2012,125 @@ local function Addon_OnEvent(self, event, ...)
 		if prefix == "EPSILON_OBJ_INFO" or prefix == "EPSILON_OBJ_SEL" then -- If OBJ_INFO or OBJ_SEL message, process the data to our 'cache'
 			local objdetails = select(2, ...)
 			local sender = select(4, ...)
-			local self = table.concat({ UnitFullName("PLAYER") }, "-")
-			if sender == self or string.gsub(self, "%s+", "") then
-				updateGroupSelected(false)
-				dprint("isGroupSelected false")
+			C_Timer.After(0, function()
+				local self = table.concat({ UnitFullName("PLAYER") }, "-")
+				if sender == self or string.gsub(self, "%s+", "") then
+					updateGroupSelected(false)
+					dprint("isGroupSelected false")
 
-				local guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh =
-					strsplit(strchar(31), objdetails)
-				HasTint = tonumber(HasTint)
-				OPLastSelectedObjectData = { strsplit(strchar(31), objdetails) }
-				OPLastSelectedGroupRotZ = nil
-				if OPMasterTable.Options["debug"] then
-					print("GOBINFO:", unpack(OPLastSelectedObjectData))
-				end
-				resumeProcessingObjectSpawning()
+					OPLastSelectedObjectData = { strsplit(strchar(31), objdetails) } --[[@as SelectedObjectData]]
 
-				-- Update Object
-				if OPParamAutoUpdateButton:GetChecked() then
-					if prefix == "EPSILON_OBJ_SEL" then
-						OPGetObject("RightButton")
-					else
-						OPScaleBox:SetText(tonumber(scale))
+					local guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh = unpack(
+						OPLastSelectedObjectData)
+					HasTint = tonumber(HasTint)
+
+					OPLastSelectedGroupRotZ = nil
+					if OPMasterTable.Options["debug"] then
+						print("GOBINFO:", unpack(OPLastSelectedObjectData))
 					end
-				end
+					resumeProcessingObjectSpawning()
 
-				-- Update Manager Tab
-				local shortname = name:gsub(".*/+", "")
-				dprint("Name: " .. name)
-				dprint("Shortname: " .. shortname)
-				OPPanel2.SelectedObjName:SetText(shortname)
-				OPPanel4Manager.SelectedObjName:SetText(shortname)
-				local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
-				OPPanel4Manager.SelectedObjName:SetFont(fontName, 10, fontFlags)
-				while OPPanel4Manager.SelectedObjName:GetStringWidth() > OPPanel4Manager:GetWidth() - 5 do
+					-- Update Object
+					if OPParamAutoUpdateButton:GetChecked() then
+						if prefix == "EPSILON_OBJ_SEL" then
+							OPGetObject("RightButton")
+						else
+							OPScaleBox:SetText(tonumber(scale))
+						end
+					end
+
+					-- Update Manager Tab
+					local shortname = name:gsub(".*/+", "")
+					dprint("Name: " .. name)
+					dprint("Shortname: " .. shortname)
+					OPPanel2.SelectedObjName:SetText(shortname)
+					OPPanel4Manager.SelectedObjName:SetText(shortname)
 					local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
-					OPPanel4Manager.SelectedObjName:SetFont(fontName, fontHeight - 1, fontFlags)
-					dprint("Setting Manager Object Text Font Size: " .. fontHeight - 1)
-				end
-				--OPPanel4Manager.GroupLeaderIndicator.Entry:SetText(groupLeader)
+					OPPanel4Manager.SelectedObjName:SetFont(fontName, 10, fontFlags)
+					while OPPanel4Manager.SelectedObjName:GetStringWidth() > OPPanel4Manager:GetWidth() - 5 do
+						local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
+						OPPanel4Manager.SelectedObjName:SetFont(fontName, fontHeight - 1, fontFlags)
+						dprint("Setting Manager Object Text Font Size: " .. fontHeight - 1)
+					end
+					--OPPanel4Manager.GroupLeaderIndicator.Entry:SetText(groupLeader)
 
-				-- update extended info
-				OPPanelPopout.ObjName.Text:SetText(shortname)
-				local fontName, fontHeight, fontFlags = OPPanelPopout.ObjName.Text:GetFont()
-				OPPanelPopout.ObjName.Text:SetFont(fontName, 10, fontFlags)
-				while OPPanelPopout.ObjName.Text:GetNumLines() > 2 do
+					-- update extended info
+					OPPanelPopout.ObjName.Text:SetText(shortname)
 					local fontName, fontHeight, fontFlags = OPPanelPopout.ObjName.Text:GetFont()
-					OPPanelPopout.ObjName.Text:SetFont(fontName, fontHeight - 1, fontFlags)
-					dprint("Setting Selected Object Panel Object Name Font Size: " .. fontHeight - 1)
-				end
-				OPPanelPopout.ObjEntry.Text:SetText(entry)
-				OPPanelPopout.ObjScale.Text:SetText(scale)
-				OPPanelPopout.ObjType.Text:SetText(objType .. " - " .. ObjectTypes[tonumber(objType)])
-				if not isWMO[tonumber(objType)] then
-					OPPanelPopout.ObjDimensions.Text:SetText("Loading...")
-					OPPanelPopout.ObjPreview.Scene.Actor:SetSpellVisualKit()
-					OPPanelPopout.ObjPreview.Scene.Actor:SetAlpha(1)
-					OPPanelPopout.ObjPreview.Scene.Actor:SetModelByFileID(filedataid)
-					OPPanelPopout.ObjPreview.Scene.Actor:Show()
-				else
-					OPPanelPopout.ObjPreview.Scene.Actor:SetModelByFileID(1)
-					OPPanelPopout.ObjPreview.Scene.Actor:Hide()
-					OPPanelPopout.ObjDimensions.Text:SetText("No Data for WMOs")
-				end
-				--OPPanelPopout.ObjState.Text:SetText(entry)
-				--OPPanelPopout.ObjAnim.Text:SetText(objType.." - "..ObjectTypes[tonumber(objType)])
-
-				-- Update Tints & Spell
-				--if OPTintAutoUpdateButton:GetChecked() then
-				if OPOverlayAutoUpdateButton:GetChecked() then
-					if not OPOverlayDragging then
-						if HasTint == 1 then -- using normal tint
-							OPOverlayUseOverlayCheckbutton:SetChecked(false)
-							OPMasterTable.Options["useOverlayMethod"] = false
-						elseif HasTint == 2 then -- using overlay
-							OPOverlayUseOverlayCheckbutton:SetChecked(true)
-							OPMasterTable.Options["useOverlayMethod"] = true
-						end
-						OPOverlaySliderR:SetValue(red)
-						OPOverlaySliderG:SetValue(green)
-						OPOverlaySliderB:SetValue(blue)
-						OPOverlaySliderT:SetValue(alpha)
-						if saturation then
-							OPOverlaySliderS:SetValue(100 - saturation)
-							dprint("Updating Overlay Sliders, saturation: " .. saturation)
-						end
+					OPPanelPopout.ObjName.Text:SetFont(fontName, 10, fontFlags)
+					while OPPanelPopout.ObjName.Text:GetNumLines() > 2 do
+						local fontName, fontHeight, fontFlags = OPPanelPopout.ObjName.Text:GetFont()
+						OPPanelPopout.ObjName.Text:SetFont(fontName, fontHeight - 1, fontFlags)
+						dprint("Setting Selected Object Panel Object Name Font Size: " .. fontHeight - 1)
 					end
-
-
-					if spell and spell ~= "" and tonumber(spell) > 0 then
-						OPObjectSpell = spell
-						updateSpellButton()
+					OPPanelPopout.ObjEntry.Text:SetText(entry)
+					OPPanelPopout.ObjScale.Text:SetText(scale)
+					OPPanelPopout.ObjType.Text:SetText(objType .. " - " .. ObjectTypes[tonumber(objType)])
+					if not isWMO[tonumber(objType)] then
+						OPPanelPopout.ObjDimensions.Text:SetText("Loading...")
+						OPPanelPopout.ObjPreview.Scene.Actor:SetSpellVisualKit()
+						OPPanelPopout.ObjPreview.Scene.Actor:SetAlpha(1)
+						OPPanelPopout.ObjPreview.Scene.Actor:SetModelByFileID(filedataid)
+						OPPanelPopout.ObjPreview.Scene.Actor:Show()
 					else
-						OPObjectSpell = nil
-						updateSpellButton()
+						OPPanelPopout.ObjPreview.Scene.Actor:SetModelByFileID(1)
+						OPPanelPopout.ObjPreview.Scene.Actor:Hide()
+						OPPanelPopout.ObjDimensions.Text:SetText("No Data for WMOs")
 					end
-				end
+					--OPPanelPopout.ObjState.Text:SetText(entry)
+					--OPPanelPopout.ObjAnim.Text:SetText(objType.." - "..ObjectTypes[tonumber(objType)])
 
-				-- Update Rotations
-				if OPRotAutoUpdate:GetChecked() and not RotateClarifier then
-					rx, ry, rz = tonumber(rx), tonumber(ry), tonumber(rz)
-					if rx < 0 then rx = rx + 360 elseif rx > 360 then rx = rx - 360 end
-					if ry < 0 then ry = ry + 360 elseif ry > 360 then ry = ry - 360 end
-					if rz < 0 then rz = rz + 360 elseif rz > 360 then rz = rz - 360 end
-					OPRotationSliderX:SetValueStep(0.0001)
-					OPRotationSliderY:SetValueStep(0.0001)
-					OPRotationSliderZ:SetValueStep(0.0001)
-					OPRotationSliderX:SetValue(rx)
-					OPRotationSliderY:SetValue(ry)
-					OPRotationSliderZ:SetValue(rz)
+					-- Update Tints & Spell
+					--if OPTintAutoUpdateButton:GetChecked() then
+					if OPOverlayAutoUpdateButton:GetChecked() then
+						if not OPOverlayDragging then
+							if HasTint == 1 then -- using normal tint
+								OPOverlayUseOverlayCheckbutton:SetChecked(false)
+								OPMasterTable.Options["useOverlayMethod"] = false
+							elseif HasTint == 2 then -- using overlay
+								OPOverlayUseOverlayCheckbutton:SetChecked(true)
+								OPMasterTable.Options["useOverlayMethod"] = true
+							end
+							OPOverlaySliderR:SetValue(red)
+							OPOverlaySliderG:SetValue(green)
+							OPOverlaySliderB:SetValue(blue)
+							OPOverlaySliderT:SetValue(alpha)
+							if saturation then
+								OPOverlaySliderS:SetValue(100 - saturation)
+								dprint("Updating Overlay Sliders, saturation: " .. saturation)
+							end
+						end
+
+
+						if spell and spell ~= "" and tonumber(spell) > 0 then
+							OPObjectSpell = spell
+							updateSpellButton()
+						else
+							OPObjectSpell = nil
+							updateSpellButton()
+						end
+					end
+
+					-- Update Rotations
+					if OPRotAutoUpdate:GetChecked() and not RotateClarifier then
+						dprint(false, "received (srv): ", rx, ry, rz)
+
+						-- Normalize to 0-360
+						rx = rx % 360
+						ry = ry % 360
+						rz = rz % 360
+
+						OPRotationSliderX:SetValueStep(0.0001)
+						OPRotationSliderY:SetValueStep(0.0001)
+						OPRotationSliderZ:SetValueStep(0.0001)
+						OPRotationSliderX:SetValue(rx)
+						OPRotationSliderY:SetValue(ry)
+						OPRotationSliderZ:SetValue(rz)
+					end
+				else
+					eprint("Illegal Sender (" .. sender .. ") | (Expected:" .. self .. ")")
 				end
-			else
-				eprint("Illegal Sender (" .. sender .. ") | (Expected:" .. self .. ")")
-			end
+			end)
 			dprint("Caught " .. prefix .. " prefix")
 			dprint(false, event, ...)
 		end

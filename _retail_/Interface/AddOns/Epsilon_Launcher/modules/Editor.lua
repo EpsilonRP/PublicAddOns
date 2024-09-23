@@ -17,7 +17,8 @@ local target_gxApi_avail
 -- Editor UI
 -------------------------------------------------------------------------------
 
-local editor_target_gxApi = "D3D11"
+local editor_target_gxApi = "D3D11_LEGACY"
+local target_gxApi_name = _G["GXAPI_" .. editor_target_gxApi]
 local function EpsilonOverlayUI_MinimapButton_OnClick(self)
 	--if C_CVar.GetCVar("gxApi"):find("D3D11_LEGACY") then
 	if C_CVar.GetCVar("gxApi") == editor_target_gxApi then
@@ -39,9 +40,11 @@ local function EpsilonOverlayUI_MinimapButton_OnClick(self)
 		end
 
 		if not target_gxApi_avail then
-			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and DirectX 11 is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
+			print(
+				"|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and " ..
+				target_gxApi_name .. " is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
 		else
-			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor. Please change your Graphics API in System Settings > Advanced to DirectX 11.")
+			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor. Please change your Graphics API in System Settings > Advanced to " .. target_gxApi_name .. ".")
 			OptionsFrame_OpenToCategory(VideoOptionsFrame, "Advanced")
 		end
 	end

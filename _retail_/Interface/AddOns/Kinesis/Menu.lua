@@ -360,9 +360,10 @@ local options = {
 							type = "toggle",
 							name = "Use 'Default' profile on new characters",
 							desc =
-								"When logging in for the first time on a new character, always use the 'Default' profile instead of creating a new character profile for them.\n\r" ..
+								"Use the 'Default' profile for new characters, instead of creating a new character specific profile for them.\n\r" ..
 								ns.Constants.COLORS.CONTRAST_RED:WrapTextInColorCode("WARNING:") ..
-								" Current Flight Spells & Sprint Spells settings are SAVED IN YOUR PROFILE. That means, if you are using the 'default' profile on all characters, any change to those also changes for all.\n\rIf you'd rather just change what the default settings are when a new profile is made (i.e., with this off, and you enter on a new character & it creates their profile), you can swap to the 'Default' profile, change what you want to be the default settings, and then swap back. All new profiles use the 'Default' profile as their starting point.",
+								" Current Flight Spells & Sprint Spells settings are SAVED IN YOUR PROFILE. That means, if you are using the 'default' profile on all characters, any change to those also changes for all.\n\r" ..
+								"Leaving this unchecked and editing the default profile will apply those changes to all new character profiles made on this account.",
 							get = genGenericGetFromOptions("useDefaultForNewChar", "global", "KinesisOptions"),
 							set = genGenericSetFunction("useDefaultForNewChar", "global", "KinesisOptions", nil),
 							order = autoOrder(),
