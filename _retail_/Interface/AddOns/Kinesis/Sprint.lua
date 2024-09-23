@@ -16,7 +16,7 @@ local isNotDefined = ns.Main.isNotDefined
 local contrastText = Constants.COLORS.CONTRAST_RED
 
 local function emote(text)
-	SendChatMessage("" .. text, "EMOTE");
+	SendChatMessage(text, "EMOTE");
 end
 
 ---@param num number the number to round
@@ -234,8 +234,17 @@ function sprintFrame:sprintStop()
 	if sprintSettings.sprintReturnLastSpeed then
 		for k, v in pairs(sprintSpeedTypes) do
 			local speed = speeds["returnSpeed" .. v]
-			cmd(("mod speed %s %s"):format(k, roundToNthDecimal(speed / sprintSpeedDivisors[k], 2)))
-			--print("KEY UP", k, "to", roundToNthDecimal(speed/sprintSpeedDivisors[k], 2))
+			local speedToUse = roundToNthDecimal(speed / sprintSpeedDivisors[k], 2)
+			if speedToUse <= 0 then
+				print("Warning: Speed returned as <= 0 for speed type: %s. Please report this along with the next line.")
+				print("Relevant Debug Speeds:", "current=", speeds.currentSpeed, "returnActual=", speed, "returnRound=", speedToUse, " sprint=", KinesisOptions.profiles[KinesisCharOptions.activeProfile].sprint["speed" .. v])
+				if speed <= 0 then
+					speedToUse = 1
+				else
+					speedToUse = speed -- use the unrounded one idfk
+				end
+			end
+			cmd(("mod speed %s %s"):format(k, speedToUse))
 		end
 	else
 		cmd("mod speed 1")

@@ -920,6 +920,8 @@ StaticPopupDialogs["SCFORGE_CONFIRM_DELETE"] = {
 			Vault.personal.deleteSpell(data)
 			ns.MainFuncs.updateSpellLoadRows()
 			Hotkeys.deregisterHotkeyByComm(data)
+			ns.MainFuncs.removeSpellFromAccountAutoCast(data)
+			ns.MainFuncs.removeSpellFromCharAutoCast(data)
 		elseif data2 == VAULT_TYPE.PHASE then
 			dprint("Deleting '" .. data .. "' from Phase Vault.")
 			ns.MainFuncs.deleteSpellFromPhaseVault(data, ns.MainFuncs.updateSpellLoadRows)

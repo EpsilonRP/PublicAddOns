@@ -198,7 +198,12 @@ function Kinesis:OnInitialize()
 	if KinesisCharOptions.activeProfile ~= playerName and not KinesisOptions.profiles[KinesisCharOptions.activeProfile] then
 		setActiveProfile("default") -- Active Profile was changed from there character one, and then deleted; set them to default.
 	else
-		setActiveProfile(KinesisCharOptions.activeProfile)
+		if KinesisCharOptions.activeProfile == playerName and (not KinesisOptions.profiles[KinesisCharOptions.activeProfile]) and KinesisOptions.global.useDefaultForNewChar then
+			-- The activeProfile was self, but didn't exist, and the global setting for useDefaultForNewChar is on. So use default profile.
+			setActiveProfile("default")
+		else
+			setActiveProfile(KinesisCharOptions.activeProfile)
+		end
 	end
 	--if isNotDefined(KinesisOptions.profiles[KinesisCharOptions.activeProfile]) then KinesisOptions.profiles[KinesisCharOptions.activeProfile] = CopyTable(KinesisOptions.profiles.default) end
 	loadDefaultsIntoMaster(defaultGlobalSettings.profiles.default, KinesisOptions.profiles[KinesisCharOptions.activeProfile])

@@ -247,10 +247,11 @@ local defaults = {
 
 		--EPSILON OPTIONS
 		toggleMessages = false,
+		showCommandReplies = false,
 		delItemsOnEquip = false,
 		autoShowMogNPCNamePreviews = true,
-		useCurrentCharForMogAutoPreviews = true,
-		toggleDebug = false,
+		--useCurrentCharForMogAutoPreviews = true,
+		toggleDebugMode = false,
 
 		tooltip = true,
 		tooltipWidth = 300,

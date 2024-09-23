@@ -1618,7 +1618,7 @@ local actionTypeData = {
 		doNotDelimit = true,
 	}),
 	-- TalkingHead = "TalkingHead"
-	[ACTION_TYPE.TalkingHead] = scriptAction("Send Talking Head", {
+	[ACTION_TYPE.TalkingHead] = scriptAction("Show Talking Head", {
 		command = function(vars)
 			--local args, numArgs = parseArgsWrapper(vars)
 			--if not args then return end
@@ -1629,7 +1629,7 @@ local actionTypeData = {
 			if not message and name and displayID then return end
 			message = tostring(message);
 			name = tostring(name) or "Unknown";
-			-- displayID = tonumber(displayID) or 0;
+			displayID = tonumber(displayID) or displayID;
 			-- don't sanitise displayID! it could be a unitID.
 			sound = tonumber(sound) or nil;
 			timeout = tonumber(timeout) or nil;

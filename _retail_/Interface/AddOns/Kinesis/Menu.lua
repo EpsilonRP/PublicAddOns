@@ -30,19 +30,19 @@ local contrastText = Constants.COLORS.CONTRAST_RED
 ---@param subTable string|table
 ---@param table string?
 local function genericGetFromOptions(key, subTable, table)
-    if not table then
+	if not table then
 		table = KinesisOptions.profiles[KinesisCharOptions.activeProfile]
 	else
 		table = _G[table]
 	end
-    if subTable and type(subTable) == "table" then
-        for i = 1, #subTable do
-            table = table[i]
-        end
-    elseif subTable then -- not a table, string or number? get the single sub table
-        table = table[subTable]
-    end
-    return table[key]
+	if subTable and type(subTable) == "table" then
+		for i = 1, #subTable do
+			table = table[i]
+		end
+	elseif subTable then -- not a table, string or number? get the single sub table
+		table = table[subTable]
+	end
+	return table[key]
 end
 
 ---Easy Function Gen for the genericGetFromOptions function
@@ -51,10 +51,10 @@ end
 ---@param table string?
 ---@return function
 local function genGenericGetFromOptions(key, subTable, table)
-    local func = function(val)
-        return genericGetFromOptions(key, subTable, table)
-    end
-    return func
+	local func = function(val)
+		return genericGetFromOptions(key, subTable, table)
+	end
+	return func
 end
 
 ---Generic Set Value Function..
@@ -64,7 +64,7 @@ end
 ---@param table string?
 local function genericSafeSetVal(key, val, subTable, table)
 	if isNotDefined(key) then return end
-	if not table then 
+	if not table then
 		table = KinesisOptions.profiles[KinesisCharOptions.activeProfile]
 	else
 		table = _G[table]
@@ -145,8 +145,10 @@ local addSpellIDTemp
 
 local firstRunLoadingInterfaceOptions
 local options = {
-	name = function() 
-		if not firstRunLoadingInterfaceOptions then menuFrame:RefreshMenuForUpdates(); firstRunLoadingInterfaceOptions = true end -- This fixes the UI glitches that AceConfig has with tabs.. Fucking stupid.
+	name = function()
+		if not firstRunLoadingInterfaceOptions then
+			menuFrame:RefreshMenuForUpdates(); firstRunLoadingInterfaceOptions = true
+		end -- This fixes the UI glitches that AceConfig has with tabs.. Fucking stupid.
 		return addonTitle .. " (v" .. addonVersion .. ") - /kinesis, /kn"
 	end,
 	--name = addonTitle .. " (v" .. addonVersion .. ")",
@@ -166,7 +168,7 @@ local options = {
 					args = {
 						header = {
 							type = "header",
-							name = ">>>kinesis", 
+							name = ">>>kinesis",
 							order = autoOrder(),
 							disabled = true,
 							dialogControl = "SFX-Header-II",
@@ -180,7 +182,8 @@ local options = {
 						spacer = spacer(),
 						addonDescription = {
 							type = "description",
-							name = "Kinesis brings two missing movement elements from other popular games & genres to Epsilon: On-Demand Sprinting, and Creative-Mode Style Flight controls.\n\rBoth include a bunch of options to customize your experience to what suits you, and include some fun options like being able to cast spells for cool visual effects when sprinting/flying. We hope you enjoy!",
+							name =
+							"Kinesis brings two missing movement elements from other popular games & genres to Epsilon: On-Demand Sprinting, and Creative-Mode Style Flight controls.\n\rBoth include a bunch of options to customize your experience to what suits you, and include some fun options like being able to cast spells for cool visual effects when sprinting/flying. We hope you enjoy!",
 							order = autoOrder(),
 						},
 						bottomBorder = {
@@ -196,10 +199,11 @@ local options = {
 					inline = true,
 					order = autoOrder(true),
 					args = {
-						flightToggle ={
+						flightToggle = {
 							type = "toggle",
 							name = "Enable Flight Controls ('Creative Mode')",
-							desc = "Toggle the Flight Module on/off.\n\rCreative Mode style Flight Controls allow you to use your jump-key to enable and disable flying, instead of typing a command.\n\rBy default, we use similar settings to games like Minecraft - Double Jump to toggle flight on, and double-tap jump again while flying to disable flight. Check out the Flight Settings tab to customize this experience.",
+							desc =
+							"Toggle the Flight Module on/off.\n\rCreative Mode style Flight Controls allow you to use your jump-key to enable and disable flying, instead of typing a command.\n\rBy default, we use similar settings to games like Minecraft - Double Jump to toggle flight on, and double-tap jump again while flying to disable flight. Check out the Flight Settings tab to customize this experience.",
 							handler = menuFrame.flight,
 							get = "GetFlightToggle",
 							set = "SetFlightToggle",
@@ -215,10 +219,11 @@ local options = {
 							order = autoOrder(),
 							width = 1.25,
 						},
-						sprintToggle ={
+						sprintToggle = {
 							type = "toggle",
 							name = "Enable Shift-Sprint",
-							desc = "Toggle Shift-Sprint on/off.\n\rShift-Sprint does exactly what it says: Allows you to simply press shift to start sprinting! When done, just release shift and you'll return to whatever speed you previously were at.\n\rBut what good is sprinting if you don't look " .. contrastText:WrapTextInColorCode("cool") .. " doing it? So we added support to also trigger Spells (auras) while sprinting.\n\rBut Spells wasn't enough.. So we also included Arcanum Support, so you can morph into a cat, or grow twice in size -- I'm sure you'll think of better ideas! Your possibilities are limitless!",
+							desc = "Toggle Shift-Sprint on/off.\n\rShift-Sprint does exactly what it says: Allows you to simply press shift to start sprinting! When done, just release shift and you'll return to whatever speed you previously were at.\n\rBut what good is sprinting if you don't look " ..
+								contrastText:WrapTextInColorCode("cool") .. " doing it? So we added support to also trigger Spells (auras) while sprinting.\n\rBut Spells wasn't enough.. So we also included Arcanum Support, so you can morph into a cat, or grow twice in size -- I'm sure you'll think of better ideas! Your possibilities are limitless!",
 							handler = menuFrame.sprint,
 							get = "GetFullToggle",
 							set = "SetFullToggle",
@@ -229,9 +234,12 @@ local options = {
 						sprintModeToggle = {
 							type = "select",
 							name = "Sprint Mode",
-							desc = "Switch between Shift-Sprint modes:\n\r" .. contrastText:WrapTextInColorCode("Dual") .. ": The 'best of both worlds'! Tap to Toggle Sprint, or Hold to only sprint until you let go. Adjust the time it takes for tap to turn into hold in Sprint Settings.\n\r" .. contrastText:WrapTextInColorCode("Hold") .. ": Sprint activates when pressing Shift, and deactivates when released.\n\r" .. contrastText:WrapTextInColorCode("Toggle") .. ": Sprint activates when you press Shift, and stays active until you press Shift again.",
+							desc = "Switch between Shift-Sprint modes:\n\r" ..
+								contrastText:WrapTextInColorCode("Dual") ..
+								": The 'best of both worlds'! Tap to Toggle Sprint, or Hold to only sprint until you let go. Adjust the time it takes for tap to turn into hold in Sprint Settings.\n\r" ..
+								contrastText:WrapTextInColorCode("Hold") .. ": Sprint activates when pressing Shift, and deactivates when released.\n\r" .. contrastText:WrapTextInColorCode("Toggle") .. ": Sprint activates when you press Shift, and stays active until you press Shift again.",
 							values = { toggle = "Toggle", hold = "Hold", dual = "Dual" },
-							sorting = {"dual", "hold", "toggle"},
+							sorting = { "dual", "hold", "toggle" },
 							get = genGenericGetFromOptions("sprintMode", "global", "KinesisOptions"),
 							set = genGenericSetFunction("sprintMode", "global", "KinesisOptions"),
 							order = autoOrder(),
@@ -245,7 +253,7 @@ local options = {
 					inline = true,
 					order = autoOrder(true),
 					args = {
-						profileSelect ={
+						profileSelect = {
 							type = "select",
 							name = "Current Profile",
 							desc = "Select your current profile.",
@@ -253,7 +261,7 @@ local options = {
 							set = function(info, val) if val == "addNewProfile" then Dialogs.showNewProfilePopup() else Main.setActiveProfile(val, true) end end,
 							values = function()
 								local valTable = {}
-								for k,v in pairs(KinesisOptions.profiles) do
+								for k, v in pairs(KinesisOptions.profiles) do
 									if k == "default" then
 										valTable[k] = "Default"
 									else
@@ -265,7 +273,7 @@ local options = {
 							end,
 							sorting = function()
 								local keys = {}
-								for k in pairs(KinesisOptions.profiles) do 
+								for k in pairs(KinesisOptions.profiles) do
 									if k ~= "default" and k ~= KinesisCharOptions.activeProfile then
 										keys[#keys + 1] = k
 									end
@@ -309,7 +317,7 @@ local options = {
 							end,
 							width = 1,
 						},
-						profileCopy ={
+						profileCopy = {
 							type = "select",
 							name = "Copy Profile Settings",
 							desc = "Copy Profile Settings from another profile to your current profile.",
@@ -326,7 +334,7 @@ local options = {
 								local valTable = {
 									copyProfileSettings = "Copy Profile Settings",
 								}
-								for k,v in pairs(KinesisOptions.profiles) do
+								for k, v in pairs(KinesisOptions.profiles) do
 									if k == "default" then
 										valTable[k] = "Default"
 									elseif k ~= KinesisCharOptions.activeProfile then -- skip active profile
@@ -348,6 +356,19 @@ local options = {
 							order = autoOrder(),
 							width = 1,
 						},
+						useDefaultForNewChar = {
+							type = "toggle",
+							name = "Use 'Default' profile on new characters",
+							desc =
+								"Use the 'Default' profile for new characters, instead of creating a new character specific profile for them.\n\r" ..
+								ns.Constants.COLORS.CONTRAST_RED:WrapTextInColorCode("WARNING:") ..
+								" Current Flight Spells & Sprint Spells settings are SAVED IN YOUR PROFILE. That means, if you are using the 'default' profile on all characters, any change to those also changes for all.\n\r" ..
+								"Leaving this unchecked and editing the default profile will apply those changes to all new character profiles made on this account.",
+							get = genGenericGetFromOptions("useDefaultForNewChar", "global", "KinesisOptions"),
+							set = genGenericSetFunction("useDefaultForNewChar", "global", "KinesisOptions", nil),
+							order = autoOrder(),
+							width = 2,
+						},
 					}
 				},
 				quickToolsGroup = {
@@ -358,13 +379,13 @@ local options = {
 					args = {
 						fixSprintJump = {
 							type = "execute",
-							name = "Fix Sprint+Jump", 
+							name = "Fix Sprint+Jump",
 							desc = "By default, WoW has Shift+Space bound to something stupid. This blocks you from being able to sprint & jump (*insert Skyrim flashbacks of falling off a cliff because you can't sprint+jump*). Thankfully we can fix it here! Usually, we fix this for you on login, but if that failed, click here to fix it again.",
 							order = autoOrder(),
 							func = ns.Main.clearShiftSpaceBinds,
 							width = 0.95,
 						},
-						alwaysFixSprintJump ={
+						alwaysFixSprintJump = {
 							type = "toggle",
 							name = "Always Fix Sprint+Jump",
 							desc = "When enabled, Sprint+Jump will be checked & fixed every time you login.",
@@ -375,7 +396,7 @@ local options = {
 						},
 						showChangelog = {
 							type = "execute",
-							name = "Show Changelog", 
+							name = "Show Changelog",
 							desc = "Show the Kinesis version Changelog.\n\rAlso, the 'Welcome' intro screen lives here too, if you want to revisit it!",
 							order = autoOrder(),
 							func = function() ns.Welcome.showWelcomeScreen(true) end,
@@ -401,7 +422,7 @@ local options = {
 				},
 			},
 		},
-		flightOptions ={
+		flightOptions = {
 			name = "Flight Settings",
 			handler = menuFrame.flight,
 			type = "group",
@@ -450,7 +471,7 @@ local options = {
 							name = "Double / Triple Jump to Disable Flight",
 							desc = "Require Double or Triple Jump to disable flight when flying - or disable the function entirely.",
 							values = { [2] = "Double Jump", [3] = "Triple Jump", [0] = "Disable" },
-							sorting = {2, 3, 0},
+							sorting = { 2, 3, 0 },
 							get = genGenericGetFromOptions("jumpToLand", "flight"),
 							set = genGenericSetFunction("jumpToLand", "flight"),
 							order = autoOrder(),
@@ -511,7 +532,7 @@ local options = {
 			handler = menuFrame.flight,
 			childGroups = "tree",
 			order = autoOrder(true),
-			disabled = function() 
+			disabled = function()
 				return not (menuFrame.flight:GetFlightToggle() or KinesisOptions.global.extendedFlightDetection)
 			end,
 			args = {
@@ -591,7 +612,9 @@ local options = {
 							desc = "Type a Spell ID here and then hit 'Okay' to add it to your current Flight-Spells.",
 							usage = "Spell ID",
 							--get = function() end,
-							set = function(info, val) Flight.addSpellToSpellList(val); menuFrame:RefreshMenuForUpdates() end,
+							set = function(info, val)
+								Flight.addSpellToSpellList(val); menuFrame:RefreshMenuForUpdates()
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -606,7 +629,9 @@ local options = {
 							end,
 							sorting = function() return select(2, Flight.getSpellsInCurrentProfileList()) end,
 							get = function() return "removeSpellLabel" end,
-							set = function(info, val) Flight.removeSpellFromSpellList(val); menuFrame:RefreshMenuForUpdates(); end,
+							set = function(info, val)
+								Flight.removeSpellFromSpellList(val); menuFrame:RefreshMenuForUpdates();
+							end,
 							order = autoOrder(),
 							width = 1.25,
 						},
@@ -614,10 +639,12 @@ local options = {
 							type = "execute",
 							name = "Reset Spells",
 							desc = "Click to remove all your current Flight-Spells.",
-							func = function(info, val) 
+							func = function(info, val)
 								Dialogs.showGenericConfirmation(
 									"Are you sure you want to remove all your currently set Flight-Spells?",
-									function() Flight.removeAllSpellsFromSpellList(); menuFrame:RefreshMenuForUpdates() end
+									function()
+										Flight.removeAllSpellsFromSpellList(); menuFrame:RefreshMenuForUpdates()
+									end
 								)
 							end,
 							order = autoOrder(),
@@ -629,15 +656,17 @@ local options = {
 							type = "execute",
 							name = "Save Flight Spell Set",
 							desc = "Click to save your current Flight-Spells as a Spell Set.",
-							func = function() Dialogs.showCustomGenericInputBox({
-								text = "Give your Spell Set a name:",
-								callback = function(text)
-									Flight.saveSpellListToStorage(text)
-									menuFrame:RefreshMenuForUpdates();
-								end,
-								acceptText = SAVE,
-								cancelText = CANCEL,
-							}) end,
+							func = function()
+								Dialogs.showCustomGenericInputBox({
+									text = "Give your Spell Set a name:",
+									callback = function(text)
+										Flight.saveSpellListToStorage(text)
+										menuFrame:RefreshMenuForUpdates();
+									end,
+									acceptText = SAVE,
+									cancelText = CANCEL,
+								})
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -652,7 +681,9 @@ local options = {
 							end,
 							sorting = function() return select(2, Flight.getSpellListsInStorage()) end,
 							get = function() return "loadSpellSetLabel" end,
-							set = function(info, val) Flight.loadSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates(); end,
+							set = function(info, val)
+								Flight.loadSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -667,13 +698,14 @@ local options = {
 							end,
 							sorting = function() return select(2, Flight.getSpellListsInStorage()) end,
 							get = function() return "deleteSpellSetLabel" end,
-							set = function(info, val) Dialogs.showGenericConfirmation("Are you sure you want to delete " .. contrastText:WrapTextInColorCode(val) .. "?", function()
-								Flight.deleteSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
-							end) end,
+							set = function(info, val)
+								Dialogs.showGenericConfirmation("Are you sure you want to delete " .. contrastText:WrapTextInColorCode(val) .. "?", function()
+									Flight.deleteSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
+								end)
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
-
 						currentSpellsVisualizer = {
 							type = "select",
 							style = "radio",
@@ -694,7 +726,7 @@ local options = {
 				},
 			},
 		},
-		sprintOptions ={
+		sprintOptions = {
 			name = "Sprint Settings",
 			type = "group",
 			handler = menuFrame.sprint,
@@ -702,7 +734,7 @@ local options = {
 			order = autoOrder(true),
 			disabled = function() return not menuFrame.sprint:GetFullToggle() end,
 			args = {
-				sprintSettings ={
+				sprintSettings = {
 					name = "Sprint Settings",
 					type = "group",
 					inline = true,
@@ -870,8 +902,8 @@ local options = {
 						},
 					},
 				},
-				
-				emoteSettings ={
+
+				emoteSettings = {
 					name = "Emotes",
 					type = "group",
 					inline = true,
@@ -1038,7 +1070,9 @@ local options = {
 							desc = "Type a Spell ID here and then hit 'Okay' to add it to your current Sprint-Spells.",
 							usage = "Spell ID",
 							--get = function() end,
-							set = function(info, val) Sprint.addSpellToSpellList(val); menuFrame:RefreshMenuForUpdates() end,
+							set = function(info, val)
+								Sprint.addSpellToSpellList(val); menuFrame:RefreshMenuForUpdates()
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -1063,7 +1097,9 @@ local options = {
 							end,
 							sorting = function() return select(2, Sprint.getSpellsInCurrentProfileList()) end,
 							get = function() return "removeSpellLabel" end,
-							set = function(info, val) Sprint.removeSpellFromSpellList(val); menuFrame:RefreshMenuForUpdates(); end,
+							set = function(info, val)
+								Sprint.removeSpellFromSpellList(val); menuFrame:RefreshMenuForUpdates();
+							end,
 							order = autoOrder(),
 							width = 1.25,
 						},
@@ -1071,10 +1107,12 @@ local options = {
 							type = "execute",
 							name = "Reset Spells",
 							desc = "Click to remove all your current Sprint-Spells.",
-							func = function(info, val) 
+							func = function(info, val)
 								Dialogs.showGenericConfirmation(
 									"Are you sure you want to remove all your currently set Shift-Sprint-Spells?",
-									function() Sprint.removeAllSpellsFromSpellList(); menuFrame:RefreshMenuForUpdates() end
+									function()
+										Sprint.removeAllSpellsFromSpellList(); menuFrame:RefreshMenuForUpdates()
+									end
 								)
 							end,
 							order = autoOrder(),
@@ -1086,15 +1124,17 @@ local options = {
 							type = "execute",
 							name = "Save Sprint Spell Set",
 							desc = "Click to save your current Sprint-Spells as a Spell Set.",
-							func = function() Dialogs.showCustomGenericInputBox({
-								text = "Give your Spell Set a name:",
-								callback = function(text)
-									Sprint.saveSpellListToStorage(text)
-									menuFrame:RefreshMenuForUpdates();
-								end,
-								acceptText = SAVE,
-								cancelText = CANCEL,
-							}) end,
+							func = function()
+								Dialogs.showCustomGenericInputBox({
+									text = "Give your Spell Set a name:",
+									callback = function(text)
+										Sprint.saveSpellListToStorage(text)
+										menuFrame:RefreshMenuForUpdates();
+									end,
+									acceptText = SAVE,
+									cancelText = CANCEL,
+								})
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -1109,7 +1149,9 @@ local options = {
 							end,
 							sorting = function() return select(2, Sprint.getSpellListsInStorage()) end,
 							get = function() return "loadSpellSetLabel" end,
-							set = function(info, val) Sprint.loadSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates(); end,
+							set = function(info, val)
+								Sprint.loadSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -1124,9 +1166,11 @@ local options = {
 							end,
 							sorting = function() return select(2, Sprint.getSpellListsInStorage()) end,
 							get = function() return "deleteSpellSetLabel" end,
-							set = function(info, val) Dialogs.showGenericConfirmation("Are you sure you want to delete " .. contrastText:WrapTextInColorCode(val) .. "?", function()
-								Sprint.deleteSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
-							end) end,
+							set = function(info, val)
+								Dialogs.showGenericConfirmation("Are you sure you want to delete " .. contrastText:WrapTextInColorCode(val) .. "?", function()
+									Sprint.deleteSpellListFromStorage(val); menuFrame:RefreshMenuForUpdates();
+								end)
+							end,
 							order = autoOrder(),
 							width = 1,
 						},
@@ -1189,9 +1233,12 @@ function menuFrame.flight:GetJumpToLand(info)
 	local tristateAsNum = KinesisOptions.profiles[KinesisCharOptions.activeProfile].flight.jumpToLand
 	local tristateTrueVal
 
-	if tristateAsNum == 2 then tristateTrueVal = true
-	elseif tristateAsNum == 3 then tristateTrueVal = nil
-	else tristateTrueVal = false
+	if tristateAsNum == 2 then
+		tristateTrueVal = true
+	elseif tristateAsNum == 3 then
+		tristateTrueVal = nil
+	else
+		tristateTrueVal = false
 	end
 
 	return tristateTrueVal
@@ -1200,9 +1247,12 @@ end
 function menuFrame.flight:SetJumpToLand(info, value)
 	local tristateToNum
 
-	if value == true then tristateToNum = 2
-	elseif value == nil then tristateToNum = 3
-	elseif value == false then tristateToNum = 0
+	if value == true then
+		tristateToNum = 2
+	elseif value == nil then
+		tristateToNum = 3
+	elseif value == false then
+		tristateToNum = 0
 	end
 
 	KinesisOptions.profiles[KinesisCharOptions.activeProfile].flight.jumpToLand = tristateToNum

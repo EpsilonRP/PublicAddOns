@@ -11,33 +11,40 @@ local tooltip = ns.Utils.Tooltip
 local icon = ns.Launcher.CONSTANTS.assetsPath .. "EpsilonTrayIconEditor"
 
 local graphicsAPIs
-local directX11Avail
+local target_gxApi_avail
 
 -------------------------------------------------------------------------------
 -- Editor UI
 -------------------------------------------------------------------------------
 
+local editor_target_gxApi = "D3D11_LEGACY"
+local target_gxApi_name = _G["GXAPI_" .. editor_target_gxApi]
 local function EpsilonOverlayUI_MinimapButton_OnClick(self)
-	if C_CVar.GetCVar("gxApi"):find("D3D11_LEGACY") then
+	--if C_CVar.GetCVar("gxApi"):find("D3D11_LEGACY") then
+	if C_CVar.GetCVar("gxApi") == editor_target_gxApi then
 		C_Epsilon.ShowMenu()
 	else
 		if not graphicsAPIs then
 			graphicsAPIs = { GetGraphicsAPIs() }
 		end
 
-		if directX11Avail == nil then
-			for k, v in pairs(graphicsAPIs) do
-				if v:find("D3D11_LEGACY") then
-					directX11Avail = true; return
+		if target_gxApi_avail == nil then
+			target_gxApi_avail = false -- fallback
+			for k, v in ipairs(graphicsAPIs) do
+				--if v:find("D3D11_LEGACY") then
+				if v == editor_target_gxApi then
+					target_gxApi_avail = true
+					break
 				end
 			end
-			directX11Avail = false -- fallback
 		end
 
-		if not directX11Avail then
-			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and DirectX 11 is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
+		if not target_gxApi_avail then
+			print(
+				"|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and " ..
+				target_gxApi_name .. " is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
 		else
-			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor. Please change your Graphics API in System Settings > Advanced to DirectX 11 (Legacy).")
+			print("|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor. Please change your Graphics API in System Settings > Advanced to " .. target_gxApi_name .. ".")
 			OptionsFrame_OpenToCategory(VideoOptionsFrame, "Advanced")
 		end
 	end

@@ -100,6 +100,7 @@ local setLastSelectedRow = function(row) lastSelectedConditionRow = row end
 ---@field inputExample? string Example Input
 ---@field requirement? function
 ---@field doNotTestEval? boolean Default to disabling the Condition Status preview evaluation. Useful in things like Macro Script & Random Roll which are irrelevant to test now.
+---@field maxArgs? integer Max number of args to parse inputs for.
 
 ---@class ConditionTypeCat
 ---@field catName string
@@ -947,6 +948,7 @@ local conditions = {
 		[[A macro script must include an explicit return, or otherwise be a simple script that is a return value in itself. For example, `6 > 5` is a valid script here, but `if 6 > 5 then print("hey") end` will always fail the test as it does not return any truthy statement.]],
 		inputs = { input("Macro or Lua Script", "string"), },
 		doNotTestEval = true,
+		maxArgs = 1,
 		script = function(macroOrLuaScript)
 			if not macroOrLuaScript then return false end
 			local script = macroOrLuaScript
@@ -1054,10 +1056,21 @@ genConditionsMenuList()
 
 local copiedConditionsData
 local function saveCopyOfConditions(data)
-	copiedConditionsData = data
+	if not data then
+		copiedConditionsData = nil; return
+	end
+	if type(data) == "table" then
+		copiedConditionsData = CopyTable(data)
+	else
+		copiedConditionsData = data
+	end
 end
 local function getCopiedConditions()
-	return copiedConditionsData
+	if type(copiedConditionsData) == "table" then
+		return CopyTable(copiedConditionsData)
+	else
+		return copiedConditionsData
+	end
 end
 
 ---@class Action_ConditionsData

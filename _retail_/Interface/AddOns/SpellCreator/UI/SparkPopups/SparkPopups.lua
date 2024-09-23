@@ -302,12 +302,6 @@ end
 local function hideMultiSparkFrame()
 	multiSparkFrame.intro:Stop();
 	multiSparkFrame.outro:Play();
-
-	--[[
-	for k, v in ipairs(multiSparkFrame.SpellButtonContainer.contentFramePool) do
-		v.cooldown:Clear()
-	end
-	--]]
 end
 
 local function triggerMultiSparkCooldown(commID, cooldownTime)
@@ -320,6 +314,12 @@ local function triggerMultiSparkCooldown(commID, cooldownTime)
 			local currTime = GetTime()
 			button.cooldown:SetCooldown(currTime, cooldownTime)
 		end
+	end
+end
+
+local function hideMultiSparkIfShown()
+	if multiSparkFrame:IsShown() then
+		hideMultiSparkFrame()
 	end
 end
 
@@ -347,7 +347,6 @@ hiddenSparkIcon.spark:SetTexture(ASSETS_PATH .. "/spark2")
 hiddenSparkIcon.spark:SetDesaturated(true)
 hiddenSparkIcon.spark:SetVertexColor(hiddenSparkSparkColor:GetRGBA())
 
----[[
 hiddenSparkIcon.spark2 = hiddenSparkIcon:CreateTexture(nil, "OVERLAY")
 hiddenSparkIcon.spark2:SetBlendMode("ADD")
 hiddenSparkIcon.spark2:SetPoint("CENTER")
@@ -355,28 +354,11 @@ hiddenSparkIcon.spark2:SetSize(32, 32)
 hiddenSparkIcon.spark2:SetTexture(ASSETS_PATH .. "/spark2")
 hiddenSparkIcon.spark2:SetDesaturated(true)
 hiddenSparkIcon.spark2:SetVertexColor(hiddenSparkSparkColor:GetRGBA())
---hiddenSparkIcon.spark2:SetVertexColor(Constants.ADDON_COLORS.GEM_BOOK.PINK:GetRGBA())
-
---]]
-
---[[
-hiddenSparkIcon.spark3 = hiddenSparkIcon:CreateTexture(nil, "OVERLAY")
-hiddenSparkIcon.spark3:SetTexture(ASSETS_PATH .. "/cosmicvoidbolt01")
-hiddenSparkIcon.spark3:SetPoint("CENTER")
-hiddenSparkIcon.spark3:SetSize(32, 32)
-local function spark3_Animate(self, elapsed)
-	if not self:IsShown() then return end
-	AnimateTexCoords(self.spark3, 512, 512, 512 / 4, 512 / 4, 16, elapsed, 0.01)
-end
-hiddenSparkIcon:HookScript("OnUpdate", spark3_Animate)
---]]
 
 hiddenSparkIcon.animation = hiddenSparkIcon:CreateTexture(nil, "ARTWORK")
 hiddenSparkIcon.animation:SetPoint("CENTER")
 hiddenSparkIcon.animation:SetSize(42, 42)
---hiddenSparkIcon.animation:SetAtlas("Relic-Arcane-TraitGlow")
 hiddenSparkIcon.animation:SetTexture(ASSETS_PATH .. "/starflash_grey")
---hiddenSparkIcon.animation:SetVertexColor(Constants.ADDON_COLORS.GAME_GOLD:GetRGBA())
 hiddenSparkIcon.animation:SetVertexColor(hiddenSparkSparkColor:GetRGBA())
 
 hiddenSparkIcon.animation.anim = hiddenSparkIcon.animation:CreateAnimationGroup()
@@ -385,29 +367,14 @@ hiddenSparkIcon.animation.anim.rot = hiddenSparkIcon.animation.anim:CreateAnimat
 hiddenSparkIcon.animation.anim.rot:SetDegrees(-360)
 hiddenSparkIcon.animation.anim.rot:SetDuration(10)
 hiddenSparkIcon.animation.anim:SetScript("OnPlay", function(self)
-	--Animation.setFrameFlicker(self:GetParent(), 2, 0.1, 0.5, 1, 0.33)
 	Animation.setFrameFlicker(hiddenSparkIcon.spark2, 2, 0.1, 0.5, 1, 0.75)
 end)
 hiddenSparkIcon.animation.anim:SetScript("OnPause", function(self)
-	--Animation.stopFrameFlicker(self:GetParent(), 1)
 	Animation.stopFrameFlicker(hiddenSparkIcon.spark2, 1)
 end)
 
 hiddenSparkIcon:SetScript("OnShow", function(self) self.animation.anim:Play() end)
 hiddenSparkIcon:SetScript("OnHide", function(self) self.animation.anim:Pause() end)
-
---[[
-C_Timer.After(5, function()
-	OpenColorPicker({
-		swatchFunc = function()
-			print(ColorPickerFrame:GetColorRGB())
-			hiddenSparkIcon.spark:SetVertexColor(ColorPickerFrame:GetColorRGB())
-			hiddenSparkIcon.animation:SetVertexColor(ColorPickerFrame:GetColorRGB())
-			hiddenSparkIcon.spark2:SetVertexColor(ColorPickerFrame:GetColorRGB())
-		end
-	})
-end)
---]]
 
 Tooltip.set(hiddenSparkIcon, "There's a Spark Nearby!", nil, { delay = 0.3, forced = true })
 hiddenSparkIcon:SetScript("OnClick", function(self, button)
@@ -440,6 +407,17 @@ hiddenSparkIcon.PlayOut = function(self)
 	local bar = self;
 	bar.intro:Stop();
 	bar.outro:Play();
+end
+
+local function hideHiddenSparkIcon()
+	hiddenSparkIcon.intro:Stop();
+	hiddenSparkIcon.outro:Play();
+end
+
+local function hideHiddenSparkIfShown()
+	if hiddenSparkIcon:IsShown() then
+		hideHiddenSparkIcon()
+	end
 end
 
 --#endregion
@@ -523,6 +501,19 @@ local function hideSparkPopup()
 	bar.button.cooldown:Clear()
 end
 
+local function hideSparkIfShown()
+	if sparkPopup:IsShown() then
+		hideSparkPopup()
+	end
+end
+
+-- Global Hide for all spark types:
+local function hideAllSparks()
+	hideMultiSparkIfShown()
+	hideSparkIfShown()
+	hideHiddenSparkIfShown()
+end
+
 --#endregion
 -------------------------------
 --#region || Coordinate / Location System
@@ -538,8 +529,10 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 	end
 	counter = 0
 
-	if not phaseSparkTriggers then return end
-	if not Vault.phase.isLoaded then return end
+	if (not phaseSparkTriggers) or (not Vault.phase.isLoaded) then
+		hideAllSparks()
+		return
+	end
 
 	local shouldHideCastbar = true
 	local shouldHideMultiSparkBar = true
@@ -718,7 +711,7 @@ local function getPopupTriggersFromPhase(callback, iter)
 		return;
 	end
 	setSparkLoadingStatus(true)
-
+	hideAllSparks()
 	phaseSparkTriggers = {}
 
 	local dataKey = "SCFORGE_POPUPS"
@@ -1002,7 +995,6 @@ hooksecurefunc("JumpOrAscendStart", onJump)
 --#endregion
 ---------------------
 
-
 ---@class UI_SparkPopups_SparkPopups
 ns.UI.SparkPopups.SparkPopups = {
 	getPopupTriggersFromPhase = getPopupTriggersFromPhase,
@@ -1025,6 +1017,11 @@ ns.UI.SparkPopups.SparkPopups = {
 
 	setSparkThrottle = setThrottle,
 	getSparkThrottle = getThrottle,
+
+	hide = hideAllSparks,
+	hide_standard = hideSparkIfShown,
+	hide_multi = hideMultiSparkIfShown,
+	hide_hidden = hideHiddenSparkIfShown,
 
 	checkSparksWithPredicate = checkSparksWithPredicate,
 }

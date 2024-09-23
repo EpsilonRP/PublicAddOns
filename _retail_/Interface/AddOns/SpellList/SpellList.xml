@@ -65,7 +65,9 @@
 				elseif IsShiftKeyDown() then
 					local keyboardfocus = GetCurrentKeyBoardFocus()
 					if keyboardfocus then
-						ChatEdit_InsertLink(("|cff71d5ff|Hspell:%d|h[%s]|h|r"):format(self.Dat.SpellID, self.Dat.Name));
+						local spellLink = GetSpellLink(self.Dat.SpellID)
+						if spellLink == nil then spellLink = ("|cff71d5ff|Hspell:%d:0|h[%s]|h|r"):format(self.Dat.SpellID, self.Dat.Name) end
+						ChatEdit_InsertLink(spellLink);
 					else
 						if IsControlKeyDown() then
 							SpellList_unlearnSpellFromList(self.Dat.SpellID)
@@ -79,8 +81,8 @@
 					SpellList_learnSpellFromList(self.Dat.SpellID)
 					--elseif IsModifiedClick("CHATLINK") then
 					--GetSpellLink() is returning nil at random, manually creating the link
-					--ChatEdit_InsertLink(GetSpellLink(self.SpellID));
-					--ChatEdit_InsertLink(("|cff71d5ff|Hspell:%d|h[%s]|h|r"):format(self.Dat.SpellID,self.Dat.Name));
+					--ChatEdit_InsertLink(GetSpellLink(self.Dat.SpellID));
+					--ChatEdit_InsertLink(("|cff71d5ff|Hspell:%d:0|h[%s]|h|r"):format(self.Dat.SpellID,self.Dat.Name));
 				else
 					parent:SelectSpell(self.Dat.SpellID);
 					parent:ShowDetails(self.Dat.SpellID);

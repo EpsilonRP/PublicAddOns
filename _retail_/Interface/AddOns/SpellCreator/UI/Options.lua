@@ -89,6 +89,22 @@ local function genericSet(info, val, func)
 	if func then func(val) end
 end
 
+---@param info table
+local function genericGet_char(info)
+	local key = info.arg
+	return SpellCreatorCharacterTable[key]
+end
+
+---@param info table
+---@param val string|boolean
+---@param func function callback function to add on after doing the set
+local function genericSet_char(info, val, func)
+	local key = info.arg
+	SpellCreatorCharacterTable[key] = val
+	if func then func(val) end
+end
+
+
 local function inlineHeader(text)
 	return WrapTextInColorCode(text, "ffFFD700")
 end
@@ -161,72 +177,173 @@ local myOptionsTable = {
 			type = "group",
 			order = autoOrder(true),
 			args = {
-				optionsHeader = {
+				genOptionsSection = {
 					name = "Options",
-					type = "header",
+					type = "group",
 					order = autoOrder(),
+					inline = true,
+					args = {
+						enableMMButton = {
+							name = "Enable Minimap Button",
+							order = autoOrder(),
+							desc = "Enables / disables the Minimap Button",
+							type = "toggle",
+							width = 1.5,
+							arg = "minimapIcon",
+							set = function(info, val) genericSet(info, val, function() MinimapButton.setShown(val) end) end,
+							get = genericGet,
+						},
+						inputBoxSize = {
+							name = "Use Larger Input Box",
+							order = autoOrder(),
+							desc = "Switches the 'Input' entry box with a larger, scrollable editbox.\n\rRequires /reload to take affect after changing it.",
+							type = "toggle",
+							width = 1.5,
+							arg = "biggerInputBox",
+							set = function(info, val)
+								genericSet(info, val,
+									function()
+										Popups.showCustomGenericConfirmation(
+											{
+												text = "A UI Reload is Required to change any current input boxes.\n\rReload Now?\n\r" ..
+													Tooltip.genTooltipText("warning", "All un-saved data in the Forge will be wiped.\r"),
+												callback = function() ReloadUI(); end,
+												showAlert = true,
+											}
+										)
+									end)
+							end,
+							get = genericGet,
+						},
+						autoShowVault = {
+							name = "AutoShow Vault",
+							order = autoOrder(),
+							desc = "Automatically show the Vault when you open the Forge.",
+							type = "toggle",
+							width = 1.5,
+							arg = "showVaultOnShow",
+							set = genericSet,
+							get = genericGet,
+						},
+						showTooltips = {
+							name = "Show Help Tooltips",
+							order = autoOrder(),
+							desc = "Show Helpful Tooltips when you mouse-over UI elements like buttons, editboxes, and spells in the vault, just like this one!",
+							type = "toggle",
+							width = 1.5,
+							arg = "showTooltips",
+							set = genericSet,
+							get = genericGet,
+						},
+						loadChronologically = {
+							name = "Load Actions Chronologically",
+							order = autoOrder(),
+							desc = "When loading a spell, actions will be loaded in order of their delays, despite the order they were saved in.",
+							type = "toggle",
+							width = 1.5,
+							arg = "loadChronologically",
+							set = genericSet,
+							get = genericGet,
+						},
+					},
 				},
-				enableMMButton = {
-					name = "Enable Minimap Button",
+				spacer1 = spacer(autoOrder(), "large"),
+				extraOptionsSection = {
+					name = "AutoCast on Login",
+					type = "group",
 					order = autoOrder(),
-					desc = "Enables / disables the Minimap Button",
-					type = "toggle",
-					width = 1.5,
-					arg = "minimapIcon",
-					set = function(info, val) genericSet(info, val, function() MinimapButton.setShown(val) end) end,
-					get = genericGet,
-				},
-				inputBoxSize = {
-					name = "Use Larger Input Box",
-					order = autoOrder(),
-					desc = "Switches the 'Input' entry box with a larger, scrollable editbox.\n\rRequires /reload to take affect after changing it.",
-					type = "toggle",
-					width = 1.5,
-					arg = "biggerInputBox",
-					set = function(info, val)
-						genericSet(info, val,
-							function()
-								Popups.showCustomGenericConfirmation(
-									{
-										text = "A UI Reload is Required to change any current input boxes.\n\rReload Now?\n\r" ..
-											Tooltip.genTooltipText("warning", "All un-saved data in the Forge will be wiped.\r"),
-										callback = function() ReloadUI(); end,
-										showAlert = true,
-									}
-								)
-							end)
-					end,
-					get = genericGet,
-				},
-				autoShowVault = {
-					name = "AutoShow Vault",
-					order = autoOrder(),
-					desc = "Automatically show the Vault when you open the Forge.",
-					type = "toggle",
-					width = 1.5,
-					arg = "showVaultOnShow",
-					set = genericSet,
-					get = genericGet,
-				},
-				showTooltips = {
-					name = "Show Help Tooltips",
-					order = autoOrder(),
-					desc = "Show Helpful Tooltips when you mouse-over UI elements like buttons, editboxes, and spells in the vault, just like this one!",
-					type = "toggle",
-					width = 1.5,
-					arg = "showTooltips",
-					set = genericSet,
-					get = genericGet,
-				},
-				loadChronologically = {
-					name = "Load Actions Chronologically",
-					order = autoOrder(),
-					desc = "When loading a spell, actions will be loaded in order of their delays, despite the order they were saved in.",
-					type = "toggle",
-					width = 1.5,
-					arg = "loadChronologically",
-					set = genericSet,
-					get = genericGet,
+					inline = true,
+					args = {
+						autoCastAccount = {
+							name = "Account Wide",
+							desc =
+								"Automatically Cast ArcSpells in this list when you login to any character on this account.\n\r" ..
+								"Enter spells by their ArcID/CommID, separated by commas.\n\r" ..
+								"Note: Spells are cast on a slight delay, to allow the UI to finish loading.",
+							type = "multiselect",
+							order = autoOrder(),
+							control = "Dropdown",
+							width = 1.5,
+							values = function(info, val)
+								local values = {}
+								for commID, spell in pairs(ns.Vault.personal.getSpells()) do
+									local iconHeight = 16
+									local icon = CreateTextureMarkup(ns.UI.Icons.getFinalIcon(spell.icon), 24, 24, iconHeight, iconHeight, 0, 1, 0, 1)
+									values[commID] = ("%s %s (%s)"):format(icon, spell.fullName, spell.commID)
+								end
+
+								local _autoCastCache = ns.MainFuncs.getAccountAutoCastTable()
+								for k, v in ipairs(_autoCastCache) do
+									if not values[v] then
+										-- exists in AutoCast but not Vault?
+										values[v] = ns.Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(v .. " (ERROR: Not found in vault)")
+									end
+								end
+
+								return values
+							end,
+							set = function(info, key, val)
+								if val == true then
+									ns.MainFuncs.addSpellToAccountAutoCast(key)
+								else
+									ns.MainFuncs.removeSpellFromAccountAutoCast(key)
+								end
+							end,
+							get = function(info, key)
+								local _table = ns.MainFuncs.getAccountAutoCastTable()
+
+								if tContains(_table, key) then
+									return true
+								end
+								return false
+							end,
+						},
+						autoCastChar = {
+							name = "This Character",
+							desc =
+								"Automatically Cast ArcSpells in this list when you login to this current character.\n\r" ..
+								"Enter spells by their ArcID/CommID, separated by commas.\n\r" ..
+								"Note: Spells are cast on a slight delay, to allow the UI to finish loading.\r" ..
+								"Account Spells are cast first, then Character Spells.",
+							type = "multiselect",
+							order = autoOrder(),
+							control = "Dropdown",
+							width = 1.5,
+							values = function(info, val)
+								local values = {}
+								for commID, spell in pairs(ns.Vault.personal.getSpells()) do
+									local iconHeight = 16
+									local icon = CreateTextureMarkup(ns.UI.Icons.getFinalIcon(spell.icon), 24, 24, iconHeight, iconHeight, 0, 1, 0, 1)
+									values[commID] = ("%s %s (%s)"):format(icon, spell.fullName, spell.commID)
+								end
+
+								local _autoCastCache = ns.MainFuncs.getCharAutoCastTable()
+								for k, v in ipairs(_autoCastCache) do
+									if not values[v] then
+										-- exists in AutoCast but not Vault?
+										values[v] = ns.Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(v .. " (ERROR: Not found in vault)")
+									end
+								end
+
+								return values
+							end,
+							set = function(info, key, val)
+								if val == true then
+									ns.MainFuncs.addSpellToCharAutoCast(key)
+								else
+									ns.MainFuncs.removeSpellFromCharAutoCast(key)
+								end
+							end,
+							get = function(info, key)
+								local _table = ns.MainFuncs.getCharAutoCastTable()
+
+								if tContains(_table, key) then
+									return true
+								end
+								return false
+							end,
+						},
+					},
 				},
 			},
 		},
@@ -368,6 +485,48 @@ local myOptionsTable = {
 								ns.UI.Stratacast.toggle(val)
 							end,
 							get = function() return SpellCreatorCharacterTable.stratacastEnabled end,
+						},
+						deleteList = {
+							name = "Remove Stratacast",
+							order = autoOrder(),
+							desc = "Unlink an ArcSpell from the Stratacast system.",
+							type = "select",
+							width = 1,
+							style = "dropdown",
+							values = function()
+								local values = {}
+								local _db = ns.UI.Stratacast.getStratacastDB()
+
+								for i = 1, #_db do
+									local v = _db[i]
+									local spell = ns.Vault.personal.findSpellByID(v.commID)
+									if spell then
+										values[v.commID] = ("%s (%s)"):format(spell.fullName, v.commID)
+									else
+										values[v.commID] = v.commID .. " (Error: Spell Not Found in Personal Vault!)"
+									end
+								end
+
+								values["_label"] = (#_db == 0 and "No Spells Linked" or "Choose a Spell")
+								return values
+							end,
+							sorting = function()
+								local values = {}
+								local _db = ns.UI.Stratacast.getStratacastDB()
+								for i = 1, #_db do
+									local v = _db[i]
+									tinsert(values, v.commID)
+								end
+								return values
+							end,
+							get = function() return "_label" end,
+							set = function(info, val)
+								ns.UI.Stratacast.remove(val)
+							end,
+							disabled = function()
+								return #ns.UI.Stratacast.getStratacastDB() == 0
+							end,
+
 						},
 					},
 				},

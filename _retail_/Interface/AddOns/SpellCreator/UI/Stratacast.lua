@@ -272,6 +272,16 @@ end)
 --#region Stratacast DB Management
 ------------------------------------------
 
+local function getStratacastDB()
+	return stratacastDB
+end
+
+---@param commID CommID
+---@return number?, table?
+local function getStratagemData(commID)
+	return FindInTableIf(stratacastDB, function(strataData) return strataData.commID == commID end)
+end
+
 ---@param commID CommID
 ---@param sequence table
 local function addStratagem(commID, sequence)
@@ -281,12 +291,6 @@ local function addStratagem(commID, sequence)
 	local lastSpell = stratacastDB[#stratacastDB]
 
 	updateStratacastFrame()
-end
-
----@param commID CommID
----@return number?, table?
-local function getStratagemData(commID)
-	return FindInTableIf(stratacastDB, function(strataData) return strataData.commID == commID end)
 end
 
 ---@param commID CommID
@@ -491,5 +495,6 @@ ns.UI.Stratacast = {
 	disable = disable,
 	toggle = toggle,
 
+	getStratacastDB = getStratacastDB,
 	retargetStratacastDB = retargetStratacastDB,
 }

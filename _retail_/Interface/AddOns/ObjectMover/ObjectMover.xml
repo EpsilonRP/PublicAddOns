@@ -3986,7 +3986,7 @@
 								</Anchors>
 								<Scripts>
 									<OnClick>
-										OPManagerCMD("go turn")
+										OPManagerCMD("gobject turn")
 									</OnClick>
 									<OnEnter>
 									if OPMasterTable.Options["showTooltips"] == true then
@@ -4018,7 +4018,7 @@
 								</Anchors>
 								<Scripts>
 									<OnClick>
-										OPManagerCMD("go face north")
+										OPManagerCMD("gobject face north")
 									</OnClick>
 									<OnEnter>
 									if OPMasterTable.Options["showTooltips"] == true then
@@ -4050,7 +4050,7 @@
 								</Anchors>
 								<Scripts>
 									<OnClick>
-										OPManagerCMD("go face south")
+										OPManagerCMD("gobject face south")
 									</OnClick>
 									<OnEnter>
 									if OPMasterTable.Options["showTooltips"] == true then
@@ -4082,7 +4082,7 @@
 								</Anchors>
 								<Scripts>
 									<OnClick>
-										OPManagerCMD("go face east")
+										OPManagerCMD("gobject face east")
 									</OnClick>
 									<OnEnter>
 									if OPMasterTable.Options["showTooltips"] == true then
@@ -4114,7 +4114,7 @@
 								</Anchors>
 								<Scripts>
 									<OnClick>
-										OPManagerCMD("go face west")
+										OPManagerCMD("gobject face west")
 									</OnClick>
 									<OnEnter>
 									if OPMasterTable.Options["showTooltips"] == true then
@@ -4149,9 +4149,9 @@
 						<Scripts>
 							<OnClick>
 								if IsShiftKeyDown() then
-									OPManagerCMD("go group sel")
+									OPManagerCMD("gobject group sel")
 								else
-									OPManagerCMD("go sel")
+									OPManagerCMD("gobject sel")
 								end
 							</OnClick>
 							<OnEnter>
@@ -4193,7 +4193,7 @@
 						</Anchors>
 						<Scripts>
 							<OnClick>
-								OPManagerCMD("go","unsel",true)
+								OPManagerCMD("gobject","unsel",true)
 							</OnClick>
 							<OnEnter>
 							if OPMasterTable.Options["showTooltips"] == true then
@@ -4225,7 +4225,7 @@
 						</Anchors>
 						<Scripts>
 							<OnClick>
-								OPManagerCMD("go","copy f 0",true)
+								OPManagerCMD("gobject","copy f 0",true)
 							</OnClick>
 							<OnEnter>
 							if OPMasterTable.Options["showTooltips"] == true then
@@ -4259,9 +4259,9 @@
 							<OnClick>
 								if button == "RightButton" then
 									if IsShiftKeyDown() then
-										OPManagerCMD("go group del")
+										OPManagerCMD("gobject group del")
 									else
-										OPManagerCMD("go del")
+										OPManagerCMD("gobject del")
 									end
 								else
 									OPManagerPrint("You must right click the delete button to delete an object.")

@@ -1,10 +1,10 @@
-local MogIt,mog = ...;
+local MogIt, mog = ...;
 local L = mog.L;
 
 local LBR = LibStub("LibBabble-Race-3.0"):GetUnstrictLookupTable();
 
 function mog.createOptions()
-	local about = LibStub("LibAddonInfo-1.0"):CreateFrame(MogIt,nil,"Interface\\AddOns\\MogIt\\Images");
+	local about = LibStub("LibAddonInfo-1.0"):CreateFrame(MogIt, nil, "Interface\\AddOns\\MogIt\\Images");
 
 	local config = LibStub("AceConfig-3.0");
 	local dialog = LibStub("AceConfigDialog-3.0");
@@ -17,8 +17,8 @@ function mog.createOptions()
 			return mog.db.profile[info.arg];
 		end
 	end
-	
-	local function set(info,value)
+
+	local function set(info, value)
 		if info.arg == "minimap" then
 			mog.db.profile.minimap.hide = value;
 			if value then
@@ -51,7 +51,7 @@ function mog.createOptions()
 			end
 		end
 	end
-	
+
 	local options = {
 		type = "group",
 		name = MogIt,
@@ -136,8 +136,8 @@ function mog.createOptions()
 						name = L["URL website"],
 						values = function()
 							local tbl = {};
-							for k,v in pairs(mog.url) do
-								tbl[k] = (v.fav and "\124T"..v.fav..":16\124t " or "")..k;
+							for k, v in pairs(mog.url) do
+								tbl[k] = (v.fav and "\124T" .. v.fav .. ":16\124t " or "") .. k;
 							end
 							return tbl;
 						end,
@@ -250,9 +250,16 @@ function mog.createOptions()
 					supressMessages = {
 						type = "toggle",
 						order = 1,
-						name = L["Toggle |cff00ccff[MogIt]|r messages."],
+						name = L["Disable |cff00ccff[MogIt]|r messages"],
 						width = "full",
 						arg = "toggleMessages",
+					},
+					showCommandReplies = {
+						type = "toggle",
+						order = 1,
+						name = L["Show Epsilon Command Replies"],
+						width = "full",
+						arg = "showCommandReplies",
 					},
 					delItemsOnEquip = {
 						type = "toggle",
@@ -278,17 +285,17 @@ function mog.createOptions()
 					debugMessages = {
 						type = "toggle",
 						order = 4,
-						name = L["Toggle debug."],
+						name = L["Toggle debug"],
 						width = "full",
-						arg = "toggleDebug",
+						arg = "toggleDebugMode",
 					},
 				},
 			},
 		},
 	};
-	config:RegisterOptionsTable("MogIt_General",options.args.general);
-	dialog:AddToBlizOptions("MogIt_General",options.args.general.name,MogIt);
-	
+	config:RegisterOptionsTable("MogIt_General", options.args.general);
+	dialog:AddToBlizOptions("MogIt_General", options.args.general.name, MogIt);
+
 	options.args.tooltip = {
 		type = "group",
 		order = 1,
@@ -357,7 +364,7 @@ function mog.createOptions()
 					local tbl = {
 						None = "None",
 					};
-					for k,v in pairs(mog.tooltip.mod) do
+					for k, v in pairs(mog.tooltip.mod) do
 						tbl[k] = k;
 					end
 					return tbl;
@@ -420,9 +427,9 @@ function mog.createOptions()
 			},
 		},
 	};
-	config:RegisterOptionsTable("MogIt_Tooltip",options.args.tooltip);
-	dialog:AddToBlizOptions("MogIt_Tooltip",options.args.tooltip.name,MogIt);
-	
+	config:RegisterOptionsTable("MogIt_Tooltip", options.args.tooltip);
+	dialog:AddToBlizOptions("MogIt_Tooltip", options.args.tooltip.name, MogIt);
+
 	--[[options.args.modules = {
 		type = "group",
 		order = 2,
@@ -439,22 +446,22 @@ function mog.createOptions()
 	options.args.options = db:GetOptionsTable(mog.db);
 	options.args.options.name = L["Options profile"];
 	options.args.options.order = 5;
-	config:RegisterOptionsTable("MogIt_Options",options.args.options);
-	dialog:AddToBlizOptions("MogIt_Options",options.args.options.name,MogIt);
-	
+	config:RegisterOptionsTable("MogIt_Options", options.args.options);
+	dialog:AddToBlizOptions("MogIt_Options", options.args.options.name, MogIt);
+
 	options.args.wishlist = db:GetOptionsTable(mog.wishlist.db);
 	options.args.wishlist.name = L["Wishlist profile"];
 	options.args.wishlist.order = 6;
-	config:RegisterOptionsTable("MogIt_Wishlist",options.args.wishlist);
-	dialog:AddToBlizOptions("MogIt_Wishlist",options.args.wishlist.name,MogIt);
-	
+	config:RegisterOptionsTable("MogIt_Wishlist", options.args.wishlist);
+	dialog:AddToBlizOptions("MogIt_Wishlist", options.args.wishlist.name, MogIt);
+
 	mog.options = options;
 end
 
-local hook = CreateFrame("Frame",nil,InterfaceOptionsFrame);
-hook:SetScript("OnShow",function(self)
+local hook = CreateFrame("Frame", nil, InterfaceOptionsFrame);
+hook:SetScript("OnShow", function(self)
 	if not mog.options then
 		mog.createOptions();
 	end
-	self:SetScript("OnShow",nil);
+	self:SetScript("OnShow", nil);
 end);
