@@ -2,7 +2,7 @@
 
   <!--<Script file="TalkingHead.lua"/>-->
 
-  <ContainedAlertFrame name="SCForgeTalkingHeadFrame" toplevel="true" parent="UIParent" hidden="true" frameStrata="HIGH" frameLevel="1">
+  <ContainedAlertFrame name="SCForgeTalkingHeadFrame" toplevel="true" hidden="true" frameStrata="HIGH" frameLevel="1">
 		<Size x="570" y="155"/>
 		<Anchors>
 			<Anchor point="BOTTOM" x="0" y="96"/>
@@ -128,11 +128,13 @@
 						</Layers>
 						<Scripts>
 							<OnLoad>
+								self:SetScale(UIParent:GetScale())
 								self:RegisterEvent("UI_SCALE_CHANGED");
 								self:RegisterEvent("DISPLAY_SIZE_CHANGED");
 							</OnLoad>
 							<OnEvent>
 								self:RefreshCamera();
+								self:SetScale(UIParent:GetScale())
 								if self.uiCameraID then
 									Model_ApplyUICamera(self, self.uiCameraID);
 								end

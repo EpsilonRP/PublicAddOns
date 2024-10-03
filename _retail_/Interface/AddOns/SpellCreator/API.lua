@@ -556,6 +556,7 @@ end
 
 function LOCATIONS.SAVE(key)
 	ARC.LOCATIONS.locs[key] = { C_Epsilon.GetPosition() }
+	tinsert(ARC.LOCATIONS.locs[key], GetPlayerFacing())
 end
 
 ARC.LOCATIONS.SAVE = wrapToEvalFinalVal(LOCATIONS.SAVE, ARC.LOCATIONS)

@@ -447,8 +447,8 @@ function Epsilon_MerchantDeleteVendor()
 		-- that match ours.
 		--
 		for i = 1, C_GossipInfo.GetNumOptions() do
-			titleButton = GossipFrame_GetTitleButton(i);
-			titleButtonText = titleButton:GetText();
+			local titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
+			local titleButtonText = titleButton:GetText();
 			if titleButtonText == "I want to browse your goods." then
 				SendCommand( "phase forge npc gossip option remove ".. ( i - 1 ) );
 				Epsilon_MerchantFrame.removingVendor = true;
@@ -567,10 +567,10 @@ local function BuyEpsilon_MerchantItem( itemID, amount )
 		end
 
 		SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
-		C_Timer.After( 0.5, function() 
+		C_Timer.After( 0.5, function()
 			Epsilon_Merchant_PlaySound( "buyitem" )
 			Epsilon_MerchantFrame_Update()
-			Epsilon_MerchantFrame_UpdateCurrencies() 
+			Epsilon_MerchantFrame_UpdateCurrencies()
 		end )
 	else
 		PlaySound( 47355 );
@@ -632,7 +632,7 @@ local function SellEpsilon_MerchantItem( bag, slot )
 		elseif EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and not price and vanillaPrice then
 			SendCommand( "mod money " .. ( vanillaPrice * count) );
 			SendCommand( "additem "..itemID.." -"..count );
-			
+
 			local item = {
 				itemID = itemID;
 				price = vanillaPrice * count;
@@ -653,9 +653,9 @@ local function SellEpsilon_MerchantItem( bag, slot )
 			return
 		end
 	end
-	C_Timer.After( 0.5, function() 
+	C_Timer.After( 0.5, function()
 		Epsilon_MerchantFrame_Update()
-		Epsilon_MerchantFrame_UpdateCurrencies() 
+		Epsilon_MerchantFrame_UpdateCurrencies()
 	end )
 end
 
@@ -700,7 +700,7 @@ local function BuybackEpsilon_MerchantItem( itemID, amount )
 			break
 		end
 	end
-	C_Timer.After( 0.5, function() 
+	C_Timer.After( 0.5, function()
 		Epsilon_MerchantFrame_Update()
 		Epsilon_MerchantFrame_UpdateCurrencies()
 	end )
@@ -867,6 +867,22 @@ end
 
 -------------------------------------------------------------------------------
 
+local option_predicate = function(text, button)
+	return text and (text == "I want to browse your goods.")
+end
+
+local option_callback = function(self, button, down, originalText)
+	Epsilon_MerchantFrame:Show()
+	MerchantFrame:Show()
+	MerchantFrame:SetAlpha(0)
+	MerchantFrame:EnableMouse(false)
+	MerchantFrame.selectedTab = 2
+	GossipFrame:SetAlpha(0)
+	GossipFrame:EnableMouse(false)
+end
+
+EpsilonLib.Utils.Gossip:RegisterButtonHook(option_predicate, option_callback)
+
 function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 	if ( event == "UNIT_INVENTORY_CHANGED" or event == "BAG_UPDATE" ) then
 		Epsilon_MerchantFrame_Update();
@@ -888,12 +904,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 		else
 			GossipFrameEditSoundsButton:Hide()
 		end
-		-- Reset gossip options to link to their appropriate pages.
-		for i = 1, C_GossipInfo.GetNumOptions() do
-			GossipFrame_GetTitleButton(i):SetScript("OnClick", function()
-				C_GossipInfo.SelectOption(i)
-			end)
-		end
+
 		if UnitExists("npc") then
 			local titleButton;
 			local titleIndex = 1;
@@ -907,44 +918,54 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 			-- Iterate through gossip options to find if ours already exists...
 			--
 			local found = false;
-			for i = 1, C_GossipInfo.GetNumOptions() do
-				titleButton = GossipFrame_GetTitleButton(i);
-				titleButtonIcon = titleButton.Icon:GetTexture();
-				titleButtonText = titleButton:GetText();
-				titleIndex = titleIndex + 1;
-				if id and titleButtonText == "I want to browse your goods." then
-					-- ...and it does! :D
-					--
-					found = true;
-					if not( titleButtonIcon == 132060 ) then
-						titleButton.Icon:SetTexture(132060);
+			local function runChecks()
+				for i = 1, C_GossipInfo.GetNumOptions() do
+					titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
+					titleButtonIcon = titleButton.Icon:GetTexture();
+					local titleButtonText = titleButton:GetText();
+					titleIndex = titleIndex + 1;
+					if id and titleButtonText == "I want to browse your goods." then
+						-- ...and it does! :D
+						--
+						found = true;
+						if not( titleButtonIcon == 132060 ) then
+							titleButton.Icon:SetTexture(132060);
+						end
+						if not EPSILON_VENDOR_DATA[id] then
+							EPSILON_VENDOR_DATA[id] = {};
+						end
+						Epsilon_MerchantFrame.merchantID = id;
+						--[[ -- Now handled dynamically by EpsilonLib above.
+						titleButton:SetScript("OnClick", function()
+							Epsilon_MerchantFrame:Show()
+							MerchantFrame:Show()
+							MerchantFrame:SetAlpha(0)
+							MerchantFrame:EnableMouse(false)
+							MerchantFrame.selectedTab = 2
+							GossipFrame:SetAlpha(0)
+							GossipFrame:EnableMouse(false)
+						end)
+						--]]
+						GossipTitleButtonAddVendor:Hide()
+						if Me.IsPhaseOwner() and C_Epsilon.IsDM then
+							GossipTitleButtonRemoveVendor:Show()
+						end
+						break
 					end
-					if not EPSILON_VENDOR_DATA[id] then
-						EPSILON_VENDOR_DATA[id] = {};
-					end
-					Epsilon_MerchantFrame.merchantID = id;
-					titleButton:SetScript("OnClick", function()
-						Epsilon_MerchantFrame:Show()
-						MerchantFrame:Show()
-						MerchantFrame:SetAlpha(0)
-						MerchantFrame:EnableMouse(false)
-						MerchantFrame.selectedTab = 2
-						GossipFrame:SetAlpha(0)
-						GossipFrame:EnableMouse(false)
-					end)
-					GossipTitleButtonAddVendor:Hide()
-					if Me.IsPhaseOwner() and C_Epsilon.IsDM then
-						GossipTitleButtonRemoveVendor:Show()
-					end
-					break
+				end
+				if found then
+					Epsilon_Merchant_GetOptions()
+					Epsilon_Merchant_LoadVendor()
+				elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
+					GossipTitleButtonAddVendor:Show()
+					GossipTitleButtonRemoveVendor:Hide()
 				end
 			end
-			if found then
-				Epsilon_Merchant_GetOptions()
-				Epsilon_Merchant_LoadVendor()
-			elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
-				GossipTitleButtonAddVendor:Show()
-				GossipTitleButtonRemoveVendor:Hide()
+
+			if ImmersionFrame then
+				C_Timer.After(0, runChecks)
+			else
+				runChecks()
 			end
 		end
 	elseif ( event == "GOSSIP_CLOSED" ) then

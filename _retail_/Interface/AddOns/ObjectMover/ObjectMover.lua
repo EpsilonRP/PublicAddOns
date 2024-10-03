@@ -159,23 +159,20 @@ local function cprint(text)
 end
 
 local function dprint(force, text, ...)
-	if text then
-		if force == true or OPMasterTable.Options["debug"] then
-			local rest = ... or ""
-			local line = strmatch(debugstack(2), ":(%d+):")
-			if line then
-				print(addonColor .. addonName .. " DEBUG " .. line .. ": " .. text, rest, " |r")
-			else
-				print(addonColor .. addonName .. " DEBUG: " .. text, rest, " |r")
-				print(debugstack(2))
-			end
-		end
-	elseif OPMasterTable.Options["debug"] then
+	local statements = { ... }
+	if type(force) ~= "boolean" then
+		table.insert(statements, 1, text)
+		text = force
+		force = false
+	end
+
+	if #statements == 0 then tinsert(statements, "") end -- avoid printing nil on unpack by padding an empty string.
+	if text and (force == true or OPMasterTable.Options["debug"]) then
 		local line = strmatch(debugstack(2), ":(%d+):")
 		if line then
-			print(addonColor .. addonName .. " DEBUG " .. line .. ": " .. force .. " |r")
+			print(addonColor .. addonName .. " DEBUG " .. line .. ": " .. text, unpack(statements))
 		else
-			print(addonColor .. addonName .. " DEBUG: " .. force .. " |r")
+			print(addonColor .. addonName .. " DEBUG: " .. text, unpack(statements))
 			print(debugstack(2))
 		end
 	end
@@ -360,7 +357,7 @@ local OPAddon_OnLoad = CreateFrame("frame", "OPAddon_OnLoad");
 OPAddon_OnLoad:RegisterEvent("ADDON_LOADED");
 OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
 	if name == ADDON_NAME then
-		OPMiniMapLoadPosition()
+		--OPMiniMapLoadPosition()
 		loadMasterTable()
 
 		--Quickly Show / Hide the Frame on Start-Up to initialize everything for key bindings & loading
@@ -377,22 +374,6 @@ OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
 			if OPMasterTable.Options["autoShowPopout"] then OPPanelPopout:Show() end
 			if OPMasterTable.Options["wasPopoutShown"] == 1 then OPPanelPopout:Show() end
 		end)
-
-		-- Adjust Radial Offset for Minimap Icon for alternate UI Overhaul Addons
-		if IsAddOnLoaded("AzeriteUI") then
-			RadialOffset = 18;
-		elseif IsAddOnLoaded("DiabolicUI") then
-			RadialOffset = 12;
-		elseif IsAddOnLoaded("GoldieSix") then
-			--GoldpawUI
-			RadialOffset = 18;
-		elseif IsAddOnLoaded("GW2_UI") then
-			RadialOffset = 44;
-		elseif IsAddOnLoaded("SpartanUI") then
-			RadialOffset = 8;
-		else
-			RadialOffset = 10;
-		end
 
 		-- Create our ModelScene handler frame for use later in auto-dimensions
 		OP_AutoDimensionModelFrame = CreateFrame("ModelScene")
@@ -411,26 +392,6 @@ OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
 				mZ1 .. " | " .. mZ2 .. ")")
 			OP_AutoDimensionModelFrame.o:ClearModel()
 		end
-
-		-- Hook our OnEnter for the MiniMap Icon Tooltip
-		ObjectManipulator_MinimapButton:SetScript("OnEnter", function(self)
-			SetCursor("Interface/CURSOR/architect.blp");
-			GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-			GameTooltip:SetText("ObjectMover")
-			GameTooltip:AddLine(" ")
-			GameTooltip:AddLine("/om - Toggle UI", 1, 1, 1, true)
-			GameTooltip:AddLine("/omdebug - Toggle Debug", 1, 1, 1, true)
-			GameTooltip:AddLine(" ")
-			GameTooltip:AddLine("|cffFFD700Left-Click|r to toggle the main UI!", 1, 1, 1, true)
-			GameTooltip:AddLine("|cffFFD700Middle-Click|r to toggle the Selected Object panel!", 1, 1, 1, true)
-			GameTooltip:AddLine("|cffFFD700Right-Click|r for Options, Changelog, and the Help Manual!", 1, 1, 1, true)
-			GameTooltip:AddLine(" ")
-			GameTooltip:AddLine("Mouse over most UI Elements to see tooltips for help! (Like this one!)", 0.9, 0.75, 0.75,
-				true)
-			GameTooltip:AddDoubleLine(" ", addonName .. " v" .. addonVersion, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8);
-			GameTooltip:AddDoubleLine(" ", "by " .. addonAuthor, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8);
-			GameTooltip:Show()
-		end)
 	end
 end);
 
@@ -610,76 +571,6 @@ end
 
 function OPObjectPreviewer_OnClick(self, button, down)
 	-- nothing right now, let's add some fun stuff later to manipulate the camera angle? idk
-end
-
--------------------------------------------------------------------------------
--- Minimap Icon Handlers
--------------------------------------------------------------------------------
-
-local minimapShapes = {
-	["ROUND"] = { true, true, true, true },
-	["SQUARE"] = { false, false, false, false },
-	["CORNER-TOPLEFT"] = { false, false, false, true },
-	["CORNER-TOPRIGHT"] = { false, false, true, false },
-	["CORNER-BOTTOMLEFT"] = { false, true, false, false },
-	["CORNER-BOTTOMRIGHT"] = { true, false, false, false },
-	["SIDE-LEFT"] = { false, true, false, true },
-	["SIDE-RIGHT"] = { true, false, true, false },
-	["SIDE-TOP"] = { false, false, true, true },
-	["SIDE-BOTTOM"] = { true, true, false, false },
-	["TRICORNER-TOPLEFT"] = { false, true, true, true },
-	["TRICORNER-TOPRIGHT"] = { true, false, true, true },
-	["TRICORNER-BOTTOMLEFT"] = { true, true, false, true },
-	["TRICORNER-BOTTOMRIGHT"] = { true, true, true, false },
-}
-
-local RadialOffset = 10; --minimapbutton offset
-local function ObjectManipulator_MinimapButton_UpdateAngle(radian)
-	local x, y, q = math.cos(radian), math.sin(radian), 1;
-	if x < 0 then q = q + 1 end
-	if y > 0 then q = q + 2 end
-	local minimapShape = GetMinimapShape and GetMinimapShape() or "ROUND";
-	local quadTable = minimapShapes[minimapShape];
-	local w = (Minimap:GetWidth() / 2) + RadialOffset --10
-	local h = (Minimap:GetHeight() / 2) + RadialOffset
-	if quadTable[q] then
-		x, y = x * w, y * h
-	else
-		local diagRadiusW = sqrt(2 * (w) ^ 2) - RadialOffset --  -10
-		local diagRadiusH = sqrt(2 * (h) ^ 2) - RadialOffset
-		x = max(-w, min(x * diagRadiusW, w));
-		y = max(-h, min(y * diagRadiusH, h));
-	end
-	ObjectManipulator_MinimapButton:SetPoint("CENTER", "Minimap", "CENTER", x, y);
-end
-
-function OPMiniMapLoadPosition(self)
-	local radian = tonumber(OPMasterTable.Options["MinimapButtonSavePoint"]) or 2.2;
-	ObjectManipulator_MinimapButton:SetClampRectInsets(5, -5, -5, 5)
-	ObjectManipulator_MinimapButton_UpdateAngle(radian);
-end
-
-function ObjectManipulator_MinimapButton_OnUpdate()
-	local radian;
-
-	local mx, my = Minimap:GetCenter();
-	local px, py = GetCursorPosition();
-	local scale = Minimap:GetEffectiveScale();
-	px, py = px / scale, py / scale;
-	radian = math.atan2(py - my, px - mx);
-
-	ObjectManipulator_MinimapButton_UpdateAngle(radian);
-	OPMasterTable.Options["MinimapButtonSavePoint"] = radian;
-end
-
-function ObjectManipulator_MinimapButton_OnDragStart(self)
-	self:LockHighlight()
-	self:SetScript("OnUpdate", ObjectManipulator_MinimapButton_OnUpdate)
-end
-
-function ObjectManipulator_MinimapButton_OnDragStop(self)
-	self:UnlockHighlight()
-	self:SetScript("OnUpdate", nil)
 end
 
 -----------------------------
@@ -1124,7 +1015,16 @@ function OPRotateObject(sendToServer)
 		dprint("Cannot Rotate - No Object Selected Data")
 		return
 	end
-	if not canEditLastSelectedObj() then return end
+	if not canEditLastSelectedObj() then
+		if sendToServer then
+			if C_Epsilon.IsMember() then
+				SendSystemMessage(("You do not have permission to edit this object (a member may only edit their own objects). (OM: CE=%s, %s)"):format(OPLastSelectedObjectData[24], tostring(OPLastSelectedObjectData[24] == "1")))
+			else
+				SendSystemMessage("You do not have permission to edit this object (must be a member+, if you were just promoted, try rejoining the phase).")
+			end
+		end
+		return
+	end
 
 	--if RotateClarifier == false then
 	--RotateClarifier = true
@@ -2006,8 +1906,8 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_CONVERSATION_NOTICE", OMChatFilter)
 77283554 827585 7af_shaman_rockslab_a02.m2 1329986 -433.999 135.15 41.3903 0 0 0 0 0 100 100 100 0 0 1 0 5
 ]]
 
-local function Addon_OnEvent(self, event, ...)
-	if event == "CHAT_MSG_ADDON" then                                 -- Addon Message Receiving
+local events = {
+	CHAT_MSG_ADDON = function(self, event, ...)
 		local prefix = select(1, ...)
 		if prefix == "EPSILON_OBJ_INFO" or prefix == "EPSILON_OBJ_SEL" then -- If OBJ_INFO or OBJ_SEL message, process the data to our 'cache'
 			local objdetails = select(2, ...)
@@ -2020,7 +1920,7 @@ local function Addon_OnEvent(self, event, ...)
 
 					OPLastSelectedObjectData = { strsplit(strchar(31), objdetails) } --[[@as SelectedObjectData]]
 
-					local guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh = unpack(
+					local guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh, canEdit = unpack(
 						OPLastSelectedObjectData)
 					HasTint = tonumber(HasTint)
 
@@ -2134,16 +2034,31 @@ local function Addon_OnEvent(self, event, ...)
 			dprint("Caught " .. prefix .. " prefix")
 			dprint(false, event, ...)
 		end
-	elseif event == "PLAYER_LOGIN" then
+	end,
+	PLAYER_LOGIN = function(self, event, ...)
 		C_ChatInfo.RegisterAddonMessagePrefix("EPSILON_OBJ_INFO")
 		C_ChatInfo.RegisterAddonMessagePrefix("EPSILON_OBJ_SEL")
 		self:UnregisterEvent(event)
-	end
+	end,
+	PLAYER_ENTERING_WORLD = function(self, event, initial, reload, ...)
+		if reload then
+			sendAddonCmd("gobject move up 0", nil, false)
+		end
+	end,
+	SCENARIO_UPDATE = function(self, event, ...)
+		OPLastSelectedObjectData = nil
+		-- TODO: REFRESH UI HERE TO DISABLE IF NON-MEMBER / NON-OFFICER, OR NO OBJ SELECTED
+	end,
+}
+
+local function Addon_OnEvent(self, event, ...)
+	if events[event] then events[event](self, event, ...) end
 end
 local f = CreateFrame("Frame")
 f:SetScript("OnEvent", Addon_OnEvent)
-f:RegisterEvent("CHAT_MSG_ADDON");
-f:RegisterEvent("PLAYER_LOGIN");
+for k, v in pairs(events) do
+	f:RegisterEvent(k)
+end
 
 -------------------------------------------------------------------------------
 -- Slash Command Handlers

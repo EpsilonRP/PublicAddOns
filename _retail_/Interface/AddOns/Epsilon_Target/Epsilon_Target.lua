@@ -28,8 +28,8 @@ local server = EpsiLib_Server.server
 -- end
 
 local targetMorph = CreateFrame("Frame", "TargetFrameDisplayInfo", TargetFrame);
-targetMorph:SetPoint("CENTER", TargetFrame, 0, 37)
-targetMorph:SetSize(150, 150)
+targetMorph:SetPoint("TOP", TargetFrame, "TOP", -50, 8)
+targetMorph:SetSize(150, 24)
 targetMorph:RegisterEvent("PLAYER_TARGET_CHANGED")
 targetMorph:RegisterEvent("UNIT_AURA")
 targetMorph:SetScript("OnEvent", function(self, event, unitID)
@@ -56,7 +56,7 @@ end);
 
 local targetMorphtext = targetMorph:CreateFontString("TargetFrameDisplayInfoText", nil, "GameFontHighlightSmall");
 --targetMorphtext:SetText("Display: 49")
-targetMorphtext:SetPoint("CENTER", targetMorph, -50, 0)
+targetMorphtext:SetPoint("CENTER", targetMorph, 0, 0)
 
 server.receive("DSPLY", function(message, channel, sender)
 	--print(message,channel.sender)

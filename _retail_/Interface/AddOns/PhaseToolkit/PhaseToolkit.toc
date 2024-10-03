@@ -1,0 +1,9 @@
+## Interface: 90207
+## Title: PhaseToolkit
+## Notes: Addon to fill in the gap that phase manager left behind
+## Version: 1.4.0
+## Author: Naponico#1212
+## SavedVariables:  ModeFR,MapIconInfo,itemsPerPageNPC,itemsPerPageTELE
+PhaseToolkit.lua
+LibDBIcon-1.0\embeds.xml
+PhaseToolkit.xml

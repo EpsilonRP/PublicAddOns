@@ -12,7 +12,7 @@
 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 	See the License for the specific language governing permissions and
 	limitations under the License.
-]]--
+]] --
 
 local TRP3_API = select(2, ...);
 local L = TRP3_API.loc;
@@ -74,19 +74,19 @@ end
 
 function UnitPopupsModule:OnUnitPopupShown(dropdownMenu, menuType)
 	if not dropdownMenu or dropdownMenu:IsForbidden() then
-		return;  -- Invalid or forbidden menu.
+		return; -- Invalid or forbidden menu.
 	elseif UIDROPDOWNMENU_MENU_LEVEL ~= 1 then
-		return;  -- We don't support submenus.
+		return; -- We don't support submenus.
 	elseif not self:ShouldCustomizeMenus() then
-		return;  -- Menu customizations are disabled.
+		return; -- Menu customizations are disabled.
 	elseif ShouldDisableOnUnitFrames() and dropdownMenu:GetParent() and dropdownMenu:GetParent():IsProtected() then
-		return;  -- Parent of the menu is a protected probably-unit frame.
+		return; -- Parent of the menu is a protected probably-unit frame.
 	end
 
 	local buttons = self:GetButtonsForMenu(menuType);
 
 	if #buttons == 0 then
-		return;  -- No buttons to be shown.
+		return; -- No buttons to be shown.
 	end
 
 	-- The top-level menu has a separator/header display before the actual
@@ -142,7 +142,7 @@ end
 -- Menu Commands
 --
 
-local function OpenProfile(button)  -- luacheck: ignore 212 (unused button)
+local function OpenProfile(button) -- luacheck: ignore 212 (unused button)
 	local dropdownFrame = UIDROPDOWNMENU_INIT_MENU;
 	local unit = dropdownFrame.unit;
 	local name = dropdownFrame.name;
@@ -156,7 +156,7 @@ local function OpenProfile(button)  -- luacheck: ignore 212 (unused button)
 	end
 end
 
-local function IsOutOfCharacter(button)  -- luacheck: ignore 212 (unused button)
+local function IsOutOfCharacter(button) -- luacheck: ignore 212 (unused button)
 	local player = AddOn_TotalRP3.Player.GetCurrentUser();
 	local roleplayStatus = player:GetRoleplayStatus();
 
@@ -211,6 +211,7 @@ Mixin(UnitPopupsModule.MenuEntries, {
 	GUILD_OFFLINE  = { "OpenProfile" },
 	PARTY          = { "OpenProfile" },
 	PLAYER         = { "OpenProfile" },
+	ENEMY_PLAYER   = { "OpenProfile" },
 	RAID           = { "OpenProfile" },
 	RAID_PLAYER    = { "OpenProfile" },
 	SELF           = { "OpenProfile", "CharacterStatus" },

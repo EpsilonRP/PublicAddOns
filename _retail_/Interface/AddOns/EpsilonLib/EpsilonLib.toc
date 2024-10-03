@@ -2,9 +2,10 @@
 ## Title: EpsilonLib
 ## Notes: Various functions and methods for use when developing addons for Epsilon.
 ## Author: Gardener
-## SavedVariables: storedData, storedProgress
+## SavedVariables: EpsiLib_DB
 ## Version: 0.1
 
+Utils\EventManager.lua
 EpsilonLib.lua
 EpsilonLib.xml
 

@@ -15,18 +15,28 @@ local icon = ns.Launcher.CONSTANTS.assetsPath .. "EpsilonTrayIconObjectMover"
 -------------------------------------------------------------------------------
 
 local function init()
-
 	local depAddOnLoaded = ns.Utils.isAddOnLoaded(_depAddOn)
 
 	if depAddOnLoaded then
-
 		local addonVersion, addonAuthor, addonName = GetAddOnMetadata(depAddOnLoaded, "Version"), GetAddOnMetadata(depAddOnLoaded, "Author"), GetAddOnMetadata(depAddOnLoaded, "Title")
 
-		ObjectManipulator_MinimapButton:Hide() -- Hide OM's original icon
+		local onClick = function(self, button)
+			if button == "RightButton" then
+				if not OPNewOptionsFrame:IsShown() then OPNewOptionsFrame:Show() else OPNewOptionsFrame:Hide() end
+			elseif button == "LeftButton" then
+				SlashCmdList.OM_SHOWCLOSE()
+			elseif button == "MiddleButton" then
+				if OPPanelPopout:IsShown() then
+					OPPanelPopout:Hide()
+				else
+					OPPanelPopout:Show()
+				end
+			end
+		end
 
 		ns.Launcher.new(
 			"Object Mover",
-			ObjectManipulator_MinimapButton:GetScript("OnClick"), 
+			onClick,
 			icon,
 			{
 				" ",
@@ -37,8 +47,8 @@ local function init()
 				"|cffFFD700Right-Click|r for Options, Changelog, and the Help Manual!",
 				" ",
 				"Mouse over most UI Elements to see tooltips for help! (Like this one!)",
-				tooltip.createDoubleLine(" ", addonName.." v"..addonVersion, nil, nil, nil, 0.8, 0.8, 0.8),
-				tooltip.createDoubleLine(" ", "by "..addonAuthor, nil, nil, nil, 0.8, 0.8, 0.8),
+				tooltip.createDoubleLine(" ", addonName .. " v" .. addonVersion, nil, nil, nil, 0.8, 0.8, 0.8),
+				tooltip.createDoubleLine(" ", "by " .. addonAuthor, nil, nil, nil, 0.8, 0.8, 0.8),
 			}
 		):RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 	end

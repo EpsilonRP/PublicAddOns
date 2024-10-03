@@ -100,7 +100,7 @@ else
 		end
 
 		-- Fallback ...
-		print("Had to fallback, fuck")
+		print("Warning: MogIt-Preview had to fallback to standard chat commands. Is your EpsilonLib okay??")
 		SendChatMessage("." .. command, "GUILD")
 	end
 end
@@ -261,7 +261,7 @@ local function slotOnClick(self, button)
 				if not mog.db.profile.toggleMessages then
 					print("|cff00ccff[MogIt]|r adding item: " .. itemID);
 				end
-				sendAddonCmd("add " .. itemID, nil, showCommandReplies)
+				sendAddonCmd("additem " .. itemID, nil, showCommandReplies)
 			end
 		else
 			--do nothing
@@ -614,7 +614,7 @@ local function equipPreviewItems(self, item)
 	for k, v in pairs(itemSlots) do
 		PickupInventoryItem(v);
 		if mog.db.profile.delItemsOnEquip then
-			DeleteCursorItem();
+			C_Epsilon.RunPrivileged("DeleteCursorItem();")
 		else
 			PutItemInBackpack();
 		end

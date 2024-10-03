@@ -104,6 +104,30 @@ local events = {
 	"CHAT_MSG_BN_INLINE_TOAST_BROADCAST",
 	"CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM",
 	"CHAT_MSG_CHANNEL",
+
+	-- EPSILON POSSIBLE COMMAND CHANNELS - So if you use .command channel for announce, it still gets parsed.
+	"CHAT_MSG_SYSTEM",         --system
+	"CHAT_MSG_GUILD_ACHIEVEMENT", --guild_announce,
+	"CHAT_MSG_ACHIEVEMENT",    --achievement_announce,
+	-- "CHAT_MSG_BN_WHISPER_INFORM", --blizzard_whisper, -- Remove Duplicate
+	-- "CHAT_MSG_INSTANCE_CHAT", 	--instance,
+	-- "CHAT_MSG_INSTANCE_CHAT_LEADER", --instance_leader,
+	"CHAT_MSG_COMBAT_XP_GAIN",     --experience,
+	"CHAT_MSG_COMBAT_HONOR_GAIN",  --honor,
+	"CHAT_MSG_COMBAT_FACTION_CHANGE", --reputation,
+	"CHAT_MSG_SKILL",              --skill-ups,
+	"CHAT_MSG_TRADESKILLS",        --tradeskills,
+	"CHAT_MSG_OPENING",            --opening,
+	"CHAT_MSG_PET_INFO",           --pet_info,
+	"CHAT_MSG_COMBAT_MISC_INFO",   --misc_info,
+	"CHAT_MSG_BG_SYSTEM_HORDE",    --battleground_horde,
+	"CHAT_MSG_BG_SYSTEM_ALLIANCE", --battleground_alliance,
+	"CHAT_MSG_BG_SYSTEM_NEUTRAL",  --battleground_neutral,
+	-- "CHAT_MSG_CHANNEL", --channel,
+	"CHAT_MSG_TARGETICONS",        --target_icons,
+	-- "CHAT_MSG_BN_CONVERSATION_NOTICE", --blizzard_services_alerts,
+	-- "CHAT_MSG_PET_BATTLE_COMBAT_LOG", --pet_battle_combat,
+	-- "CHAT_MSG_PET_BATTLE_INFO", --pet_battle_info,
 };
 
 for i, event in ipairs(events) do

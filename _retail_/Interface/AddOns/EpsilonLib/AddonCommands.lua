@@ -27,7 +27,7 @@ end
 ---@field name string
 ---@field command string
 ---@field callback? function
----@field forceShowMessage? boolean
+---@field forceShowMessages? boolean
 ---@field returnMessages? string[]
 ---@field status? string
 
@@ -75,7 +75,8 @@ local function handleCallbackAndMessages(success, data, addon)
 		data.callback = nil -- // Clear our callback so we can't call it twice on accident somehow? I don't think we can get both f & o but... Even TCLib does this to be safe
 	end
 
-	local showMessages = (data.forceShowMessage or (addon and evaluate(addon.showMessages) and data.forceShowMessage ~= false))
+	if data.forceShowMessages == false then return end -- // Force block replies if this send had a force hide messages
+	local showMessages = (data.forceShowMessages or (addon and evaluate(addon.showMessages) and data.forceShowMessages ~= false))
 	if success == false then showMessages = true end -- Force Show Messages on Failure!
 	if showMessages and data.returnMessages then
 		for k, v in ipairs(data.returnMessages) do
@@ -106,8 +107,10 @@ local commandStatusOpcodes = {
 			local addonName = (addon and addon.name) or data.name or "<UNKNOWN ADDON>"
 
 			-- Report the failure to chat, and report the failure to the callback. Result messages are handled in the callback & messages handler
-			local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))
-			SendSystemMessage(output)
+			if data.forceShowMessages ~= false then
+				local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))
+				SendSystemMessage(output)
+			end
 			handleCallbackAndMessages(false, data, addon)
 		end
 	},
@@ -171,14 +174,14 @@ C_ChatInfo.RegisterAddonMessagePrefix(EPSI_ADDON_PREFIX)
 -------------------------------------------
 --#region API Commands
 -- EpsilonLib.AddonCommands 	...
--- 	.Register(name <string>, showMessages <boolean>)	-> SendAddonCommand<func>: command<string>, callback<function>, forceShowMessage<boolean>
---  .Send(AddonName <string>, command <string>, callback <function: success<boolean>, returnMessages[]>, forceShowMessage <boolean>)
+-- 	.Register(name <string>, showMessages <boolean>)	-> SendAddonCommand<func>: command<string>, callback<function>, forceShowMessages<boolean>
+--  .Send(AddonName <string>, command <string>, callback <function: success<boolean>, returnMessages[]>, forceShowMessages <boolean>)
 -------------------------------------------
 
 ---Register for AddonCommands, returning a dedicated function for sending commands using our queue & log system for reporting & handling return data.
 ---@param name string Whatever the name of your AddOn is
 ---@param showMessages boolean If reply messages for your addon should be shown by default. You can overwrite per call also. Default is nil (no messages shown)
----@return function? SendAddonCommand SendAddonCommand(text, callbackFn, forceShowMessage) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>)
+---@return function? SendAddonCommand SendAddonCommand(text, callbackFn, forceShowMessages) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>)
 _commands.Register = function(name, showMessages)
 	if registry[name] then
 		return error(("EpsilonLib.AddonCommands.Register Warning: Name '%s' is already registered. If you need to overwrite.. Add the code support & commit or let MindScape know why and he will add it."):format(name))
@@ -192,7 +195,7 @@ _commands.Register = function(name, showMessages)
 		--ChatThrottleLib:SendAddonMessage("prio",  "prefix", "text", "chattype"[, "target"[, "queueName"[, callbackFn, callbackArg]]]);
 		ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
 
-		commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessage = forceShowMessages }
+		commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
 	end
 end
 
@@ -202,7 +205,7 @@ _commands.Send = function(name, text, callbackFn, forceShowMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
 	iterate()
 	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
-	commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessage = forceShowMessages }
+	commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
 end
 
 EpsiLib.AddonCommands = _commands

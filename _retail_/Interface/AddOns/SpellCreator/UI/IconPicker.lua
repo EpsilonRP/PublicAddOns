@@ -118,7 +118,7 @@ function IconPicker.IconPicker_RefreshGrid()
 
 			v:SetNormalTexture(tex)
 			v.realTex = Icons.getIconTextureFromName(texName)
-			v.texName = texName
+			v.texName = texName:gsub(ns.Constants.ASSETS_PATH:gsub("%-", "%%%-") .. "/g?e?m?%-?icons/", "Arcanum - ")
 		else
 			v:Hide()
 		end
