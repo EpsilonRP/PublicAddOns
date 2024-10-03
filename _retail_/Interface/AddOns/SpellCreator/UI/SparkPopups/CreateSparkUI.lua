@@ -1,5 +1,6 @@
 ---@class ns
 local ns = select(2, ...)
+local addonName = ...
 
 local SavedVariables = ns.SavedVariables
 local Constants = ns.Constants
@@ -830,6 +831,11 @@ local uiOptionsTable = {
 						if sparkUI_Helper.color then vR, vG, vB = CreateColorFromHexString(sparkUI_Helper.color):GetRGBAsBytes() end
 
 						local style = sparkUI_Helper.style
+
+						if type(style) == "string" then
+							-- Ensure our FilePath works on -dev addons
+							style = style:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+						end
 
 						-- For Multi-Sparks, ensure our border accounts for needing a "-number" at the end.
 						if type(style) == "string" and isSparkType(sparkUI_Helper.type, _sparkTypesMap["Multi"]) then

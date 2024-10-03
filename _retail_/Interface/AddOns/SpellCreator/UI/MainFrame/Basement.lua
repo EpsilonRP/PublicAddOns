@@ -150,8 +150,6 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 			maxDelay = max(actionData.delay, actionData.revertDelay or 0, maxDelay)
 		end
 
-		doFlicker(mainFrame, maxDelay)
-
 		local spellInfo = Attic.getInfo()
 		local spellName = spellInfo.fullName
 		local spellData = { ["icon"] = Icons.getFinalIcon(spellInfo.icon), commID = spellInfo.commID, castbar = spellInfo.castbar, conditions = spellInfo.conditions } ---@as VaultSpell
@@ -160,7 +158,10 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 			spellData.conditions = nil
 		end
 
-		Execute.executeSpell(actionsToCommit, nil, spellName, spellData)
+		local success = Execute.executeSpell(actionsToCommit, nil, spellName, spellData)
+		if not success then return end
+
+		doFlicker(mainFrame, maxDelay)
 
 		local castBarStatus = spellInfo.castbar
 

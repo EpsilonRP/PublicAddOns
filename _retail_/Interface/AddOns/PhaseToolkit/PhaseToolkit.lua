@@ -2030,19 +2030,10 @@ function PhaseToolkit.recreateFrameModule()
     PhaseToolkit.createMotdFrame()
 end
 function PhaseToolkit.createCustomParamFrame()
-    if(PhaseToolkit.CustomMainFrame ~= nil) then
-        if(PhaseToolkit.CustomMainFrame:IsShown()) then
-            PhaseToolkit.CustomMainFrame:Hide()
-            PhaseToolkit.CustomMainFrame=nil
-            return
-        else
-            PhaseToolkit.CustomMainFrame:Show()
-        end
-    end
-    if(GlobalNPCCUSTOMISER_PhaseOptionFrame~=nil)then
-        if(GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown())then
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
-            GlobalNPCCUSTOMISER_PhaseOptionFrame=nil
+    if(PhaseToolkit.PhaseOptionFrame~=nil)then
+        if(PhaseToolkit.PhaseOptionFrame:IsShown())then
+            PhaseToolkit.PhaseOptionFrame:Hide()
+            PhaseToolkit.PhaseOptionFrame=nil
         end
     end
     if(PhaseToolkit.TELEFrame~=nil) then
@@ -2054,6 +2045,14 @@ function PhaseToolkit.createCustomParamFrame()
         if(PhaseToolkit.PNJFrame:IsShown()) then
             PhaseToolkit.PNJFrame:Hide()
         end
+    end
+    if (PhaseToolkit.CustomMainFrame ~= nil) then
+        if (PhaseToolkit.CustomMainFrame:IsShown()) then
+            PhaseToolkit.CustomMainFrame:Hide()
+        else
+            PhaseToolkit.CustomMainFrame:Show()
+        end
+        return
     end
     PhaseToolkit.CustomMainFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
     PhaseToolkit.CustomMainFrame:SetBackdrop({
@@ -2235,12 +2234,12 @@ checkBox:SetScript("OnClick",function ()
         end
     end
 
-    if(GlobalNPCCUSTOMISER_PhaseOptionFrame~=nil)then
-        if(GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown())then
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
-            GlobalNPCCUSTOMISER_PhaseOptionFrame=nil
+    if(PhaseToolkit.PhaseOptionFrame~=nil)then
+        if(PhaseToolkit.PhaseOptionFrame:IsShown())then
+            PhaseToolkit.PhaseOptionFrame:Hide()
+            PhaseToolkit.PhaseOptionFrame=nil
             PhaseToolkit.CreatePhaseOptionFrame()
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Show()
+            PhaseToolkit.PhaseOptionFrame:Show()
         end
     end
     
@@ -2267,8 +2266,8 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
             PhaseToolkit.TELEFrame:Hide()
         end
     end
-    if(GlobalNPCCUSTOMISER_PhaseOptionFrame~=nil and GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown()) then
-        GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
+    if(PhaseToolkit.PhaseOptionFrame~=nil and PhaseToolkit.PhaseOptionFrame:IsShown()) then
+        PhaseToolkit.PhaseOptionFrame:Hide()
     end
     if(PhaseToolkit.CustomFrame~=nil and PhaseToolkit.CustomFrame:IsShown()) then
         PhaseToolkit.CustomFrame:Hide()
@@ -2613,8 +2612,8 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
             PhaseToolkit.PNJFrame:Hide()
         end
     end
-    if(GlobalNPCCUSTOMISER_PhaseOptionFrame~=nil and GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown()) then
-        GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
+    if(PhaseToolkit.PhaseOptionFrame~=nil and PhaseToolkit.PhaseOptionFrame:IsShown()) then
+        PhaseToolkit.PhaseOptionFrame:Hide()
     end
     if(PhaseToolkit.CustomFrame~=nil and PhaseToolkit.CustomFrame:IsShown()) then
         PhaseToolkit.CustomFrame:Hide()
@@ -3072,11 +3071,11 @@ function PhaseToolkit.CreatePhaseOptionFrame()
             PhaseToolkit.CustomMainFrame=nil
         end
     end
-    if (GlobalNPCCUSTOMISER_PhaseOptionFrame ~= nil) then
-        if (GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown()) then
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
+    if (PhaseToolkit.PhaseOptionFrame ~= nil) then
+        if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
+            PhaseToolkit.PhaseOptionFrame:Hide()
         else
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Show()
+            PhaseToolkit.PhaseOptionFrame:Show()
             if(PhaseToolkit.IsPhaseWhitelist==nil) then
                 PhaseToolkit.IsPhaseWhitelist=false
                 sendAddonCmd("phase info ",PhaseToolkit.gatherPhaseInfo,false)
@@ -3087,15 +3086,15 @@ function PhaseToolkit.CreatePhaseOptionFrame()
     end
     
 
-    GlobalNPCCUSTOMISER_PhaseOptionFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
-    GlobalNPCCUSTOMISER_PhaseOptionFrame:SetBackdrop({
+    PhaseToolkit.PhaseOptionFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
+    PhaseToolkit.PhaseOptionFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
         edgeSize = 16, 
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
-    GlobalNPCCUSTOMISER_PhaseOptionFrame:SetSize(350,450)
-    GlobalNPCCUSTOMISER_PhaseOptionFrame:SetPoint("TOPLEFT",PhaseToolkit.NPCCustomiserMainFrame,"TOPRIGHT",0,0)
+    PhaseToolkit.PhaseOptionFrame:SetSize(350,450)
+    PhaseToolkit.PhaseOptionFrame:SetPoint("TOPLEFT",PhaseToolkit.NPCCustomiserMainFrame,"TOPRIGHT",0,0)
 
      function PhaseToolkit.gatherPhaseInfo(isCommandSuccessful,replies)
         if isCommandSuccessful then
@@ -3133,7 +3132,7 @@ function PhaseToolkit.CreatePhaseOptionFrame()
 end
     --==== Module d'accès de phase ====--
 function  PhaseToolkit.createPhaseAccessFrame()
-    GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3141,7 +3140,7 @@ function  PhaseToolkit.createPhaseAccessFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetPoint("TOPLEFT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPLEFT",5,-5)
+    GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetPoint("TOPLEFT",PhaseToolkit.PhaseOptionFrame,"TOPLEFT",5,-5)
 
 
   
@@ -3201,7 +3200,7 @@ function  PhaseToolkit.createPhaseAccessFrame()
 end
     --==== Module de météo ====--
 function  PhaseToolkit.createMeteoSettingsFrame()
-    GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3209,7 +3208,7 @@ function  PhaseToolkit.createMeteoSettingsFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetPoint("TOPRIGHT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPRIGHT",-5,-5)
+    GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetPoint("TOPRIGHT",PhaseToolkit.PhaseOptionFrame,"TOPRIGHT",-5,-5)
     -- --=== Dropdown ===--
     PhaseToolkit.MeteoDropDown=CreateFrame("Frame","MeteoDropDown",GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame,"UIDropDownMenuTemplate")
     PhaseToolkit.MeteoDropDown:SetSize(200,30)
@@ -3248,7 +3247,7 @@ end
     --==== Module pour l'heure====--
 function PhaseToolkit.createTimeSettingsFrame()
 -- need une frame module
-GlobalNPCCUSTOMISER_moduleForTimeSliderFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+GlobalNPCCUSTOMISER_moduleForTimeSliderFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3256,7 +3255,7 @@ GlobalNPCCUSTOMISER_moduleForTimeSliderFrame=CreateFrame("Frame",nil,GlobalNPCCU
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetSize(340,80)
-    GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetPoint("TOPLEFT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPLEFT",5,-85)
+    GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetPoint("TOPLEFT",PhaseToolkit.PhaseOptionFrame,"TOPLEFT",5,-85)
 
     local timeSliderLabel=GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     timeSliderLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForTimeSliderFrame,"TOP",0,-10)
@@ -3297,7 +3296,7 @@ end
     --==== Module pour le starting ====--
 function PhaseToolkit.createSetStartingFrame()
     -- need une frame module
-    GlobalNPCCUSTOMISER_moduleForSetStartingFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForSetStartingFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3305,7 +3304,7 @@ function PhaseToolkit.createSetStartingFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetPoint("TOPLEFT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPLEFT",5,-80*2-5)
+    GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetPoint("TOPLEFT",PhaseToolkit.PhaseOptionFrame,"TOPLEFT",5,-80*2-5)
 
     local startingLabel=GlobalNPCCUSTOMISER_moduleForSetStartingFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     startingLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForSetStartingFrame,"TOP",0,-10)
@@ -3335,7 +3334,7 @@ end
     --==== Module pour les toggles ====--
 function PhaseToolkit.createTogglesFrame()
     -- need une frame module
-    GlobalNPCCUSTOMISER_moduleForTogglesFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForTogglesFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3343,7 +3342,7 @@ function PhaseToolkit.createTogglesFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetPoint("TOPLEFT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPLEFT",15+165,-80*2-5)
+    GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetPoint("TOPLEFT",PhaseToolkit.PhaseOptionFrame,"TOPLEFT",15+165,-80*2-5)
 
     local startingLabel=GlobalNPCCUSTOMISER_moduleForTogglesFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     startingLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForTogglesFrame,"TOP",0,-10)
@@ -3360,7 +3359,7 @@ function PhaseToolkit.createTogglesFrame()
 end
     --==== Module pour le nom ====--
 function PhaseToolkit.createPhaseSetNameFrame()
-    GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3368,7 +3367,7 @@ function PhaseToolkit.createPhaseSetNameFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetPoint("TOPLEFT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPLEFT",5,-5-80*3)
+    GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetPoint("TOPLEFT",PhaseToolkit.PhaseOptionFrame,"TOPLEFT",5,-5-80*3)
 
 
     GlobalNPCCUSTOMISERnameTextEdit=CreateFrame("EDITBOX",nil, GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame, "InputBoxTemplate")
@@ -3387,7 +3386,7 @@ function PhaseToolkit.createPhaseSetNameFrame()
 end
     --==== Module pour la description ====--
 function  PhaseToolkit.createPhaseSetDescriptionFrame()
-    GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3395,7 +3394,7 @@ function  PhaseToolkit.createPhaseSetDescriptionFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetSize(165,80)
-    GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetPoint("TOPRIGHT",GlobalNPCCUSTOMISER_PhaseOptionFrame,"TOPRIGHT",-5,-5-80*3)
+    GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetPoint("TOPRIGHT",PhaseToolkit.PhaseOptionFrame,"TOPRIGHT",-5,-5-80*3)
 
     GlobalNPCCUSTOMISER_DescTextEdit=CreateFrame("EDITBOX",nil, GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame, "InputBoxTemplate")
     GlobalNPCCUSTOMISER_DescTextEdit:SetSize(130,20)
@@ -3411,7 +3410,7 @@ function  PhaseToolkit.createPhaseSetDescriptionFrame()
 end
 
 function PhaseToolkit.createMotdFrame()
-    GlobalNPCCUSTOMISER_moduleforMotdFrame=CreateFrame("Frame",nil,GlobalNPCCUSTOMISER_PhaseOptionFrame,"BackdropTemplate")
+    GlobalNPCCUSTOMISER_moduleforMotdFrame=CreateFrame("Frame",nil,PhaseToolkit.PhaseOptionFrame,"BackdropTemplate")
     GlobalNPCCUSTOMISER_moduleforMotdFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
@@ -3419,7 +3418,7 @@ function PhaseToolkit.createMotdFrame()
         insets = {left = 5, right = 5, top = 5, bottom = 5}, 
     })
     GlobalNPCCUSTOMISER_moduleforMotdFrame:SetSize(340,120)
-    GlobalNPCCUSTOMISER_moduleforMotdFrame:SetPoint("BOTTOM",GlobalNPCCUSTOMISER_PhaseOptionFrame,"BOTTOM",0,5)
+    GlobalNPCCUSTOMISER_moduleforMotdFrame:SetPoint("BOTTOM",PhaseToolkit.PhaseOptionFrame,"BOTTOM",0,5)
 
     local textForMotd=""
 
@@ -3506,10 +3505,10 @@ end
     
 -- ============================== Frame pour Custom ============================== -- 
 function PhaseToolkit.CreateCustomFrame()
-    if(GlobalNPCCUSTOMISER_PhaseOptionFrame~=nil)then
-        if(GlobalNPCCUSTOMISER_PhaseOptionFrame:IsShown())then
-            GlobalNPCCUSTOMISER_PhaseOptionFrame:Hide()
-            GlobalNPCCUSTOMISER_PhaseOptionFrame=nil
+    if(PhaseToolkit.PhaseOptionFrame~=nil)then
+        if(PhaseToolkit.PhaseOptionFrame:IsShown())then
+            PhaseToolkit.PhaseOptionFrame:Hide()
+            PhaseToolkit.PhaseOptionFrame=nil
         end
     end
     if(PhaseToolkit.TELEFrame~=nil) then

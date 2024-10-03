@@ -412,11 +412,14 @@ end
 ---@param spellName string
 ---@param spellData VaultSpell?
 ---@param ... any spell inputs
+---@return boolean success
 local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, ...)
+	if not spellName or spellName == "" then spellName = "Arcanum Forge Spell" end
+
 	if ((not bypassCheck) and (not SpellCreatorMasterTable.Options["debug"])) then
 		if not Permissions.canExecuteSpells() then
 			print("Casting Arcanum Spells in Main Phase Start Zone is Disabled. Trying to test the Main Phase Vault spells? Head somewhere other than " .. START_ZONE_NAME .. ".")
-			return
+			return false
 		end
 	end
 
@@ -424,9 +427,10 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 		if spellData.conditions and #spellData.conditions > 0 then
 			if not checkConditions(spellData.conditions) then
 				PlayVocalErrorSoundID(48);
-				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName)
+				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName or spellName)
 				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
-				return dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
+				dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
+				return false
 			end
 		end
 
@@ -436,7 +440,7 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 				.commID, ns.Utils.Data.secondsToMinuteSecondString(spellCooldownRemaining))
 			UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 			PlayVocalErrorSoundID(12);
-			return
+			return false
 		elseif spellData.cooldown then
 			addSpellCooldown(spellData.commID, spellData.cooldown)
 		end
@@ -453,6 +457,16 @@ local function executePhaseSpell(commID, bypassCD, ...)
 	local spell = Vault.phase.findSpellByID(commID)
 	local currentPhase = C_Epsilon.GetPhaseId()
 	if spell then
+		if spell.conditions and #spell.conditions > 0 then
+			if not checkConditions(spell.conditions) then
+				PlayVocalErrorSoundID(48);
+				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spell.fullName)
+				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
+				dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
+				return false
+			end
+		end
+
 		local spellCooldownRemaining, spellCooldownLength = Cooldowns.isSpellOnCooldown(commID, currentPhase)
 		if spellCooldownRemaining then
 			local cooldownMessage = ("Phase ArcSpell %s (%s) is currently on cooldown.\n(%s remaining)."):format(spell.fullName, spell
