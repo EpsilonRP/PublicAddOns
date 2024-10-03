@@ -41,7 +41,6 @@ end
 -- Music database.
 local music = LibRPMedia:NewDatabase("music", DATABASE_VERSION);
 if music then
-	--[[
 	music.size = 4641;
 	music.data = LibRPMedia:CreateLazyTable(function()
 		return LibRPMedia:LoadFunctionFromString([=[return {
@@ -59,5 +58,4 @@ if music then
             }]=]);
 		end),
 	};
-	--]]
 end
