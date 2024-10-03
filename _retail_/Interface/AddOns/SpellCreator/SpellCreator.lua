@@ -221,7 +221,8 @@ local phaseVaultKeysCompressed
 local function noSpellsToLoad(fake)
 	dprint("Phase Has No Spells to load.");
 	phaseAddonDataListener:UnregisterEvent("CHAT_MSG_ADDON");
-	if not fake then
+	local currentVault = LoadSpellFrame.getCurrentVault()
+	if not fake and (currentVault == VAULT_TYPE.PHASE) then
 		if isOfficerPlus() then
 			SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText(
 				"Vault is Empty\n\n\rSelect a spell in\ryour personal vault\rand click the Transfer\rbutton below!\n\n\rGo on, add\rsomething fun!");
