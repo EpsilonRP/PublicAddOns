@@ -369,6 +369,7 @@ local fakePaginationGODITable = setmetatable({}, top_meta)
 local function getGODIPageCount()
 	return C_Epsilon.GODI_Count()/numPerPage
 end
+getGODIPageCount()
 
 local function ShowGobBrowser()
 
