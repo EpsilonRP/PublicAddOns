@@ -366,11 +366,11 @@ local top_meta = {
 }
 
 local fakePaginationGODITable = setmetatable({}, top_meta)
-local GODI_Pages = C_Epsilon.GODI_Count()/numPerPage
-
+local function getGODIPageCount()
+	return C_Epsilon.GODI_Count()/numPerPage
+end
 
 local function ShowGobBrowser()
-
 
    local columns = g.db.columns;
    local rows = g.db.rows;
@@ -677,7 +677,7 @@ local function ShowGobBrowser()
       updateNamesLabel()
       currentPage = page
 	  selectedGobs = {}
-	  local numPages = ((resultList == fakePaginationGODITable) and GODI_Pages) or #localResult
+	  local numPages = ((resultList == fakePaginationGODITable) and getGODIPageCount()) or #localResult
       currentPageLabel:SetText(page..'/'..numPages)
       gobFrameSlider:SetMinMaxValues(1, numPages)
       if currentPage == 1 then
@@ -1114,7 +1114,7 @@ local function ShowGobBrowser()
 
    local previousButton = StdUi:SquareButton(gobFrame, 30, 30, 'LEFT'); --Previous page button
    previousButton:SetScript("OnClick", function()
-      local numPages = ((currentGobList == fakePaginationGODITable) and GODI_Pages) or #currentGobList
+      local numPages = ((currentGobList == fakePaginationGODITable) and getGODIPageCount()) or #currentGobList
       if currentPage > 1 then
          updateGobGrid(currentGobList, currentPage-1)
       else
@@ -1127,7 +1127,7 @@ local function ShowGobBrowser()
 
    local nextButton = StdUi:SquareButton(gobFrame, 30, 30, 'RIGHT'); --Next page button
    nextButton:SetScript("OnClick", function()
-      local numPages = ((currentGobList == fakePaginationGODITable) and GODI_Pages) or #currentGobList
+      local numPages = ((currentGobList == fakePaginationGODITable) and getGODIPageCount()) or #currentGobList
       if currentPage < numPages then
          updateGobGrid(currentGobList, currentPage+1)
       else
