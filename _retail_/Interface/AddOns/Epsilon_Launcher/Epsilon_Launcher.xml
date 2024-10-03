@@ -18,6 +18,7 @@
 	<Script file="modules\ObjectMover.lua" />
 	<Script file="modules\Gobviewer.lua" />
 	<Script file="modules\Kinesis.lua" />
+	<Script file="modules\Toolkit.lua" />
 	<!-- <Script file="modules\SpellCreator.lua" /> -->
 
 </Ui>

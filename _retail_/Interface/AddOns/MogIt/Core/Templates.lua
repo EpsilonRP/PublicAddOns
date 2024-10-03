@@ -22,8 +22,26 @@ local itemSlots = {
 	["TABARD"] = 19,
 };
 
+-- // EpsilonLib for AddOnCommands:
+local sendAddonCmd
 
+if EpsilonLib and EpsilonLib.AddonCommands then
+	sendAddonCmd = EpsilonLib.AddonCommands.Register("MogIt-Template")
+else
+	-- command, callbackFn, forceShowMessages
+	function sendAddonCmd(command, callbackFn, forceShowMessages)
+		if EpsilonLib and EpsilonLib.AddonCommands then
+			-- Reassign it.
+			sendAddonCmd = EpsilonLib.AddonCommands.Register("MogIt-Preview")
+			sendAddonCmd(command, callbackFn, forceShowMessages)
+			return
+		end
 
+		-- Fallback ...
+		print("Warning: MogIt-Template had to fallback to standard chat commands. Is your EpsilonLib okay??")
+		SendChatMessage("." .. command, "GUILD")
+	end
+end
 
 function mog:GetItemLabel(itemID, callback, includeIcon, iconSize)
 	local item = mog:GetItemInfo(itemID, callback)
@@ -194,17 +212,32 @@ local itemOptions = {
 			if itemID:match(":1:%d*") then
 				--has bonus still
 			end
+			local showCommandReplies = mog.db.profile.showCommandReplies
+
 			if bonusID ~= nil then
 				if not mog.db.profile.toggleMessages then
 					print("|cff00ccff[MogIt]|r adding item: " .. itemID .. " with bonus: " .. bonusID)
 				end
-				SendChatMessage(".additem " .. itemID .. " 1 " .. bonusID, "GUILD")
+				sendAddonCmd("additem " .. itemID .. " 1 " .. bonusID, nil, showCommandReplies)
 			else
 				if not mog.db.profile.toggleMessages then
 					print("|cff00ccff[MogIt]|r adding item: " .. itemID)
 				end
-				SendChatMessage(".add " .. itemID, "GUILD")
+				sendAddonCmd("additem " .. itemID, nil, showCommandReplies)
 			end
+		end,
+	},
+	{
+		text = L["|cff00ccffEquip to NPC|r"], --epsi edit
+		func = function(self)
+			local item = mog:GetItemInfo(self.value, callback)
+			local itemID = self.value:match("item:(%d*)");
+			local showCommandReplies = mog.db.profile.showCommandReplies
+
+			if not mog.db.profile.toggleMessages then
+				print("|cff00ccff[MogIt]|r equipping item: |cff00ccff|Hitem:" .. itemID .. "|h[" .. item.name .. "]|r");
+			end
+			sendAddonCmd("phase forge npc outfit equip " .. itemID, nil, showCommandReplies)
 		end,
 	},
 	{
@@ -212,10 +245,12 @@ local itemOptions = {
 		func = function(self)
 			local item = mog:GetItemInfo(self.value, callback)
 			local itemID = self.value:match("item:(%d*)");
+			local showCommandReplies = mog.db.profile.showCommandReplies
+
 			if not mog.db.profile.toggleMessages then
 				print("|cff00ccff[MogIt]|r looking up item: |cff00ccff|Hitem:" .. itemID .. "|h[" .. item.name .. "]|r");
 			end
-			SendChatMessage(".lookup item " .. item.name, "GUILD")
+			sendAddonCmd("lookup item " .. item.name, nil, showCommandReplies)
 		end,
 	},
 }
@@ -332,11 +367,12 @@ do -- item functions
 				local itemLink = data.item
 				local bonusID = itemLink:match(":1:(%d*)")
 				local itemID = itemLink:match("item:(%d*)");
+				local showCommandReplies = mog.db.profile.showCommandReplies
 
 				if not mog.db.profile.toggleMessages then
 					print("|cff00ccff[MogIt]|r adding item: " .. (itemID or "invalid item id") .. " with bonus: " .. (bonusID and bonusID or "n/a"));
 				end
-				SendChatMessage(".add " .. itemID .. " 1 " .. (bonusID and bonusID or ""), "GUILD")
+				sendAddonCmd("additem " .. itemID .. " 1 " .. (bonusID and bonusID or ""), nil, showCommandReplies)
 			end
 
 			if not HandleModifiedItemClick(select(2, GetItemInfo(item))) and data.items then

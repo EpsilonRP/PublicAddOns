@@ -44,6 +44,7 @@ end
 
 function SCForgeTalkingHeadFrame_OnShow(self)
 	UIParent_ManageFramePositions();
+	self:SetScale(UIParent:GetScale())
 end
 
 function SCForgeTalkingHeadFrame_OnHide(self)

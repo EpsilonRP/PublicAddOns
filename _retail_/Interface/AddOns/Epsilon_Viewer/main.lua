@@ -162,7 +162,8 @@ local function selectedCatalog(value)
    end
 end
 
-local function checkIfStringHasAny(text, filterArray)
+-- This searches a string to see if it contains ANY of the items in the filter array. I.e., searching a ban list and hiding if it matches any of the banned names
+local function searchStringForAnyFilterItem(text, filterArray)
 	if #filterArray == 0 then
 		return true
 	end
@@ -175,14 +176,15 @@ local function checkIfStringHasAny(text, filterArray)
 	return false
 end
 
-local function checkIfTableContains(resultName, filterArray)
+-- This searches a string to see if it contains ALL of the items in the filter array. I.e., searching a gob name for two different name parts to find only objects with those keywords
+local function searchStringForAllFilterItems(text, filterArray)
    if #filterArray == 0 then
       return true
    end
 
    -- Run through each searchTerm in the filterArray, and check if it does not exist - if found, continue, if not, return false out
    for _, filter in pairs(filterArray) do
-      if not string.find(resultName, filter) then
+      if not string.find(text, filter) then
          return false
       end
    end
@@ -191,9 +193,16 @@ local function checkIfTableContains(resultName, filterArray)
    return true
 end
 
+---@param text string the text to search inside
+---@param token_string string the token string, i.e., "chair void"
+local function tokenizedSearch(text, token_string)
+	local filterItems = strsplittable(" ", token_string)
+	return searchStringForAllFilterItems(text, filterItems)
+end
 
-local function getListFromEpsilon(filter, filterArray, maxgobs) --C_Epsilon is the best
-   currentCatalog = nil
+
+--local function getListFromEpsilon(filter, filterArray, maxgobs) --C_Epsilon is the best
+local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
    currentCatalog = {}
 
    for i = 0, C_Epsilon.GODI_Search(filter)-1 do -- 0 indexed
@@ -201,14 +210,14 @@ local function getListFromEpsilon(filter, filterArray, maxgobs) --C_Epsilon is t
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
 		if not string.find(result.name, "%.wmo") then -- No WMOs!!
-			if checkIfTableContains(result.name, filterArray) and (not checkIfStringHasAny(result.name, object_names_hidden)) then
+		if (not searchStringForAnyFilterItem(result.name, object_names_hidden)) then
 
 				result.name = perform_name_replacements(result.name)
 
 				currentCatalog[result.fileid] = result
 				currentCatalog[result.fileid].entries = {} --for future usage
 			end
-        end
+		end
          --[[
       else
          local insert = {text = result.displayid, value = #currentCatalog[result.fileid].entries+1}
@@ -218,13 +227,13 @@ local function getListFromEpsilon(filter, filterArray, maxgobs) --C_Epsilon is t
    end
 end
 
-
 local function getGobName(fid)
-   if fid == 1 then
+   if fid == 1 or fid == false then
       return " "
    elseif fid == 130738 then
       return "talktomequestionmark.m2" --Since i'm not using the GobList anymore, need to make sure of that.
    else
+	  if not currentCatalog or not currentCatalog[fid] then return false end
       --local baseName = currentCatalog[fid].name or "(no name found)"
       --local gobName = string.match(baseName, ".*/(.-%.m2)")
       local gobName = currentCatalog[fid].name or "(no name found)"
@@ -249,20 +258,14 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
    --no filter or bad filter
    local usedList = currentCatalog
    local resultList = {}
-
-   local filterArray = {}
-   filter = filter:lower() --Put everything in lowCase
-   for searchTerm in string.gmatch(filter, "%S+") do
-      table.insert(filterArray, #filterArray + 1, searchTerm)
-   end
-   filter = table.remove(filterArray, 1)
+   local firstKeyword = strsplit(" ", filter)
 
    if (filter == nil or filter:len() < 2) and catalogValue == 1 then
       return nil
    elseif catalogValue > 1 then --Will permit no filter to show every gob in a catalog if it's not the default one.
-      for iFileData, gobData in pairs (usedList) do
+      for iFileData, gobData in pairs(usedList) do
          local gobName = getGobName(iFileData)
-         if (filter == nil or filter:len() < 2) or string.match(gobName:lower(), filter) then
+         if (filter == nil or filter:len() < 2) or tokenizedSearch(gobName:lower(), filter) then --string.match(gobName:lower(), filter) then
             if not epstiles then --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
                   tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
@@ -273,11 +276,12 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
          end
       end
    else
-      getListFromEpsilon(filter, filterArray, maxgobs)
+      --getListFromEpsilon(filter, filterArray, maxgobs)
+	  getListFromEpsilon(filter, maxgobs)
       usedList = currentCatalog
       for iFileData, gobData in pairs (usedList) do
          local gobName = getGobName(iFileData)
-         if string.match(gobName:lower(), filter) then
+         if tokenizedSearch(gobName:lower(), filter) then
             if not epstiles then  --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
                   tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
@@ -314,7 +318,7 @@ local function divideGobList(rawList, c, r)
          if #rawList < maxGobInGrid then
             local gobToAdd = maxGobInGrid - #rawList
             for holder = 1, gobToAdd do
-               tinsert(rawList, {fid = 130738}) --placeHolder (talktomequestionmark.m2) if not enough gob, bad but it will do for now.
+               tinsert(rawList, {fid = false}) --placeHolder (talktomequestionmark.m2) if not enough gob, bad but it will do for now.
             end
          end
 
@@ -332,9 +336,38 @@ end
 local function setSpawnTooltip(self, gridObject, gobData)
    local null = {}
    if not gobData then gobData = null end
+   local gobName = (gobData and gobData.name) or (gridObject.gobData and gridObject.gobData.name) or getGobName(gridObject:GetModelFileID())
+   local gobDisplay = (gobData and gobData.displayid) or (gridObject.gobData and gridObject.gobData.displayid) or 804602
    --self:SetText(("Left Click to Spawn %s (%s)\nRight Click to select others versions"):format(getGobName(gridObject:GetModelFileID()), gobData.displayid or 804602))
-   self:SetText(("Left Click to Spawn %s (%s).\nRight Click to lookup."):format(getGobName(gridObject:GetModelFileID()), gobData.displayid or 804602))
+   self:SetText(("Left Click to Spawn %s (%s).\nRight Click to lookup."):format(gobName, gobDisplay))
 end
+
+local fakePaginationGODITableOffset = 1
+local numPerPage = 8
+
+local page_meta = {
+	__index = function(tbl, key)
+		if type(key) ~= "number" then return tbl[key] end
+		local realEntry = (fakePaginationGODITableOffset + key) - 1
+
+		local GODI_Data = C_Epsilon.GODI_Get(realEntry)
+		GODI_Data.fid = GODI_Data.fileid
+		return GODI_Data
+	end,
+}
+local genericPageTable = setmetatable({}, page_meta)
+
+local top_meta = {
+	__index = function(tbl, key)
+		if type(key) ~= "number" then return tbl[key] end
+		fakePaginationGODITableOffset = (key-1)*numPerPage
+		return genericPageTable
+	end,
+}
+
+local fakePaginationGODITable = setmetatable({}, top_meta)
+local GODI_Pages = C_Epsilon.GODI_Count()/numPerPage
+
 
 local function ShowGobBrowser()
 
@@ -356,19 +389,93 @@ local function ShowGobBrowser()
 
    local gameObjectsGrid = {} --will be all the gob in the rows. So gameObjectsGrid[1][2] will be the identifier for the second preview in the first row.
 
+   local model_actor_OnModelLoaded = function(self)
+	local x1, y1, z1, x2, y2, z2 = self:GetActiveBoundingBox()
+	if x2 == nil then return end
+	local lx = x2 - x1
+	local ly = y2 - y1
+	local lz = z2 - z1
+	local size = math.sqrt(lx ^ 2 + ly ^ 2 + lz ^ 2) * 1.5
+	local angle = math.max(lx, ly) < lz and 45 / 3 or 45 / 2
+	local camera = self:GetParent():GetActiveCamera()
+	camera:SetPitch(math.rad(angle))
+	camera:SetYaw(0)
+	camera:SetRoll(0)
+	camera:SetTarget(0, 0, 0)
+	camera:SetMinZoomDistance(size * 0.5)
+	camera:SetMaxZoomDistance(size * 2)
+	camera:SetZoomDistance(size * 1.1)
+	camera:SnapAllInterpolatedValues();
+
+	-- Always face slightly left
+	self:SetYaw(math.pi/1.2)
+   end
+
    for i = 1, g.db.rows do
       local r = gobFrame:AddRow(); --will add a row for each rows
       gameObjectsGrid[i] = {} --first identifier
 
       for j = 1, g.db.columns do
-         local g = CreateFrame("DressUpModel", nil, gobFrame, "ModelWithZoomTemplate") --create a frame to show the models
-         g:SetModel(130738) --"interface/buttons/talktomequestionmark.m2"
+         --local g = CreateFrame("DressUpModel", nil, gobFrame, "ModelWithZoomTemplate") --create a frame to show the models
+         local _modelScene = CreateFrame("ModelScene", nil, gobFrame, "ModelSceneMixinTemplate")
+		 local actor = _modelScene:CreateActor(nil, "ModelSceneActorTemplate")
+
+		 actor.onModelLoadedCallback = model_actor_OnModelLoaded
+
+		 actor:SetModelByFileID(130738) --"interface/buttons/talktomequestionmark.m2"
+		 actor:SetUseCenterForOrigin(true, true, true)
+
+		 actor._modelScene = _modelScene
+
+		 _modelScene:SetCameraNearClip(0.01)
+		 _modelScene:SetCameraFarClip(2 ^ 64)
+		 _modelScene.Camera = _modelScene:CreateCameraFromScene(114)
+		 _modelScene.Camera:SetPitch(0)
+		 _modelScene.Actor = actor
+
+		 local camera = _modelScene.Camera
+		 camera:SetRightMouseButtonXMode(ORBIT_CAMERA_MOUSE_PAN_HORIZONTAL, true);
+    	 camera:SetRightMouseButtonYMode(ORBIT_CAMERA_MOUSE_PAN_VERTICAL, true);
+		 camera:SetLeftMouseButtonYMode(ORBIT_CAMERA_MOUSE_MODE_PITCH_ROTATION, true);
+		 camera.OnUpdate = function(self, elapsed) -- override
+			if self:IsLeftMouseButtonDown() then
+				local deltaX, deltaY = GetScaledCursorDelta();
+				if IsShiftKeyDown() then
+					self:HandleMouseMovement(ORBIT_CAMERA_MOUSE_MODE_ROLL_ROTATION, deltaX * self:GetDeltaModifierForCameraMode(ORBIT_CAMERA_MOUSE_MODE_ROLL_ROTATION), not self.buttonModes.leftXinterpolate);
+					self:HandleMouseMovement(ORBIT_CAMERA_MOUSE_MODE_ROLL_ROTATION, -deltaY * self:GetDeltaModifierForCameraMode(ORBIT_CAMERA_MOUSE_MODE_ROLL_ROTATION), not self.buttonModes.leftYinterpolate);
+				else
+					self:HandleMouseMovement(self.buttonModes.leftX, deltaX * self:GetDeltaModifierForCameraMode(self.buttonModes.leftX), not self.buttonModes.leftXinterpolate);
+					self:HandleMouseMovement(self.buttonModes.leftY, deltaY * self:GetDeltaModifierForCameraMode(self.buttonModes.leftY), not self.buttonModes.leftYinterpolate);
+				end
+			end
+
+			if self:IsRightMouseButtonDown() then
+				local deltaX, deltaY = GetScaledCursorDelta();
+				self:HandleMouseMovement(self.buttonModes.rightX, deltaX * self:GetDeltaModifierForCameraMode(self.buttonModes.rightX), not self.buttonModes.rightXinterpolate);
+				self:HandleMouseMovement(self.buttonModes.rightY, -deltaY * self:GetDeltaModifierForCameraMode(self.buttonModes.rightY), not self.buttonModes.rightYinterpolate);
+			end
+
+			self:UpdateInterpolationTargets(elapsed);
+			self:SynchronizeCamera();
+		end
+
+
+		 -- Pass thru functions for the actor:
+		 function _modelScene:SetModel(id)
+			actor:SetModelByFileID(id)
+		 end
+		 function _modelScene:GetModelFileID()
+			return actor:GetModelFileID()
+		 end
 
           --Zoom of the gob
+		  --[[
          g:SetPortraitZoom(0)
          local camdistance = 3;
          g:SetCamDistanceScale(camdistance)
+		 --]]
 
+		 local g = _modelScene
           --allow the interface to adapt
          local gHSize = 250
          local gWSize = 250
@@ -385,6 +492,7 @@ local function ShowGobBrowser()
 
 
          --Zoom
+		 --[[
          gameObjectsGrid[i][j].camdistance = camdistance
          g:SetScript('OnMouseWheel', function(self, value)
             if value == 1 then --scrolling up
@@ -397,6 +505,7 @@ local function ShowGobBrowser()
                g:SetCamDistanceScale(gameObjectsGrid[i][j].camdistance)
             end
          end);
+		 --]]
 
          local gobName = getGobName(g:GetModelFileID()) --Keep only the name of the game object
          local textSize = 10
@@ -447,14 +556,16 @@ local function ShowGobBrowser()
          gameObjectsGrid[i][j].buttonSpawn:RegisterForClicks("RightButtonUp", "LeftButtonUp")
          gameObjectsGrid[i][j].buttonSpawn:SetScript("OnClick", function(self, arg1) --Will tell us what button was used to click it.
             if arg1 == "LeftButton" then --Spawning
-               local gobName = getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+			   local gobData = gameObjectsGrid[i][j].gobData
+			   local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
                local gobID
                if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobID = -804602 else gobID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Spawning : "..gobName)
                SendChatMessage(".gob spawn "..gobID, "GUILD")
             else --Lookup
                --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
-               local gobName = getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+			   local gobData = gameObjectsGrid[i][j].gobData
+			   local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
                SendChatMessage(".lo ob "..gobName, "GUILD")
             end
@@ -526,7 +637,8 @@ local function ShowGobBrowser()
    local function updateNamesLabel() --Called to update the names
       for i = 1, rows do
          for j = 1, columns do
-            local gobName = getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+            local gobName = (gameObjectsGrid[i][j].gobData and gameObjectsGrid[i][j].gobData.name) or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+			if not gobName then gobName = "<no name found>" end
             if string.len(gobName) > 32 then gobName = string.sub(gobName, 1, 32)..".." end
             gameObjectsGrid[i][j].label:SetText(gobName);
 
@@ -540,21 +652,34 @@ local function ShowGobBrowser()
       local localResult = utils.deepcopy(resultList)
       for i = 1, rows do
          for j = 1, columns do
+			local index = i*j
             --print(LibParse:JSONEncode(localResult[page]))
-            gameObjectsGrid[i][j]:SetModel(localResult[page][1].fid)
-            gameObjectsGrid[i][j].camdistance = 3
-            gameObjectsGrid[i][j]:SetCamDistanceScale(3)
+			local resultData = localResult[page][index]
+
+			local gobName = resultData.name or getGobName(resultData.fid)
+			if gobName == "" then gobName = ("<INVALID DISPLAY-%s>"):format(resultData.fid) end
+			if not gobName:find("%.m2") then
+				gameObjectsGrid[i][j]:SetModel(130738)
+			else
+				gameObjectsGrid[i][j]:SetModel(resultData.fid)
+			end
+            --gameObjectsGrid[i][j].camdistance = 3
+            --gameObjectsGrid[i][j]:SetCamDistanceScale(3)
             gameObjectsGrid[i][j].buttonSelect.selected = false
             gameObjectsGrid[i][j].buttonSelect:UnlockHighlight()
-            selectedGobs = nil
-            selectedGobs = {}
-            gameObjectsGrid[i][j].gobData = table.remove(localResult[page], 1)
+			--gameObjectsGrid[i][j].label:SetText(gobName)
+            gameObjectsGrid[i][j].gobData = resultData
+
+			setSpawnTooltip(gameObjectsGrid[i][j].buttonSpawn.toolTip, gameObjectsGrid[i][j], resultData)
+
          end
       end
       updateNamesLabel()
       currentPage = page
-      currentPageLabel:SetText(page..'/'..#localResult)
-      gobFrameSlider:SetMinMaxValues(1, #localResult)
+	  selectedGobs = {}
+	  local numPages = ((resultList == fakePaginationGODITable) and GODI_Pages) or #localResult
+      currentPageLabel:SetText(page..'/'..numPages)
+      gobFrameSlider:SetMinMaxValues(1, numPages)
       if currentPage == 1 then
          gobFrameSlider:SetValue(1)
       end
@@ -584,7 +709,8 @@ local function ShowGobBrowser()
          local placeHolderTable = {}
 
          selectedCatalog(value)
-         currentGobList = divideGobList(placeHolderTable, columns, rows)
+         --currentGobList = divideGobList(placeHolderTable, columns, rows)
+		 currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
 
       end
@@ -988,10 +1114,11 @@ local function ShowGobBrowser()
 
    local previousButton = StdUi:SquareButton(gobFrame, 30, 30, 'LEFT'); --Previous page button
    previousButton:SetScript("OnClick", function()
+      local numPages = ((currentGobList == fakePaginationGODITable) and GODI_Pages) or #currentGobList
       if currentPage > 1 then
          updateGobGrid(currentGobList, currentPage-1)
       else
-         updateGobGrid(currentGobList, #currentGobList)
+         updateGobGrid(currentGobList, numPages)
       end
       gobFrameSlider:SetValue(currentPage)
    end)
@@ -1000,7 +1127,8 @@ local function ShowGobBrowser()
 
    local nextButton = StdUi:SquareButton(gobFrame, 30, 30, 'RIGHT'); --Next page button
    nextButton:SetScript("OnClick", function()
-      if currentPage < #currentGobList then
+      local numPages = ((currentGobList == fakePaginationGODITable) and GODI_Pages) or #currentGobList
+      if currentPage < numPages then
          updateGobGrid(currentGobList, currentPage+1)
       else
          updateGobGrid(currentGobList, 1)
@@ -1014,25 +1142,30 @@ local function ShowGobBrowser()
 
    local function startSearch()
       local input = searchBox:GetText()
-      if input:len() > 2 then
+      if input:len() > 1 then
          selectedCatalog(catalogListScrollDown:GetValue())
          currentGobList = divideGobList(getGobList(input, catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
          updateGobGrid(currentGobList, 1)
-      else
+	  elseif input:len() == 1 then
+		print("\124cFF4594C1[Epsilon_Viewer]\124r - Cannot search for a single letter, sorry. Try again.")
+	  else
          local placeHolderTable = {}
          selectedCatalog(1)
-         currentGobList = divideGobList(placeHolderTable, columns, rows)
+         --currentGobList = divideGobList(placeHolderTable, columns, rows)
+		 currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
       end
    end
 
+   local searchTimer = C_Timer.NewTimer(0, function() end)
    searchBox:SetScript('OnEnterPressed', function(self)
-      startSearch()
+      searchTimer:Cancel()
+	  startSearch()
 	  self:ClearFocus()
    end);
 
-   local searchTimer = C_Timer.NewTimer(0, function() end)
-   searchBox:HookScript('OnTextChanged', function(self)
+   searchBox:HookScript('OnTextChanged', function(self, userInput)
+	  if not userInput then return end
 	  -- Cancel last timer, start a new one
 	  searchTimer:Cancel()
 	  searchTimer = C_Timer.NewTimer(1, startSearch)
@@ -1046,7 +1179,7 @@ local function ShowGobBrowser()
    optsFrame:SetFrameLevel(22)
    optsFrame:Hide()
 
-   local showEpsTilesCheckBox = StdUi:Checkbox(optsFrame, "Include Epsilon's buildingplanes/buildingtiles in results.", 400, 50) --Include tiles or not
+   local showEpsTilesCheckBox = StdUi:Checkbox(optsFrame, "Include Epsilon's buildingplanes/buildingtiles in search results.", 400, 50) --Include tiles or not
    showEpsTilesCheckBox:SetChecked(g.db.includeEpsilonTiles)
    showEpsTilesCheckBox.OnValueChanged = function(self, state, value)
       g.db.includeEpsilonTiles = state
@@ -1120,10 +1253,15 @@ local function ShowGobBrowser()
    updateNamesLabel()
    toggleOV(gobFrame)
 
+   currentGobList = fakePaginationGODITable
+   updateGobGrid(currentGobList, 1)
+
    -- Making the models reappear after closing
    gobFrame:HookScript("OnShow", function(self)
-      if #currentGobList <= 1 then --if no search was made before closing
-         currentGobList = divideGobList(getGobList("talktomequestionmark.m2", 1, maxgobs, includeEpsilonTiles), columns, rows)
+      if not currentGobList or #currentGobList <= 1 then --if no search was made before closing
+         --currentGobList = divideGobList(getGobList("talktomequestionmark.m2", 1, maxgobs, includeEpsilonTiles), columns, rows)
+         --updateGobGrid(currentGobList, 1)
+		 currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
       else
          updateGobGrid(currentGobList, currentPage)

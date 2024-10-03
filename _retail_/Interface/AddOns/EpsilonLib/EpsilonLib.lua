@@ -197,3 +197,40 @@ EpsiLib.C_API = {}
 for k, v in pairs(C_Epsilon) do
 	EpsiLib.C_API[k] = v
 end
+
+----------- EpsiLib_DB Management
+
+---Loads a settings table into a master table, but does not over-write if data is already present
+---@param settings table The Default Settings to Copy
+---@param master table The Actual Table to hold the settings (aka: your global table saved)
+local function loadDefaultsIntoMaster(settings, master)
+	for k, v in pairs(settings) do
+		if (type(v) == "table") then
+			if (master[k] == nil or type(master[k]) ~= "table") then master[k] = {} end
+			loadDefaultsIntoMaster(v, master[k]);
+		else
+			if master and master[k] == nil then
+				master[k] = v;
+			end
+		end
+	end
+end
+
+
+EpsiLib_DB = {
+	options = {}
+}
+local default_db = EpsiLib_DB
+
+local registerForAddonDataLoaded
+function registerForAddonDataLoaded(_, event, addonName, containsBindings)
+	if addonName ~= EpsilonLib then return end
+
+	-- Run anything here you need to load default values into the config options
+	loadDefaultsIntoMaster(default_db, EpsiLib_DB)
+
+	-- Remove our hook
+	EpsiLib.EventManager:Remove(registerForAddonDataLoaded, "ADDON_LOADED")
+end
+
+EpsiLib.EventManager:Register("ADDON_LOADED", registerForAddonDataLoaded)

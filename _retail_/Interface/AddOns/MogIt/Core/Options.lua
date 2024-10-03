@@ -275,13 +275,6 @@ function mog.createOptions()
 						width = "full",
 						arg = "autoShowMogNPCNamePreviews",
 					},
-					useCurrentCharForMogAutoPreviews = {
-						type = "toggle",
-						order = 3,
-						name = L["Use your Character Race/Gender when auto-showing MogIt NPC Name Previews"],
-						width = "full",
-						arg = "useCurrentCharForMogAutoPreviews",
-					},
 					debugMessages = {
 						type = "toggle",
 						order = 4,

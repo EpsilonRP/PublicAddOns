@@ -1,6 +1,6 @@
 <Ui>
   <!-- Item Button Dummy Frame -->
-	
+
   <Button name="Epsilon_MerchantItemButtonDummyTemplate" registerForClicks="LeftButtonUp, RightButtonUp" virtual="true">
 	<Size x="37" y="37"/>
 	<Scripts>
@@ -34,9 +34,9 @@
 	</Scripts>
 	<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
   </Button>
-  
+
   <!-- Item Template -->
-  
+
   <Frame name="Epsilon_MerchantItemTemplate" virtual="true">
 		<Size x="153" y="44"/>
 		<Layers>
@@ -246,9 +246,9 @@
 			</Frame>
 		</Frames>
 	</Frame>
-	
+
 	<!-- Merchant Frame -->
-	
+
 	<Frame name="Epsilon_MerchantFrame" toplevel="true" parent="UIParent" movable="true" enableMouse="true" hidden="true" inherits="ButtonFrameTemplate">
 		<Anchors>
 			<Anchor point="TOPLEFT" x="16" y="-116"/>
@@ -519,7 +519,7 @@
 				<PushedTexture file="Interface\Buttons\UI-Quickslot-Depress"/>
 				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
 		  </Button>
-			<Frame name="Epsilon_MerchantBuyBackItem">	
+			<Frame name="Epsilon_MerchantBuyBackItem">
 				<Size x="153" y="37"/>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantItem10" relativePoint="BOTTOMLEFT" x="0" y="-53"/>
@@ -745,7 +745,7 @@
 			<OnMouseWheel function="Epsilon_MerchantFrame_OnMouseWheel"/>
 		</Scripts>
 	</Frame>
-	
+
 	<PlayerModel name="Epsilon_MerchantModel" mixin="ModelFrameMixin">
 		<Size x="198" y="230"/>
 		<Frames>
@@ -961,9 +961,9 @@
 		  </Frame>
 		</Frames>
 	</PlayerModel>
-	
+
 	<!-- Extra Gossip Button -->
-	
+
 	<Button name="GossipTitleButtonAddVendor" parent="GossipFrame" inherits="GossipTitleButtonTemplate" hidden="true">
 		<Anchors>
 			<Anchor point="TOPLEFT" relativeTo="GossipGreetingText" relativePoint="BOTTOMLEFT">
@@ -992,15 +992,23 @@
 				self:Hide();
 			</OnClick>
 			<OnEvent>
-				if C_GossipInfo.GetNumOptions() == 0 then
-					self:SetPoint("TOPLEFT", GossipGreetingText, "BOTTOMLEFT", -10, -20)
+				local function runChecks()
+					if C_GossipInfo.GetNumOptions() == 0 then
+						self:SetPoint("TOPLEFT", GossipGreetingText, "BOTTOMLEFT", -10, -20)
+					else
+						self:SetPoint("TOPLEFT", EpsilonLib.Utils.Gossip:GetTitleButton(C_GossipInfo.GetNumOptions()), "BOTTOMLEFT", 0, -3)
+					end
+				end
+				if ImmersionFrame then
+					self:SetParent(ImmersionFrame)
+					C_Timer.After(0, runChecks)
 				else
-					self:SetPoint("TOPLEFT", GossipFrame_GetTitleButton(C_GossipInfo.GetNumOptions()), "BOTTOMLEFT", 0, -3)
+					runChecks()
 				end
 			</OnEvent>
 		</Scripts>
 	</Button>
-	
+
 	<Button name="GossipTitleButtonRemoveVendor" parent="GossipFrame" hidden="true">
 		<Size x="16" y="16"/>
 		<Anchors>
@@ -1029,14 +1037,23 @@
 			</OnLeave>
 			<OnEvent>
 				if not C_Epsilon.IsOfficer() then self:Hide(); return end
-				for i = 1, C_GossipInfo.GetNumOptions() do
-					titleButton = GossipFrame_GetTitleButton(i);
-					titleButtonText = titleButton:GetText();
-					if titleButtonText == "I want to browse your goods." then
-						self:SetPoint("RIGHT", titleButton, "RIGHT", -8, 0);
-						self:SetFrameLevel(10000)
-						break
+				local function runChecks()
+					for i = 1, C_GossipInfo.GetNumOptions() do
+						titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
+						titleButtonText = titleButton:GetText();
+						if titleButtonText == "I want to browse your goods." then
+							self:SetPoint("RIGHT", titleButton, "RIGHT", -8, 0);
+							self:SetFrameLevel(10000)
+							break
+						end
 					end
+				end
+				if ImmersionFrame then
+					self:SetHitRectInsets(-10, -20, -10, -10)
+					self:SetParent(ImmersionFrame)
+					C_Timer.After(0, runChecks)
+				else
+					runChecks()
 				end
 			</OnEvent>
 		</Scripts>
@@ -1044,7 +1061,7 @@
 		<HighlightTexture file="Interface\Buttons\UI-GroupLoot-Pass-Highlight" alphaMode="ADD"/>
 		<PushedTexture file="Interface\Buttons\UI-GroupLoot-Pass-Down"/>
 	</Button>
-	
+
 	<Button name="$parentEditSoundsButton" parent="GossipFrame" text="Edit Sounds" inherits="MagicButtonTemplate" hidden="true">
 		<Size x="90" y="24"/>
 		<Anchors>
