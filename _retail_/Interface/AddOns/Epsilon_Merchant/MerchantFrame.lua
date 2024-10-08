@@ -820,6 +820,12 @@ function Epsilon_MerchantRefreshItemButtons()
 	for x = 0, NUM_BAG_FRAMES, 1 do
 		if ( GetContainerNumSlots(x) > 0 ) then
 			for y = 1, GetContainerNumSlots(x) do
+
+				-- Offset for the locked inv slots in base backpack
+				if x == BACKPACK_CONTAINER and not IsAccountSecured() then
+					y = y + 4
+				end
+
 				local originalButton = ContainerFrameUtil_GetItemButtonAndContainer(x, y);
 				local itemButton = Epsilon_MerchantFrame.ItemButtons[index];
 				if not( itemButton ) then
