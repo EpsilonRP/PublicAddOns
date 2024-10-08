@@ -653,7 +653,8 @@ local function ShowGobBrowser()
       local localResult = utils.deepcopy(resultList)
       for i = 1, rows do
          for j = 1, columns do
-			local index = i*j
+         -- index is the current column plus the colums of all previous rows
+         local index = j + ((i - 1) * columns)
             --print(LibParse:JSONEncode(localResult[page]))
 			local resultData = localResult[page][index]
 

@@ -726,6 +726,7 @@ local function openConditionsEditor(conditionsContainer, editorIndex, spellCondi
 	else
 		addConditionRow(addGroup(frame))
 	end
+	scroll:DoLayout() -- Force update the layout to adjust scroll size
 
 	local numOpenEditors = 0
 	for k, v in pairs(editors) do
