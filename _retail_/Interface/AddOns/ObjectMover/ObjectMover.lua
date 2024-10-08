@@ -713,12 +713,15 @@ end
 
 --Check to make sure entry is valid
 function CheckIfValid(Box, IsNotObjectID, Function)
+	local text = Box:GetText()
+	if text then text = strtrim(text) end
+
 	if IsNotObjectID then
-		if Box:GetText() == Box:GetText():match("%d+") or Box:GetText() == Box:GetText():match("%d+%.%d+") or Box:GetText() == Box:GetText():match("%.%d+") then
+		if text == text:match("%d+") or text == text:match("%d+%.%d+") or text == text:match("%.%d+") then
 			if Function then Function() else return true end
 			--If we don't want to find an object ID, and the box's text isn't illegal, e.g. ".1d-2.*+", and if we want to run a function, then run the function, else if we don't want to run a function, just tell them that the box's text is legal
 		end
-	elseif not IsNotObjectID and Box:GetText() == Box:GetText():match("%d+") then
+	elseif not IsNotObjectID and text == text:match("%d+") then
 		if Function then Function() else return true end
 		--If we want to find an object ID, and the box's text is an object ID, and if we want to run a function, then run the function, else if we don't want to run a function, just tell them that the box's text is legal
 	end
@@ -764,7 +767,11 @@ function updateDimensions(val)
 					:GetText())
 			end
 		end
-		if val == "width" then if tonumber(OPWidthBox:GetText()) ~= nil then OPmoveWidth = tonumber(OPWidthBox:GetText()) end end
+		if val == "width" then
+			if tonumber(OPWidthBox:GetText()) ~= nil then
+				OPmoveWidth = tonumber(OPWidthBox:GetText())
+			end
+		end
 		if val == "height" then
 			if tonumber(OPHeightBox:GetText()) ~= nil then
 				OPmoveHeight = tonumber(OPHeightBox
@@ -903,9 +910,9 @@ function OPSpawn()
 		--SpawnClarifier = true
 		--Check if we have an object ID in the object ID box, if we do, spawn it
 		if OPScaleObjectToggle:GetChecked() == true and OPScaleObjectToggle:IsEnabled() then
-			SendChatMessage(".go spawn " .. OPObjectIDBox:GetText() .. " scale " .. OPScaleBox:GetText())
+			SendChatMessage(".go spawn " .. tonumber(OPObjectIDBox:GetText()) .. " scale " .. tonumber(OPScaleBox:GetText()))
 		else
-			SendChatMessage(".go spawn " .. OPObjectIDBox:GetText())
+			SendChatMessage(".go spawn " .. tonumber(OPObjectIDBox:GetText()))
 		end
 	end
 end
@@ -917,7 +924,7 @@ function OPTeletoObject()
 end
 
 function OPScaleObject(scale)
-	cmd("gobject scale " .. scale)
+	cmd("gobject scale " .. tonumber(scale))
 end
 
 -- Overlay Stuff
