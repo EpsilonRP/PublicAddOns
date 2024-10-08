@@ -300,7 +300,7 @@ local function getSparkPopupStylesSorted()
 end
 
 -- Multi Sparks
-local multiSparkStyles = { -- You can still use one not listed here technically, but these are the ones supported in the UI.
+local multiSparkStyles = {
 
 	-- Custom to support variable 1 to 4 Buttons
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-ArcanumTint",      name = "Arcanum (Tint)" },

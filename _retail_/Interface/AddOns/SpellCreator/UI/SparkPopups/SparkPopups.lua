@@ -29,8 +29,10 @@ local getDistanceBetweenPoints        = DataUtils.getDistanceBetweenPoints
 local areTablesFunctionallyEquivalent = DataUtils.areTablesFunctionallyEquivalent
 
 local ASSETS_PATH                     = Constants.ASSETS_PATH
+local SPARK_ASSETS_PATH               = ASSETS_PATH .. "/Sparks/"
 
 local defaultSparkPopupStyle          = "Interface\\ExtraButton\\Default";
+local defaultMultiSparkStyle          = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Arcanum";
 
 ---@type table<number, SparkTriggerData[]>
 local phaseSparkTriggers              = {}
@@ -218,12 +220,15 @@ end
 ---@param style string
 ---@param numSpells number
 function multiSparkFrame:SetStyle(style, numSpells)
+	local texture = style or defaultMultiSparkStyle;
+
 	if not numSpells then
 		numSpells = #multiSparkFrame.spells
 	end
 	if not numSpells then numSpells = 3 end -- just use a big one idk, shouldn't be possible.. if things are working..
 
-	style = style .. "-" .. numSpells    -- add the number of spells to pull the proper texture - Styles should always be passed as the raw name, without the final "-number"
+	texture = texture .. "-" .. numSpells -- add the number of spells to pull the proper texture - Styles should always be passed as the raw name, without the final "-number"
+	texture = texture:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
 
 	--[[ -- Disabled Atlas Support for the time being - there is no valid WoW Atlas's setup that would work anyways.
 	local isAtlas = C_Texture.GetAtlasInfo(style)
@@ -244,7 +249,7 @@ function multiSparkFrame:SetStyle(style, numSpells)
 	end
 	--]]
 
-	self.Border.Style:SetTexture(style)
+	self.Border.Style:SetTexture(texture)
 end
 
 ---@param commIDs CommID[]
