@@ -57,7 +57,7 @@ local function GetUnitID( unitID )
 	if not( unitType == "Creature" and id ) then
 		return
 	end
-	
+
 	id = tonumber( id );
 	return id;
 end
@@ -79,7 +79,7 @@ function Epsilon_Merchant_LoadVendor()
 	if not Epsilon_MerchantFrame.merchantID then
 		return
 	end
-	
+
 	-- Send a request to the server.
 	local messageTicketId = C_Epsilon.GetPhaseAddonData( "VENDOR_DATA_" .. Epsilon_MerchantFrame.merchantID )
 
@@ -87,7 +87,7 @@ function Epsilon_Merchant_LoadVendor()
 		-- vendor not found ??? uh oh...
 		return
 	end
-	
+
 	local register = {
 		id = messageTicketId;
 		type = "items";
@@ -103,16 +103,16 @@ function Epsilon_Merchant_SaveVendor()
 	if not Epsilon_MerchantFrame.merchantID then
 		return
 	end
-	
+
 	local str;
 	if #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] > 0 then
 		str = table_to_string( EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] )
 	else
 		str = "{}"
 	end
-	
+
 	local key = "VENDOR_DATA_" .. Epsilon_MerchantFrame.merchantID
-	
+
 	if key and str then
 		C_Epsilon.SetPhaseAddonData( key, str );
 	end
@@ -125,15 +125,15 @@ function Epsilon_Merchant_SaveSound( soundType, soundKitID )
 	if not( UnitExists("target") and soundType and soundKitID ) then
 		return
 	end
-	
+
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-	
+
 	id = tonumber( id )
-	
+
 	local prefix
 	if soundType == "greeting" then
 		prefix = "GREET_SOUND_"
@@ -144,13 +144,13 @@ function Epsilon_Merchant_SaveSound( soundType, soundKitID )
 	elseif soundType == "buyitem" then
 		prefix = "BUY_SOUND_"
 	end
-	
+
 	if not( soundKitID and type( soundKitID ) == "number" and id and type( id ) == "number" ) then
 		return
 	end
-	
+
 	local key = prefix .. id
-	
+
 	if key and soundKitID then
 		C_Epsilon.SetPhaseAddonData( key, soundKitID );
 	end
@@ -164,19 +164,19 @@ function Epsilon_Merchant_PlaySound( soundType )
 	if not( UnitExists("target") and soundType ) then
 		return
 	end
-	
+
 	if soundIsPlaying then
 		return
 	end
-	
+
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-	
+
 	id = tonumber( id )
-	
+
 	-- Send a request to the server.
 	local prefix
 	if soundType == "greeting" then
@@ -188,14 +188,14 @@ function Epsilon_Merchant_PlaySound( soundType )
 	elseif soundType == "buyitem" then
 		prefix = "BUY_SOUND_"
 	end
-	
+
 	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
-	
+
 	if not messageTicketId then
 		-- vendor not found ??? uh oh...
 		return
 	end
-	
+
 	local register = {
 		id = messageTicketId;
 		type = "playsound";
@@ -212,20 +212,20 @@ function Epsilon_Merchant_GetSound( soundType )
 	if not( UnitExists("target") and soundType ) then
 		return
 	end
-	
+
 	if gettingSound then
 		C_Timer.After( 0.2, function() Epsilon_Merchant_GetSound( soundType ) end )
 		return
 	end
-	
+
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-	
+
 	id = tonumber( id )
-	
+
 	-- Send a request to the server.
 	local prefix
 	if soundType == "greeting" then
@@ -237,15 +237,15 @@ function Epsilon_Merchant_GetSound( soundType )
 	elseif soundType == "buyitem" then
 		prefix = "BUY_SOUND_"
 	end
-	
+
 	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
 	gettingSound = true;
-	
+
 	if not messageTicketId then
 		-- vendor not found ??? uh oh...
 		return
 	end
-	
+
 	local register = {
 		id = messageTicketId;
 		type = "loadsound";
@@ -262,26 +262,26 @@ function Epsilon_Merchant_SavePortrait( text )
 	if not( UnitExists("npc") and text ) then
 		return
 	end
-	
+
 	local guid = UnitGUID("npc")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-	
+
 	id = tonumber( id )
-	
+
 	if not( text and type( text ) == "string" and string.len( text ) < 500 and id and type( id ) == "number" ) then
 		return
 	end
-	
+
 	local prefix = "VENDOR_TEXT_"
 	local key = prefix .. id
-	
+
 	if key and text then
 		C_Epsilon.SetPhaseAddonData( key, text );
 	end
-	
+
 	if ( Epsilon_MerchantFrame:IsShown() ) then
 		if ( text ~= "" ) then
 			Epsilon_MerchantFrame_ShowPortrait(Epsilon_MerchantFrame, nil, text, -3, -42)
@@ -299,25 +299,25 @@ function Epsilon_Merchant_GetPortrait()
 	if not( UnitExists("npc") ) then
 		return
 	end
-	
+
 	local guid = UnitGUID("npc")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-	
+
 	id = tonumber( id )
-	
+
 	-- Send a request to the server.
 	local prefix = "VENDOR_TEXT_"
-	
+
 	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
-	
+
 	if not messageTicketId then
 		-- vendor not found ??? uh oh...
 		return
 	end
-	
+
 	local register = {
 		id = messageTicketId;
 		type = "text";
@@ -333,7 +333,7 @@ function Epsilon_Merchant_SaveOptions( options )
 	if not( UnitExists("npc") and options ) then
 		return
 	end
-	
+
 	local guid = UnitGUID("npc");
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid);
 	if not(unitType == "Creature") then
@@ -350,10 +350,10 @@ function Epsilon_Merchant_SaveOptions( options )
 	else
 		text = "{}";
 	end
-	
+
 	local prefix = "VENDOR_OPTIONS_";
 	local key = prefix .. id;
-	
+
 	if key and text then
 		C_Epsilon.SetPhaseAddonData( key, text );
 	end
@@ -367,12 +367,12 @@ function Epsilon_Merchant_GetOptions()
 	if not Epsilon_MerchantFrame.merchantID then
 		return
 	end
-	
+
 	-- Send a request to the server.
 	local prefix = "VENDOR_OPTIONS_";
-		
+
 	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. Epsilon_MerchantFrame.merchantID );
-	
+
 	if not messageTicketId then
 		-- vendor not found ??? uh oh...
 		return
@@ -414,22 +414,22 @@ function PrintMessage( channel, msg )
 	end
 
 	local info = ChatTypeInfo[channel]
-	
+
 	if not( info ) then
 		return
 	end
-	
+
 	for i = 1, NUM_CHAT_WINDOWS do
 		local frame = _G["ChatFrame" .. i]
-		
+
 		if frame then
-		
+
 			-- well this seems fairly nasty
 			local registered = {GetChatWindowMessages(i)}
-			 
+
 			for _,v in ipairs(registered) do
 				if v == channel then
-				 
+
 					frame:AddMessage( msg, info.r, info.g, info.b )
 					break
 				end
@@ -462,7 +462,7 @@ end
 -------------------------------------------------------------------------------
 -- Filter chat frames to suppress our system messages.
 --
-local function OnSystemMessage( chatFrame, event, message ) 
+local function OnSystemMessage( chatFrame, event, message )
 	message = StripMessage( message )
 	for i = 1, #EPSILON_FILTER_PATTERNS do
 		if message:match( EPSILON_FILTER_PATTERNS[i] ) then
@@ -491,7 +491,7 @@ end
 -------------------------------------------------------------------------------
 -- Filter chat frames to suppress our loot messages.
 --
-local function OnLootMessage( chatFrame, event, message ) 
+local function OnLootMessage( chatFrame, event, message )
 	strippedMessage = StripMessage( message )
 	for i = 1, #EPSILON_LOOT_FILTER_PATTERNS do
 		if strippedMessage:match( EPSILON_LOOT_FILTER_PATTERNS[i] ) then
@@ -551,11 +551,11 @@ local TRANSMOG_TOOLTIP_STRINGS = {
 
 function Epsilon_Merchant:OnInitialize()
 	Epsilon_Merchant.db = LibStub( "AceDB-3.0" ):New( "Epsilon_Merchant", DB_Defaults, true );
-	
+
 	EPSILON_ITEM_BUYBACK = Epsilon_Merchant.db['profile']['EPSILON_ITEM_BUYBACK'];
 	EPSILON_VENDOR_DATA = {};
 	EPSILON_VENDOR_OPTIONS = {};
-	
+
 	--ChatFrame_AddMessageEventFilter( "CHAT_MSG_SYSTEM", OnSystemMessage );
 	ChatFrame_AddMessageEventFilter( "CHAT_MSG_LOOT", OnLootMessage );
 
@@ -563,13 +563,13 @@ function Epsilon_Merchant:OnInitialize()
 		self:SetAlpha(1);
 		self:EnableMouse(true)
 	end);
-	
+
 	-- local original = GameTooltip:GetScript("SetInventoryItem")
 	hooksecurefunc(GameTooltip, "SetBagItem", function(tooltip, bag, slot)
 		if not( Epsilon_MerchantFrame.merchantID and Epsilon_MerchantFrame:IsShown() and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] and #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] > 0 ) then
 			return
 		end
-		
+
 		local texture, itemCount, _, _, _, _, link, _, _, itemID = GetContainerItemInfo(bag, slot)
 		local price, vanillaPrice, count, currency, isListed;
 
@@ -582,11 +582,11 @@ function Epsilon_Merchant:OnInitialize()
 				isListed = true;
 			end
 		end
-		
+
 		if itemID and ( not( price or isListed ) ) then
 			_, _, _, _, _, _, _, _, _, _, vanillaPrice = GetItemInfo( itemID );
 		end
-		
+
 		local textLeft = tooltip.textLeft
 		if not textLeft then
 			local tooltipName = tooltip:GetName()
@@ -629,11 +629,11 @@ function Epsilon_Merchant:OnInitialize()
 		end
 		tooltip:Show()
 	end)
-	
+
 	GameTooltip:SetScript("OnTooltipAddMoney", function(self)
 		-- >:D
 	end)
-	
+
 	Epsilon_Merchant.RegisteredPrefixes = {};
 
 	Epsilon_Merchant.EventFrame = CreateFrame( "Frame" );
@@ -692,23 +692,25 @@ function Epsilon_Merchant:OnInitialize()
 					elseif prefixType == "options" then
 						if text == nil then text = "" end
 						text = (loadstring or load)("return "..text)()
-						EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ] = text or {};
+						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc")
+
+						EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
 						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
-							local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ] and EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ].allowSellJunk ) or false;
+							local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowSellJunk ) or false;
 							Epsilon_MerchantEditor.allowSellJunk:SetChecked( allowSellJunk );
 						end
 					elseif prefixType == "text" then
 						text = tostring( text );
-			
+
 						-- Sanitise
 						if string.len( text ) > 500 then
 							return
 						end
-			
+
 						if not( text ) or string.len( text ) < 0 then
 							text = "";
 						end
-			
+
 						if ( Epsilon_MerchantFrame:IsShown() ) then
 							if ( text ~= "" ) then
 								Epsilon_MerchantFrame_ShowPortrait(Epsilon_MerchantFrame, nil, text, -3, -42)
