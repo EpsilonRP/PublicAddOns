@@ -17,12 +17,45 @@
 					<OnClick>
 						Epsilon_MerchantSoundPicker_TestSound( self:GetParent() )
 					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner( self, "ANCHOR_RIGHT" )
+						GameTooltip:AddLine( "Play Sound", 1, 0.81, 0, true )
+						GameTooltip:AddLine( "Play this sound.", 1, 1, 1, true )
+						GameTooltip:AddLine( "&lt;Left Click to Play>", 0.7, 0.7, 0.7, true )
+						GameTooltip:Show()
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Button parentKey="stopButton" hidden="true">
+				<Size x="18" y="18"/>
+				<Anchors>
+					<Anchor point="LEFT" x="5" y="0"/>
+				</Anchors>
+				<NormalTexture file="Interface/TIMEMANAGER/PauseButton"/>
+				<HighlightTexture file="Interface/Buttons/UI-Common-MouseHilight" alphaMode="ADD"/>
+				<Scripts>
+					<OnClick>
+						Epsilon_MerchantSoundPicker_StopSound();
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner( self, "ANCHOR_RIGHT" )
+						GameTooltip:AddLine( "Stop Sound", 1, 0.81, 0, true )
+						GameTooltip:AddLine( "Stop playing this sound.", 1, 1, 1, true )
+						GameTooltip:AddLine( "&lt;Left Click to Stop>", 0.7, 0.7, 0.7, true )
+						GameTooltip:Show()
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
 				</Scripts>
 			</Button>
 		</Frames>
 		<Layers>
 			<Layer level="BORDER">
-				<FontString name="$parentName" inherits="GameFontHighlightSmall" justifyH="LEFT">
+				<FontString name="$parentName" parentKey="Name" inherits="GameFontHighlightSmall" justifyH="LEFT">
 					<Size x="190" y="14"/>
 					<Anchors>
 						<Anchor point="LEFT" relativeKey="$parent.playButton" relativePoint="RIGHT" x="1" y="0"/>
@@ -38,7 +71,7 @@
 				Epsilon_MerchantSoundPickerButton_OnClick(self, button);
 			</OnClick>
 		</Scripts>
-		<HighlightTexture name="$parentHighlight" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD">
+		<HighlightTexture name="$parentHighlight" parentKey="Highlight" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD">
 			<Size x="210" y="16"/>
 			<Anchors>
 				<Anchor point="TOPLEFT" x="5" y="-2"/>
@@ -82,21 +115,15 @@
 		</Scripts>
 	</Button>
   
-    <Frame name="Epsilon_MerchantSoundPicker" parent="GossipFrame" hidden="true" inherits="SimplePanelTemplate" frameStrata="DIALOG" toplevel="true">
-		<Size x="256" y="380"/>
+    <Frame name="Epsilon_MerchantSoundPicker" parent="UIParent" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" toplevel="true" resizable="true">
+		<Size x="350" y="380"/>
+		<ResizeBounds>
+			<minResize x="350" y="380"/>
+			<maxResize x="1500" y="800"/>
+		</ResizeBounds>
 		<Anchors>
 		  <Anchor point="LEFT" relativePoint="RIGHT"/>
 		</Anchors>
-		
-		<Layers>
-			<Layer level="OVERLAY">
-				<FontString inherits="GameFontNormal" justifyH="center" text="NPC Sounds">
-					<Anchors>
-					  <Anchor point="TOP" x="0" y="-12"/> 
-					</Anchors>
-				</FontString>
-			</Layer>
-		</Layers>
 		
 		<Scripts>
 		  <OnLoad>
@@ -104,12 +131,45 @@
 		  </OnLoad>
 		</Scripts>
 		<Frames>
+
+		  <DropDownToggleButton parentKey="FilterButton" inherits="UIMenuButtonStretchTemplate" text="FILTER">
+			<Size x="70" y="22"/>
+			<Anchors>
+			  <Anchor point="TOPRIGHT" x="-10" y="-26"/>
+			</Anchors>
+			<Layers>
+			  <Layer level="ARTWORK">
+				<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+				  <Size x="10" y="12"/>
+				  <Anchors>
+					<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+				  </Anchors>
+				</Texture>
+			  </Layer>
+			</Layers>
+			<Scripts>
+			  <OnMouseDown>
+				UIMenuButtonStretchMixin.OnMouseDown(self, button);
+				ToggleDropDownMenu(1, nil, self:GetParent().FilterDropDown, self, 74, 15);
+				PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+			  </OnMouseDown>
+			</Scripts>
+		  </DropDownToggleButton>
+		  <Frame name="Epsilon_MerchantSoundPickerFilterDropDown" parentKey="FilterDropDown" inherits="UIDropDownMenuTemplate">
+			<Scripts>
+			  <OnLoad>
+				self.Text:SetJustifyH("CENTER");
+				self.Button:Show();
+			  </OnLoad>
+			</Scripts>
+		  </Frame>
 		
 		  <!-- Search/filter box. -->
 		  <EditBox parentKey="search" inherits="SearchBoxTemplate">
-			<Size x="240" y="8" />
+			<Size x="170" y="8" />
 			<Anchors>
-			  <Anchor point="TOP" x="0" y="-32" />
+			  <Anchor point="TOPLEFT" x="80" y="-26" />
+			  <Anchor point="BOTTOMRIGHT" relativeKey="$parent.FilterButton" relativePoint="BOTTOMLEFT" x="0" y="0" />
 			</Anchors>
 			<Scripts>
 			  <OnTextChanged>
@@ -119,28 +179,30 @@
 			  <OnEscapePressed function="EditBox_ClearFocus"/>
 			</Scripts>
 		  </EditBox>
-		 
-		  <Button name="$parentCloseButton" inherits="MagicButtonTemplate" text="Close">
-			<Size x="100" y="22"/>
+
+		  <Button parentKey="resizer">
+			<Size x="16" y="16"/>
 			<Anchors>
-				<Anchor point="BOTTOMRIGHT"/>
+				<Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
 			</Anchors>
+			<NormalTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down"/>
+			<PushedTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up"/>
+			<HighlightTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight"/>
 			<Scripts>
-				<OnClick>
-					Epsilon_MerchantSoundPicker_Close()
-				</OnClick>
+				<OnMouseDown>
+					self:GetParent():StartSizing("BOTTOMRIGHT");
+					self:SetScript("OnUpdate", Epsilon_MerchantSoundPicker_UpdateSize);
+				</OnMouseDown>
+				<OnMouseUp>
+					self:GetParent():StopMovingOrSizing("BOTTOMRIGHT");
+					self:SetScript("OnUpdate", nil);
+				</OnMouseUp>
 			</Scripts>
-		  </Button>
-		  
-		  <Button name="Epsilon_MerchantSoundPickerButton1" inherits="Epsilon_MerchantSoundPickerButtonTemplate" id="1">
-			<Anchors>
-				<Anchor point="TOPLEFT" relativeTo="Epsilon_MerchantSoundPicker" x="2" y="-51"/>
-			</Anchors>
 		  </Button>
 		  
 		  <Button name="Epsilon_MerchantSoundPickerGreetingSound" parentKey="greetingSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
 			<Anchors>
-				<Anchor point="TOPRIGHT" x="-8" y="-285"/>
+				<Anchor point="BOTTOMRIGHT" x="-8" y="74"/>
 			</Anchors>
 			 <KeyValues>
 				<KeyValue key="soundType" value="greeting" type="string"/>
@@ -204,9 +266,10 @@
 		  
 		  <!-- Area for icon selector. -->
 		  <ScrollFrame name="$parentScrollFrame" inherits="FauxScrollFrameTemplate">
-			<Size x="256" y="226"/>
+			<Size x="256"/>
 			<Anchors>
-				<Anchor point="TOPRIGHT" relativeTo="Epsilon_MerchantSoundPicker" relativePoint="TOPRIGHT" x="-33" y="-53"/>
+				<Anchor point="TOPRIGHT" relativeKey="$parent.Inset" relativePoint="TOPRIGHT" x="-26" y="-5"/>
+				<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Inset" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
 			</Anchors>
 			<Scripts>
 				<OnVerticalScroll>

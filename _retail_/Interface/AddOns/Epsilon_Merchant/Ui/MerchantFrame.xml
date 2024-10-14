@@ -701,7 +701,7 @@
 					<OnLeave function="GameTooltip_Hide"/>
 					<OnClick>
 						PlaySound( 841 )
-						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, 1);
 						Epsilon_MerchantFrame_Update();
 					</OnClick>
 				</Scripts>
@@ -718,7 +718,7 @@
 					<OnLeave function="GameTooltip_Hide"/>
 					<OnClick>
 						PlaySound( 841 )
-						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, 2);
 						Epsilon_MerchantFrame_Update();
 					</OnClick>
 				</Scripts>

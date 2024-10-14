@@ -324,7 +324,7 @@ local function createLoadButton(row)
 	UIHelpers.setupCoherentButtonTextures(loadButton, ASSETS_PATH .. "/icon-edit")
 
 	loadButton:SetScript("OnClick", function(self, button)
-		local spell = getSpell(self.commID)
+		local spell = CopyTable(getSpell(self.commID)) -- Always copy the table, so we are ensuring this is a new, unique base, instead of sharing resources like conditions
 
 		if button == "RightButton" then
 			spell = CopyTable(spell) -- this is so it does not impact the original spell table at all

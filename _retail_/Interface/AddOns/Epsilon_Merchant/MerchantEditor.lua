@@ -20,6 +20,7 @@ end
 -- Save changes.
 --
 function Epsilon_MerchantEditor_Save()
+	local allowRefunds = Epsilon_MerchantEditor.allowRefunds:GetChecked();
 	local allowSellJunk = Epsilon_MerchantEditor.allowSellJunk:GetChecked();
 	local greetingEnabled = Epsilon_MerchantEditor.enableGreeting:GetChecked();
 
@@ -28,6 +29,7 @@ function Epsilon_MerchantEditor_Save()
 	--
 
 	local options = {
+		allowRefunds = allowRefunds;
 		allowSellJunk = allowSellJunk;
 	};
 	
@@ -69,6 +71,7 @@ end
 --
 function Epsilon_MerchantEditor_ClearAllFields()
 	Epsilon_MerchantEditor.greeting.EditBox:SetText( "" );
+	Epsilon_MerchantEditor.allowRefunds:SetChecked( false );
 	Epsilon_MerchantEditor.allowSellJunk:SetChecked( false );
 	Epsilon_MerchantEditor.enableGreeting:SetChecked( false );
 end

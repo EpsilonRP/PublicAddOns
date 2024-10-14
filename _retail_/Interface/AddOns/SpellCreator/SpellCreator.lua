@@ -232,7 +232,7 @@ local function noSpellsToLoad(fake)
 		SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Enable();
 	end
 	phaseVault.isSavingOrLoadingAddonData = false;
-	phaseVault.isLoaded = false;
+	phaseVault.isLoaded = true;
 end
 
 local function generateFailedSpell(commID)
@@ -293,6 +293,17 @@ local tempVaultSpellStrings = {}
 local function getPhaseVaultDataFromKeys(keys, callback)
 	phaseVaultLoadingCount = 0
 	phaseVaultLoadingExpected = #keys
+
+	if phaseVaultLoadingExpected == 0 then
+		dprint("Phase Vault Loading Expected was 0 / empty vault - short circuiting")
+
+		phaseVault.isSavingOrLoadingAddonData = false
+		phaseVault.isLoaded = true
+		ns.UI.ItemIntegration.scripts.updateCache(true)
+
+		if callback then callback(true); end
+		return
+	end
 
 	phaseAddonDataListener2:RegisterEvent("CHAT_MSG_ADDON")
 	phaseAddonDataListener2:SetScript("OnEvent", function(self, event, prefix, text, channel, sender, ...)
@@ -747,9 +758,13 @@ local function updateSpellLoadRows(fromPhaseDataLoaded)
 		if fromPhaseDataLoaded then
 			-- called from getSpellForgePhaseVault() - that means our saved spell from Vault is ready -- you can call with true also to skip loading the vault, if you know it's already loaded.
 			savedSpellFromVault = Vault.phase.getSpells()
-			dprint("Phase Spell Vault Loaded.")
-			SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Enable()
-			SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText("")
+			if not savedSpellFromVault or #savedSpellFromVault == 0 then
+				noSpellsToLoad()
+			else
+				dprint("Phase Spell Vault Loaded.")
+				SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Enable()
+				SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText("")
+			end
 		else
 			if not phaseVault.isSavingOrLoadingAddonData then
 				getSpellForgePhaseVault(updateSpellLoadRows)

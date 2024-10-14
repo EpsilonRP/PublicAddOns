@@ -128,13 +128,11 @@
 						</Layers>
 						<Scripts>
 							<OnLoad>
-								self:SetScale(UIParent:GetScale())
 								self:RegisterEvent("UI_SCALE_CHANGED");
 								self:RegisterEvent("DISPLAY_SIZE_CHANGED");
 							</OnLoad>
 							<OnEvent>
 								self:RefreshCamera();
-								self:SetScale(UIParent:GetScale())
 								if self.uiCameraID then
 									Model_ApplyUICamera(self, self.uiCameraID);
 								end
