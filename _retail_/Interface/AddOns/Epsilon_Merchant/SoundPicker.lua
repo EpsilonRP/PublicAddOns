@@ -88,7 +88,7 @@ function Epsilon_MerchantSoundPicker_OnLoad(self)
 			Epsilon_MerchantSoundPicker_Update();
 		end
 	end)
-	
+
 	if self.NineSlice then
 		self.NineSlice:SetFrameLevel(1)
 	end
@@ -98,27 +98,62 @@ function Epsilon_MerchantSoundPicker_OnLoad(self)
 
 	self.pool = CreateFramePool("Button", self, "Epsilon_MerchantSoundPickerButtonTemplate")
 
-	self.includeLooping = false;
+	self.includeLooping = false; -- // false = non-looping only (default); true = looping only; nil = both
 
-	UIDropDownMenu_Initialize(self.FilterDropDown, function(dropdown, level) 
+	UIDropDownMenu_Initialize(self.FilterDropDown, function(dropdown, level)
 		local filterSystem = {
 			filters = {
-				{ type = FilterComponent.Checkbox, text = "Include Looping", set = function() self.includeLooping = not self.includeLooping; Epsilon_MerchantSoundPicker_FilterChanged(); end, isSet = function() return self.includeLooping end, },
+				--{ type = FilterComponent.Checkbox, text = "Include Looping", set = function() self.includeLooping = not self.includeLooping; Epsilon_MerchantSoundPicker_FilterChanged(); end, isSet = function() return self.includeLooping end, },
+				{ type = FilterComponent.Submenu, text = "Include Looping", value = 1, childrenInfo = {
+					filters = {
+						{
+							type = FilterComponent.Radio,
+						 	text = "Non-Looping Only",
+						  	set = function()
+								self.includeLooping = false;
+								Epsilon_MerchantSoundPicker_FilterChanged();
+								UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE);
+							end,
+							isSet = function() return self.includeLooping == false end
+						},
+						{
+							type = FilterComponent.Radio,
+							text = "Looping Only",
+							set = function()
+								self.includeLooping = true;
+								Epsilon_MerchantSoundPicker_FilterChanged();
+								UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE);
+							end,
+							isSet = function() return self.includeLooping == true end
+						},
+						{
+							type = FilterComponent.Radio,
+							text = "Both",
+							set = function()
+								self.includeLooping = nil;
+								Epsilon_MerchantSoundPicker_FilterChanged();
+								UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE);
+						  	end,
+							isSet = function() return self.includeLooping == nil end
+					  },
+					},
+				},
+			},
 				{ type = FilterComponent.Submenu, text = "Types", value = 2, childrenInfo = {
 						filters = {
-							{ type = FilterComponent.TextButton, 
+							{ type = FilterComponent.TextButton,
 							  text = CHECK_ALL,
-							  set = function() 	
+							  set = function()
 									SetAllCategoryFilter(true);
-									UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE); 
-								end, 
+									UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE);
+								end,
 							},
 							{ type = FilterComponent.TextButton,
 							  text = UNCHECK_ALL,
-							  set = function() 	
+							  set = function()
 									SetAllCategoryFilter(false);
-									UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE); 
-								end, 
+									UIDropDownMenu_RefreshAll(self.FilterDropDown, UIDROPDOWNMENU_MENU_VALUE);
+								end,
 							},
 						},
 					},
@@ -127,7 +162,7 @@ function Epsilon_MerchantSoundPicker_OnLoad(self)
 		};
 
 		for i = 1, #SOUND_FILTER_CATEGORIES do
-			local category = { 
+			local category = {
 				type = FilterComponent.Checkbox,
 				text = SOUND_FILTER_CATEGORIES[i][2],
 				set = function(filter, value)
@@ -146,8 +181,8 @@ function Epsilon_MerchantSoundPicker_OnLoad(self)
 
 		FilterDropDownSystem.Initialize(dropdown, filterSystem, level);
 	end, "MENU");
-	
-	Epsilon_MerchantSoundPicker_Update()
+
+	--Epsilon_MerchantSoundPicker_Update()
 end
 
 -------------------------------------------------------------------------
@@ -170,7 +205,7 @@ end
 --
 function Epsilon_MerchantSoundPicker_Update()
 	local list;
-	if not( filteredList ) then 
+	if not( filteredList ) then
 		list = C_Epsilon.SoundKit_Count();
 	else
 		list = filteredList;
@@ -239,9 +274,9 @@ function Epsilon_MerchantSoundPicker_Update()
 		else
 			button:Hide();
 		end
-		
+
 	end
-	
+
 	FauxScrollFrame_Update(Epsilon_MerchantSoundPickerScrollFrame, list, 14, 16 );
 end
 
@@ -270,6 +305,10 @@ function Epsilon_MerchantSoundPicker_UpdateSize()
 	Epsilon_MerchantSoundPickerBuyItemSoundText:SetSize( width - 126, 16 );
 	Epsilon_MerchantSoundPickerFarewellSound:SetWidth( width - 106 );
 	Epsilon_MerchantSoundPickerFarewellSoundText:SetSize( width - 126, 16 );
+end
+
+function Epsilon_MerchantSoundPicker_OnSizeChanged(self, width, height)
+	Epsilon_MerchantSoundPicker_Update()
 end
 
 -------------------------------------------------------------------------
@@ -311,17 +350,17 @@ function Epsilon_MerchantSoundPicker_BindSound( self )
 		UIErrorsFrame:AddMessage( "You must select a sound file from the list.", 1.0, 0.0, 0.0, 53, 5 );
 		return
 	end
-	
+
 	if not( UnitExists("target") ) then
 		UIErrorsFrame:AddMessage( "You must select a creature.", 1.0, 0.0, 0.0, 53, 5 );
 		return
 	end
-	
+
 	-- Stop playing any current sounds.
 	if Epsilon_MerchantSoundPicker.soundHandle then
 		StopSound( Epsilon_MerchantSoundPicker.soundHandle )
 	end
-	
+
 	self:SetText( Epsilon_MerchantSoundPicker.selectedName )
 	Epsilon_Merchant_SaveSound( self.soundType, Epsilon_MerchantSoundPicker.selectedSound )
 	PlaySound(840);
@@ -337,17 +376,17 @@ function Epsilon_MerchantSoundPicker_UnbindSound( self )
 	if not( self.soundType ) then
 		return
 	end
-	
+
 	if not( UnitExists("target") ) then
 		UIErrorsFrame:AddMessage( "You must select a creature.", 1.0, 0.0, 0.0, 53, 5 );
 		return
 	end
-	
+
 	-- Stop playing any current sounds.
 	if Epsilon_MerchantSoundPicker.soundHandle then
 		StopSound( Epsilon_MerchantSoundPicker.soundHandle );
 	end
-	
+
 	self:SetText( "(Not Bound)" );
 	Epsilon_Merchant_SaveSound( self.soundType, 0 );
 	PlaySound(840);
@@ -357,20 +396,52 @@ end
 -------------------------------------------------------------------------------
 -- Called when the user types into the search box, or changes the filter.
 --
+local lastFilterTerm
 function Epsilon_MerchantSoundPicker_FilterChanged()
 	local filter		= Epsilon_MerchantSoundPicker.search:GetText():lower();
-	local includeLoops  = Epsilon_MerchantSoundPicker.includeLooping;
+	local includeLoops  = Epsilon_MerchantSoundPicker.includeLooping; -- // false = non-looping only (default); true = looping only; nil = both
 
 	local soundTypes = {};
 	for k, v in pairs( filterCategories ) do
 		tinsert( soundTypes, v );
 	end
 	C_Epsilon.SoundKit_FilterSoundTypes( unpack( soundTypes ) );
-	filteredList = C_Epsilon.SoundKit_Search( filter, includeLoops );
+	if includeLoops then -- // In theory, we SHOULD be able to just pass includeLoops AS the arg.. however the C_ function is taking nil as false instead of true nil/not-given.
+		filteredList = C_Epsilon.SoundKit_Search( filter, true );
+	elseif includeLoops == false then
+		filteredList = C_Epsilon.SoundKit_Search( filter, false );
+	else
+		filteredList = C_Epsilon.SoundKit_Search( filter )
+	end
 	-- build new list
+	Epsilon_MerchantSoundPickerScrollFrame:SetVerticalScroll(0)
 	Epsilon_MerchantSoundPicker_Update();
+
+	lastFilterTerm = filter
 end
-    
+
+local searchTimer_Length = 0.5
+local searchTimer = C_Timer.NewTimer(0, function() end)
+
+local function newSearch()
+	if lastFilterTerm == Epsilon_MerchantSoundPicker.search:GetText():lower() then return end --// don't re-search on same term
+	Epsilon_MerchantSoundPicker_FilterChanged()
+end
+
+function Epsilon_MerchantSoundPickerSearch_OnEnterPressed(self)
+   self:ClearFocus()
+   searchTimer:Cancel()
+   newSearch()
+end;
+
+function Epsilon_MerchantSoundPickerSearch_OnTextChanged(self, userInput)
+	SearchBoxTemplate_OnTextChanged(self);
+	if userInput then
+	  searchTimer:Cancel()
+	  searchTimer = C_Timer.NewTimer(searchTimer_Length, newSearch)
+	end
+end
+
 -------------------------------------------------------------------------------
 -- Close the sound picker window. Use this instead of a direct Hide()
 --
@@ -379,7 +450,7 @@ function Epsilon_MerchantSoundPicker_Close()
 	Epsilon_MerchantSoundPicker.selectedName = nil
 	Epsilon_MerchantSoundPicker:Hide()
 end
-    
+
 -------------------------------------------------------------------------------
 -- Open the sound picker window.
 --

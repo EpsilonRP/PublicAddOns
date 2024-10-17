@@ -230,7 +230,7 @@ local itemOptions = {
 	{
 		text = L["|cff00ccffEquip to NPC|r"], --epsi edit
 		func = function(self)
-			local item = mog:GetItemInfo(self.value, callback)
+			local item = mog:GetItemInfo(self.value)
 			local itemID = self.value:match("item:(%d*)");
 			local showCommandReplies = mog.db.profile.showCommandReplies
 
@@ -243,13 +243,9 @@ local itemOptions = {
 	{
 		text = L["|cff00ccffLookup item|r"], --epsi edit
 		func = function(self)
-			local item = mog:GetItemInfo(self.value, callback)
-			local itemID = self.value:match("item:(%d*)");
-			local showCommandReplies = mog.db.profile.showCommandReplies
+			local item = mog:GetItemInfo(self.value)
+			local showCommandReplies = true -- Always true here so we see the looked up items lol
 
-			if not mog.db.profile.toggleMessages then
-				print("|cff00ccff[MogIt]|r looking up item: |cff00ccff|Hitem:" .. itemID .. "|h[" .. item.name .. "]|r");
-			end
 			sendAddonCmd("lookup item " .. item.name, nil, showCommandReplies)
 		end,
 	},

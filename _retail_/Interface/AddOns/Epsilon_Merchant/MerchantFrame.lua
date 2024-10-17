@@ -3,6 +3,8 @@
 -------------------------------------------------------------------------------
 -- Merchant Frame
 --
+local addonName, ns = ...
+local addon_path = "Interface/AddOns/" .. addonName
 
 local Me = Epsilon_Merchant;
 local SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
@@ -1226,6 +1228,7 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			index = EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][itemIndex][1]
 		end
 		local itemButton = _G["Epsilon_MerchantItem"..i.."ItemButton"];
+		local addItemButton = _G["Epsilon_MerchantItem"..i.."AddItemButton"];
 		local merchantButton = _G["Epsilon_MerchantItem"..i];
 		local merchantMoney = _G["Epsilon_MerchantItem"..i.."MoneyFrame"];
 		local merchantAltCurrency = _G["Epsilon_MerchantItem"..i.."AltCurrencyFrame"];
@@ -1237,9 +1240,9 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			SetItemButtonCount(itemButton, 0)
 			SetItemButtonStock(itemButton, 0)
 			_G["Epsilon_MerchantItem"..i.."Name"]:SetText("Add Item")
-			_G["Epsilon_MerchantItem"..i.."Name"]:SetTextColor(1, 0.81, 0);
-			SetItemButtonTexture(itemButton, "Interface/PaperDollInfoFrame/Character-Plus")
-			itemButton.hasItem = false
+			_G["Epsilon_MerchantItem"..i.."Name"]:SetTextColor(0, 1, 0);
+			SetItemButtonTexture(itemButton, nil);
+			itemButton.hasItem = nil;
 			itemButton:SetID(0)
 			itemButton.slotID = 0
 			merchantRemove:Hide()
@@ -1252,7 +1255,8 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			SetItemButtonTextureVertexColor(itemButton, 1.0, 1.0, 1.0);
 			SetItemButtonNormalTextureVertexColor(itemButton, 1.0, 1.0, 1.0);
 			Epsilon_MerchantFrameItem_UpdateQuality(merchantButton, nil);
-			itemButton:Show()
+			itemButton:Hide();
+			addItemButton:Show();
 		elseif ( itemIndex <= numMerchantItems ) then
 			name, texture, price, stackCount, numAvailable, isPurchasable, isUsable, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo(index);
 
@@ -1325,6 +1329,7 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			itemButton:SetID(index);
 			itemButton.slotID = itemIndex;
 			itemButton:Show();
+			addItemButton:Hide();
 
 			local tintRed = not isPurchasable or (not isUsable and not isHeirloom);
 
@@ -1372,6 +1377,7 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			itemButton.hasItem = nil;
 			itemButton.name = nil;
 			itemButton:Hide();
+			addItemButton:Hide();
 			merchantRemove:Hide();
 			-- merchantRestock:Hide();
 			merchantPrice:Hide();
@@ -1659,16 +1665,7 @@ function Epsilon_MerchantItemButton_OnClick(self, button)
 
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
 		-- Is merchant frame
-		if self:GetID() == 0 then
-			OpenAllBags()
-			Epsilon_MerchantFrame.choosingItem = true;
-			Epsilon_MerchantItemEditor.choosingItem = false;
-			Epsilon_MerchantCursorOverlay:Show()
-			Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
-				SetCursor("CAST_CURSOR")
-			end)
-			PlaySound( 83 )
-		elseif ( button == "LeftButton" ) then
+		if ( button == "LeftButton" ) then
 			if ( Epsilon_MerchantFrame.refundItem ) then
 				if ( ContainerFrame_GetExtendedPriceString(Epsilon_MerchantFrame.refundItem, Epsilon_MerchantFrame.refundItemEquipped)) then
 					-- a confirmation dialog has been shown
@@ -1748,15 +1745,9 @@ end
 function Epsilon_MerchantItemButton_OnEnter(button)
 	GameTooltip:SetOwner(button, "ANCHOR_RIGHT");
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
-		if button:GetID() == 0 then
-			GameTooltip:AddLine("|TInterface/PaperDollInfoFrame/Character-Plus:12|t Add Item", 1, 1, 1)
-			GameTooltip:AddLine("Select an item from your inventory to add to this vendor.", 1.0, 0.81, 0.0, true)
-			GameTooltip:Show()
-		else
-			GameTooltip:SetItemByID(button:GetID());
-			GameTooltip_ShowCompareItem(GameTooltip);
-			Epsilon_MerchantFrame.itemHover = button:GetID();
-		end
+		GameTooltip:SetItemByID(button:GetID());
+		GameTooltip_ShowCompareItem(GameTooltip);
+		Epsilon_MerchantFrame.itemHover = button:GetID();
 	else
 		GameTooltip:SetItemByID(button:GetID());
 		if ( IsModifiedClick("DRESSUP") and button.hasItem ) then

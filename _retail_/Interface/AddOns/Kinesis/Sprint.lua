@@ -57,7 +57,11 @@ local function updateSpeeds()
 		local sprintSpeedNormal = roundToNthDecimal(sprintSpeed * sprintSpeedDivisors[k], 2)
 		if returnSpeed ~= currentSpeed then
 			if currentSpeed ~= sprintSpeedNormal then
-				speeds["returnSpeed" .. v] = currentSpeed
+				if currentSpeed == 0 then
+					--speeds["returnSpeed" .. v] = sprintSpeedDivisors[k]
+				else
+					speeds["returnSpeed" .. v] = currentSpeed
+				end
 			end
 		end
 	end
@@ -237,7 +241,8 @@ function sprintFrame:sprintStop()
 			local speedToUse = roundToNthDecimal(speed / sprintSpeedDivisors[k], 2)
 			if speedToUse <= 0 then
 				print("Warning: Speed returned as <= 0 for speed type: %s. Please report this along with the next line.")
-				print("Relevant Debug Speeds:", "current=", speeds.currentSpeed, "returnActual=", speed, "returnRound=", speedToUse, " sprint=", KinesisOptions.profiles[KinesisCharOptions.activeProfile].sprint["speed" .. v])
+				print("Relevant Debug Speeds:", "current=", speeds.currentSpeed, "returnActual=", speed, "returnRound=", speedToUse, " sprint=",
+					KinesisOptions.profiles[KinesisCharOptions.activeProfile].sprint["speed" .. v])
 				if speed <= 0 then
 					speedToUse = 1
 				else

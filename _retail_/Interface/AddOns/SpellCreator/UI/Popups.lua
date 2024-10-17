@@ -27,7 +27,7 @@ local function standardEditBoxOnEscapePressed(self)
 end
 
 local function hideCancelIfNeeded(dialogTemplate, customData)
-	if not customData.cancelText then -- need to accept nil / false as "DON'T SHOW THIS BUTTON"
+	if customData.cancelText == false then -- accept false as "DON'T SHOW THIS BUTTON"
 		dialogTemplate.button2 = nil
 	end
 end

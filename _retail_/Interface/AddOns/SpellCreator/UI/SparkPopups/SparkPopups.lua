@@ -526,7 +526,7 @@ end
 
 local autoSparksInRange = {}
 local CoordinateListener = CreateFrame("Frame")
-local throttle, counter = 1, 0
+local throttle, counter = 0.5, 0
 CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 	counter = counter + elapsed
 	if counter < throttle then
@@ -967,6 +967,11 @@ local function chatPredicate(sparkData, msg)
 	local sparkType = sparkData[9]
 	if isSparkType(sparkType, _sparkTypesMap["Chat"]) then
 		local sparkOptions = sparkData[8] --[[@as SparkTriggerDataOptions]]
+
+		if Misspelled then
+			msg = Misspelled:RemoveHighlighting(msg)
+		end
+
 		if sparkOptions and sparkOptions.chat and string.lower(msg) == string.lower(sparkOptions.chat) then
 			return true
 		end

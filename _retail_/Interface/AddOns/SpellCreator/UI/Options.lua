@@ -453,7 +453,7 @@ local myOptionsTable = {
 							type = "range",
 							name = "Spark Check Throttle Time",
 							desc =
-							"The throttle limit (in seconds) that Arcanum checks if you are within range of a Spark. Lower values are more responsive (checks more frequently), but increases the impact on performance (may reduce FPS).\n\rDefault: 1 (second)",
+							"The throttle limit (in seconds) that Arcanum checks if you are within range of a Spark. Lower values are more responsive (checks more frequently), but increases the impact on performance (may reduce FPS).\n\rDefault: 0.5 (seconds)",
 							get = function() return ns.UI.SparkPopups.SparkPopups.getSparkThrottle() end,
 							set = function(info, val)
 								ns.UI.SparkPopups.SparkPopups.setSparkThrottle(tonumber(val))

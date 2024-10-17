@@ -325,6 +325,13 @@ local actionTypeData = {
 		inputDescription = "Accepts multiple IDs, separated by commas, to cast multiple spells at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = "unaura @N@",
 		revertDesc = "unaura",
+		revertValidation = function(input)
+			if not input then return end
+			input = tostring(input)
+			if type(input) ~= "string" then return input end
+			input = input:gsub(" tr?i?g?g?e?r?e?d?", "")
+			return input
+		end,
 		selfAble = true,
 		convertLinks = true,
 	}),

@@ -17,15 +17,16 @@
 ---@class FunctionActionTypeData: ActionTypeDataBase
 ---@field command function
 ---@field comTarget? "func"
----@field example string?
----@field revert function | nil
----@field revertDesc string?
----@field revertAlternative string|boolean?
+---@field example? string
+---@field revert? function | nil
+---@field revertDesc? string
+---@field revertAlternative? string|boolean
 
 ---@class ServerActionTypeData: ActionTypeDataBase
 ---@field command string
 ---@field comTarget? "server"
----@field example string?
----@field revert string | nil
----@field revertDesc string?
----@field revertAlternative string?
+---@field example? string
+---@field revert? string | nil
+---@field revertDesc? string
+---@field revertAlternative? string
+---@field revertValidation? function Function to parse the input before sending it to the final output, in order to run validation / cleanup on it, if needed.

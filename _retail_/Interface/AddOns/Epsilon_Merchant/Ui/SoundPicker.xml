@@ -1,5 +1,5 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
-  
+
   <!-- Template for the sound buttons in the sound selector. -->
   <Button name="Epsilon_MerchantSoundPickerButtonTemplate" virtual="true">
 		<Size x="230" y="16"/>
@@ -78,7 +78,7 @@
 			</Anchors>
 		</HighlightTexture>
 	</Button>
-	
+
 	<Button name="Epsilon_MerchantSoundPickerBindButtonTemplate" inherits="UIMenuButtonStretchTemplate" text="(Not Bound)" virtual="true">
 		<Size x="150" y="18"/>
 		<Layers>
@@ -114,7 +114,7 @@
 			</OnClick>
 		</Scripts>
 	</Button>
-  
+
     <Frame name="Epsilon_MerchantSoundPicker" parent="UIParent" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" toplevel="true" resizable="true">
 		<Size x="350" y="380"/>
 		<ResizeBounds>
@@ -124,11 +124,12 @@
 		<Anchors>
 		  <Anchor point="LEFT" relativePoint="RIGHT"/>
 		</Anchors>
-		
+
 		<Scripts>
 		  <OnLoad>
 			Epsilon_MerchantSoundPicker_OnLoad(self);
 		  </OnLoad>
+		  <OnSizeChanged function="Epsilon_MerchantSoundPicker_OnSizeChanged"/>
 		</Scripts>
 		<Frames>
 
@@ -163,7 +164,7 @@
 			  </OnLoad>
 			</Scripts>
 		  </Frame>
-		
+
 		  <!-- Search/filter box. -->
 		  <EditBox parentKey="search" inherits="SearchBoxTemplate">
 			<Size x="170" y="8" />
@@ -172,11 +173,15 @@
 			  <Anchor point="BOTTOMRIGHT" relativeKey="$parent.FilterButton" relativePoint="BOTTOMLEFT" x="0" y="0" />
 			</Anchors>
 			<Scripts>
-			  <OnTextChanged>
-				SearchBoxTemplate_OnTextChanged(self);
-				Epsilon_MerchantSoundPicker_FilterChanged()
-			  </OnTextChanged>
+			  <OnTextChanged function="Epsilon_MerchantSoundPickerSearch_OnTextChanged"/>
+			  <OnEnterPressed function="Epsilon_MerchantSoundPickerSearch_OnEnterPressed"/>
 			  <OnEscapePressed function="EditBox_ClearFocus"/>
+			  <OnLoad>
+			  	SearchBoxTemplate_OnLoad(self)
+				self.clearButton:HookScript("OnClick", function(self)
+					Epsilon_MerchantSoundPickerSearch_OnEnterPressed(self:GetParent())
+				end)
+			  </OnLoad>
 			</Scripts>
 		  </EditBox>
 
@@ -199,7 +204,7 @@
 				</OnMouseUp>
 			</Scripts>
 		  </Button>
-		  
+
 		  <Button name="Epsilon_MerchantSoundPickerGreetingSound" parentKey="greetingSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
 			<Anchors>
 				<Anchor point="BOTTOMRIGHT" x="-8" y="74"/>
@@ -215,7 +220,7 @@
 				</OnLoad>
 			</Scripts>
 		  </Button>
-		  
+
 		  <Button name="Epsilon_MerchantSoundPickerOnClickSound" parentKey="onclickSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
 			<Anchors>
 				<Anchor point="TOP" relativeKey="$parent.greetingSound" y="-16"/>
@@ -231,7 +236,7 @@
 				</OnLoad>
 			</Scripts>
 		  </Button>
-		  
+
 		  <Button name="Epsilon_MerchantSoundPickerBuyItemSound" parentKey="buyitemSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
 			<Anchors>
 				<Anchor point="TOP" relativeKey="$parent.onclickSound" y="-16"/>
@@ -247,7 +252,7 @@
 				</OnLoad>
 			</Scripts>
 		  </Button>
-		  
+
 		  <Button name="Epsilon_MerchantSoundPickerFarewellSound" parentKey="farewellSound" inherits="Epsilon_MerchantSoundPickerBindButtonTemplate">
 			<Anchors>
 				<Anchor point="TOP" relativeKey="$parent.buyitemSound" y="-16"/>
@@ -263,13 +268,13 @@
 				</OnLoad>
 			</Scripts>
 		  </Button>
-		  
+
 		  <!-- Area for icon selector. -->
 		  <ScrollFrame name="$parentScrollFrame" inherits="FauxScrollFrameTemplate">
-			<Size x="256"/>
 			<Anchors>
 				<Anchor point="TOPRIGHT" relativeKey="$parent.Inset" relativePoint="TOPRIGHT" x="-26" y="-5"/>
 				<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Inset" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+				<Anchor point="LEFT" relativeKey="$parent.Inset" relativePoint="LEFT"/>
 			</Anchors>
 			<Scripts>
 				<OnVerticalScroll>
@@ -278,19 +283,27 @@
 			</Scripts>
 			<Layers>
 				<Layer level="BORDER">
-					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+					<Texture parentKey="ScrollBarTop" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
 						<Size x="31" y="205"/>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="-2" y="5"/>
 						</Anchors>
 						<TexCoords left="0" right="0.484375" top="0" bottom="0.8"/>
 					</Texture>
-					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+					<Texture parentKey="ScrollBarBottom" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
 						<Size x="31" y="106"/>
 						<Anchors>
 							<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="-2" y="-2"/>
 						</Anchors>
 						<TexCoords left="0.515625" right="1.0" top="0" bottom="0.4140625"/>
+					</Texture>
+					<Texture parentKey="ScrollBarMid" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+						<Size x="31"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeKey="$parent.ScrollBarTop" relativePoint="BOTTOMLEFT"/>
+							<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ScrollBarBottom" relativePoint="TOPRIGHT"/>
+						</Anchors>
+						<TexCoords left="0" right="0.49" top="0.4" bottom="0.8"/>
 					</Texture>
 				</Layer>
 			</Layers>

@@ -88,11 +88,7 @@ local function createCommandBox(mainFrame)
 	commandBox.enabledColor = HIGHLIGHT_FONT_COLOR
 	commandBox.Instructions:SetText(Localization.SPELLCOMM)
 	commandBox.Instructions:SetTextColor(0.5, 0.5, 0.5)
-	--commandBox.Title = commandBox:CreateFontString(nil, "OVERLAY", "GameTooltipText")
-	--commandBox.Title:SetText(COMMAND)
-	--commandBox.Title:SetPoint("BOTTOM", commandBox, "TOP", 0, 0)
 	commandBox:SetAutoFocus(false)
-	--commandBox:SetSize(mainFrame:GetWidth()/6,23)
 	commandBox:SetSize(mainFrame:GetWidth() / 5, 23)
 	commandBox:SetPoint("LEFT", nameBox, "RIGHT", 6, 0)
 
@@ -108,7 +104,7 @@ local function createCommandBox(mainFrame)
 	commandBox:HookScript("OnTextChanged", function(self, userInput)
 		local selfText = self:GetText();
 		--if selfText:match(",") then self:SetText(selfText:gsub(",", "")) end
-		if selfText:match("[^%w]") then self:SetText(selfText:gsub("[^%w]", "")) end -- More strict, ONLY Letters & Numbers allowed!
+		if selfText:match("[^%w_]") then self:SetText(selfText:gsub("[^%w_]", "")) end -- More strict, ONLY Letters & Numbers allowed!
 		if userInput then markEditorUnsaved() end
 	end)
 

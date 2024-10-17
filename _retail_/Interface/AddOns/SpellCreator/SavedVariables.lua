@@ -134,7 +134,7 @@ local function init()
 	if isNotDefined(SpellCreatorMasterTable.Options["keepQCOpen"]) then SpellCreatorMasterTable.Options["keepQCOpen"] = true end
 	if isNotDefined(SpellCreatorMasterTable.Options["allowQCOverscrolling"]) then SpellCreatorMasterTable.Options["allowQCOverscrolling"] = true end
 
-	if isNotDefined(SpellCreatorMasterTable.Options["sparkThrottle"]) then SpellCreatorMasterTable.Options["sparkThrottle"] = 1 end
+	if isNotDefined(SpellCreatorMasterTable.Options["sparkThrottle"]) then SpellCreatorMasterTable.Options["sparkThrottle"] = 0.5 end
 	ns.UI.SparkPopups.SparkPopups.setSparkThrottle(SpellCreatorMasterTable.Options["sparkThrottle"])
 
 	if isNotDefined(SpellCreatorMasterTable.arcVarLocations) then SpellCreatorMasterTable.arcVarLocations = {} end
