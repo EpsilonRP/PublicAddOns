@@ -16,6 +16,7 @@
 
 local TRP3_API = select(2, ...);
 local L = TRP3_API.loc;
+local TRP3_Enums = AddOn_TotalRP3.Enums;
 
 local GenerateConfigurationPage;
 
@@ -51,6 +52,9 @@ local function ShouldShowCharacterStatus()
 	return TRP3_API.configuration.getValue("UnitPopups_ShowCharacterStatus");
 end
 
+local function ShouldShowOpenCompanionPage()
+	return TRP3_API.ui.misc.getTargetType('target') == TRP3_Enums.UNIT_TYPE.NPC;
+end
 --
 -- Unit Popups Module
 --
@@ -156,6 +160,12 @@ local function OpenProfile(button) -- luacheck: ignore 212 (unused button)
 	end
 end
 
+local function OpenCompanionPage(button)
+	local dropdownFrame = UIDROPDOWNMENU_INIT_MENU;
+	TRP3_API.navigation.openMainFrame();
+	TRP3_API.navigation.menu.selectMenu(TRP3_API.navigation.menu.id.COMPANIONS_MAIN);
+end
+
 local function IsOutOfCharacter(button) -- luacheck: ignore 212 (unused button)
 	local player = AddOn_TotalRP3.Player.GetCurrentUser();
 	local roleplayStatus = player:GetRoleplayStatus();
@@ -201,6 +211,12 @@ Mixin(UnitPopupsModule.MenuButtons, {
 		func = ToggleCharacterStatus,
 		ShouldShow = ShouldShowCharacterStatus,
 	},
+	OpenCompanionPage = {
+		text = L.UNIT_POPUPS_ASSIGN_FLAG,
+		notCheckable = true,
+		func = OpenCompanionPage,
+		ShouldShow = ShouldShowOpenCompanionPage,
+	}
 });
 
 Mixin(UnitPopupsModule.MenuEntries, {
@@ -215,6 +231,7 @@ Mixin(UnitPopupsModule.MenuEntries, {
 	RAID           = { "OpenProfile" },
 	RAID_PLAYER    = { "OpenProfile" },
 	SELF           = { "OpenProfile", "CharacterStatus" },
+	TARGET         = { "OpenCompanionPage" },
 });
 
 --

@@ -513,7 +513,11 @@ TRP3_API.ui.misc.TYPE_MOUNT = TRP3_Enums.UNIT_TYPE.MOUNT;
 TRP3_API.ui.misc.TYPE_NPC = TRP3_Enums.UNIT_TYPE.NPC;
 
 function TRP3_API.ui.misc.isTargetTypeACompanion(unitType)
-	return unitType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or unitType == TRP3_Enums.UNIT_TYPE.PET;
+    return unitType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or unitType == TRP3_Enums.UNIT_TYPE.PET;
+end
+
+function TRP3_API.ui.misc.isTargetTypeAnNPC(unitType)
+	return unitType == TRP3_Enums.UNIT_TYPE.NPC;
 end
 
 local function IsBattlePetUnit(unitToken)
@@ -532,6 +536,21 @@ local function IsBattlePetUnit(unitToken)
 	local guidType, _, _, _, _, creatureID = string.split("-", unitGUID or "", 7);
 
 	return guidType == "Creature" and TRP3_API.utils.resources.IsPetCreature(tonumber(creatureID));
+end
+
+function TRP3_API.ui.misc.GetUnitID( unitID )
+    if not( UnitExists( unitID )) then
+        return
+    end
+
+    local guid = UnitGUID( unitID )
+    local unitType, _, _, _, _, id, _ = strsplit("-", guid)
+    if not( unitType == "Creature" and id ) then
+        return
+    end
+    
+    id = tonumber( id );
+    return id;
 end
 
 ---
@@ -597,6 +616,12 @@ function TRP3_API.ui.misc.getCompanionFullID(unitToken, unitType)
 		end
 	end
 	return nil;
+end
+
+function TRP3_API.ui.misc.getNPCFullID(unitToken, _)
+    local phaseID = C_Epsilon.GetPhaseId();
+    local NPCGUID = TRP3_API.ui.misc.GetUnitID(unitToken);
+	return phaseID .. '_' .. NPCGUID;
 end
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*

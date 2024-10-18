@@ -3,7 +3,9 @@
 Define the Addon NameSpace
 --]]
 
-local PhaseToolkit={}
+local addonName, ns = ...
+PhaseToolkit={}
+
 
 
 -- ============================== VARIABLES GLOBALES ============================== -- 
@@ -104,7 +106,7 @@ PhaseToolkit.GeneralStat={
     ["Hairhighlight"]=1,
     ["Leg(left)"]=1,
     ["Leg(right)"]=1,
-    ["Mouthpiercings"]=1,
+    ["Mouthpiercing"]=1,
     ["Nosepiercing"]=1,
     ["TattooStyle"]=1,
     ["Chin"]=1,
@@ -155,248 +157,6 @@ PhaseToolkit.GeneralStat={
 }
 PhaseToolkit.ModeFR=false
 
-PhaseToolkit.TraductionFR={
-    ["Npc custom"]="Custom PNJ",
-    ["Change list size"]="Changez le nombre de valeur par page",
-    ["Enter a valid number"]="Entrez un nombre valide.",
-    ["Confirm"]="Confirmer",
-    ["How many lines per pages ?"]="Combien de lignes par pages ?",
-    ["NPC List Options"]="Options de la liste des Pnjs",
-    ["Fel Orc"]="Orc de fel",
-    ["Naga"]="Naga",
-    ["Broken"]="Brisé",
-    ["Skeleton"]="Squelette",
-    ["Vrykul"]="Vrykul",
-    ["Tuskarr"]="Tuskarr",
-    ["Forest Troll"]="Troll des forets",
-    ["Taunka"]="Taunka",
-    ["Northrend Skeleton"]="Squelette du Norfendre",
-    ["Ice troll"]="Troll des glaces",
-    ["Makeup"]="Maquillage",
-    ["Set NPC name"]="Definir le nom",
-    ["Set NPC Subname"]="Definir le sous-nom",
-    ["Randomise customisations"]="Randomiser les customisations",
-    ["Facetype"]="Machoires",
-    ["Delete"]="Supprimer",
-    ["Fetch Tele"]="Recuperer TP",
-    ["Fetch Npcs"]="Recuperer Pnj",
-    ["This can take a few seconds"]="Ca peux prendre quelque secondes",
-    ["Tele List"]="Liste TP",
-    ["NPC List"]="Liste PNJ",
-    ["Set the time"]="Définir l'heure",
-    ["SetMotd"]="Definir",
-    ["Message of the day"]="Message du jour",
-    ["Phase Description"]="Description de phase",
-    ["Phase Name"]="Nom de phase",
-    ["Phase Access"]="Accès a la phase",
-    ['Permission disabling']="Interdictions",
-    ["Disable Starting"]="Retirer le départ",
-    ["Set Current Location"]="Definir sur ma position",
-    ["Starting point"]="Point de démarrage",
-    ["Intensity"]="Intensitée",
-    ["Arm(left)"]="Bras(G)",
-    ["Arm(right"]="Bras(D)",
-    ["Beard"]="Barbe",
-    ["Blindfold"]="Bandeau",
-    ["Body"]="Corp",
-    ["Bodyshape"]="Forme de corp",
-    ["BodyTattoo"]="Tatouage corporel",
-    ["Bodytype"]="Type de corp",
-    ["Complexion"]="Aspect de peau",
-    ["Earrings"]="Boucle d'oreille",
-    ["Ears"]="Oreilles",
-    ["Eyebrows"]="Sourcils",
-    ["Eyecolor"]="Couleur des yeux",
-    ["Eyetype"]="Type d'oeils",
-    ["Face"]="Visages",
-    ["Faceshape"]="Forme de visage",
-    ["Facefeatures"]="Traits du visage",
-    ["FaceTattoo"]="Tatouage de visage",
-    ["Furcolor"]="Couleur de fourrure",
-    ["Feather"]="Plumes",
-    ["FeatherColor"]="Couleur de plumes",
-    ["Garment"]="Vetements",
-    ["GemColor"]="Couleur de Gem",
-    ["Grime"]="Crasse",
-    ["HairColor"]="Couleur capillaire",
-    ["Hairstyle"]="Style capillaire",
-    ["Hairgradient"]="Dégradé capillaire",
-    ["Hand(left)"]="Main(G)",
-    ["Hand(right)"]="Main(D)",
-    ["Handjewelry"]="Bijoux de main",
-    ["Headdress"]="Coiffe",
-    ["Horns"]="Cornes",
-    ["JewelryColor"]="Couleur de bijoux",
-    ["leg(left)"]="Jambe(G)",
-    ["leg(right)"]="Jambe(D)",
-    ["Mustache"]="Moustache",
-    ["Necklace"]="Collier",
-    ["Runes"]="Runes",
-    ["RunesColor"]="Couleur de rune",
-    ["Ribs"]="Cottes",
-    ["Piercings"]="Piercings",
-    ["Scars"]="Cicatrice",
-    ["SecondaryEyeColor"]="Couleur Oeil droit",
-    ["Sideburns"]="Pattes",
-    ["SkinColor"]="Couleur de peau",
-    ["Stubble"]="Duvet",
-    ["Spine"]="Colonne vertebrale",
-    ["TattooColor"]="Couleur de tatouage",
-    ["Tusks"]="Défenses",
-    ["Vines"]="Vignes",
-    ["VinesColor"]="Couleur de vignes",
-    ["Accentcolor"]="Couleur d'accent",
-    ["Goggles"]="Lunettes",
-    ["Haircolor"]="Couleur capillaire",
-    ["Hairgradients"]="Dégradé capillaire",
-    ["Hairstreaks"]="Mèches capillaire",
-    ["Jewelrycolor"]="Couleur de bijoux",
-    ["Secondaryeyecolor"]="Couleur Oeil droit",
-    ["Skincolor"]="Couleur de peau",
-    ["Wristjewelry"]="Bijoux de poignet",
-    ["Bodypaint"]="Peinture corporelle",
-    ["facepaint"]="Peinture du visage",
-    ["Flower"]="Fleurs",
-    ["Foremane"]="Crinière antérieur",
-    ["Gemcolor"]="Couleur de gemme",
-    ["Goatee"]="Goatee",
-    ["Hair"]="Cheveux",
-    ["Horncolor"]="Couleur de corne",
-    ["Mane"]="Crinière",
-    ["Nosering"]="Anneau nasal",
-    ["PaintColor"]="Couleur de peinture",
-    ["Tail"]="Queue",
-    ["TailDecoration"]="Déco de queue",
-    ["HairDecoration"]="Déco capillaire",
-    ["Hornstyle"]="Style de corne",
-    ["Hornmarkings"]="Marquage de corne",
-    ["HairAccessory"]="Accéssoire capillaire",
-    ["HairGradient"]="Dégradé capillaire",
-    ["HairStreaks"]="mèches capillaire",
-    ["Bandages"]="Bandages",
-    ["Browpiercing"]="Piercings sourcillaire",
-    ["Hairhighlight"]="Éclarcis capillaire",
-    ["Leg(left)"]="Jambe(L)",
-    ["Leg(right)"]="Jambe(R)",
-    ["Mouthpiercings"]="Piercing buccale",
-    ["Nosepiercing"]="Piercing nasal",
-    ["TattooStyle"]="Style de tatouage",
-    ["Chin"]="Menton",
-    ["Nose"]="Nez",
-    ["Posture"]="Posture",
-    ["Skintype"]="Type de peau",
-    ["Tuskdecoration"]="Déco de défence",
-    ["Armbands"]="Brassards",
-    ["Runecolor"]="Couleur de rune",
-    ["Bracelets"]="Bracelets",
-    ["Facetendrils"]="Tentacule faciale",
-    ["HornAccessories"]="Accessoire de cornes",
-    ["Tendrils"]="Tentacules",
-    ["Trims"]="Détails",
-    ["Horndecoration"]="Déco de corne",
-    ["Hairaccents"]="Accents capillaire",
-    ["SecondaryEarStyle"]="Style 2nd oreille",
-    ["Bodyfur"]="fourrure corporelle",
-    ["Claws"]="Griffes",
-    ["Earstyle"]="Style d'oreille",
-    ["Fangs"]="Crocs",
-    ["FacialHair"]="Pilosité faciale",
-    ["Chinjewelry"]="Bijoux de menton",
-    ["Eyeshape"]="Forme d'oeil",
-    ["Facejewelry"]="Bijoux de visage",
-    ["Jawjewelry"]="Bijoux de macheoire",
-    ["LuminousHands"]="Main lumineuse",
-    ["Bodypaintcolor"]="Couleur peinture corpo",
-    ["Hornwrap"]="Enve. de cornes",
-    ["Bodymarkings"]="Marque corporelle",
-    ["Facemarkings"]="Marque visage",
-    ["Tentacles"]="Tentacules",
-    ["Facerune"]="Rune faciale",
-    ["Bodyrune"]="Rune corporelle",
-    ["Tattoo"]="Tatouage",
-    ["Pattern"]="Pattern",
-    ["Patterncolor"]="Couleur pattern",
-    ["Snout"]="Museau",
-    ["BodyPiercings"]="Piercing corporel",
-    ["Chestmod"]="Mod. torse",
-    ["Chinmod"]="Mod. menton",
-    ["Earmod"]="Mod. oreille",
-    ["Facemod"]="Mod. visage",
-    ["Optics"]="Mod. Optique",
-    ["Paintcolor"]="Couleur de peinture",
-    ["Eargauge"]="Écarteur",
-    ["Human"]="Humain",
-    ["Orc"]="Orc",
-    ["Dwarf"]="Nain",
-    ["NightElf"]="Elfe de la nuit",
-    ["Undead"]="Mort-Vivant",
-    ["Tauren"]="Tauren",
-    ["Gnome"]="Gnome",
-    ["Troll"]="Troll",
-    ["Goblin"]="Gobelin",
-    ["BloodElf"]="Elfe de sang",
-    ["Draenei"]="Draenei",
-    ["Worgen"]="Worgen",
-    ["Gilnean"]="Gilnéen",
-    ["Pandaren"]="Pandaren",
-    ["Nightborne"]="Sacrenuit",
-    ["Highmountain"]="Tauren Haut-Roc",
-    ["VoidElf"]="Elfe du vide",
-    ["Lightforged"]="Draenei Sancteforge",
-    ["Zandalari"]="Zandalari",
-    ["Kul tiran"]="Kul tirassien",
-    ["Thin Human"]="Humain maigre",
-    ["DarkIron"]="Sombrefer",
-    ["Vulpera"]="Vulperin",
-    ["Mag'har"]="Mag'har",
-    ["Mechagnome"]="Mechagnome",
-    ["male"]="Masculin",
-    ["female"]="Feminin",
-    ["Phase Option"]="Option de phase",
-    ["Normal"] = "Normale",
-    ["Fog"] = "Brume",
-    ["Rain"] = "Pluie",
-    ["Snow"] = "Neige",
-    ["Sandstorm"] = "Tempête de sable",
-    ["Thunderstorm"] = "Orage",
-    ["Black Rain"] = "Pluie noire",
-    ["Blood Rain"] = "Pluie de sang",
-    ["Black Snow"] = "Neige noire",
-    ["Mist Grain"] = "Brume granuleuse",
-    ["Fireball"] = "Boule de feu",
-    ["Deathwing"] = "Aile de la mort",
-    ["Fire Spark"] = "Étincelle de feu",
-    ["Arcane Spark"] = "Étincelle arcanique",
-    ["Thunder"] = "Tonnerre",
-    ["Ash"] = "Cendre",
-    ["Embers"] = "Braises",
-    ["Mist White"] = "Brume blanche",
-    ["Mist Yellow"] = "Brume jaune",
-    ["Mist Black"] = "Brume noire",
-    ["Burning"] = "Brûlant",
-    ["Red Spark"] = "Étincelle rouge",
-    ["Petals"] = "Pétales",
-    ["Gale"] = "Tempête",
-    ["Arcane Lightning"] = "Éclair arcanique",
-    ["Blue Fissure"] = "Fissure bleue",
-    ["Smog"] = "Brouillard",
-    ["Arcane Rain"] = "Pluie arcanique",
-    ["Soot"] = "Suie",
-    ["Star Rain"] = "Pluie d'étoiles",
-    ["Arcane Fissure"] = "Fissure arcanique",
-    ["Fire Rain"] = "Pluie de feu",
-    ["Spirit Tower"] = "Tour des esprits",
-    ["Spirits"] = "Esprits",
-    ["Pollen"] = "Pollen",
-    ["Red Bolt Rain"] = "Pluie de boulons rouges",
-    ["Wind"] = "Vent",
-    ["Wisps"] = "Esprits flottants",
-    ["Firestreak Rain"] = "Pluie de traînées de feu",
-    ["Starfall"] = "Chute d'étoiles",
-    ["Twinkle"] = "Scintillement",
-    ["Pulsars"] = "Pulsars"
-
-}
 PhaseToolkit.IntensiteMeteo=1
 PhaseToolkit.IntensiteMeteoMin,IntensiteMeteoMax=1,100
 
@@ -457,7 +217,6 @@ PhaseToolkit.Races={
     ["BloodElf"]=10,
     ["Draenei"]=11,
     ["Worgen"]=22,
-    ["Gilnean"]=23,
     ["Pandaren"]=24,
     ["Nightborne"]=27,
     ["Highmountain"]=28,
@@ -480,9 +239,7 @@ PhaseToolkit.Races={
     ["Taunka"]=19,
     ["Northrend Skeleton"]=20,
     ["Ice troll"]=21,
-
 }
-
 PhaseToolkit.InfoCustom={
     ["Human"]={
         ["male"]={
@@ -786,6 +543,7 @@ PhaseToolkit.InfoCustom={
             ["TailDecoration"]=5,
             ["SecondaryEyeColor"]=17,
             ["SkinColor"]=27,
+            ["Mane"]=2
         }
     },
     ["Gnome"]={
@@ -852,7 +610,7 @@ PhaseToolkit.InfoCustom={
             ["JewelryColor"]=12,
             ["Leg(left)"]=18,
             ["Leg(right)"]=18,
-            ["Mouthpiercings"]=4,
+            ["Mouthpiercing"]=4,
             ["Mustache"]=4,
             ["Necklace"]=5,
             ["Nosepiercing"]=7,
@@ -882,14 +640,14 @@ PhaseToolkit.InfoCustom={
             ["JewelryColor"]=12,
             ["Leg(left)"]=22,
             ["Leg(right)"]=25,
-            ["Mouthpiercings"]=4,
+            ["Mouthpiercing"]=4,
             ["Necklace"]=9,
             ["Nosepiercing"]=5,
             ["SecondaryEyeColor"]=23,
             ["SkinColor"]=36,
             ["TattooColor"]=43,
             ["TattooStyle"]=3,
-            ["Tusks"]=10
+            ["Tusks"]=10,
         }
     },
     ["Goblin"]={
@@ -984,7 +742,8 @@ PhaseToolkit.InfoCustom={
             ["RunesColor"]=6,
             ["SecondaryEyeColor"]=40,
             ["SkinColor"]=33,
-            ["TattooColor"]=10
+            ["TattooColor"]=10,
+            ["Horns"]=7
         }
     },
     ["Draenei"]={
@@ -1231,7 +990,7 @@ PhaseToolkit.InfoCustom={
             ["Tentacles"]=2
         }
     },
-    ["Draenei Sancteforge"]={
+    ["Lightforged"]={
         ["male"]={
             ["Bodyrune"]=4,
             ["Eyebrows"]=2,
@@ -1579,6 +1338,66 @@ PhaseToolkit.Genre={
     "female"
 }
 
+PhaseToolkit.infoPerDisplay={
+    ["57899"] = { race = "Human", sexe = "male" }, 
+    ["56658"] = { race = "Human", sexe = "female" }, 
+    ["51894"] = { race = "Orc", sexe = "male" }, 
+    ["53762"] = { race = "Orc", sexe = "female" }, 
+    ["49242"] = { race = "Dwarf", sexe = "male" }, 
+    ["53768"] = { race = "Dwarf", sexe = "female" }, 
+    ["54918"] = { race = "NightElf", sexe = "male" }, 
+    ["54439"] = { race = "NightElf", sexe = "female" }, 
+    ["54041"] = { race = "Undead", sexe = "male" }, 
+    ["56327"] = { race = "Undead", sexe = "female" }, 
+    ["55077"] = { race = "Tauren", sexe = "male" }, 
+    ["56316"] = { race = "Tauren", sexe = "female" }, 
+    ["51877"] = { race = "Gnome", sexe = "male" }, 
+    ["53291"] = { race = "Gnome", sexe = "female" }, 
+    ["59071"] = { race = "Troll", sexe = "male" }, 
+    ["59223"] = { race = "Troll", sexe = "female" }, 
+    ["6894"] = { race = "Goblin", sexe = "male" }, 
+    ["6895"] = { race = "Goblin", sexe = "female" }, 
+    ["62127"] = { race = "BloodElf", sexe = "male" }, 
+    ["62128"] = { race = "BloodElf", sexe = "female" }, 
+    ["57027"] = { race = "Draenei", sexe = "male" }, 
+    ["58232"] = { race = "Draenei", sexe = "female" }, 
+    ["16981"] = { race = "Fel Orc", sexe = "male" },
+    ["17402"] = { race = "Naga", sexe = "male" }, 
+    ["17403"] = { race = "Naga", sexe = "female" }, 
+    ["17576"] = { race = "Broken", sexe = "male" },
+    ["17578"] = { race = "Skeleton", sexe = "male" },
+    ["21685"] = { race = "Vrykul", sexe = "male" },
+    ["21780"] = { race = "Tuskarr", sexe = "male" },
+    ["21963"] = { race = "Forest Troll", sexe = "male" },
+    ["26316"] = { race = "Taunka", sexe = "male" },
+    ["26871"] = { race = "Northrend Skeleton", sexe = "male" },
+    ["26873"] = { race = "Ice troll", sexe = "male" },
+    ["29422"] = { race = "Worgen", sexe = "male" }, 
+    ["29423"] = { race = "Worgen", sexe = "female" }, 
+    ["38551"] = { race = "Pandaren", sexe = "male" }, 
+    ["38552"] = { race = "Pandaren", sexe = "female" }, 
+    ["75078"] = { race = "Nightborne", sexe = "male" }, 
+    ["75079"] = { race = "Nightborne", sexe = "female" }, 
+    ["75080"] = { race = "Highmountain", sexe = "male" }, 
+    ["75081"] = { race = "Highmountain", sexe = "female" }, 
+    ["75082"] = { race = "VoidElf", sexe = "male" }, 
+    ["75083"] = { race = "VoidElf", sexe = "female" }, 
+    ["75084"] = { race = "Lightforged", sexe = "male" }, 
+    ["75085"] = { race = "Lightforged", sexe = "female" }, 
+    ["79100"] = { race = "Zandalari", sexe = "male" }, 
+    ["79101"] = { race = "Zandalari", sexe = "female" }, 
+    ["80387"] = { race = "Kul tiran", sexe = "male" }, 
+    ["80388"] = { race = "Kul tiran", sexe = "female" }, 
+    ["82317"] = { race = "Thin Human", sexe = "male" }, 
+    ["83910"] = { race = "DarkIron", sexe = "male" }, 
+    ["83911"] = { race = "DarkIron", sexe = "female" }, 
+    ["83913"] = { race = "Vulpera", sexe = "male" }, 
+    ["83914"] = { race = "Vulpera", sexe = "female" }, 
+    ["84558"] = { race = "Mag'har", sexe = "male" }, 
+    ["84560"] = { race = "Mag'har", sexe = "female" }, 
+    ["90786"] = { race = "Mechagnome", sexe = "male" }, 
+    ["90787"] = { race = "Mechagnome", sexe = "female" }, 
+}
 PhaseToolkit.Toggleslist = {
     {"Cheats"},
     {"Flight"},
@@ -1626,7 +1445,13 @@ else
 	end
 end
 -- ============================== FUNCTION PRINCIPALES ============================== -- 
-
+local function isKeyInTable(key)
+    if PhaseToolkit.infoPerDisplay[key] then
+        return true
+    else
+        return false
+    end
+end
 function PhaseToolkit.ToggleMainFrame()
     if PhaseToolkit.NPCCustomiserMainFrame ~= nil then
         if PhaseToolkit.NPCCustomiserMainFrame:IsShown() then
@@ -1656,11 +1481,16 @@ function PhaseToolkit.CountElements(tbl)
 end
 
 function PhaseToolkit.SelectRaceFrame()
+    
     if(PhaseToolkit.CustomFrame==nil) then
         PhaseToolkit.CreateCustomFrame()
     end
+    
     PhaseToolkit.NombreDeLigne=math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender])/3)))
     PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace))
+    if PhaseToolkit.CustomFrame:IsShown() and PhaseToolkit.showCustomButton.currentIcon=="450905" then
+        PhaseToolkit.switchOpenCustomGridButton(PhaseToolkit.showCustomButton)
+    end
 end
 
 function PhaseToolkit.GetRaceNameByID(id)
@@ -1806,7 +1636,7 @@ end
 function PhaseToolkit.IsTableEmpty(t)
     return next(t) == nil
 end
--- ============================== FONCTIONS DROPDOWN ============================== -- 
+-- ============================== FONCTIONS ² ============================== -- 
 
 function PhaseToolkit.ShowRaceDropDown(DropDown)
     local function OnClick(self)
@@ -1826,12 +1656,7 @@ function PhaseToolkit.ShowRaceDropDown(DropDown)
     UIDropDownMenu_Initialize(DropDown, function()
         for _, race in ipairs(racesList) do
             local info = UIDropDownMenu_CreateInfo()
-
-            if not PhaseToolkit.ModeFR then
-                info.text = PhaseToolkit.TraductionFR[race.name]
-            else
-                info.text = race.name
-            end
+            info.text = PhaseToolkit.CurrentLang[race.name]
             info.value = race.value
                 
             info.func = OnClick
@@ -1843,7 +1668,11 @@ function PhaseToolkit.ShowRaceDropDown(DropDown)
     
     UIDropDownMenu_SetWidth(DropDown, 120)
     UIDropDownMenu_SetButtonWidth(DropDown, 124)
-    UIDropDownMenu_SetSelectedValue(DropDown, 1)
+    if  PhaseToolkit.SelectedNpcInfo~=nil then
+        UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.Races[PhaseToolkit.SelectedNpcInfo.race])
+    else
+        UIDropDownMenu_SetSelectedValue(DropDown, 1)
+    end
 end
 
 function PhaseToolkit.ShowGenderDropDown(DropDown)
@@ -1859,7 +1688,7 @@ function PhaseToolkit.ShowGenderDropDown(DropDown)
             local info = UIDropDownMenu_CreateInfo()
 
             if not PhaseToolkit.ModeFR then
-                info.text = PhaseToolkit.TraductionFR[PhaseToolkit.Genre[i]]
+                info.text = PhaseToolkit.CurrentLang[PhaseToolkit.Genre[i]]
             else
                 info.text= PhaseToolkit.Genre[i]
             end
@@ -1874,8 +1703,8 @@ function PhaseToolkit.ShowGenderDropDown(DropDown)
     UIDropDownMenu_SetWidth(DropDown, 120)
     UIDropDownMenu_SetButtonWidth(DropDown, 124)
 
-    if not PhaseToolkit.ModeFR then
-        UIDropDownMenu_SetSelectedValue(DropDown, "male")
+    if  PhaseToolkit.SelectedNpcInfo~=nil then
+        UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.SelectedNpcInfo.sexe)
     else
         UIDropDownMenu_SetSelectedValue(DropDown, "male")
     end
@@ -1891,14 +1720,14 @@ function PhaseToolkit.ResizeAdditionalButtonFrame()
         PhaseToolkit.AdditionalButtonFrame:SetPoint("BOTTOMLEFT",PhaseToolkit.LangageTogMainFrame,"TOPLEFT",0,0)
     end
 
-    PhaseOptionLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Phase Option"] or "Phase Option")
+    PhaseOptionLabel:SetText( PhaseToolkit.CurrentLang["Phase Option"] or "Phase Option")
 end
 
 function PhaseToolkit.TranslateWeatherIntensity()
     if(GlobalNPCCUSTOMISER_SliderFrame~=nil) then 
         _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Low']:SetText(PhaseToolkit.IntensiteMeteoMin)  
         _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'High']:SetText(IntensiteMeteoMax)
-        _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR['Intensity'] or 'Intensity')
+        _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText( PhaseToolkit.CurrentLang['Intensity'] or 'Intensity')
     end
 end
 
@@ -1914,7 +1743,7 @@ function PhaseToolkit.ShowMeteoDropDown(DropDown)
             local info = UIDropDownMenu_CreateInfo()
     
             if not PhaseToolkit.ModeFR then
-                info.text = PhaseToolkit.TraductionFR[meteo.text]
+                info.text = PhaseToolkit.CurrentLang[meteo.text]
             else
                 info.text = meteo.text
             end
@@ -1941,8 +1770,9 @@ function PhaseToolkit.ShowToggleDropDown(DropDown)
     UIDropDownMenu_Initialize(DropDown, function(self)
 
         local info = UIDropDownMenu_CreateInfo()
+
         for i = 1, #PhaseToolkit.Toggleslist do
-            info.text = PhaseToolkit.Toggleslist[i][1]
+            info.text = PhaseToolkit.CurrentLang[PhaseToolkit.Toggleslist[i][1]]
             info.value=PhaseToolkit.Toggleslist[i][1]
             info.func = function(self)
                 PhaseToolkit.Toggleslist[i][2] = not PhaseToolkit.Toggleslist[i][2]
@@ -1996,21 +1826,6 @@ PhaseToolkit.NPCCustomMainFrameTitle:SetText("Phase Toolkit")
 PhaseToolkit.NPCCustomiserMainFrame:RegisterEvent("ADDON_LOADED")
 
 
-PhaseToolkit.LangageTogMainFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
-PhaseToolkit.LangageTogMainFrame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
-    edgeSize = 16, 
-    insets = {left = 5, right = 5, top = 5, bottom = 5}, 
-})
-PhaseToolkit.LangageTogMainFrame:SetSize(135,25)
-PhaseToolkit.LangageTogMainFrame:SetPoint("BOTTOMLEFT",PhaseToolkit.NPCCustomiserMainFrame,"BOTTOMLEFT",18,7.5)
-
-local checkBox= CreateFrame("CheckButton", nil, PhaseToolkit.LangageTogMainFrame, "ChatConfigCheckButtonTemplate");
-checkBox:SetSize(20,20)
-checkBox:SetPoint("BOTTOMLEFT",PhaseToolkit.LangageTogMainFrame,"BOTTOMLEFT",5,2.5)
-checkBox:SetChecked(not PhaseToolkit.ModeFR)
-
 function PhaseToolkit.recreateFrameModule()
     if (GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame~=nil) then GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:Hide() GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame=nil end
     PhaseToolkit.createPhaseAccessFrame()
@@ -2028,6 +1843,28 @@ function PhaseToolkit.recreateFrameModule()
     PhaseToolkit.createPhaseSetDescriptionFrame()
     if (GlobalNPCCUSTOMISER_moduleforMotdFrame~=nil) then  GlobalNPCCUSTOMISER_moduleforMotdFrame:Hide() end
     PhaseToolkit.createMotdFrame()
+end
+
+
+function PhaseToolkit.switchOpenCustomGridButton(button)
+    if(PhaseToolkit.showCustomButton.currentIcon=="450905") then
+        PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowlup")
+        PhaseToolkit.showCustomButton.icon:SetAllPoints()
+        PhaseToolkit.showCustomButton.currentIcon="450907"
+        if(PhaseToolkit.CustomFrame~=nil) then
+            PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID( PhaseToolkit.SelectedRace))
+        else
+            PhaseToolkit.CreateCustomFrame()
+            PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID( PhaseToolkit.SelectedRace))
+        end
+    else
+        PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowdown")
+        PhaseToolkit.showCustomButton.icon:SetAllPoints()
+        PhaseToolkit.showCustomButton.currentIcon="450905"
+        PhaseToolkit.CustomFrame:Hide()
+        PhaseToolkit.CustomFrame=nil
+    end
+    
 end
 function PhaseToolkit.createCustomParamFrame()
     if(PhaseToolkit.PhaseOptionFrame~=nil)then
@@ -2049,87 +1886,145 @@ function PhaseToolkit.createCustomParamFrame()
     if (PhaseToolkit.CustomMainFrame ~= nil) then
         if (PhaseToolkit.CustomMainFrame:IsShown()) then
             PhaseToolkit.CustomMainFrame:Hide()
+            PhaseToolkit.CustomMainFrame=nil
         else
             PhaseToolkit.CustomMainFrame:Show()
         end
-        return
+    else
+        PhaseToolkit.CustomMainFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
+        PhaseToolkit.CustomMainFrame:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
+            edgeSize = 16, 
+            insets = {left = 5, right = 5, top = 5, bottom = 5}, 
+        })
+        PhaseToolkit.CustomMainFrame:SetSize(160,130)
+        PhaseToolkit.CustomMainFrame:SetPoint("TOPLEFT",PhaseToolkit.NPCCustomiserMainFrame,"TOPRIGHT",5,0)
+        
+
+        PhaseToolkit.CustomMainFrame:SetScript("OnShow",function()
+            if(PhaseToolkit.AutoRefreshNPC) then
+                PhaseToolkit.CustomMainFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+            end
+        end)
+        
+        PhaseToolkit.CustomMainFrame:SetScript("OnHide",function()
+            PhaseToolkit.CustomMainFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+        end)
+
+        PhaseToolkit.CustomMainFrame:SetScript("OnEvent",function(self,event)
+            -- If we change target while Phase toolkit is opened, and it's a npc we take data
+                if(event=="PLAYER_TARGET_CHANGED" and not UnitIsPlayer("target") and UnitExists("target")) then
+                    sendAddonCmd("npc info",PhaseToolkit.parseForDisplayId,false)
+                end
+            end)
+
+        PhaseToolkit.RaceDropDown=CreateFrame("Frame","RaceDropDown",PhaseToolkit.CustomMainFrame,"UIDropDownMenuTemplate")
+        PhaseToolkit.RaceDropDown:SetSize(200,30)
+        PhaseToolkit.RaceDropDown:SetPoint("TOPLEFT",PhaseToolkit.CustomMainFrame,"TOPLEFT",-5,-5)
+
+        PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
+
+        PhaseToolkit.GenreDropDown=CreateFrame("Frame","GenreDropDown",PhaseToolkit.CustomMainFrame,"UIDropDownMenuTemplate")
+        PhaseToolkit.GenreDropDown:SetSize(200,30)
+        PhaseToolkit.GenreDropDown:SetPoint("TOPLEFT",PhaseToolkit.RaceDropDown,"BOTTOMLEFT",0,5)
+
+        PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
+
+        local autoUpdateNpcInfoCheckbox= CreateFrame("CheckButton", nil, PhaseToolkit.GenreDropDown, "ChatConfigCheckButtonTemplate")
+        autoUpdateNpcInfoCheckbox:SetPoint("TOPLEFT", PhaseToolkit.GenreDropDown, "BOTTOMLEFT", 15, 0) 
+
+        autoUpdateNpcInfoCheckbox.Text:SetText(PhaseToolkit.CurrentLang["auto update Npc"])
+
+        autoUpdateNpcInfoCheckbox:SetScript("OnClick", function(self)
+            PhaseToolkit.AutoRefreshNPC=self:GetChecked()
+            PhaseToolKitConfig["AutoRefreshNPC"]=PhaseToolkit.AutoRefreshNPC
+            if(not PhaseToolkit.AutoRefreshNPC and PhaseToolkit.CustomMainFrame~=nil) then
+                PhaseToolkit.CustomMainFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+            end
+            if(PhaseToolkit.AutoRefreshNPC and PhaseToolkit.CustomMainFrame~=nil) then
+                PhaseToolkit.CustomMainFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+            end
+        end)
+
+        autoUpdateNpcInfoCheckbox:SetChecked(false)
+        
+        
+        PhaseToolkit.showCustomButton=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
+        PhaseToolkit.showCustomButton:SetSize(25,25)
+        PhaseToolkit.showCustomButton:SetPoint("BOTTOMLEFT",PhaseToolkit.CustomMainFrame,"BOTTOMLEFT",7.5,7.5)
+        PhaseToolkit.showCustomButton.icon = PhaseToolkit.showCustomButton:CreateTexture(nil, "OVERLAY")
+        PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowdown")
+        PhaseToolkit.showCustomButton.icon:SetAllPoints()
+        PhaseToolkit.showCustomButton.currentIcon="450905"
+        PhaseToolkit.showCustomButton:SetScript("OnClick",PhaseToolkit.switchOpenCustomGridButton)
+        PhaseToolkit.showCustomButton:SetScript("OnEnter",function(self) 
+            PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Show Custom Option"])
+        end)
+
+        PhaseToolkit.showCustomButton:SetScript("OnLeave",function(self)
+            PhaseToolkit.HideTooltip()
+        end)
+
+
+        local AllRandomButton=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
+        AllRandomButton:SetSize(25,25)
+        AllRandomButton:SetPoint("LEFT",PhaseToolkit.showCustomButton,"RIGHT",5,0)
+        AllRandomButton.icon = AllRandomButton:CreateTexture(nil, "OVERLAY")
+        AllRandomButton.icon:SetTexture("Interface\\Icons\\inv_misc_dice_01")
+        AllRandomButton.icon:SetAllPoints()
+        AllRandomButton:SetScript("OnClick",function()
+            PhaseToolkit.RandomiseNpc()
+        end)
+
+        AllRandomButton:SetScript("OnEnter",function(self) 
+            PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Randomise customisations"] or "Randomise customisations")
+        end)
+
+        AllRandomButton:SetScript("OnLeave",function(self)
+            PhaseToolkit.HideTooltip()
+        end)
+
+        local SetNpcName=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
+        SetNpcName:SetSize(25,25)
+        SetNpcName:SetPoint("LEFT",AllRandomButton,"RIGHT",5,0)
+        SetNpcName.icon = SetNpcName:CreateTexture(nil, "OVERLAY")
+        SetNpcName.icon:SetTexture("Interface\\Icons\\inv_inscriptionlanathelquill")
+        SetNpcName.icon:SetAllPoints()
+        SetNpcName:SetScript("OnClick",function()
+            PhaseToolkit.PromptForNPCName()
+        end)
+
+        SetNpcName:SetScript("OnEnter",function(self) 
+            PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Set NPC name"] or "Set NPC name")
+        end)
+
+        SetNpcName:SetScript("OnLeave",function(self)
+            PhaseToolkit.HideTooltip()
+        end)
+
+
+
+        local SetNpcSubName=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
+        SetNpcSubName:SetSize(25,25)
+        SetNpcSubName:SetPoint("LEFT",SetNpcName,"RIGHT",5,0)
+        SetNpcSubName.icon = SetNpcSubName:CreateTexture(nil, "OVERLAY")
+        SetNpcSubName.icon:SetTexture("Interface\\Icons\\inv_inscription_82_contract_ankoan")
+        SetNpcSubName.icon:SetAllPoints()
+        SetNpcSubName:SetScript("OnClick",function()
+            PhaseToolkit.PromptForNPCSubName()
+        end)
+
+        SetNpcSubName:SetScript("OnEnter",function(self) 
+            PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Set NPC Subname"] or "Set NPC Subname")
+        end)
+
+        SetNpcSubName:SetScript("OnLeave",function(self)
+            PhaseToolkit.HideTooltip()
+        end)
+        PhaseToolkit.CustomMainFrame:Hide()
+        PhaseToolkit.CustomMainFrame:Show()
     end
-    PhaseToolkit.CustomMainFrame=CreateFrame("Frame",nil,PhaseToolkit.NPCCustomiserMainFrame,"BackdropTemplate")
-    PhaseToolkit.CustomMainFrame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", 
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", 
-        edgeSize = 16, 
-        insets = {left = 5, right = 5, top = 5, bottom = 5}, 
-    })
-    PhaseToolkit.CustomMainFrame:SetSize(160,90)
-    PhaseToolkit.CustomMainFrame:SetPoint("TOPLEFT",PhaseToolkit.NPCCustomiserMainFrame,"TOPRIGHT",5,0)
-
-    PhaseToolkit.RaceDropDown=CreateFrame("Frame","RaceDropDown",PhaseToolkit.CustomMainFrame,"UIDropDownMenuTemplate")
-    PhaseToolkit.RaceDropDown:SetSize(200,30)
-    PhaseToolkit.RaceDropDown:SetPoint("TOPLEFT",PhaseToolkit.CustomMainFrame,"TOPLEFT",-5,-5)
-
-    PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
-
-    PhaseToolkit.GenreDropDown=CreateFrame("Frame","GenreDropDown",PhaseToolkit.CustomMainFrame,"UIDropDownMenuTemplate")
-    PhaseToolkit.GenreDropDown:SetSize(200,30)
-    PhaseToolkit.GenreDropDown:SetPoint("TOPLEFT",PhaseToolkit.RaceDropDown,"BOTTOMLEFT",0,5)
-
-    PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
-
-    local AllRandomButton=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
-    AllRandomButton:SetSize(25,25)
-    AllRandomButton:SetPoint("BOTTOMLEFT",PhaseToolkit.CustomMainFrame,"BOTTOMLEFT",5,5)
-    AllRandomButton.icon = AllRandomButton:CreateTexture(nil, "OVERLAY")
-    AllRandomButton.icon:SetTexture("Interface\\Icons\\inv_misc_dice_01")
-    AllRandomButton.icon:SetAllPoints()
-    AllRandomButton:SetScript("OnClick",function()
-        PhaseToolkit.RandomiseNpc()
-    end)
-
-    AllRandomButton:SetScript("OnEnter",function(self) 
-        PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Randomise customisations"] or "Randomise customisations")
-    end)
-
-    AllRandomButton:SetScript("OnLeave",function(self)
-        PhaseToolkit.HideTooltip()
-    end)
-
-    local SetNpcName=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
-    SetNpcName:SetSize(25,25)
-    SetNpcName:SetPoint("LEFT",AllRandomButton,"RIGHT",5,0)
-    SetNpcName.icon = SetNpcName:CreateTexture(nil, "OVERLAY")
-    SetNpcName.icon:SetTexture("Interface\\Icons\\inv_inscriptionlanathelquill")
-    SetNpcName.icon:SetAllPoints()
-    SetNpcName:SetScript("OnClick",function()
-        PhaseToolkit.PromptForNPCName()
-    end)
-
-    SetNpcName:SetScript("OnEnter",function(self) 
-        PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Set NPC name"] or "Set NPC name")
-    end)
-
-    SetNpcName:SetScript("OnLeave",function(self)
-        PhaseToolkit.HideTooltip()
-    end)
-
-    local SetNpcSubName=CreateFrame("Button",nil,PhaseToolkit.CustomMainFrame,"UIPanelButtonTemplate")
-    SetNpcSubName:SetSize(25,25)
-    SetNpcSubName:SetPoint("LEFT",SetNpcName,"RIGHT",5,0)
-    SetNpcSubName.icon = SetNpcSubName:CreateTexture(nil, "OVERLAY")
-    SetNpcSubName.icon:SetTexture("Interface\\Icons\\inv_inscription_82_contract_ankoan")
-    SetNpcSubName.icon:SetAllPoints()
-    SetNpcSubName:SetScript("OnClick",function()
-        PhaseToolkit.PromptForNPCSubName()
-    end)
-
-    SetNpcSubName:SetScript("OnEnter",function(self) 
-        PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Set NPC Subname"] or "Set NPC Subname")
-    end)
-
-    SetNpcSubName:SetScript("OnLeave",function(self)
-        PhaseToolkit.HideTooltip()
-    end)
-
 end
 
 function PhaseToolkit.CreateAdditionalButtonFrame()
@@ -2169,7 +2064,7 @@ function PhaseToolkit.CreateAdditionalButtonFrame()
 
    NpcCustomLabel=PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
    NpcCustomLabel:SetPoint("RIGHT",NpcCustomPanelButton,"LEFT",-2.5,2.5)
-   NpcCustomLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Npc custom"] or "Npc custom")
+   NpcCustomLabel:SetText(PhaseToolkit.CurrentLang["Npc custom"] or "Npc custom")
 
     local PhaseOptionButton=CreateFrame("Button",nil,PhaseToolkit.AdditionalButtonFrame,"UIPanelButtonTemplate")
     PhaseOptionButton:SetSize(25,25)
@@ -2183,7 +2078,7 @@ function PhaseToolkit.CreateAdditionalButtonFrame()
 
     PhaseOptionLabel=PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     PhaseOptionLabel:SetPoint("RIGHT",PhaseOptionButton,"LEFT",-2.5,2.5)
-    PhaseOptionLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Phase Option"] or "Phase Option")
+    PhaseOptionLabel:SetText( PhaseToolkit.CurrentLang["Phase Option"] or "Phase Option")
 
     local PhaseNpcList=CreateFrame("Button",nil,PhaseToolkit.AdditionalButtonFrame,"UIPanelButtonTemplate")
     PhaseNpcList:SetSize(25,25)
@@ -2197,7 +2092,7 @@ function PhaseToolkit.CreateAdditionalButtonFrame()
 
     PhaseOptionLabel=PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     PhaseOptionLabel:SetPoint("RIGHT",PhaseNpcList,"LEFT",-2.5,2.5)
-    PhaseOptionLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["NPC List"] or "NPC List")
+    PhaseOptionLabel:SetText( PhaseToolkit.CurrentLang["NPC List"] or "NPC List")
 
     local PhaseTeleList=CreateFrame("Button",nil,PhaseToolkit.AdditionalButtonFrame,"UIPanelButtonTemplate")
     PhaseTeleList:SetSize(25,25)
@@ -2211,17 +2106,12 @@ function PhaseToolkit.CreateAdditionalButtonFrame()
 
     PhaseOptionTeleLabel=PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     PhaseOptionTeleLabel:SetPoint("RIGHT",PhaseTeleList,"LEFT",-2.5,2.5)
-    PhaseOptionTeleLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Tele List"] or "Tele List")
+    PhaseOptionTeleLabel:SetText( PhaseToolkit.CurrentLang["Tele List"] or "Tele List")
 
 end
 
-checkBox:SetScript("OnClick",function ()
-    if(checkBox:GetChecked()==true) then
-        PhaseToolkit.ModeFR=false
-    else
-        PhaseToolkit.ModeFR=true
-    end
-
+function PhaseToolkit.changeLang(newLang)
+    PhaseToolkit.CurrentLang=newLang
     PhaseToolkit:CreateAdditionalButtonFrame()
     PhaseToolkit:TranslateWeatherIntensity()
     if(PhaseToolkit.CustomFrame ~=nil) then
@@ -2252,13 +2142,24 @@ checkBox:SetScript("OnClick",function ()
     if(PhaseToolkit.MeteoDropDown~=nil) then
         PhaseToolkit.ShowMeteoDropDown(PhaseToolkit.MeteoDropDown)
     end
+    if(PhaseToolkit.PNJFrame~=nil) then
+        if(PhaseToolkit.PNJFrame:IsShown())then
+            PhaseToolkit.PNJFrame:Hide()
+            PhaseToolkit.PNJFrame=nil
+            PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
+            PhaseToolkit.PNJFrame:Show()
+        end 
+    end
+    if(PhaseToolkit.TELEFrame~=nil) then
+        if(PhaseToolkit.TELEFrame:IsShown())then
+            PhaseToolkit.TELEFrame:Hide()
+            PhaseToolkit.TELEFrame=nil
+            PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
+            PhaseToolkit.TELEFrame:Show()
+        end 
+    end
     
-end)
-
-local labelTranslate= PhaseToolkit.LangageTogMainFrame:CreateFontString(nil,"OVERLAY","GameFontHighlight")
-labelTranslate:SetPoint("LEFT",checkBox,"RIGHT",5,0)
-labelTranslate:SetText("Trad FR")
-
+end
 --================================= Frame pour Listes ===============================--
 function PhaseToolkit.CreateNpcListFrame(_creatureList)
     if(PhaseToolkit.TELEFrame~=nil) then
@@ -2331,7 +2232,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 
         local title = NewNumberOfLineframe:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         title:SetPoint("TOP", 0, -10)
-        title:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["How many lines per pages ?"] or "How many lines per pages ?")
+        title:SetText( PhaseToolkit.CurrentLang["How many lines per pages ?"] or "How many lines per pages ?")
 
         local editBox = CreateFrame("EditBox", nil, NewNumberOfLineframe, "InputBoxTemplate")
         editBox:SetSize(100, 30)
@@ -2361,7 +2262,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
                     PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
                 end
             else
-                print(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Enter a valid number"] or "Enter a valid number")
+                print( PhaseToolkit.CurrentLang["Enter a valid number"] or "Enter a valid number")
             end
         end
         
@@ -2371,7 +2272,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
         local validerButton = CreateFrame("Button", nil, NewNumberOfLineframe, "UIPanelButtonTemplate")
         validerButton:SetSize(80, 30)
         validerButton:SetPoint("LEFT",editBox,"RIGHT",10,0)
-        validerButton:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Confirm"] or "Confirm")
+        validerButton:SetText( PhaseToolkit.CurrentLang["Confirm"] or "Confirm")
 
         
         validerButton:SetScript("OnClick",validerNouveauLineNumber)
@@ -2387,7 +2288,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
     local ButtonToFetch=CreateFrame("Button",nil,PhaseToolkit.PNJFrame,"UIPanelButtonTemplate")
     ButtonToFetch:SetSize(120,15)
     ButtonToFetch:SetPoint("TOPRIGHT",PhaseToolkit.PNJFrame,"TOPRIGHT",-30,-3.5)
-    ButtonToFetch:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Fetch Npcs"] or "Fetch Npcs")
+    ButtonToFetch:SetText( PhaseToolkit.CurrentLang["Fetch Npcs"] or "Fetch Npcs")
     ButtonToFetch:SetScript("OnClick",function()
         PhaseToolkit.IsCurrentlyFilteringNpc=false
         PhaseToolkit.filteredTeleList={}
@@ -2395,7 +2296,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
     end)
 
 
-    ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["This can take a few seconds"] or "This can take a few seconds") end)
+    ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["This can take a few seconds"] or "This can take a few seconds") end)
     ButtonToFetch:SetScript("OnLeave", PhaseToolkit.HideTooltip)
 
 
@@ -2480,7 +2381,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
          row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
          row.deleteButton:SetSize(80, 30)
          row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
-         row.deleteButton:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Delete"] or "Delete")
+         row.deleteButton:SetText( PhaseToolkit.CurrentLang["Delete"] or "Delete")
 
         PNJRows[i] = row
     end
@@ -2525,7 +2426,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
     local prevButton = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
     prevButton:SetSize(80, 30)
     prevButton:SetPoint("BOTTOMLEFT", PhaseToolkit.PNJFrame, "BOTTOMLEFT", 10, 10)
-    prevButton:SetText("Prev")
+    prevButton:SetText(PhaseToolkit.CurrentLang["Prev"])
 
     NpcCurrentPageeditBox = CreateFrame("EditBox", nil, PhaseToolkit.PNJFrame, "InputBoxTemplate")
     NpcCurrentPageeditBox:SetSize(30, 30)
@@ -2559,7 +2460,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
     local nextButton = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
     nextButton:SetSize(80, 30)
     nextButton:SetPoint("LEFT", prevButton, "RIGHT", 70, 0)
-    nextButton:SetText("Next")
+    nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
     
     function PhaseToolkit.UpdatePNJPagination(creatureList)
         totalPages = math.ceil(#creatureList / PhaseToolkit.itemsPerPageNPC)
@@ -2656,7 +2557,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
         local title = NewNumberOfLineframe:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         title:SetPoint("TOP", 0, -10)
-        title:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["How many lines per pages ?"] or "How many lines per pages ?")
+        title:SetText( PhaseToolkit.CurrentLang["How many lines per pages ?"] or "How many lines per pages ?")
 
         local editBox = CreateFrame("EditBox", nil, NewNumberOfLineframe, "InputBoxTemplate")
         editBox:SetSize(100, 30)
@@ -2688,7 +2589,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
                 end
 
             else
-                print(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Enter a valid number"] or "Enter a valid number")
+                print( PhaseToolkit.CurrentLang["Enter a valid number"] or "Enter a valid number")
             end
         end
         
@@ -2698,7 +2599,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
         local validerButton = CreateFrame("Button", nil, NewNumberOfLineframe, "UIPanelButtonTemplate")
         validerButton:SetSize(80, 30)
         validerButton:SetPoint("LEFT",editBox,"RIGHT",10,0)
-        validerButton:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Confirm"] or "Confirm")
+        validerButton:SetText( PhaseToolkit.CurrentLang["Confirm"] or "Confirm")
 
         
         validerButton:SetScript("OnClick",validerNouveauLineNumber)
@@ -2715,12 +2616,12 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
     local ButtonToFetch=CreateFrame("Button",nil,PhaseToolkit.TELEFrame,"UIPanelButtonTemplate")
     ButtonToFetch:SetSize(120,15)
     ButtonToFetch:SetPoint("TOPRIGHT",PhaseToolkit.TELEFrame,"TOPRIGHT",-30,-3.5)
-    ButtonToFetch:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Fetch Tele"] or "Fetch Tele")
+    ButtonToFetch:SetText( PhaseToolkit.CurrentLang["Fetch Tele"] or "Fetch Tele")
     ButtonToFetch:SetScript("OnClick",function()
         PhaseToolkit.PhaseTeleListSystemMessageCounter()
     end)
 
-    ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["This can take a few seconds"] or "This can take a few seconds") end)
+    ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["This can take a few seconds"] or "This can take a few seconds") end)
     ButtonToFetch:SetScript("OnLeave", PhaseToolkit.HideTooltip)
 
 
@@ -2732,7 +2633,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
     ButtonToChangeNumberOfLine.icon:SetAllPoints()
     ButtonToChangeNumberOfLine:SetScript("OnClick",PhaseToolkit.CreerFenetreLignesParPage)
 
-    ButtonToChangeNumberOfLine:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self,not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Change list size"] or "Change list size") end)
+    ButtonToChangeNumberOfLine:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Change list size"] or "Change list size") end)
     ButtonToChangeNumberOfLine:SetScript("OnLeave", PhaseToolkit.HideTooltip)
 
     local function SearchAndFindTeleByText (self)
@@ -2816,7 +2717,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
         row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         row.deleteButton:SetSize(80, 30)
         row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
-        row.deleteButton:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Delete"] or "Delete")
+        row.deleteButton:SetText( PhaseToolkit.CurrentLang["Delete"] or "Delete")
 
         -- Ajouter la ligne au tableau pour gestion
         PNJRows[i] = row
@@ -2865,7 +2766,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
     local prevButton = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
     prevButton:SetSize(80, 30)
     prevButton:SetPoint("BOTTOMLEFT", PhaseToolkit.TELEFrame, "BOTTOMLEFT", 10, 10)
-    prevButton:SetText("Prev")
+    prevButton:SetText(PhaseToolkit.CurrentLang["Prev"])
 
     TeleCurrentPageeditBox = CreateFrame("EditBox", nil, PhaseToolkit.TELEFrame, "InputBoxTemplate")
     TeleCurrentPageeditBox:SetSize(30, 30)
@@ -2901,7 +2802,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
     local nextButton = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
     nextButton:SetSize(80, 30)
     nextButton:SetPoint("LEFT", prevButton, "RIGHT", 70, 0)
-    nextButton:SetText("Next")
+    nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
 
     -- Fonction pour mettre à jour les boutons et afficher la page
     function TeleUpdatePagination(teleList)
@@ -2953,7 +2854,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 end
 
-PhaseToolkit:CreateAdditionalButtonFrame()
+
 
 --=============================== Recuperation de PNJ ===========================--
 local function parseReplies(isCommandSuccessful,repliesList)
@@ -3162,7 +3063,7 @@ function  PhaseToolkit.createPhaseAccessFrame()
 
      GlobalNPCCUSTOMISER_phaseAccessLabel=GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
      GlobalNPCCUSTOMISER_phaseAccessLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame,"TOP",0,-7.5)
-     GlobalNPCCUSTOMISER_phaseAccessLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Phase Access"] or "Phase Access")
+     GlobalNPCCUSTOMISER_phaseAccessLabel:SetText( PhaseToolkit.CurrentLang["Phase Access"] or "Phase Access")
 
   
     local function RadioButton_OnClick(self)
@@ -3228,7 +3129,7 @@ function  PhaseToolkit.createMeteoSettingsFrame()
      
      _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Low']:SetText(PhaseToolkit.IntensiteMeteoMin)  
      _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'High']:SetText(IntensiteMeteoMax)
-     _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR['Intensity'] or 'Intensity')
+     _G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText( PhaseToolkit.CurrentLang['Intensity'] or 'Intensity')
 
      local function OnValueChanged(self)
         PhaseToolkit.IntensiteMeteo = self:GetValue()
@@ -3259,7 +3160,7 @@ GlobalNPCCUSTOMISER_moduleForTimeSliderFrame=CreateFrame("Frame",nil,PhaseToolki
 
     local timeSliderLabel=GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     timeSliderLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForTimeSliderFrame,"TOP",0,-10)
-    timeSliderLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Set the time"] or "Set the time")
+    timeSliderLabel:SetText( PhaseToolkit.CurrentLang["Set the time"] or "Set the time")
 
 
     local slider = CreateFrame("Slider", "$parentSlider", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, "OptionsSliderTemplate")
@@ -3308,13 +3209,13 @@ function PhaseToolkit.createSetStartingFrame()
 
     local startingLabel=GlobalNPCCUSTOMISER_moduleForSetStartingFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     startingLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForSetStartingFrame,"TOP",0,-10)
-    startingLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Starting point"] or 'Starting point')
+    startingLabel:SetText( PhaseToolkit.CurrentLang["Starting point"] or 'Starting point')
     
     local ButtonSetStarting=CreateFrame("Button",nil,GlobalNPCCUSTOMISER_moduleForSetStartingFrame,"UIPanelButtonTemplate")
     ButtonSetStarting:SetPoint("CENTER",GlobalNPCCUSTOMISER_moduleForSetStartingFrame,"CENTER",0,-10)
     ButtonSetStarting:SetPoint("LEFT", 5, 0)
     ButtonSetStarting:SetPoint("RIGHT", -5, 0)
-    ButtonSetStarting:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Set Current Location"] or "Set Current Location")
+    ButtonSetStarting:SetText( PhaseToolkit.CurrentLang["Set Current Location"] or "Set Current Location")
     ButtonSetStarting:SetScript("OnClick",function()
         sendAddonCmd("phase set starting ",nil,false)
     end
@@ -3324,7 +3225,7 @@ function PhaseToolkit.createSetStartingFrame()
     ButtonDisableStart:SetPoint("BOTTOM",GlobalNPCCUSTOMISER_moduleForSetStartingFrame,"BOTTOM",0,5)
     ButtonDisableStart:SetPoint("LEFT",15, 0)
     ButtonDisableStart:SetPoint("RIGHT", -15, 0)
-    ButtonDisableStart:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Disable Starting"] or "Disable Starting")
+    ButtonDisableStart:SetText( PhaseToolkit.CurrentLang["Disable Starting"] or "Disable Starting")
     ButtonDisableStart:SetScript("OnClick",function()
         sendAddonCmd("phase set starting disable ",nil,false)
     end
@@ -3346,7 +3247,7 @@ function PhaseToolkit.createTogglesFrame()
 
     local startingLabel=GlobalNPCCUSTOMISER_moduleForTogglesFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     startingLabel:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForTogglesFrame,"TOP",0,-10)
-    startingLabel:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Permission disabling"] or 'Permission disabling')
+    startingLabel:SetText( PhaseToolkit.CurrentLang["Permission disabling"] or 'Permission disabling')
 
     Togglesdropdown = CreateFrame("FRAME", "$parentDropDown", GlobalNPCCUSTOMISER_moduleForTogglesFrame, "UIDropDownMenuTemplate")
     Togglesdropdown:SetSize(200,30)
@@ -3380,7 +3281,7 @@ function PhaseToolkit.createPhaseSetNameFrame()
 
     local labelForNameTextEdit=GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     labelForNameTextEdit:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame,"TOP",0,-15)
-    labelForNameTextEdit:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Phase Name"] or "Phase Name")
+    labelForNameTextEdit:SetText( PhaseToolkit.CurrentLang["Phase Name"] or "Phase Name")
 
 
 end
@@ -3406,7 +3307,7 @@ function  PhaseToolkit.createPhaseSetDescriptionFrame()
 
     local labelForNameTextEdit=GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     labelForNameTextEdit:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame,"TOP",0,-15)
-    labelForNameTextEdit:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Phase Description"] or "Phase Description")
+    labelForNameTextEdit:SetText( PhaseToolkit.CurrentLang["Phase Description"] or "Phase Description")
 end
 
 function PhaseToolkit.createMotdFrame()
@@ -3432,12 +3333,12 @@ function PhaseToolkit.createMotdFrame()
 
     local labelForMotdTextEdit=GlobalNPCCUSTOMISER_moduleforMotdFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
     labelForMotdTextEdit:SetPoint("TOP",GlobalNPCCUSTOMISER_moduleforMotdFrame,"TOP",0,-5)
-    labelForMotdTextEdit:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["Message of the day"] or "Message of the day")
+    labelForMotdTextEdit:SetText( PhaseToolkit.CurrentLang["Message of the day"] or "Message of the day")
 
     local buttonToSendMotd=CreateFrame("Button",nil,GlobalNPCCUSTOMISER_moduleforMotdFrame,"UIPanelButtonTemplate")
     buttonToSendMotd:SetPoint("TOPRIGHT",GlobalNPCCUSTOMISER_moduleforMotdFrame,"TOPRIGHT",0,0)
     buttonToSendMotd:SetSize(80,20)
-    buttonToSendMotd:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR["SetMotd"] or "SetMotd")
+    buttonToSendMotd:SetText( PhaseToolkit.CurrentLang["SetMotd"] or "SetMotd")
     buttonToSendMotd:SetScript("OnClick",function(self)
         sendAddonCmd("phase set message "..textForMotd,nil,false)
     end
@@ -3533,24 +3434,14 @@ function PhaseToolkit.CreateCustomFrame()
     
     if(PhaseToolkit.NombreDeLigne ~=nil) then
         PhaseToolkit.HauteurDispoCustomFrame=((PhaseToolkit.NombreDeLigne-1)*50)
-        PhaseToolkit.CustomFrame:SetSize(480,PhaseToolkit.HauteurDispoCustomFrame)
+        PhaseToolkit.CustomFrame:SetSize(562.5,PhaseToolkit.HauteurDispoCustomFrame)
     else
-        PhaseToolkit.CustomFrame:SetSize(480,630)
+        PhaseToolkit.CustomFrame:SetSize(562.5,630)
     end
     PhaseToolkit.CustomFrame:SetPoint("TOPLEFT",PhaseToolkit.CustomMainFrame,"BOTTOMLEFT",0,0)
     PhaseToolkit.CustomFrame:Hide()
 
-    local CustomFrameCloseButton=CreateFrame("Button",nil,PhaseToolkit.CustomFrame,"UIPanelCloseButton")
-    CustomFrameCloseButton:SetSize(30,30)
-    CustomFrameCloseButton:SetPoint("TOPRIGHT",PhaseToolkit.CustomFrame,"TOPRIGHT")
-    CustomFrameCloseButton:SetScript("OnClick",function()
-        if(PhaseToolkit.CustomFrame~=nil)then
-            if(PhaseToolkit.CustomFrame:IsShown())then
-                PhaseToolkit.CustomFrame:Hide()
-                PhaseToolkit.CustomFrame=nil
-            end
-        end
-    end)
+
 end
 
 function PhaseToolkit.ToggleCustomFrame(Race)
@@ -3569,7 +3460,8 @@ function PhaseToolkit.ToggleCustomFrame(Race)
 end
 
 
-local frameWidth, frameHeight = 450, PhaseToolkit.HauteurDispoCustomFrame
+local frameWidth, frameHeight = 550, PhaseToolkit.HauteurDispoCustomFrame
+
 function PhaseToolkit.CreateCustomGrid(data)
     local row = 0
     local col = 0
@@ -3612,15 +3504,46 @@ function PhaseToolkit.CreateCustomGrid(data)
            
             local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             text:SetPoint("BOTTOM", frame, "CENTER", 0, 5)
-            text:SetText(not PhaseToolkit.ModeFR and PhaseToolkit.TraductionFR[attribute] or attribute)
-            text:SetFont("fonts/arialn.ttf",12)
+            text:SetText( PhaseToolkit.CurrentLang[attribute] or attribute)
+            text:SetFont("fonts/arialn.ttf",15)
 
-            
+        
+
+            local AttributeValueEditBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+            AttributeValueEditBox:SetSize(30, 30)
+            AttributeValueEditBox:SetPoint("TOP", frame, "CENTER", -15, 10)
+            AttributeValueEditBox:SetNumeric(true)
+            AttributeValueEditBox:SetMaxLetters(2)
+            AttributeValueEditBox:SetAutoFocus(false)
+            AttributeValueEditBox:SetText(PhaseToolkit.GeneralStat[attribute])
+
+            local MaxValueOfAttributeLabel=frame:CreateFontString(nil,"OVERLAY","GameFontHighlight")
+            MaxValueOfAttributeLabel:SetText(" / "..value)
+            MaxValueOfAttributeLabel:SetPoint("LEFT",AttributeValueEditBox,"RIGHT",0,0)
+
+            AttributeValueEditBox:SetScript("OnEscapePressed",function() 
+                AttributeValueEditBox:SetAutoFocus(false)
+                AttributeValueEditBox:ClearFocus()
+            end)
+
+            AttributeValueEditBox:SetScript("OnEnterPressed",function()
+                if AttributeValueEditBox:GetText()~="" then
+                    if(AttributeValueEditBox:GetNumber() >value) then
+                        AttributeValueEditBox:SetNumber(value)
+                    end
+                    if(AttributeValueEditBox:GetNumber()<1) then
+                        AttributeValueEditBox:SetNumber(1)
+                    end
+                    PhaseToolkit.GeneralStat[attribute] = AttributeValueEditBox:GetNumber()
+                    
+                    sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
+                    AttributeValueEditBox:ClearFocus()
+                end
+            end)
 
 
-            local undertext = frame:CreateFontString("undertext"..attribute, "OVERLAY", "GameFontHighlight")
-            undertext:SetPoint("TOP", frame, "CENTER", 0, -5)
-            undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+
+
 
             local randomValueButton = CreateFrame("Button",nil,frame,"UIPanelButtonTemplate")
             randomValueButton:SetSize(20,20)
@@ -3632,13 +3555,13 @@ function PhaseToolkit.CreateCustomGrid(data)
                 local randomNumber = math.random(1, value)
                 PhaseToolkit.GeneralStat[attribute]=randomNumber
                 sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
-                undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+                AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
                 return
             end )
            
             local buttonMoins = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
             buttonMoins:SetSize(18, 18)
-            buttonMoins:SetPoint("RIGHT", undertext, "LEFT", -7.5, 0)
+            buttonMoins:SetPoint("RIGHT", AttributeValueEditBox, "LEFT", -7.5, 0)
             buttonMoins.icon = buttonMoins:CreateTexture(nil, "OVERLAY")
             buttonMoins.icon:SetTexture("Interface\\Icons\\MISC_ARROWLEFT")
             buttonMoins.icon:SetAllPoints()
@@ -3647,13 +3570,13 @@ function PhaseToolkit.CreateCustomGrid(data)
                     -- si on est a 1 et qu'on fais -1 on arrive au max 
                     PhaseToolkit.GeneralStat[attribute]=value
                     sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
-                    undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+                    AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
                     return
                 end
                 if PhaseToolkit.GeneralStat[attribute] - 1 >= 1 then
                     PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] - 1
                     sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
-                    undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+                    AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
                     return
                 end
             end)
@@ -3661,7 +3584,7 @@ function PhaseToolkit.CreateCustomGrid(data)
            
             local buttonPlus = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
             buttonPlus:SetSize(18, 18)
-            buttonPlus:SetPoint("LEFT", undertext, "RIGHT", 7.5, 0)
+            buttonPlus:SetPoint("LEFT", MaxValueOfAttributeLabel, "RIGHT", 7.5, 0)
             buttonPlus.icon = buttonPlus:CreateTexture(nil, "OVERLAY")
             buttonPlus.icon:SetTexture("Interface\\Icons\\MISC_ARROWRIGHT")
             buttonPlus.icon:SetAllPoints()
@@ -3670,13 +3593,13 @@ function PhaseToolkit.CreateCustomGrid(data)
                     -- si on est a 1 et qu'on fais -1 on arrive au max 
                     PhaseToolkit.GeneralStat[attribute]=1
                     sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
-                    undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+                    AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
                     return
                 end
                 if PhaseToolkit.GeneralStat[attribute] + 1 <= value then
                     PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] + 1
                     sendAddonCmd("phase forge npc outfit custom "..attribute.." "..PhaseToolkit.GeneralStat[attribute],nil,false)
-                    undertext:SetText(PhaseToolkit.GeneralStat[attribute] .. " / " .. value)
+                    AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
                     return
                 end
             end)
@@ -3697,22 +3620,46 @@ SlashCmdList["PTK"] = function(msg)
     PhaseToolkit.ToggleMainFrame()
 end
 
+
+function PhaseToolkit.parseForDisplayId(isCommandSuccessful,repliesList)
+    local message =repliesList[1];
+    message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+
+    local displayId = string.match(message, "DisplayID: (.+) %(")
+    if displayId~=nil then
+        displayId=displayId:gsub("|.+|",""):gsub("h","")
+        if(displayId~="" and isKeyInTable(displayId)) then
+            local identity=PhaseToolkit.infoPerDisplay[displayId]
+            PhaseToolkit.SelectedNpcInfo=identity
+            PhaseToolkit.SelectedRace=PhaseToolkit.Races[identity.race]
+            PhaseToolkit.SelectedGender=identity.sexe
+            PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
+            PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
+            if(PhaseToolkit.CustomFrame~=nil and PhaseToolkit.CustomFrame:IsShown()) then
+                PhaseToolkit.ToggleCustomFrame(identity.race)
+            end
+        end
+    end
+end
 -- ============================== ICONE AUTOUR MAP ============================== -- 
 
 PhaseToolkit.NPCCustomiserMainFrame:SetScript("OnEvent", function(self, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == "PhaseToolkit" then
-        if PhaseToolkit.ModeFR == nil then
-            PhaseToolkit.ModeFR =false
+    if event == "ADDON_LOADED" and arg1 == addonName then
+        if PhaseToolKitConfig==nil then
+            PhaseToolKitConfig={}
+            PhaseToolKitConfig["ModeFR"] =false
+            PhaseToolKitConfig["itemsPerPageNPC"]=15
+            PhaseToolKitConfig["itemsPerPageTELE"]=15
+            PhaseToolKitConfig["CurrentLang"]=PhaseToolkitPanel.getBaseLang()
+            PhaseToolKitConfig["AutoRefreshNPC"]=false
         end
-        if PhaseToolkit.itemsPerPageNPC == nil then
-            PhaseToolkit.itemsPerPageNPC=15
-        end  
-        if PhaseToolkit.itemsPerPageTELE == nil then
-            PhaseToolkit.itemsPerPageTELE=15
-        end
+
+        PhaseToolkit.NPCCustomiserMainFrame:UnregisterEvent("ADDON_LOADED")
+        PhaseToolkitPanel.createConfigPanel()
+        PhaseToolkit.itemsPerPageNPC=PhaseToolKitConfig["itemsPerPageNPC"]
+        PhaseToolkit.itemsPerPageTELE=PhaseToolKitConfig["itemsPerPageTELE"]
+        PhaseToolkit.CurrentLang=PhaseToolKitConfig["CurrentLang"]
+        PhaseToolkit.AutoRefreshNPC=PhaseToolKitConfig["AutoRefreshNPC"]
+        PhaseToolkit:CreateAdditionalButtonFrame()
     end
-    
-    PhaseToolkit.NPCCustomiserMainFrame:UnregisterEvent("ADDON_LOADED")
-
 end)
-

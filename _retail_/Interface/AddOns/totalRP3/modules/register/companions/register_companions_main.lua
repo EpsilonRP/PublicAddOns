@@ -34,6 +34,8 @@ local displayMessage = Utils.message.displayMessage;
 local EMPTY = Globals.empty;
 local tcopy = Utils.table.copy;
 local TYPE_MOUNT = TRP3_API.ui.misc.TYPE_MOUNT;
+local Compression = AddOn_TotalRP3.Compression;
+local TRP3_Enums = AddOn_TotalRP3.Enums;
 
 local function GetMountIDs()
 	if C_MountJournal then
@@ -127,8 +129,10 @@ local function boundPlayerCompanion(companionID, profileID, targetType)
 end
 TRP3_API.companions.player.boundPlayerCompanion = boundPlayerCompanion;
 
+
+
 local function unboundPlayerCompanion(companionID, targetType)
-	local profileID = playerProfileAssociation[companionID];
+    local profileID = playerProfileAssociation[companionID];
 	assert(profileID, "Cannot find any bound for companionID " .. tostring(companionID));
 	playerProfileAssociation[companionID] = nil;
 	if profileID and playerCompanions[profileID] and playerCompanions[profileID].links then
@@ -240,6 +244,13 @@ local function getCompanionVersionNumbers(profileID)
 	end
 end
 
+local function getPossessedVersionNumbers(profilleID)
+	local profile = playerCompanions[profilleID];
+	if profile and profile.data then
+		return profile.data.v, profile.PE.v;
+	end
+end
+
 local function UpdateSummonedPetGUID(speciesID)
 	RegisterCVar("totalRP3_SummonedPetID", "");
 	SetCVar("totalRP3_SummonedPetID", speciesID);
@@ -333,6 +344,17 @@ function TRP3_API.companions.player.getCurrentPetQueryLine()
 			return queryLine .. "_" .. profileID, getCompanionVersionNumbers(profileID);
 		end
 		return queryLine;
+	end
+end
+
+function TRP3_API.companions.player.getCurrentPossessedQueryLine()
+	local possessedNPC = UnitName("pet");
+	if possessedNPC then
+		local queryLine = possessedNPC;
+		if getPossessedProfileID(possessedNPC) then
+			local profileID = getPossessedProfileID(possessedNPC);
+			return queryLine .. "_" .. profileID, getPossessedVersionNumbers(possessedNPC);
+		end
 	end
 end
 
@@ -474,9 +496,71 @@ function TRP3_API.companions.register.setProfileData(profileID, profile)
 	Events.fireEvent(Events.REGISTER_DATA_UPDATED, nil, profileID, "misc");
 end
 
+function TRP3_API.companions.register.setProfile(npcFullID, profileID)
+	registerProfileAssociation[npcFullID] = profileID;
+end
+
+local function boundNPC(npcID, profileID, _)
+
+	assert(playerCompanions[profileID], "Unknown profile: "..tostring(profileID));
+    local profile = playerCompanions[profileID]
+
+	local phaseData = {};
+    phaseData['id'] = profileID;
+    phaseData['profile'] = profile;
+	
+    local key = 'TOTALRP_PROFILE_' .. npcID;
+    local str = Utils.serial.serialize(phaseData);
+    str = Compression.compress(str, true);
+
+    local strLength = #str
+	local fullNpcID = C_Epsilon.GetPhaseId() .. "_" .. npcID;
+    if strLength > 3500 then
+        print('Whoops - your profile is a bit too big');
+		return
+    end
+
+    registerProfileAssociation[fullNpcID] = profileID;
+	playerProfileAssociation[fullNpcID] = profileID;
+
+
+	if not playerCompanions[profileID].links then
+		playerCompanions[profileID].links = {};
+	end
+	playerCompanions[profileID].links[fullNpcID] = TRP3_Enums.UNIT_TYPE.NPC;
+
+    Events.fireEvent(Events.REGISTER_DATA_UPDATED, fullNpcID, profileID);
+
+    C_Epsilon.SetPhaseAddonData(key, str);
+end
+TRP3_API.companions.player.boundNPC = boundNPC;
+
+local function unboundNPC(npcID, _)
+    local profileID = registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID];
+
+    registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID] = nil;
+	playerCompanions[C_Epsilon.GetPhaseId() .. "_" .. npcID] = nil;
+
+    if profileID then
+		local key = 'TOTALRP_PROFILE_' .. npcID;
+        Events.fireEvent(Events.REGISTER_DATA_UPDATED, C_Epsilon.GetPhaseId() .. "_" .. npcID, profileID);
+		
+		C_Epsilon.SetPhaseAddonData(key, '');
+	end
+end
+TRP3_API.companions.player.unboundNPC = unboundNPC;
+
+
+
 function TRP3_API.companions.register.getCompanionProfile(companionFullID)
 	if registerProfileAssociation[companionFullID] and registerCompanions[registerProfileAssociation[companionFullID]] then
 		return registerCompanions[registerProfileAssociation[companionFullID]];
+	end
+end
+
+function TRP3_API.companions.register.getCompanionProfileID(npcFullID)
+	if registerProfileAssociation[npcFullID] then
+		return registerProfileAssociation[npcFullID];
 	end
 end
 

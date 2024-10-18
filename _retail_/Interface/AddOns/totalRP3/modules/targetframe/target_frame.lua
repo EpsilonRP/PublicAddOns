@@ -77,7 +77,7 @@ local function onStart()
 		return uiButton;
 	end
 
-	local function displayButtonsPanel()
+	local function displayButtonsPanel() 
 		local buttonSize = getConfigValue(CONFIG_TARGET_ICON_SIZE);
 
 		--Hide all
@@ -86,7 +86,7 @@ local function onStart()
 		end
 
 		-- Test which buttons to show
-		local ids = {};
+        local ids = {};
 		for id, buttonStructure in pairs(targetButtons) do
 			if buttonStructure.visible and
 			(not buttonStructure.condition or buttonStructure.condition(currentTargetType, currentTargetID)) and
@@ -99,7 +99,7 @@ local function onStart()
 		local index = 0;
 		local x = marginLeft;
 
-		for _, id in pairs(ids) do
+        for _, id in pairs(ids) do
 			local buttonStructure = targetButtons[id];
 			local uiButton = uiButtons[index+1];
 			-- Create the button
@@ -232,22 +232,22 @@ local function onStart()
 			return false;
 		elseif currentTargetType == TRP3_Enums.UNIT_TYPE.CHARACTER and (currentTargetID == Globals.player_id or (not isIDIgnored(currentTargetID) and isUnitIDKnown(currentTargetID))) then
 			return true;
-		elseif currentTargetType == TRP3_Enums.UNIT_TYPE.PET or currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET then
-			local owner = companionIDToInfo(currentTargetID);
-			return not isIDIgnored(owner) and (isCurrentMine or companionHasProfile(currentTargetID));
+        elseif currentTargetType == TRP3_Enums.UNIT_TYPE.PET or currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+            local owner = companionIDToInfo(currentTargetID);
+			return not isIDIgnored(owner) and (isCurrentMine or companionHasProfile(currentTargetID) or companionHasProfile(C_Epsilon.GetPhaseId() .. '_' .. TRP3_API.ui.misc.GetUnitID('target')));
 		end
 	end
 
 	local function onTargetChanged()
 		ui_TargetFrame:Hide();
 		currentTargetType, isCurrentMine = getTargetType();
-		if currentTargetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
-			currentTargetID = getUnitID("target");
-		elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
-			currentTargetID = TRP3_API.utils.str.getUnitNPCID("target");
-		else
-			currentTargetID = getCompanionFullID("target", currentTargetType);
-		end
+        if currentTargetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
+            currentTargetID = getUnitID("target");
+        elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+            currentTargetID = TRP3_API.utils.str.getUnitNPCID("target");
+        else
+            currentTargetID = getCompanionFullID("target", currentTargetType);
+        end
 		if shouldShowTargetFrame(CONFIG_TARGET_USE) then
 			displayTargetFrame();
 		end

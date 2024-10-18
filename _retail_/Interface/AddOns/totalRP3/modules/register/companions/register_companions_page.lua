@@ -42,7 +42,8 @@ local getCompleteName, openPageByUnitID = TRP3_API.register.getCompleteName;
 local deleteProfile = TRP3_API.companions.register.deleteProfile;
 local showConfirmPopup = TRP3_API.popup.showConfirmPopup;
 local getCompanionProfileID = TRP3_API.companions.player.getCompanionProfileID;
-
+local boundNPC = TRP3_API.companions.player.boundNPC;
+local displayMessage = Utils.message.displayMessage;
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 -- Logic
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -154,16 +155,31 @@ local function saveInformation()
 	assert(context, "No context !");
 	assert(context.profile, "No profile in context");
 
-	local dataTab = context.profile;
+    local dataTab = context.profile;
+	local profileID = context.profileID;
 	assert(type(dataTab.data) == "table", "Error: Nil information data or not a table.");
 
 	saveInDraft(context.profile.profileName);
 
-	wipe(dataTab.data);
+    wipe(dataTab.data);
 	-- By simply copy the draftData we get everything we need about ordering and structures.
 	tcopy(dataTab.data, draftData);
 	-- version increment
-	dataTab.data.v = Utils.math.incrementNumber(dataTab.data.v or 0, 2);
+    dataTab.data.v = Utils.math.incrementNumber(dataTab.data.v or 0, 2);
+	
+    local links = dataTab.links;
+	local phaseID = C_Epsilon.GetPhaseId();
+	
+    if links then
+        for k, v in pairs(links) do
+            local NpcPhaseID, npcID = string.match(k, "(%d+)_(%d+)");
+            if phaseID == NpcPhaseID then
+				boundNPC(npcID, profileID);
+            else
+				displayMessage('It seems you are not in the same phase as the npc the profile is linked to, so the NPC\'s profile could not be updated automatically');
+			end
+		end
+	end
 
 	Events.fireEvent(Events.REGISTER_DATA_UPDATED, nil, context.profileID);
 end
