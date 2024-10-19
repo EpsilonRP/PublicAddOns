@@ -9,6 +9,7 @@ PhaseToolkitPanel.LangList = {
 ------------------------------------------------------------------------------------------------------------
 
 local LangFR = {
+	["AutoRefreshNPCTooltip"] = "Actualisation automatique de la race et du sexe du PNJ sélectionné lors d'un changement de cible",
 	["auto update Npc"] = "Maj auto NPC",
 	["Show Custom Option"] = "Ouvrir les customs",
 	["Low"] = "Basse",
@@ -266,6 +267,7 @@ local LangFR = {
 	["Pulsars"] = "Pulsars"
 }
 local LangES = {
+	["AutoRefreshNPCTooltip"] = "Actualiza automáticamente la raza y el género para que coincidan con el PNJ seleccionado al cambiar de blanco.",
 	["auto update Npc"] = "Actualizar Npc",
 	["Show Custom Option"] = "Mostrar Opción",
 	["Low"] = "Bajo",
@@ -523,6 +525,7 @@ local LangES = {
 	["Pulsars"] = "Púlsares"
 }
 local LangDE = {
+	["AutoRefreshNPCTooltip"] = "Automatische Aktualisierung der Spezies und des Geschlechts, damit sie mit dem ausgewählten NPC übereinstimmen, wenn das Ziel geändert wird",
 	["auto update Npc"] = "Aktualisieren Npc",
 	["Show Custom Option"] = "Zeige Option",
 	["Low"] = "Niedrig",
@@ -780,7 +783,8 @@ local LangDE = {
 	["Pulsars"] = "Pulsare"
 }
 local LangEN = {
-	["auto update Npc"] = "auto update Npc",
+	["AutoRefreshNPCTooltip"] = "Automatically refresh race & gender to match the selected NPC when changing target",
+	["auto update Npc"] = "Auto Update NPC",
 	["Show Custom Option"] = "Show Custom Option",
 	["Low"] = "Low",
 	["High"] = "High",

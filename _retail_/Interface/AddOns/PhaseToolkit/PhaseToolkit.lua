@@ -1943,10 +1943,11 @@ function PhaseToolkit.createCustomParamFrame()
 
 		PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
 
-		local autoUpdateNpcInfoCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.GenreDropDown, "ChatConfigCheckButtonTemplate")
+		local autoUpdateNpcInfoCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.GenreDropDown, "InterfaceOptionsCheckButtonTemplate")
 		autoUpdateNpcInfoCheckbox:SetPoint("TOPLEFT", PhaseToolkit.GenreDropDown, "BOTTOMLEFT", 15, 0)
 
-		autoUpdateNpcInfoCheckbox.Text:SetText(PhaseToolkit.CurrentLang["auto update Npc"])
+		autoUpdateNpcInfoCheckbox.Text:SetText(PhaseToolkit.CurrentLang["auto update Npc"] or "Auto Update NPC")
+		autoUpdateNpcInfoCheckbox.tooltipText = PhaseToolkit.CurrentLang["AutoRefreshNPCTooltip"] or "Automatically refresh race & gender to match the selected NPC when changing target"
 
 		autoUpdateNpcInfoCheckbox:SetScript("OnClick", function(self)
 			PhaseToolkit.AutoRefreshNPC = self:GetChecked()
