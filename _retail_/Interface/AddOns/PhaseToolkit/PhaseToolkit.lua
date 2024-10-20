@@ -3161,18 +3161,22 @@ function PhaseToolkit.createTimeSettingsFrame()
 
 	local slider = CreateFrame("Slider", "$parentSlider", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, "OptionsSliderTemplate")
 	slider:SetPoint("LEFT", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, 15, 0)
-	slider.text = _G[slider:GetName() .. "Text"]
-	slider.text:ClearAllPoints()
-	slider.text:SetPoint("BOTTOM", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, "BOTTOM", 0, 15)
-	slider.text:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame)
-	slider:SetPoint("RIGHT", -slider.text:GetWidth() - 15, 0)
+
+	slider.Text:ClearAllPoints()
+	slider.Text:SetPoint("TOP", slider, "BOTTOM", 0, 0)
+
+	slider:SetPoint("RIGHT", -slider.Text:GetWidth() - 15, 0)
 	slider:SetMinMaxValues(0, 1439)
 	slider:SetValueStep(1)
 	slider:SetObeyStepOnDrag(true)
 
-	_G[slider:GetName() .. "Low"]:Hide()
-	_G[slider:GetName() .. "High"]:Hide()
-	slider.text:SetText()
+	slider.Low:Hide()
+	slider.High:Hide()
+
+	local hour, min = GetGameTime()
+	local timeInMin = (hour * 60) + min
+
+	slider.Text:SetText(string.format("%.2d", hour) .. ":" .. string.format("%.2d", min))
 
 	function slider.getTime(value)
 		local hours = string.format("%.2d", math.floor(value / 60))
@@ -3180,13 +3184,13 @@ function PhaseToolkit.createTimeSettingsFrame()
 		return hours .. ":" .. minutes
 	end
 
-	slider:SetValue(0)
+	slider:SetValue(timeInMin)
 
 	slider:SetScript("OnValueChanged", function(self, value)
 		if self.last == value then return end
 		local time = self.getTime(value)
 		sendAddonCmd("phase set time " .. time, nil, false)
-		self.text:SetText(time)
+		self.Text:SetText(time)
 		self.last = value
 	end)
 end
