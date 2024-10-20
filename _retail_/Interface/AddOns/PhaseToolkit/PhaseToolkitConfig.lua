@@ -1,3 +1,5 @@
+local _, ns = ...
+
 local addonName = "PhaseToolkitConfig"
 PhaseToolkitPanel = {}
 PhaseToolkitPanel.LangList = {
@@ -1041,7 +1043,34 @@ local LangEN = {
 	["Pulsars"] = "Pulsars"
 }
 
+local langMap = {
+	English = LangEN,
+	French = LangFR,
+	German = LangDE,
+	Spanish = LangES
+}
+
+local langCodeMap = {
+	EN = LangEN,
+	FR = LangFR,
+	DE = LangDE,
+	ES = LangES
+}
+
+local langCodeToName = {
+	EN = "English",
+	FR = "French",
+	DE = "Spanish",
+	ES = "German"
+}
+
+local function getLangNameByCode(code)
+	return langCodeToName[code] or langCodeToName['EN']
+end
+ns.getLangNameByCode = getLangNameByCode
+
 local function getLangTabByString(_langSelected)
+	--[[
 	if _langSelected == "English" then
 		return LangEN;
 	elseif _langSelected == "French" then
@@ -1051,7 +1080,12 @@ local function getLangTabByString(_langSelected)
 	elseif _langSelected == "German" then
 		return LangDE
 	end
+	--]]
+	-- returns the language based on the map, or code, or English if lang not found (how?)
+	return ((langMap[_langSelected] or langCodeMap[_langSelected]) or langMap['English'])
 end
+ns.getLangTabByString = getLangTabByString
+
 local function FindStringId(LangList, searchString)
 	for id, value in ipairs(LangList) do
 		if value == searchString then
@@ -1062,7 +1096,7 @@ local function FindStringId(LangList, searchString)
 end
 
 function PhaseToolkitPanel.getBaseLang()
-	return LangEN;
+	return "English", LangEN;
 end
 
 function PhaseToolkitPanel.createConfigPanel()
@@ -1083,7 +1117,7 @@ function PhaseToolkitPanel.createConfigPanel()
 		local function OnClick(self)
 			UIDropDownMenu_SetSelectedValue(DropDown, self.value)
 			PhaseToolkitPanel.selectedLang = self.value
-			PhaseToolKitConfig["CurrentLang"] = getLangTabByString(self.value)
+			PhaseToolKitConfig["CurrentLang"] = self.value -- Save just the name of the language, then we will pull it in changeLang and use that instead
 			PhaseToolkit.changeLang(PhaseToolKitConfig["CurrentLang"])
 		end
 
@@ -1104,23 +1138,12 @@ function PhaseToolkitPanel.createConfigPanel()
 
 		if (PhaseToolKitConfig["CurrentLang"] == nil) then
 			UIDropDownMenu_SetSelectedValue(DropDown, "English");
-			PhaseToolKitConfig["CurrentLang"] = LangEN
-			PhaseToolkit.changeLang(LangEN)
+			PhaseToolKitConfig["CurrentLang"] = "English"
+			PhaseToolkit.changeLang("English")
+		else
+			UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolKitConfig["CurrentLang"])
+			--PhaseToolkit.changeLang(PhaseToolKitConfig["CurrentLang"]) -- We don't need to changeLang here?
 		end
-
-		if (PhaseToolKitConfig["CurrentLang"]["lang"] == "FR") then
-			UIDropDownMenu_SetSelectedValue(DropDown, "French")
-		end
-		if PhaseToolKitConfig["CurrentLang"]["lang"] == "EN" then
-			UIDropDownMenu_SetSelectedValue(DropDown, "English")
-		end
-		if PhaseToolKitConfig["CurrentLang"]["lang"] == "ES" then
-			UIDropDownMenu_SetSelectedValue(DropDown, "Spanish")
-		end
-		if PhaseToolKitConfig["CurrentLang"]["lang"] == "DE" then
-			UIDropDownMenu_SetSelectedValue(DropDown, "German")
-		end
-		PhaseToolkit.changeLang(PhaseToolKitConfig["CurrentLang"])
 	end
 
 	local LangConfigDropDown = CreateFrame("Frame", "LangConfigDropDown", PhaseToolkitPanel.panel, "UIDropDownMenuTemplate");

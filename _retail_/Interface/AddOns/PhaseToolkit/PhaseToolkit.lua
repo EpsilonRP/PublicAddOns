@@ -2121,8 +2121,10 @@ function PhaseToolkit.CreateAdditionalButtonFrame()
 	PhaseOptionTeleLabel:SetText(PhaseToolkit.CurrentLang["Tele List"] or "Tele List")
 end
 
+---@param newLang string The name of the language from LangList
 function PhaseToolkit.changeLang(newLang)
-	PhaseToolkit.CurrentLang = newLang
+	--PhaseToolkit.CurrentLang = newLang
+	PhaseToolkit.CurrentLang = ns.getLangTabByString(newLang) -- Since we now only pass the language name, pull the table instead
 	PhaseToolkit:CreateAdditionalButtonFrame()
 	PhaseToolkit:TranslateWeatherIntensity()
 	if (PhaseToolkit.CustomFrame ~= nil) then
@@ -2881,7 +2883,7 @@ local function parseReplies(isCommandSuccessful, repliesList)
 			sendAddonCmd("ph f n list next", function(success, replies) parseReplies(success, replies) end, false)
 		else
 			-- if it's finished, we remove potential duplicate (by ID) and then we "regenerates" the frame for the list
-			PhaseToolkit.RemoveDuplicates(PhaseToolkit.creatureList)
+			PhaseToolkit.creatureList = PhaseToolkit.RemoveDuplicates(PhaseToolkit.creatureList)
 			if (PhaseToolkit.PNJFrame ~= nil) then
 				if PhaseToolkit.PNJFrame:IsShown() then
 					PhaseToolkit.PNJFrame:Hide()
@@ -3631,22 +3633,60 @@ end
 
 -- ============================== ICONE AUTOUR MAP ============================== --
 
+---Loads a settings table into a master table, but does not over-write if data is already present
+---@param settings table The Default Settings to Copy
+---@param master table The Actual Table to hold the settings (aka: your global table saved)
+local function loadDefaultsIntoMaster(settings, master)
+	for k, v in pairs(settings) do
+		if (type(v) == "table") then
+			if (master[k] == nil or type(master[k]) ~= "table") then master[k] = {} end
+			loadDefaultsIntoMaster(v, master[k]);
+		else
+			if master and master[k] == nil then
+				master[k] = v;
+			end
+		end
+	end
+end
+
 PhaseToolkit.NPCCustomiserMainFrame:SetScript("OnEvent", function(self, event, arg1)
 	if event == "ADDON_LOADED" and arg1 == addonName then
 		if PhaseToolKitConfig == nil then
 			PhaseToolKitConfig = {}
+
+			--[[ -- Moved below to dynamic loading
 			PhaseToolKitConfig["ModeFR"] = false
 			PhaseToolKitConfig["itemsPerPageNPC"] = 15
 			PhaseToolKitConfig["itemsPerPageTELE"] = 15
 			PhaseToolKitConfig["CurrentLang"] = PhaseToolkitPanel.getBaseLang()
 			PhaseToolKitConfig["AutoRefreshNPC"] = false
+			--]]
+		end
+
+		-- Dynamic default loading so that when new settings are added, they are still added at the default value instead of nil
+		local defaultSettings = {
+			itemsPerPageNPC = 15,
+			itemsPerPageTELE = 15,
+			CurrentLang = PhaseToolkitPanel.getBaseLang(),
+			AutoRefreshNPC = false,
+		}
+		loadDefaultsIntoMaster(defaultSettings, PhaseToolKitConfig)
+
+		-- Force fix for any that are currently saved as the full lang table
+		if type(PhaseToolKitConfig["CurrentLang"]) == "table" then
+			local prevLangCode = PhaseToolKitConfig["CurrentLang"]['lang']
+			if prevLangCode then
+				PhaseToolKitConfig["CurrentLang"] = ns.getLangNameByCode(prevLangCode)
+			else
+				PhaseToolKitConfig["CurrentLang"] = PhaseToolkitPanel.getBaseLang()
+			end
 		end
 
 		PhaseToolkit.NPCCustomiserMainFrame:UnregisterEvent("ADDON_LOADED")
 		PhaseToolkitPanel.createConfigPanel()
 		PhaseToolkit.itemsPerPageNPC = PhaseToolKitConfig["itemsPerPageNPC"]
 		PhaseToolkit.itemsPerPageTELE = PhaseToolKitConfig["itemsPerPageTELE"]
-		PhaseToolkit.CurrentLang = PhaseToolKitConfig["CurrentLang"]
+		PhaseToolkit.CurrentLang = ns.getLangTabByString(PhaseToolKitConfig["CurrentLang"]) -- pull the language table
 		PhaseToolkit.AutoRefreshNPC = PhaseToolKitConfig["AutoRefreshNPC"]
 		PhaseToolkit:CreateAdditionalButtonFrame()
 	end
