@@ -189,6 +189,9 @@ local function executeAction(varTable, actionData, selfOnly, isRevert, condition
 			if isRevert then
 				local finalCommand = tostring(actionData.revert)
 				finalCommand = finalCommand:gsub(sfCmd_ReplacerChar, v)
+				if actionData.revertValidation then
+					finalCommand = actionData.revertValidation(finalCommand)
+				end
 				if selfOnly then finalCommand = finalCommand .. " self" end
 				cmd(finalCommand)
 			else

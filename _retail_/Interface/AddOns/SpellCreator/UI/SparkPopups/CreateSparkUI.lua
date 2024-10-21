@@ -440,11 +440,11 @@ end
 ]]
 local function _updateCreateSparkUIHeight()
 	local heights = {
-		[_sparkTypesMap["Standard"]] = 500,
-		[_sparkTypesMap["Multi"]] = 500,
-		[_sparkTypesMap["Emote"]] = 510 - 50,
-		[_sparkTypesMap["Chat"]] = 540 - 50,
-		[_sparkTypesMap["Jump"]] = 490 - 50,
+		[_sparkTypesMap["Standard"]] = 510,
+		[_sparkTypesMap["Multi"]] = 510,
+		[_sparkTypesMap["Emote"]] = 520 - 50,
+		[_sparkTypesMap["Chat"]] = 550 - 50,
+		[_sparkTypesMap["Jump"]] = 503 - 50,
 		[_sparkTypesMap["Auto"]] = 510 - 50,
 	}
 
@@ -992,6 +992,62 @@ local uiOptionsTable = {
 				},
 			},
 		},
+		createErrorText = {
+			type = "description",
+			name = function(info)
+				local save_type_str = sparkUI_Helper.overwriteIndex and "Save" or "Create"
+				local errorStr = ""
+
+				if not requiredSparkTypes(1, 2)() then -- not because required is an inverse to work with hidden / disabled
+					if (not sparkUI_Helper.commID) or (sparkUI_Helper.commID == "") then
+						--errorStr = ("Must have an ArcSpell Set")
+						return "Warning: No ArcSpell Set - This may cause issues & is only 'allowed' for legacy / advanced use."
+					end
+				end
+
+				if not requiredSparkTypes(3, 4, 5)() then
+					if (not sparkUI_Helper.commID) or (sparkUI_Helper.commID == "") then
+						errorStr = ("Must have an ArcSpell Set")
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Emote"] then
+					if sparkUI_Helper.emote == nil or sparkUI_Helper.emote == "" then
+						errorStr = ("Must have an Emote Set")
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Chat"] then
+					if sparkUI_Helper.chat == nil or sparkUI_Helper.chat == "" then
+						errorStr = ("Must have Chat Text Set")
+					end
+				end
+
+				return ("Cannot %s Spark: %s"):format(save_type_str, errorStr)
+			end,
+			hidden = function(info)
+				if not requiredSparkTypes(1, 2, 3, 4, 5)() then
+					if (not sparkUI_Helper.commID) or (sparkUI_Helper.commID == "") then
+						return false
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Emote"] then
+					if sparkUI_Helper.emote == nil or sparkUI_Helper.emote == "" then
+						return false
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Chat"] then
+					if sparkUI_Helper.chat == nil or sparkUI_Helper.chat == "" then
+						return false
+					end
+				end
+
+				return true
+			end,
+			order = autoOrder(),
+		},
 		createButton = {
 			type = "execute",
 			name = function() if sparkUI_Helper.overwriteIndex then return "Save Spark" else return "Create Spark" end end,
@@ -1014,6 +1070,27 @@ local uiOptionsTable = {
 					sparkUI_Helper.overwriteIndex, sparkUI_Helper.type)
 				AceConfigDialog:Close(theUIDialogName)
 			end,
+			disabled = function(info)
+				if not requiredSparkTypes(3, 4, 5)() then
+					if (not sparkUI_Helper.commID) or (sparkUI_Helper.commID == "") then
+						return true
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Emote"] then
+					if sparkUI_Helper.emote == nil or sparkUI_Helper.emote == "" then
+						return true
+					end
+				end
+
+				if sparkUI_Helper.type == _sparkTypesMap["Chat"] then
+					if sparkUI_Helper.chat == nil or sparkUI_Helper.chat == "" then
+						return true
+					end
+				end
+
+				return false
+			end
 		},
 	}
 }

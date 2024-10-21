@@ -165,10 +165,10 @@ GLink.hyperlinks = {
 		["COMMAND"] = { "doodad select #doodad_uid", "doodad go #doodad_uid", "doodad delete #doodad_uid", "doodad import #doodad_uid", "GCGUID $doodad_uid" },
 		["TOOLTIP_TEXT"] = { "Click to select doodad GUID: #doodad_uid", "Click to teleport to doodad GUID: #doodad_uid", "Click to delete doodad GUID: #doodad_uid", "Click to import doodad GUID as an editable GObject: #doodad_uid.", "Click to copy doodad GUID to chat." },
 	},
-	["deleted_doodad_uid"] = {
-		["PATTERN"] = { "deleted_doodad_uid:(%d*)" },
+	["doodad_deleted_uid"] = {
+		["PATTERN"] = { "doodad_deleted_uid:(%d*)" },
 		["RETURNS"] = { "[Select]", "[Go]", "[Restore]", "[Import]", "[Copy GUID]" },
-		["COMMAND"] = { "doodad select #deleted_doodad_uid", "doodad go #deleted_doodad_uid", "doodad restore #deleted_doodad_uid", "doodad import #deleted_doodad_uid", "GCGUID $deleted_doodad_uid" },
-		["TOOLTIP_TEXT"] = { "Click to restore doodad GUID: #deleted_doodad_uid", "Click to teleport to doodad GUID: #deleted_doodad_uid", "Click to restore doodad GUID: #deleted_doodad_uid", "Click to import doodad GUID as an editable GObject: #deleted_doodad_uid to Group", "Click to copy doodad GUID to chat." },
+		["COMMAND"] = { "doodad select #doodad_deleted_uid", "doodad go #doodad_deleted_uid", "doodad restore #doodad_deleted_uid", "doodad import #doodad_deleted_uid", "GCGUID $doodad_deleted_uid" },
+		["TOOLTIP_TEXT"] = { "Click to restore doodad GUID: #doodad_deleted_uid", "Click to teleport to doodad GUID: #doodad_deleted_uid", "Click to restore doodad GUID: #doodad_deleted_uid", "Click to import doodad GUID as an editable GObject: #doodad_deleted_uid", "Click to copy doodad GUID to chat." },
 	},
 }

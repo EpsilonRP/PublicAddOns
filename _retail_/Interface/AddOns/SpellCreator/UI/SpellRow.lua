@@ -276,6 +276,12 @@ local function addRow(rowToAdd, copy)
 				Attic.markEditorUnsaved(); SCForgeMainFrame.SaveSpellButton:UpdateIfValid();
 			end
 		end)
+		newRow.mainDelayBox:HookScript("OnTabPressed", function(self)
+			if self:HasFocus() then
+				newRow.actionSelectButton.Button:GetScript("OnMouseDown")(newRow.actionSelectButton.Button)
+				self:ClearFocus()
+			end
+		end)
 		Tooltip.set(newRow.mainDelayBox, "Main Action Delay", "How long after 'casting' the ArcSpell this action triggers.\rCan be '0' for instant, but cannot be left blank or else it will be skipped.")
 
 		newRow.actionSelectButton = createDropdown(newRow)

@@ -43,6 +43,11 @@
 				<MaskedTexture childKey="icon"/>
 			</MaskedTextures>
 		</MaskTexture>
+		<MaskTexture parentKey="SquareMask" file="interface\framegeneral\uiframeiconmask" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+			<MaskedTextures>
+				<MaskedTexture childKey="icon"/>
+			</MaskedTextures>
+		</MaskTexture>
       </Layer>
     </Layers>
     <!-- Not using this, not needed

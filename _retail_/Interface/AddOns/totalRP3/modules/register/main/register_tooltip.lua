@@ -45,6 +45,7 @@ local hasProfile, getRelationColors = TRP3_API.register.hasProfile, TRP3_API.reg
 local checkGlanceActivation = TRP3_API.register.checkGlanceActivation;
 local IC_GUILD, OOC_GUILD;
 local originalGetTargetType, getCompanionFullID = TRP3_API.ui.misc.getTargetType, TRP3_API.ui.misc.getCompanionFullID;
+local getNPCFullID = TRP3_API.ui.misc.getNPCFullID;
 local EMPTY = Globals.empty;
 local unitIDToInfo = Utils.str.unitIDToInfo;
 local isPlayerIC;
@@ -216,6 +217,14 @@ local function getCurrentMaxLines()
 	return getConfigValue(CONFIG_CHARACT_CURRENT_LINES);
 end
 
+local function getShortDescriptionMaxSize()
+	return getConfigValue("tooltip_char_shortdescription_size");
+end
+
+local function getShortDescriptionMaxLines()
+	return getConfigValue("tooltip_char_shortdescription_lines");
+end
+
 local function getTooltipTextColors()
 	local colors = {
 		TITLE = Ellyb.Color.CreateFromHexa(getConfigValue(CONFIG_TOOLTIP_TITLE_COLOR)),
@@ -295,7 +304,7 @@ local BUILDER_TYPE_DOUBLELINE = 2;
 local BUILDER_TYPE_SPACE = 3;
 
 local function AddLine(self, text, color, lineSize, lineWrap)
-	local lineStructure = getTempTable();
+    local lineStructure = getTempTable();
 	lineStructure.type = BUILDER_TYPE_LINE;
 	lineStructure.text = text;
 	lineStructure.red = color.r;
@@ -391,12 +400,19 @@ TRP3_API.ui.tooltip.createTooltipBuilder = createTooltipBuilder;
 
 local tooltipBuilder = createTooltipBuilder(ui_CharacterTT);
 
+local hiddenTooltip = CreateFrame("GameTooltip", "HiddenTooltip", UIParent, "GameTooltipTemplate")
+hiddenTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+
+local tooltipBuilder = createTooltipBuilder(ui_CharacterTT);
+
 local function getUnitID(targetType)
 	local currentTargetType = originalGetTargetType(targetType);
 	if currentTargetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
 		return getCharacterUnitID(targetType), currentTargetType;
-	elseif currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.PET then
+    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.PET then
 		return getCompanionFullID(targetType, currentTargetType), currentTargetType;
+    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+		return getNPCFullID(targetType, currentTargetType), currentTargetType;
 	end
 end
 
@@ -831,10 +847,10 @@ local function showCompanionWoWInfo()
 end
 
 local function getCompanionInfo(owner, companionID)
-	local profile;
+    local profile;
 	if owner == Globals.player_id then
 		profile = getCompanionProfile(companionID) or EMPTY;
-	else
+    else
 		profile = getCompanionRegisterProfile(owner .. "_" .. companionID) or EMPTY;
 	end
 	return profile or EMPTY;
@@ -845,18 +861,18 @@ local function ownerIsIgnored(compagnonFullID)
 	return isIDIgnored(ownerID);
 end
 
-local function writeCompanionTooltip(companionFullID, _, targetType, targetMode)
+local function writeCompanionTooltip(companionFullID, originalTexts, targetType, targetMode)
 	local ownerID, companionID = companionIDToInfo(companionFullID);
 	local data = getCompanionInfo(ownerID, companionID);
 	local info = data.data or EMPTY;
 	local PE = data.PE or EMPTY;
 	local targetName = UnitName(targetType);
-	local colors = getTooltipTextColors();
-
+    local colors = getTooltipTextColors();
+    local text = info.TX or '';
 	local FIELDS_TO_CROP = {
 		TITLE = 150,
 		NAME  = 100
-	}
+    }
 
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- BLOCKED
@@ -917,9 +933,24 @@ local function writeCompanionTooltip(companionFullID, _, targetType, targetMode)
 
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- Owner
-	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+    --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-	if showCompanionOwner() then
+    if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
+		if text ~= ""  then
+            text = limitText(text, getShortDescriptionMaxSize(), getShortDescriptionMaxLines());
+			tooltipBuilder:AddLine(loc.REG_COMPANIONS_SHORTDESCRIPTION, colors.MAIN, getSubLineFontSize());
+			tooltipBuilder:AddLine(text, colors.SECONDARY, getSmallLineFontSize(), true);
+		end
+	end
+
+    if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
+		local level = TOOLTIP_UNIT_LEVEL_TYPE:format(UnitLevel(targetType) or "??", targetMode);
+        local _, npcId = companionFullID:match("(%d+)_(%d+)");
+		local npcId = 'ID ' .. npcId; 
+        tooltipBuilder:AddDoubleLine(level, npcId, colors.MAIN,colors.MAIN, getSubLineFontSize()-3);
+	end
+
+	if showCompanionOwner() and not (targetMode == TRP3_Enums.UNIT_TYPE.NPC) then
 		local ownerName, ownerRealm = unitIDToInfo(ownerID);
 		local ownerFinalName, ownerColor = ownerName, Utils.color.CreateColor(1, 1, 1, 1);
 		if ownerID == Globals.player_id or (IsUnitIDKnown(ownerID) and hasProfile(ownerID)) then
@@ -994,19 +1025,18 @@ local function writeCompanionTooltip(companionFullID, _, targetType, targetMode)
 	-- Quick peek & new description notifications
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-	if showCompanionNotifications() then
-		local notifText = "";
-		if PE and checkGlanceActivation(PE) then
-			notifText = GLANCE_ICON;
-		end
-		if ownerID ~= Globals.player_id and info.read == false then
-			notifText = notifText .. " " .. NEW_ABOUT_ICON;
-		end
-		if notifText and notifText ~= "" then
-			tooltipBuilder:AddLine(notifText, colors.MAIN, getSmallLineFontSize());
-		end
-	end
-
+    if showCompanionNotifications() then
+        local notifText = "";
+        if PE and checkGlanceActivation(PE) then
+            notifText = GLANCE_ICON;
+        end
+        if ownerID ~= Globals.player_id and info.read == false then
+            notifText = notifText .. " " .. NEW_ABOUT_ICON;
+        end
+        if notifText and notifText ~= "" then
+            tooltipBuilder:AddLine(notifText, colors.MAIN, getSmallLineFontSize());
+        end
+    end
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- Build tooltip
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -1151,7 +1181,7 @@ local function show(targetType, targetID, targetMode)
 				if targetMode == TRP3_Enums.UNIT_TYPE.CHARACTER and targetID ~= Globals.player_id and (not IsUnitIDKnown(targetID) or not hasProfile(targetID)) then
 					return;
 				end
-				if (targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET) and (getCompanionInfo(companionIDToInfo(targetID)) == EMPTY) then
+				if (targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET or targetMode == TRP3_Enums.UNIT_TYPE.NPC) and (getCompanionInfo(companionIDToInfo(targetID)) == EMPTY) then
 					return;
 				end
 			end
@@ -1189,20 +1219,21 @@ local function show(targetType, targetID, targetMode)
 						GameTooltip:Hide();
 					end
 					-- Mounts
-					if targetID == Globals.player_id and getCurrentMountProfile() then
-						local mountSpellID = getCurrentMountSpellID();
-						local mountName = getCompanionNameFromSpellID(mountSpellID);
-						ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
-						writeTooltipForMount(Globals.player_id, nil, mountName);
-					else
-						local companionFullID, profileID, mountSpellID = TRP3_API.companions.register.getUnitMount(targetID, "mouseover");
-						if profileID then
-							local mountName = getCompanionNameFromSpellID(mountSpellID);
-							ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
-							writeTooltipForMount(targetID, companionFullID, mountName);
-						end
-					end
-				elseif targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET then
+                    if targetID == Globals.player_id and getCurrentMountProfile() then
+                        local mountSpellID = getCurrentMountSpellID();
+                        local mountName = getCompanionNameFromSpellID(mountSpellID);
+                        ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
+                        writeTooltipForMount(Globals.player_id, nil, mountName);
+                    else
+                        local companionFullID, profileID, mountSpellID = TRP3_API.companions.register.getUnitMount(
+                        targetID, "mouseover");
+                        if profileID then
+                            local mountName = getCompanionNameFromSpellID(mountSpellID);
+                            ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
+                            writeTooltipForMount(targetID, companionFullID, mountName);
+                        end
+                    end
+                elseif targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET or (targetMode == TRP3_Enums.UNIT_TYPE.NPC) then
 					writeCompanionTooltip(targetID, originalTexts, targetType, targetMode);
 					if shouldHideGameTooltip() and not (ownerIsIgnored(targetID) or unitIDIsFilteredForMatureContent(targetID)) then
 						GameTooltip:Hide();
@@ -1351,7 +1382,9 @@ local function onModuleInit()
 	registerConfigKey(CONFIG_PETS_OWNER, true);
 	registerConfigKey(CONFIG_PETS_NOTIF, true);
 	registerConfigKey(CONFIG_PETS_INFO, true);
-	registerConfigKey(CONFIG_CHARACT_CURRENT_LINES, 4);
+    registerConfigKey(CONFIG_CHARACT_CURRENT_LINES, 4);
+    registerConfigKey("tooltip_char_shortdescription_size", 280);
+	registerConfigKey("tooltip_char_shortdescription_lines", 8);
 	registerConfigKey(CONFIG_TOOLTIP_TITLE_COLOR, "ff8000");
 	registerConfigKey(CONFIG_TOOLTIP_MAIN_COLOR, "ffffff");
 	registerConfigKey(CONFIG_TOOLTIP_SECONDARY_COLOR, "ffc000");

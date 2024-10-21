@@ -179,7 +179,21 @@ local function drawMapGroup(group, mapID, callback)
 		triggerGroup:SetRelativeWidth(1)
 		--triggerGroup:SetAutoAdjustHeight(false)
 		--triggerGroup:SetHeight(115)
-		triggerGroup:SetTitle(k .. ". " .. Tooltip.genContrastText(commID) .. (autoLeaveOnly and " (On Leave)" or "") .. " Trigger")
+		local titleStr = (k .. ". " .. Tooltip.genContrastText(commID) .. (autoLeaveOnly and " (On Leave)" or "") .. " Trigger")
+
+		if triggerData[9] == _sparkTypesMap["Emote"] then
+			if not triggerData[8].emote or triggerData[8].emote == "" then
+				titleStr = ns.Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(titleStr)
+			end
+		end
+
+		if triggerData[9] == _sparkTypesMap["Chat"] then
+			if not triggerData[8].chat or triggerData[8].chat == "" then
+				titleStr = ns.Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(titleStr)
+			end
+		end
+
+		triggerGroup:SetTitle(titleStr)
 		groupScrollFrame:AddChild(triggerGroup)
 
 		local triggerInfoSection = AceGUI:Create("SimpleGroup") --[[@as AceGUISimpleGroup]]
@@ -202,11 +216,11 @@ local function drawMapGroup(group, mapID, callback)
 				local tableToUse = string.lower(_sparkTypes[_typeID])              -- emote | chat
 				local emoteOrChat
 				if _typeID == _sparkTypesMap["Chat"] then
-					emoteOrChat = "[Say|Emote|Yell]: " .. popupOptions[tableToUse]
+					emoteOrChat = "[Say|Emote|Yell]: " .. (popupOptions[tableToUse] or "<None>")
 				elseif _typeID == _sparkTypesMap["Emote"] then
 					local slashCommands = SparkPopups.CreateSparkUI.emotesMap[popupOptions[tableToUse]]
 					if type(slashCommands) == "table" then slashCommands = table.concat(slashCommands, "; ") end
-					emoteOrChat = popupOptions[tableToUse] .. (" (%s)"):format(slashCommands)
+					emoteOrChat = (popupOptions[tableToUse] or "<ERROR>") .. (" (%s)"):format(slashCommands or ("<None>"))
 				end
 				Tooltip.setAceTT(typeLabel, _sparkTypes[_typeID] .. ":", emoteOrChat, { forced = true, delay = 0 })
 			elseif _typeID == _sparkTypesMap["Multi"] then

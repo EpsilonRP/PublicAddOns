@@ -43,6 +43,8 @@ local getCompanionData = TRP3_API.companions.player.getCompanionData;
 local saveCompanionInformation = TRP3_API.companions.register.saveInformation;
 local displayMessage = TRP3_API.utils.message.displayMessage;
 local TRP3_Enums = AddOn_TotalRP3.Enums;
+local Compression = AddOn_TotalRP3.Compression;
+local f = CreateFrame("Frame")
 
 -- WoW imports
 local newTimer = C_Timer.NewTimer;
@@ -622,10 +624,35 @@ local function onMouseOverCharacter(unitID)
 end
 
 local function onMouseOverCompanion(companionFullID)
-	local ownerID = companionIDToInfo(companionFullID);
-	if isUnitIDKnown(ownerID) then
-		sendQuery(ownerID);
-	end
+    local ownerID = companionIDToInfo(companionFullID);
+    if isUnitIDKnown(ownerID) then
+        sendQuery(ownerID);
+    end
+end
+
+local function handleIncommingProfileData(messageTicketID, npcFullID)
+	f:RegisterEvent("CHAT_MSG_ADDON");
+	f:SetScript("OnEvent", function(self, event, prefix, text, channel, sender, ...)
+        if event == "CHAT_MSG_ADDON" and prefix == messageTicketID then
+            f:UnregisterEvent("CHAT_MSG_ADDON");
+			if text ~= '' then
+				local phaseData = Compression.decompress(text, true);
+				phaseData = Utils.serial.deserialize(phaseData);
+				if phaseData and phaseData['id'] and phaseData['profile'] then
+					local profileID = phaseData['id'];
+					local profile = phaseData['profile'];
+					TRP3_API.companions.register.setProfile(npcFullID, profileID);
+					TRP3_API.companions.register.setProfileData(profileID, profile);
+				end
+			end
+		end
+	end)
+end
+
+local function onMouseOverNPC(npcFullID)
+    local _, npcID = companionIDToInfo(npcFullID);
+    local profileIdMessageTicketID = C_Epsilon.GetPhaseAddonData('TOTALRP_PROFILE_' .. npcID);
+	handleIncommingProfileData(profileIdMessageTicketID, npcFullID);
 end
 
 local function onTargetChanged()
@@ -661,6 +688,8 @@ function TRP3_API.register.inits.dataExchangeInit()
 			onMouseOverCharacter(targetID);
 		elseif (targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET) and targetID then
 			onMouseOverCompanion(targetID);
+        elseif (targetMode == TRP3_Enums.UNIT_TYPE.NPC) and targetID then
+			onMouseOverNPC(targetID);
 		end
 	end);
 	Utils.event.registerHandler("PLAYER_TARGET_CHANGED", onTargetChanged);

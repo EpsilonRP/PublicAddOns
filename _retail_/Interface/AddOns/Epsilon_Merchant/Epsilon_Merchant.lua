@@ -612,20 +612,22 @@ function Epsilon_Merchant:OnInitialize()
 			end
 		end
 
-		if currency then
-			tooltip:AddLine( "|nYou may sell this item to a vendor for a full refund.", 0, 0.8, 1, 1, true );
-		end
-
-		if price and not currency then
-			if appearanceIndex and appearanceStr then
-				textLeft[appearanceIndex]:SetText( SELL_PRICE..": "..GetCoinTextureString( price ), 1, 1, 1 );
-				textLeft[appearanceIndex]:SetTextColor( 1, 1, 1 );
-				tooltip:AddLine( "|cFF87a9fe"..TRANSMOG_TOOLTIP_STRINGS[appearanceStr] );
-			else
-				tooltip:AddLine( SELL_PRICE..": "..GetCoinTextureString( price ), 1, 1, 1 );
+		if EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowRefunds then
+			if currency and ( itemCount % count == 0 ) then
+				tooltip:AddLine( "|nYou may sell this item to a vendor for a full refund.", 0, 0.8, 1, 1, true );
 			end
-		elseif EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and not price and vanillaPrice then
-			tooltip:AddLine( SELL_PRICE..": "..GetCoinTextureString( vanillaPrice ), 1, 1, 1 );
+
+			if price and not currency then
+				if appearanceIndex and appearanceStr then
+					textLeft[appearanceIndex]:SetText( SELL_PRICE..": "..GetCoinTextureString( price ), 1, 1, 1 );
+					textLeft[appearanceIndex]:SetTextColor( 1, 1, 1 );
+					tooltip:AddLine( "|cFF87a9fe"..TRANSMOG_TOOLTIP_STRINGS[appearanceStr] );
+				else
+					tooltip:AddLine( SELL_PRICE..": "..GetCoinTextureString( price ), 1, 1, 1 );
+				end
+			elseif EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and not price and vanillaPrice then
+				tooltip:AddLine( SELL_PRICE..": "..GetCoinTextureString( vanillaPrice ), 1, 1, 1 );
+			end
 		end
 		tooltip:Show()
 	end)
@@ -696,7 +698,9 @@ function Epsilon_Merchant:OnInitialize()
 
 						EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
 						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
+							local allowRefunds = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowRefunds ) or false;
 							local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowSellJunk ) or false;
+							Epsilon_MerchantEditor.allowRefunds:SetChecked( allowRefunds );
 							Epsilon_MerchantEditor.allowSellJunk:SetChecked( allowSellJunk );
 						end
 					elseif prefixType == "text" then

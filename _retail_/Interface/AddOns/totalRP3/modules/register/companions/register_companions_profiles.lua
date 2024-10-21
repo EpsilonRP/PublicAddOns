@@ -42,15 +42,17 @@ local setTooltipForSameFrame = TRP3_API.ui.tooltip.setTooltipForSameFrame;
 local displayDropDown = TRP3_API.ui.listbox.displayDropDown;
 local TRP3_CompanionsProfilesList, TRP3_CompanionsProfilesListSlider, TRP3_CompanionsProfilesListEmpty = TRP3_CompanionsProfilesList, TRP3_CompanionsProfilesListSlider, TRP3_CompanionsProfilesListEmpty;
 local EMPTY, PetCanBeRenamed = Globals.empty, PetCanBeRenamed;
-local getCompanionProfile, getCompanionProfileID = TRP3_API.companions.player.getCompanionProfile, TRP3_API.companions.player.getCompanionProfileID;
+local getCompanionProfile = TRP3_API.companions.player.getCompanionProfile;
 local getCompanionProfiles = TRP3_API.companions.player.getProfiles;
-local getCompanionRegisterProfile = TRP3_API.companions.register.getCompanionProfile;
+local getCompanionRegisterProfile, getCompanionRegisterProfileID = TRP3_API.companions.register.getCompanionProfile, TRP3_API.companions.register.getCompanionProfileID;
 local companionIDToInfo = Utils.str.companionIDToInfo;
 local playUISound = TRP3_API.ui.misc.playUISound;
-local isTargetTypeACompanion, companionHasProfile = TRP3_API.ui.misc.isTargetTypeACompanion, TRP3_API.companions.register.companionHasProfile;
+local isTargetTypeACompanion, companionHasProfile, isTargetTypeAnNPC = TRP3_API.ui.misc.isTargetTypeACompanion, TRP3_API.companions.register.companionHasProfile, TRP3_API.ui.misc.isTargetTypeAnNPC;
 local getCompanionNameFromSpellID = TRP3_API.companions.getCompanionNameFromSpellID;
 local getCurrentMountSpellID, getCurrentMountProfile = TRP3_API.companions.player.getCurrentMountSpellID, TRP3_API.companions.player.getCurrentMountProfile;
 local TRP3_Enums = AddOn_TotalRP3.Enums;
+local boundNPC = TRP3_API.companions.player.boundNPC;
+local unboundNPC = TRP3_API.companions.player.unboundNPC;
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 -- Logic
@@ -161,9 +163,16 @@ local function uiBoundTargetProfile(profileID)
 	local targetType, isMine = TRP3_API.ui.misc.getTargetType("target");
 	if (targetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetType == TRP3_Enums.UNIT_TYPE.PET) and isMine then
 		local companionFullID = TRP3_API.ui.misc.getCompanionFullID("target", targetType);
-		local companionID = TRP3_API.ui.misc.getCompanionShortID("target", targetType);
+        local companionID = TRP3_API.ui.misc.getCompanionShortID("target", targetType);
 		if companionFullID then
 			ui_boundPlayerCompanion(companionID, profileID, targetType);
+			return;
+		end
+    elseif (targetType == TRP3_Enums.UNIT_TYPE.NPC) and (C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()) then
+		local npcFullID = TRP3_API.ui.misc.getNPCFullID("target", targetType);
+        local npcID = TRP3_API.ui.misc.GetUnitID("target");
+		if npcFullID then
+            ui_boundPlayerCompanion(npcID, profileID, targetType);
 			return;
 		end
 	end
@@ -177,9 +186,18 @@ local function uiBindPetProfile(profileID)
 end
 
 local unboundPlayerCompanion = TRP3_API.companions.player.unboundPlayerCompanion;
-local function uiUnboundTargetProfile(_, companionInfo)
+local function uiUnboundTargetProfile(profileID, companionInfo)
 	local companionID, companionType = companionInfo:sub(1, companionInfo:find("|") - 1), companionInfo:sub(companionInfo:find("|") + 1);
-	unboundPlayerCompanion(companionID, companionType);
+    unboundPlayerCompanion(companionID, companionType);
+    if companionType == TRP3_Enums.UNIT_TYPE.NPC then
+		local phaseID = C_Epsilon.GetPhaseId();
+        local NpcPhaseID, npcID = string.match(companionID, "(%d+)_(%d+)");
+		    if phaseID == NpcPhaseID then
+				unboundNPC(npcID, profileID);
+            else
+				displayMessage('It seems you are not in the same phase as the npc the profile is linked to, so the NPC\'s profile could not be updated automatically');
+			end
+	end
 	TRP3_API.ui.tooltip.toast(loc.REG_COMPANION_LINKED_NO:format("|cff00ff00" .. getCompanionNameFromSpellID(companionID) .. "|r"), 4);
 	uiInitProfileList();
 end
@@ -285,6 +303,8 @@ local function onActionSelected(value, button)
 		uiBoundTargetProfile(profileID);
 	elseif value == 7 then
 		uiBindPetProfile(profileID);
+	elseif value == 8  then
+		uiUnboundTargetProfile(profileID, TRP3_API.ui.misc.getNPCFullID("target") .. "|NPC");
 	elseif value then
 		uiUnboundTargetProfile(profileID, value);
 	end
@@ -307,14 +327,18 @@ local function onBoundClicked(button)
 		tinsert(values[1][2], 1, {loc.REG_COMPANION_BIND_TO_PET, 7});
 	end
 
-	if profile.links and tsize(profile.links) > 0 then
-		local linksTab = {};
-		for companionID, companionType in pairs(profile.links) do
-			tinsert(linksTab, {getCompanionNameFromSpellID(companionID), companionID .. "|" .. companionType});
+	if (profile.links and tsize(profile.links) > 0) or (TRP3_API.ui.misc.getTargetType("target") == TRP3_Enums.UNIT_TYPE.NPC) then
+        local linksTab = {};
+        if (profile.links and tsize(profile.links) > 0) then
+            for companionID, companionType in pairs(profile.links) do
+                tinsert(linksTab, { getCompanionNameFromSpellID(companionID), companionID .. "|" .. companionType });
+            end
+        end
+		if (TRP3_API.ui.misc.getTargetType("target") == TRP3_Enums.UNIT_TYPE.NPC) then
+			tinsert(linksTab, {loc.REG_COMPANION_BOUND_TO_TARGET, 8});
 		end
 		tinsert(values, {loc.REG_COMPANION_UNBOUND, linksTab});
 	end
-
 	displayDropDown(button, values, onActionSelected, 0, true);
 end
 
@@ -343,6 +367,8 @@ ui_boundPlayerCompanion = function (companionID, profileID, targetType)
 		showConfirmPopup(loc.PR_CO_WARNING_RENAME, function()
 			boundPlayerCompanion(companionID, profileID, targetType);
 		end);
+    elseif targetType == TRP3_Enums.UNIT_TYPE.NPC then
+		boundNPC(companionID, profileID);
 	else
 		boundPlayerCompanion(companionID, profileID, targetType);
 	end
@@ -372,22 +398,34 @@ local function createNewAndBound(companionID, targetType)
 end
 
 local function onCompanionProfileSelection(value, companionID, targetType)
-	if targetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
-		targetType = TRP3_Enums.UNIT_TYPE.MOUNT;
-	end
-	if value == 0 then
-		openProfile(getCompanionProfileID(companionID));
-		openMainFrame();
-	elseif value == 1 then
-		unboundPlayerCompanion(companionID, targetType);
-		if getCurrentPageID() == TRP3_API.navigation.page.id.COMPANIONS_PROFILES then
-			uiInitProfileList();
-		end
-		displayMessage(loc.REG_COMPANION_LINKED_NO:format("|cff00ff00" .. getCompanionNameFromSpellID(companionID) .. "|r"));
-	elseif value == 2 then
-		createNewAndBound(companionID, targetType);
-	elseif type(value) == "string" then
-		ui_boundPlayerCompanion(companionID, value, targetType);
+    if targetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
+        targetType = TRP3_Enums.UNIT_TYPE.MOUNT;
+    end
+    if value == 0 then
+        openProfile(getCompanionProfileID(companionID));
+        openMainFrame();
+    elseif value == 1 then
+        unboundPlayerCompanion(companionID, targetType);
+        if getCurrentPageID() == TRP3_API.navigation.page.id.COMPANIONS_PROFILES then
+            uiInitProfileList();
+        end
+        displayMessage(loc.REG_COMPANION_LINKED_NO:format("|cff00ff00" ..
+        getCompanionNameFromSpellID(companionID) .. "|r"));
+    elseif value == 2 then
+        createNewAndBound(companionID, targetType);
+    elseif type(value) == "string" then
+        ui_boundPlayerCompanion(companionID, value, targetType);
+    end
+end
+
+local function onNPCProfileSelection(value, companionID, targetType)
+    if value == 0 then
+        openProfile(getCompanionRegisterProfileID(C_Epsilon.GetPhaseId() .. '_' .. companionID));
+        openMainFrame();
+    elseif value == 1 then
+        unboundNPC(companionID, targetType);
+        displayMessage(loc.REG_COMPANION_LINKED_NO:format("|cff00ff00" ..
+        getCompanionNameFromSpellID(companionID) .. "|r"));
 	end
 end
 
@@ -443,6 +481,25 @@ local function companionProfileSelectionList(unitID, targetType, _, button)
 
 		displayDropDown(button, list, function(value) onCompanionProfileSelection(value, companionID, targetType) end, 0, true);
 	else
+		if companionHasProfile(companionFullID) then
+			TRP3_API.companions.register.openPage(companionHasProfile(companionFullID));
+			openMainFrame();
+		end
+	end
+end
+
+local function npcProfileSelectionList(unitID, targetType, _, button)
+    local ownerID, companionID, companionFullID;
+	
+    companionID = TRP3_API.ui.misc.GetUnitID("target");
+    companionFullID = C_Epsilon.GetPhaseId() .. '_' .. companionID;
+    if C_Epsilon.IsOwner() or C_Epsilon.IsOfficer() then
+        local list = {};
+        tinsert(list, { loc.REG_COMPANION_TF_OPEN, 0 });
+        tinsert(list, { loc.REG_COMPANION_TF_UNBOUND, 1 });
+
+		displayDropDown(button, list, function(value) onNPCProfileSelection(value, companionID, targetType) end, 0, true);
+	else 
 		if companionHasProfile(companionFullID) then
 			TRP3_API.companions.register.openPage(companionHasProfile(companionFullID));
 			openMainFrame();
@@ -680,6 +737,35 @@ TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOADED, function()
 						buttonStructure.tooltipSub = "|cff00ff00" .. loc.REG_TT_NOTIF .. "\n" .. buttonStructure.tooltipSub;
 						buttonStructure.alert = true;
 					end
+				end
+			end,
+		});
+
+        -- Target bar button for NPCS
+		TRP3_API.target.registerButton({
+			id = "bb_npc_profile",
+			configText = loc.REG_NPC_PROFILE,
+			condition = function(targetType, unitID)
+                if isTargetTypeAnNPC(targetType) then
+					return companionHasProfile(C_Epsilon.GetPhaseId() .. '_' .. TRP3_API.ui.misc.GetUnitID("target"));
+				end
+			end,
+			onClick = npcProfileSelectionList,
+			alertIcon = "Interface\\GossipFrame\\AvailableQuestIcon",
+			adapter = function(buttonStructure, unitID)
+				local ownerID, companionID = companionIDToInfo(unitID);
+                local profile = getCompanionInfo(ownerID, companionID, C_Epsilon.GetPhaseId() .. '_' .. TRP3_API.ui.misc.GetUnitID("target"));
+				buttonStructure.alert = nil;
+				buttonStructure.tooltip = loc.TF_OPEN_NPC;
+				buttonStructure.tooltipSub = nil;
+				if profile and profile.data and profile.data.IC then
+					buttonStructure.icon = profile.data.IC;
+				else
+					buttonStructure.icon = TRP3_InterfaceIcons.Unknown;
+				end
+				if profile and profile.data and profile.data.read == false then
+					buttonStructure.tooltipSub = loc.REG_TT_NOTIF;
+					buttonStructure.alert = true;
 				end
 			end,
 		});

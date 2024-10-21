@@ -556,19 +556,19 @@ local function ShowGobBrowser()
          gameObjectsGrid[i][j].buttonSpawn:SetHighlightTexture("interface\\buttons\\ui-listbox-highlight.blp","ADD")
          gameObjectsGrid[i][j].buttonSpawn:RegisterForClicks("RightButtonUp", "LeftButtonUp")
          gameObjectsGrid[i][j].buttonSpawn:SetScript("OnClick", function(self, arg1) --Will tell us what button was used to click it.
-            if arg1 == "LeftButton" then --Spawning
-			   local gobData = gameObjectsGrid[i][j].gobData
-			   local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
-               local gobID
-               if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobID = -804602 else gobID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
+			local gobData = gameObjectsGrid[i][j].gobData
+			local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+			local gobDisplayID
+
+			if arg1 == "LeftButton" then --Spawning
+               if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobDisplayID = -804602 else gobDisplayID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Spawning : "..gobName)
-               SendChatMessage(".gob spawn "..gobID, "GUILD")
+               SendChatMessage(".gob spawn "..gobDisplayID, "GUILD")
             else --Lookup
                --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
-			   local gobData = gameObjectsGrid[i][j].gobData
-			   local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
+			   gobName = gobName:gsub("%.m2", ""):gsub("%.wmo", "")
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
-               SendChatMessage(".lo ob "..gobName, "GUILD")
+               SendChatMessage(".look object "..gobName, "GUILD")
             end
 
          end)
@@ -1143,7 +1143,7 @@ local function ShowGobBrowser()
    searchBox:SetFontSize(16);
 
    local function startSearch()
-      local input = searchBox:GetText()
+      local input = searchBox:GetText():lower()
       if input:len() > 1 then
          selectedCatalog(catalogListScrollDown:GetValue())
          currentGobList = divideGobList(getGobList(input, catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)

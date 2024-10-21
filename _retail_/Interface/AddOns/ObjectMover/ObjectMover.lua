@@ -220,42 +220,55 @@ function OPManagerCMD(mainCom, text, groupCheck)
 	if groupCheck then
 		if isGroupSelected then mainCom = "gobject group" else mainCom = "gobject" end
 	end
+	local comm
 	if mainCom and text then
-		cmd(mainCom .. " " .. text)
+		comm = (mainCom .. " " .. text)
 	else
-		cmd(mainCom)
+		comm = (mainCom)
 	end
+	cmd(comm)
 end
 
 -------------------------------------------------------------------------------
 -- Utils
 -------------------------------------------------------------------------------
 
+-- Converts Euler angles (in degrees) to a quaternion with ZYX rotation order.
+-- @param x_deg - Rotation angle around the X-axis in degrees.
+-- @param y_deg - Rotation angle around the Y-axis in degrees.
+-- @param z_deg - Rotation angle around the Z-axis in degrees.
+-- @return w, x, y, z - The components of the resulting quaternion.
 local function euler_to_quaternion(x_deg, y_deg, z_deg)
-	-- The inputs are in X (pitch), Y (yaw), Z (roll) order but the rotation is applied in YXZ order
-	-- We will map the input directly to yaw (Y), pitch (X), and roll (Z)
+	-- Convert degrees to radians.
+	local x_rad = math.rad(x_deg)
+	local y_rad = math.rad(y_deg)
+	local z_rad = math.rad(z_deg)
 
-	-- Convert degrees to radians
-	local pitch = math.rad(x_deg) -- X-axis (Pitch)
-	local yaw = math.rad(y_deg) -- Y-axis (Yaw)
-	local roll = math.rad(z_deg) -- Z-axis (Roll)
+	-- Calculate half angles.
+	local cx = math.cos(x_rad * 0.5)
+	local sx = math.sin(x_rad * 0.5)
+	local cy = math.cos(y_rad * 0.5)
+	local sy = math.sin(y_rad * 0.5)
+	local cz = math.cos(z_rad * 0.5)
+	local sz = math.sin(z_rad * 0.5)
 
-	-- Compute cosines and sines for half angles
-	local cy = math.cos(yaw * 0.5) -- yaw (Y rotation)
-	local sy = math.sin(yaw * 0.5)
-	local cx = math.cos(pitch * 0.5) -- pitch (X rotation)
-	local sx = math.sin(pitch * 0.5)
-	local cz = math.cos(roll * 0.5) -- roll (Z rotation)
-	local sz = math.sin(roll * 0.5)
+	-- Compute quaternion components.
+	local w = cz * cy * cx + sz * sy * sx
+	local x = cz * cy * sx - sz * sy * cx
+	local y = cz * sy * cx + sz * cy * sx
+	local z = sz * cy * cx - cz * sy * sx
 
-	-- Quaternion based on YXZ order
-	local qw = cy * cx * cz + sy * sx * sz
-	local qx = cy * sx * cz + sy * cx * sz
-	local qy = sy * cx * cz - cy * sx * sz
-	local qz = cy * cx * sz - sy * sx * cz
+	-- Calculate the length of the quaternion.
+	local length = math.sqrt(w * w + x * x + y * y + z * z)
+	-- Normalize each component.
+	w, x, y, z = w / length, x / length, y / length, z / length
 
-	-- Return the quaternion components
-	return qx, qy, qz, qw
+	-- Ensure positive w component for consistency.
+	if w < 0 then
+		w, x, y, z = -w, -x, -y, -z
+	end
+
+	return x, y, z, w
 end
 
 -- Function to format numbers conditionally
@@ -713,12 +726,15 @@ end
 
 --Check to make sure entry is valid
 function CheckIfValid(Box, IsNotObjectID, Function)
+	local text = Box:GetText()
+	if text then text = strtrim(text) end
+
 	if IsNotObjectID then
-		if Box:GetText() == Box:GetText():match("%d+") or Box:GetText() == Box:GetText():match("%d+%.%d+") or Box:GetText() == Box:GetText():match("%.%d+") then
+		if text == text:match("%d+") or text == text:match("%d+%.%d+") or text == text:match("%.%d+") then
 			if Function then Function() else return true end
 			--If we don't want to find an object ID, and the box's text isn't illegal, e.g. ".1d-2.*+", and if we want to run a function, then run the function, else if we don't want to run a function, just tell them that the box's text is legal
 		end
-	elseif not IsNotObjectID and Box:GetText() == Box:GetText():match("%d+") then
+	elseif not IsNotObjectID and text == text:match("%d+") then
 		if Function then Function() else return true end
 		--If we want to find an object ID, and the box's text is an object ID, and if we want to run a function, then run the function, else if we don't want to run a function, just tell them that the box's text is legal
 	end
@@ -764,7 +780,11 @@ function updateDimensions(val)
 					:GetText())
 			end
 		end
-		if val == "width" then if tonumber(OPWidthBox:GetText()) ~= nil then OPmoveWidth = tonumber(OPWidthBox:GetText()) end end
+		if val == "width" then
+			if tonumber(OPWidthBox:GetText()) ~= nil then
+				OPmoveWidth = tonumber(OPWidthBox:GetText())
+			end
+		end
 		if val == "height" then
 			if tonumber(OPHeightBox:GetText()) ~= nil then
 				OPmoveHeight = tonumber(OPHeightBox
@@ -903,9 +923,9 @@ function OPSpawn()
 		--SpawnClarifier = true
 		--Check if we have an object ID in the object ID box, if we do, spawn it
 		if OPScaleObjectToggle:GetChecked() == true and OPScaleObjectToggle:IsEnabled() then
-			SendChatMessage(".go spawn " .. OPObjectIDBox:GetText() .. " scale " .. OPScaleBox:GetText())
+			SendChatMessage(".go spawn " .. tonumber(OPObjectIDBox:GetText()) .. " scale " .. tonumber(OPScaleBox:GetText()))
 		else
-			SendChatMessage(".go spawn " .. OPObjectIDBox:GetText())
+			SendChatMessage(".go spawn " .. tonumber(OPObjectIDBox:GetText()))
 		end
 	end
 end
@@ -917,7 +937,7 @@ function OPTeletoObject()
 end
 
 function OPScaleObject(scale)
-	cmd("gobject scale " .. scale)
+	cmd("gobject scale " .. tonumber(scale))
 end
 
 -- Overlay Stuff
@@ -1807,7 +1827,6 @@ local function OMChatFilter(Self, Event, Message)
 		elseif OPRotAutoUpdate:GetChecked() then
 			groupID = clearmsg:match("with leader.*DBGUID: (%d+)%)")
 			if groupID then
-				print(groupID, clearmsg)
 				cmd("gobject group sel " .. groupID)
 				dprint("Added objects to a group, re-selecting group to capture the rotation..")
 			else
@@ -1909,6 +1928,16 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_CONVERSATION_NOTICE", OMChatFilter)
 local events = {
 	CHAT_MSG_ADDON = function(self, event, ...)
 		local prefix = select(1, ...)
+
+		if prefix == "Command" then
+			local reply = select(2, ...)
+			if reply:find("^m:..:") then
+				reply = reply:gsub("^m....", "")
+				OMChatFilter(nil, nil, reply)
+			end
+			return
+		end
+
 		if prefix == "EPSILON_OBJ_INFO" or prefix == "EPSILON_OBJ_SEL" then -- If OBJ_INFO or OBJ_SEL message, process the data to our 'cache'
 			local objdetails = select(2, ...)
 			local sender = select(4, ...)

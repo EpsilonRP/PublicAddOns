@@ -24,6 +24,7 @@ local talkingHeadChatTypes = {
 }
 
 function SCForgeTalkingHeadFrame_OnLoad(self)
+	self:SetScale(UIParent:GetScale())
 	self:SetClampedToScreen(true)
 	self:SetMovable(true)
 	self:EnableMouse(true)

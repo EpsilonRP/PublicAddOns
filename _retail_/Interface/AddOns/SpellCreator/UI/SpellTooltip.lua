@@ -183,7 +183,11 @@ local function getSpellTooltipLines(context, spell, isPhase, noName, spark)
 
 	-- Description Line:
 	if contextData.showDescription and spell.description and (spell.description ~= "") then
-		tinsert(lines, goldText(spell.description))
+		local desc = spell.description:gsub("||", "|"):gsub("|n", "\a")
+		local descLines = { strsplit("\a", desc) }
+		for _, v in ipairs(descLines) do
+			tinsert(lines, goldText(v))
+		end
 		tinsert(lines, " ")
 	end
 

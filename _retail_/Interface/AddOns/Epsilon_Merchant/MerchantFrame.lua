@@ -3,6 +3,8 @@
 -------------------------------------------------------------------------------
 -- Merchant Frame
 --
+local addonName, ns = ...
+local addon_path = "Interface/AddOns/" .. addonName
 
 local Me = Epsilon_Merchant;
 local SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
@@ -74,6 +76,49 @@ StaticPopupDialogs["EPSILON_MERCHANT_SET_SOUND"] = {
 		Epsilon_Merchant_SaveSound( data, tonumber( self.editBox:GetText() ) or 0 )
     end,
     hasEditBox = true,
+	enterClicksFirstButton = true,
+}
+
+-------------------------------------------------------------------------------
+
+
+StaticPopupDialogs["EPSILON_MERCHANT_CONFIRM_PURCHASE_NONREFUNDABLE_ITEM"] = {
+	text = "Are you sure you wish to exchange %s for the following item? Your purchase is not refundable.",
+	button1 = YES,
+	button2 = NO,
+	OnAccept = function()
+		BuyEpsilon_MerchantItem(Epsilon_MerchantFrame.itemIndex, Epsilon_MerchantFrame.count);
+	end,
+	OnCancel = function()
+	end,
+	OnShow = function()
+	end,
+	OnHide = function()
+	end,
+	timeout = 0,
+	hideOnEscape = true,
+	hasItemFrame = true,
+	enterClicksFirstButton = true,
+}
+
+-------------------------------------------------------------------------------
+
+StaticPopupDialogs["EPSILON_MERCHANT_CONFIRM_PURCHASE_TOKEN_ITEM"] = {
+	text = "Are you sure you wish to exchange %s for the following item?",
+	button1 = YES,
+	button2 = NO,
+	OnAccept = function()
+		BuyEpsilon_MerchantItem(Epsilon_MerchantFrame.itemIndex, Epsilon_MerchantFrame.count);
+	end,
+	OnCancel = function()
+	end,
+	OnShow = function()
+	end,
+	OnHide = function()
+	end,
+	timeout = 0,
+	hideOnEscape = true,
+	hasItemFrame = true,
 	enterClicksFirstButton = true,
 }
 
@@ -211,7 +256,6 @@ end
 -------------------------------------------------------------------------------
 -- Get the number of currencies used by the item.
 --
--- Note: Currently will always returns 1!
 --
 -- @params index 		The item's index in the vendor data array.
 --
@@ -221,7 +265,11 @@ local function GetMerchantItemCostInfo( index )
 	end
 	for i = 1, #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID] do
 		if EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][1] == index and EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4] then
-			return 1;
+			if type(EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4]) == "table" then
+				return #EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][i][4];
+			else
+				return 1;
+			end
 		end
 	end
 	return 0;
@@ -540,7 +588,7 @@ end
 -- @params itemID 	The itemID of the item.
 -- @params amount 	The # of items to purchase.
 --
-local function BuyEpsilon_MerchantItem( itemID, amount )
+function BuyEpsilon_MerchantItem( itemID, amount )
 	Epsilon_MerchantFrame.makingPurchase = true
 
 	if not( amount ) then
@@ -585,7 +633,7 @@ end
 -- @params bag	The bag in which the item exists.
 -- @params slot	The slot the item is occupying.
 --
-local function SellEpsilon_MerchantItem( bag, slot )
+function SellEpsilon_MerchantItem( bag, slot )
 	local itemID = GetContainerItemID( bag, slot );
 	local _, count = GetContainerItemInfo( bag, slot );
 	local vanillaPrice;
@@ -594,8 +642,9 @@ local function SellEpsilon_MerchantItem( bag, slot )
 	end
 	if count and count > 0 then
 		Epsilon_MerchantFrame.makingPurchase = true
+		local options = EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID];
 		local _, _, price, stackSize, _, _, _, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo( itemID )
-		if ( price and tonumber( price ) ~= nil ) or ( extendedCost and currencyID ) then
+		if options and options.allowRefunds and (( price and price > 0 ) or ( price and not extendedCost ) or ( extendedCost and currencyID and (count % stackSize == 0) )) then
 			local pricePerUnit = price / stackSize;
 			if price then
 				SendCommand( "mod money " .. ( pricePerUnit * count) )
@@ -615,13 +664,15 @@ local function SellEpsilon_MerchantItem( bag, slot )
 			if extendedCost then
 				if type(currencyID) == "table" then
 					for i = 1, #currencyID do
-						SendCommand( "additem "..currencyID[i][1].." "..currencyID[i][2] );
+						local amountPerUnit = currencyID[i][2] / stackSize;
+						SendCommand( "additem "..currencyID[i][1].." "..amountPerUnit * count );
 					end
 				else
-					SendCommand( "additem "..currencyID.." "..currencyAmount );
+					local amountPerUnit = currencyAmount / stackSize;
+					SendCommand( "additem "..currencyID.." "..amountPerUnit * count );
 				end
+				PlaySound(895);
 			end
-			--PlaySound(895)
 
 			-- Purge any item data beyond the 12 item cap.
 			if #EPSILON_ITEM_BUYBACK > 12 then
@@ -629,7 +680,7 @@ local function SellEpsilon_MerchantItem( bag, slot )
 					tremove( EPSILON_ITEM_BUYBACK, 12 + i );
 				end
 			end
-		elseif EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and not price and vanillaPrice then
+		elseif options and options.allowSellJunk and not price and vanillaPrice then
 			SendCommand( "mod money " .. ( vanillaPrice * count) );
 			SendCommand( "additem "..itemID.." -"..count );
 
@@ -732,13 +783,14 @@ end)
 local function SetInventoryCursor( self )
 	if ( Epsilon_MerchantFrame:IsShown() and Epsilon_MerchantFrame.selectedTab == 1 ) and not Epsilon_MerchantCursorOverlay:IsShown() then
 		local itemID = GetContainerItemID( self:GetParent():GetID(), self:GetID() );
+		local _, count = GetContainerItemInfo( self:GetParent():GetID(), self:GetID() )
 		if not itemID then
 			ResetCursor();
 			return
 		end
-		local _, _, price = GetMerchantItemInfo( itemID );
+		local _, _, price, stackCount, _, _, _, extendedCost, currencyID = GetMerchantItemInfo( itemID );
 		local _, _, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo( itemID );
-		if price or ( EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ].allowSellJunk and sellPrice ) then
+		if ( EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowRefunds and (( price and price > 0 ) or ( price and not extendedCost ) or ( extendedCost and currencyID and (count % stackCount == 0)))) or ( EPSILON_VENDOR_OPTIONS[ Epsilon_MerchantFrame.merchantID ].allowSellJunk and sellPrice ) then
 			SetCursor("BUY_CURSOR")
 		else
 			SetCursor("BUY_ERROR_CURSOR")
@@ -1088,6 +1140,7 @@ function Epsilon_MerchantFrame_Update()
 		Epsilon_MerchantFrame_CloseStackSplitFrame();
 		Epsilon_MerchantFrame.lastTab = Epsilon_MerchantFrame.selectedTab;
 	end
+	Epsilon_MerchantFrame_UpdateCanBuyback()
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
 		Epsilon_MerchantFrame_UpdateMerchantInfo();
 	else
@@ -1175,6 +1228,7 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			index = EPSILON_VENDOR_DATA[Epsilon_MerchantFrame.merchantID][itemIndex][1]
 		end
 		local itemButton = _G["Epsilon_MerchantItem"..i.."ItemButton"];
+		local addItemButton = _G["Epsilon_MerchantItem"..i.."AddItemButton"];
 		local merchantButton = _G["Epsilon_MerchantItem"..i];
 		local merchantMoney = _G["Epsilon_MerchantItem"..i.."MoneyFrame"];
 		local merchantAltCurrency = _G["Epsilon_MerchantItem"..i.."AltCurrencyFrame"];
@@ -1186,9 +1240,9 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			SetItemButtonCount(itemButton, 0)
 			SetItemButtonStock(itemButton, 0)
 			_G["Epsilon_MerchantItem"..i.."Name"]:SetText("Add Item")
-			_G["Epsilon_MerchantItem"..i.."Name"]:SetTextColor(1, 0.81, 0);
-			SetItemButtonTexture(itemButton, "Interface/PaperDollInfoFrame/Character-Plus")
-			itemButton.hasItem = false
+			_G["Epsilon_MerchantItem"..i.."Name"]:SetTextColor(0, 1, 0);
+			SetItemButtonTexture(itemButton, nil);
+			itemButton.hasItem = nil;
 			itemButton:SetID(0)
 			itemButton.slotID = 0
 			merchantRemove:Hide()
@@ -1201,7 +1255,8 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			SetItemButtonTextureVertexColor(itemButton, 1.0, 1.0, 1.0);
 			SetItemButtonNormalTextureVertexColor(itemButton, 1.0, 1.0, 1.0);
 			Epsilon_MerchantFrameItem_UpdateQuality(merchantButton, nil);
-			itemButton:Show()
+			itemButton:Hide();
+			addItemButton:Show();
 		elseif ( itemIndex <= numMerchantItems ) then
 			name, texture, price, stackCount, numAvailable, isPurchasable, isUsable, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo(index);
 
@@ -1268,12 +1323,13 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			local isHeirloom = merchantItemID and C_Heirloom.IsItemHeirloom(merchantItemID);
 			local isKnownHeirloom = isHeirloom and C_Heirloom.PlayerHasHeirloom(merchantItemID);
 
-			itemButton.showNonrefundablePrompt = false;
+			itemButton.showNonrefundablePrompt = not( EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowRefunds );
 
 			itemButton.hasItem = true;
 			itemButton:SetID(index);
 			itemButton.slotID = itemIndex;
 			itemButton:Show();
+			addItemButton:Hide();
 
 			local tintRed = not isPurchasable or (not isUsable and not isHeirloom);
 
@@ -1321,6 +1377,7 @@ function Epsilon_MerchantFrame_UpdateMerchantInfo()
 			itemButton.hasItem = nil;
 			itemButton.name = nil;
 			itemButton:Hide();
+			addItemButton:Hide();
 			merchantRemove:Hide();
 			-- merchantRestock:Hide();
 			merchantPrice:Hide();
@@ -1558,7 +1615,7 @@ end
 
 function Epsilon_MerchantItemBuybackButton_OnClick(self, button)
 	local _, _, _, stackCount, numAvailable, isPurchasable, isUsable, extendedCost, currencyID, currencyAmount = GetMerchantItemInfo(self:GetID());
-	if button == "RightButton" then
+	if button == "RightButton" and EPSILON_ITEM_BUYBACK[1] then
 		BuybackEpsilon_MerchantItem( EPSILON_ITEM_BUYBACK[1]["itemID"], EPSILON_ITEM_BUYBACK[1]["stackCount"] );
 	end
 end
@@ -1584,7 +1641,11 @@ function Epsilon_MerchantItemButton_OnLoad(self)
 	self:RegisterForDrag("LeftButton");
 
 	self.SplitStack = function(button, split)
-		if ( split > 0 ) then
+		if ( button.extendedCost ) then
+			Epsilon_MerchantFrame_ConfirmExtendedItemCost(button, split)
+		elseif ( button.showNonrefundablePrompt ) then
+			Epsilon_MerchantFrame_ConfirmExtendedItemCost(button, split)
+		elseif ( split > 0 ) then
 			BuyEpsilon_MerchantItem(button:GetID(), split);
 		end
 	end
@@ -1604,16 +1665,7 @@ function Epsilon_MerchantItemButton_OnClick(self, button)
 
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
 		-- Is merchant frame
-		if self:GetID() == 0 then
-			OpenAllBags()
-			Epsilon_MerchantFrame.choosingItem = true;
-			Epsilon_MerchantItemEditor.choosingItem = false;
-			Epsilon_MerchantCursorOverlay:Show()
-			Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
-				SetCursor("CAST_CURSOR")
-			end)
-			PlaySound( 83 )
-		elseif ( button == "LeftButton" ) then
+		if ( button == "LeftButton" ) then
 			if ( Epsilon_MerchantFrame.refundItem ) then
 				if ( ContainerFrame_GetExtendedPriceString(Epsilon_MerchantFrame.refundItem, Epsilon_MerchantFrame.refundItemEquipped)) then
 					-- a confirmation dialog has been shown
@@ -1631,7 +1683,15 @@ function Epsilon_MerchantItemButton_OnClick(self, button)
 				Epsilon_MerchantFrame.highPrice = self;
 			end
 		else
-			BuyEpsilon_MerchantItem(self:GetID() );
+			if ( self.extendedCost ) then
+				Epsilon_MerchantFrame_ConfirmExtendedItemCost(self);
+			elseif ( self.showNonrefundablePrompt ) then
+				Epsilon_MerchantFrame_ConfirmExtendedItemCost(self);
+			elseif ( self.price and self.price >= MERCHANT_HIGH_PRICE_COST ) then
+				Epsilon_MerchantFrame_ConfirmHighCostItem(self);
+			else
+				BuyEpsilon_MerchantItem(self:GetID() );
+			end
 		end
 	else
 		-- Is buyback item
@@ -1685,15 +1745,9 @@ end
 function Epsilon_MerchantItemButton_OnEnter(button)
 	GameTooltip:SetOwner(button, "ANCHOR_RIGHT");
 	if ( Epsilon_MerchantFrame.selectedTab == 1 ) then
-		if button:GetID() == 0 then
-			GameTooltip:AddLine("|TInterface/PaperDollInfoFrame/Character-Plus:12|t Add Item", 1, 1, 1)
-			GameTooltip:AddLine("Select an item from your inventory to add to this vendor.", 1.0, 0.81, 0.0, true)
-			GameTooltip:Show()
-		else
-			GameTooltip:SetItemByID(button:GetID());
-			GameTooltip_ShowCompareItem(GameTooltip);
-			Epsilon_MerchantFrame.itemHover = button:GetID();
-		end
+		GameTooltip:SetItemByID(button:GetID());
+		GameTooltip_ShowCompareItem(GameTooltip);
+		Epsilon_MerchantFrame.itemHover = button:GetID();
 	else
 		GameTooltip:SetItemByID(button:GetID());
 		if ( IsModifiedClick("DRESSUP") and button.hasItem ) then
@@ -1705,6 +1759,130 @@ function Epsilon_MerchantItemButton_OnEnter(button)
 				SetCursor("BUY_CURSOR");
 			end
 		end
+	end
+end
+
+-------------------------------------------------------------------------------
+
+local LIST_DELIMITER = ", ";
+
+function Epsilon_MerchantFrame_ConfirmExtendedItemCost(itemButton, numToPurchase)
+  local index = tostring( itemButton:GetID() );
+  local itemsString;
+  if ( GetMerchantItemCostInfo(index) == 0 and not itemButton.showNonrefundablePrompt) then
+    if ( itemButton.price and itemButton.price >= MERCHANT_HIGH_PRICE_COST ) then
+      Epsilon_MerchantFrame_ConfirmHighCostItem(itemButton);
+    else
+      BuyEpsilon_MerchantItem( itemButton:GetID(), numToPurchase );
+    end
+    return;
+  end
+  
+  Epsilon_MerchantFrame.itemIndex = index;
+  Epsilon_MerchantFrame.count = numToPurchase;
+  
+  local stackCount = itemButton.count or 1;
+  numToPurchase = numToPurchase or stackCount;
+  
+  local maxQuality = 0;
+  local usingCurrency = false;
+  for i = 1, GetMerchantItemCostInfo(index) do
+    local itemTexture, costItemCount, itemLink, currencyName = GetMerchantItemCostItem(index, i);
+    costItemCount = costItemCount * (numToPurchase / stackCount); -- cost per stack times number of stacks
+    if ( currencyName ) then
+      usingCurrency = true;
+      if ( itemsString ) then
+        itemsString = itemsString .. ", |T"..itemTexture..":0:0:0:-1|t ".. format(CURRENCY_QUANTITY_TEMPLATE, costItemCount, currencyName);
+      else
+        itemsString = " |T"..itemTexture..":0:0:0:-1|t "..format(CURRENCY_QUANTITY_TEMPLATE, costItemCount, currencyName);
+      end
+    elseif ( itemLink ) then
+      local itemName, itemLink, itemQuality = GetItemInfo(itemLink);
+ 
+      maxQuality = math.max(itemQuality, maxQuality);
+      if ( itemsString ) then
+        itemsString = itemsString .. LIST_DELIMITER .. format(ITEM_QUANTITY_TEMPLATE, costItemCount, itemLink);
+      else
+        itemsString = format(ITEM_QUANTITY_TEMPLATE, costItemCount, itemLink);
+      end
+    end
+  end
+  if ( itemButton.showNonrefundablePrompt and itemButton.price ) then
+    if ( itemsString ) then
+      itemsString = itemsString .. LIST_DELIMITER .. GetMoneyString(itemButton.price);
+    else
+      if itemButton.price < MERCHANT_HIGH_PRICE_COST then
+        BuyEpsilon_MerchantItem( itemButton:GetID(), numToPurchase );
+        return;
+      end
+      itemsString = GetMoneyString(itemButton.price);
+    end
+  end
+  
+  if ( not usingCurrency and maxQuality <= Enum.ItemQuality.Uncommon and not itemButton.showNonrefundablePrompt) or (not itemsString and not itemButton.price) then
+    BuyEpsilon_MerchantItem( itemButton:GetID(), numToPurchase );
+    return;
+  end
+  
+  local popupData = Epsilon_MerchantFrame_GetProductInfo( itemButton );
+  popupData.count = numToPurchase;
+  
+  if (itemButton.showNonrefundablePrompt) then
+    StaticPopup_Show("EPSILON_MERCHANT_CONFIRM_PURCHASE_NONREFUNDABLE_ITEM", itemsString, nil, popupData );
+  else
+    StaticPopup_Show("EPSILON_MERCHANT_CONFIRM_PURCHASE_TOKEN_ITEM", itemsString, nil, popupData );
+  end
+end
+
+-------------------------------------------------------------------------------
+
+function Epsilon_MerchantFrame_GetProductInfo( itemButton )
+  local itemName, itemHyperlink;
+  local itemQuality = 1;
+  local r, g, b = 1, 1, 1;
+  if(itemButton.link) then
+    itemName, itemHyperlink, itemQuality = GetItemInfo(itemButton.link);
+  end
+ 
+  if ( itemName ) then
+    --It's an item
+    r, g, b = GetItemQualityColor(itemQuality); 
+  else
+    --Not an item. Could be currency or something. Just use what's on the button.
+    itemName = itemButton.name;
+    r, g, b = GetItemQualityColor(1); 
+  end
+ 
+  local productInfo = {
+    texture = itemButton.texture,
+    name = itemName,
+    color = {r, g, b, 1},
+    link = itemHyperlink,
+    index = itemButton:GetID(),
+  };
+ 
+  return productInfo;
+end
+
+-------------------------------------------------------------------------------
+
+function Epsilon_MerchantFrame_ConfirmHighCostItem(itemButton, quantity)
+  quantity = (quantity or 1);
+  local index = itemButton:GetID();
+ 
+  Epsilon_MerchantFrame.itemIndex = index;
+  Epsilon_MerchantFrame.count = quantity;
+  Epsilon_MerchantFrame.price = itemButton.price;
+  StaticPopup_Show("CONFIRM_HIGH_COST_ITEM", itemButton.link);
+end
+
+-------------------------------------------------------------------------------
+
+function Epsilon_MerchantFrame_UpdateCanBuyback()
+	if EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowRefunds then
+		Epsilon_MerchantFrameTab2:Show();
+	else
+		Epsilon_MerchantFrameTab2:Hide();
 	end
 end
 
@@ -1722,6 +1900,8 @@ function Epsilon_MerchantFrame_UpdateCanRepairAll()
 		end
 	end
 end
+
+-------------------------------------------------------------------------------
 
 function Epsilon_MerchantFrame_UpdateRepairButtons()
 	if EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID] and EPSILON_VENDOR_OPTIONS[Epsilon_MerchantFrame.merchantID].allowSellJunk and HaveJunkItems() then
@@ -1751,6 +1931,8 @@ function Epsilon_MerchantFrame_UpdateRepairButtons()
 		Epsilon_MerchantRepairItemButton:Hide();
 	end
 end
+
+-------------------------------------------------------------------------------
 
 function Epsilon_MerchantFrame_UpdateCurrencies()
 	local currencies = GetMerchantCurrencies();

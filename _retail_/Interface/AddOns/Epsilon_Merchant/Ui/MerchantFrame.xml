@@ -97,6 +97,36 @@
 					</OnHide>
 				</Scripts>
 			</ItemButton>
+			<Button parentKey="AddItemButton" name="$parentAddItemButton" hidden="true">
+				<Anchors>
+					<Anchor point="CENTER" relativeKey="$parent.ItemButton"/>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ItemButton"/>
+				</Anchors>
+				<NormalTexture atlas="ItemUpgrade_GreenPlusIcon" setAllPoints="true" />
+				<PushedTexture atlas="ItemUpgrade_GreenPlusIcon_Pressed" setAllPoints="true" />
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square"/>
+				<Scripts>
+					<OnClick>
+						OpenAllBags();
+						Epsilon_MerchantFrame.choosingItem = true;
+						Epsilon_MerchantItemEditor.choosingItem = false;
+						Epsilon_MerchantCursorOverlay:Show();
+						Epsilon_MerchantCursorOverlay:SetScript("OnUpdate", function()
+							SetCursor("CAST_CURSOR");
+						end);
+						PlaySound( 83 );
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner( self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("|TInterface/PaperDollInfoFrame/Character-Plus:12|t Add Item", 1, 1, 1);
+						GameTooltip:AddLine("Select an item from your inventory to add to this vendor.", 1.0, 0.81, 0.0, true);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+			</Button>
 			<Button parentKey="RemoveButton" name="$parentRemoveButton" frameLevel="5" hidden="true">
 				<Size x="16" y="16"/>
 				<Anchors>
@@ -701,7 +731,7 @@
 					<OnLeave function="GameTooltip_Hide"/>
 					<OnClick>
 						PlaySound( 841 )
-						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, 1);
 						Epsilon_MerchantFrame_Update();
 					</OnClick>
 				</Scripts>
@@ -718,7 +748,7 @@
 					<OnLeave function="GameTooltip_Hide"/>
 					<OnClick>
 						PlaySound( 841 )
-						PanelTemplates_SetTab(Epsilon_MerchantFrame, self:GetID());
+						PanelTemplates_SetTab(Epsilon_MerchantFrame, 2);
 						Epsilon_MerchantFrame_Update();
 					</OnClick>
 				</Scripts>

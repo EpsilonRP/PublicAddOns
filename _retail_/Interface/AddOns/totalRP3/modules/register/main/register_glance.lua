@@ -515,6 +515,9 @@ local function getGlanceTab()
 			return;
 		end
 		return getCompanionInfo(owner, companionID, currentTargetID).PE;
+    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+        local owner, companionID = companionIDToInfo(currentTargetID);
+		return getCompanionInfo(owner, companionID, C_Epsilon.GetPhaseId() .. '_' .. TRP3_API.ui.misc.GetUnitID("target")).PE;
 	end
 end
 
@@ -620,7 +623,7 @@ local function configTooltipAnchor()
 end
 
 local function displayGlanceSlots()
-	local glanceTab = getGlanceTab();
+    local glanceTab = getGlanceTab();
 
 	if glanceTab ~= nil and (isCurrentMine or atLeastOneactiveGlance(glanceTab)) then
 		ui_GlanceBar:Show();
@@ -691,12 +694,14 @@ local function onTargetChanged()
 		currentTargetID = getUnitID("target");
 	elseif currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.PET then
 		currentTargetID = getCompanionFullID("target", currentTargetType);
+    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+		currentTargetID = C_Epsilon.GetPhaseId() .. '_' .. TRP3_API.ui.misc.GetUnitID("target");
 	end
-	for i=1,5,1 do
-		local slot = _G["TRP3_GlanceBarSlot"..i];
-		slot.targetType = currentTargetType;
-		slot.targetID = currentTargetID;
-	end
+    for i = 1, 5, 1 do
+        local slot = _G["TRP3_GlanceBarSlot" .. i];
+        slot.targetType = currentTargetType;
+        slot.targetID = currentTargetID;
+    end
 	if currentTargetID then
 		displayGlanceSlots();
 	end

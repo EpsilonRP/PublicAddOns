@@ -225,6 +225,7 @@ function SC_ExtraActionButtonMixin:SetSquare()
 	self.cooldown:SetSwipeColor(0, 0, 0, 0.8)
 	self.cooldown:SetUseCircularEdge(false)
 	self.CircleMask:Hide()
+	self.SquareMask:Show()
 end
 
 function SC_ExtraActionButtonMixin:SetCircular()
@@ -237,6 +238,7 @@ function SC_ExtraActionButtonMixin:SetCircular()
 	self.cooldown:SetSwipeTexture(SPARK_ASSETS_PATH .. 'circular-mask-alpha')
 	self.cooldown:SetUseCircularEdge(true)
 	self.CircleMask:Show()
+	self.SquareMask:Hide()
 end
 
 function SC_ExtraActionButtonMixin:SetContent(content)
@@ -297,7 +299,7 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 		end
 	end
 	if cdData.inputs then
-		ARC.PHASE:CAST(spell.commID, bypassCD, unpack(DataUtils.parseStringToArgs(cdData.inputs)))
+		ARC.PHASE:CAST(spell.commID, bypassCD, DataUtils.getArgs(cdData.inputs))
 	else
 		ARC.PHASE:CAST(spell.commID, bypassCD)
 	end
@@ -312,44 +314,6 @@ function SC_ExtraActionButtonMixin:OnLoad()
 			local spell = self.spell
 			local strings = ns.UI.SpellTooltip.getLines("spark", spell, true, true, self)
 			if not strings then return "<Error Loading Spell Tooltip>" end
-
-			--[[
-			local strings = {}
-
-			if spell.description then
-				tinsert(strings, spell.description)
-			end
-			local cooldownTime
-			if spell.cooldown then
-				cooldownTime = spell.cooldown
-			end
-			if self.cdData[1] then
-				local sparkCdTime = tonumber(self.cdData[1])
-				if self.cdData[2] then
-					if cooldownTime then
-						if sparkCdTime > cooldownTime then
-							cooldownTime = sparkCdTime
-						end
-					else
-						cooldownTime = sparkCdTime
-					end
-				else
-					cooldownTime = sparkCdTime
-				end
-			end
-			if cooldownTime then
-				tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Cooldown: " .. cooldownTime .. "s"));
-				if spell.author then
-					tinsert(strings, Tooltip.createDoubleLine(" ", "Author: " .. spell.author));
-				end
-			else
-				if spell.author then
-					tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Author: " .. spell.author));
-				else
-					tinsert(strings, "Actions: " .. #spell.actions)
-				end
-			end
-			--]]
 
 			if isOfficerPlus() then
 				if strings[#strings] ~= " " then
