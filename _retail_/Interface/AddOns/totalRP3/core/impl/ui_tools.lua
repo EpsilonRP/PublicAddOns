@@ -52,24 +52,24 @@ local CONFIG_UI_ANIMATIONS = "ui_animations";
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 local tiledBackgrounds = {
-	{ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", tile = false },
-	{ bgFile = "Interface\\BankFrame\\Bank-Background", tile = false },
-	{ bgFile = "Interface\\FrameGeneral\\UI-Background-Marble", tile = false },
-	{ bgFile = "Interface\\FrameGeneral\\UI-Background-Rock", tile = false },
-	{ bgFile = "Interface\\GuildBankFrame\\GuildVaultBG", tile = false },
-	{ bgFile = "Interface\\HELPFRAME\\DarkSandstone-Tile", tile = false },
-	{ bgFile = "Interface\\HELPFRAME\\Tileable-Parchment", tile = false },
-	{ bgFile = "Interface\\QuestionFrame\\question-background", tile = false },
-	{ bgFile = "Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg", tile = false },
-	{ bgFile = "Interface\\Destiny\\EndscreenBG", tile = false },
-	{ bgFile = "Interface\\Stationery\\AuctionStationery1", tile = false },
-	{ bgFile = "Interface\\Stationery\\Stationery_ill1", tile = false },
-	{ bgFile = "Interface\\Stationery\\Stationery_OG1", tile = false },
-	{ bgFile = "Interface\\Stationery\\Stationery_TB1", tile = false },
-	{ bgFile = "Interface\\Stationery\\Stationery_UC1", tile = false },
-	{ bgFile = "Interface\\Stationery\\StationeryTest1", tile = false },
-	{ bgFile = "Interface\\WorldMap\\UI-WorldMap-Middle1", tile = false },
-	{ bgFile = "Interface\\WorldMap\\UI-WorldMap-Middle2", tile = false },
+	{ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",             tile = false },
+	{ bgFile = "Interface\\BankFrame\\Bank-Background",                       tile = false },
+	{ bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",               tile = false },
+	{ bgFile = "Interface\\FrameGeneral\\UI-Background-Rock",                 tile = false },
+	{ bgFile = "Interface\\GuildBankFrame\\GuildVaultBG",                     tile = false },
+	{ bgFile = "Interface\\HELPFRAME\\DarkSandstone-Tile",                    tile = false },
+	{ bgFile = "Interface\\HELPFRAME\\Tileable-Parchment",                    tile = false },
+	{ bgFile = "Interface\\QuestionFrame\\question-background",               tile = false },
+	{ bgFile = "Interface\\RAIDFRAME\\UI-RaidFrame-GroupBg",                  tile = false },
+	{ bgFile = "Interface\\Destiny\\EndscreenBG",                             tile = false },
+	{ bgFile = "Interface\\Stationery\\AuctionStationery1",                   tile = false },
+	{ bgFile = "Interface\\Stationery\\Stationery_ill1",                      tile = false },
+	{ bgFile = "Interface\\Stationery\\Stationery_OG1",                       tile = false },
+	{ bgFile = "Interface\\Stationery\\Stationery_TB1",                       tile = false },
+	{ bgFile = "Interface\\Stationery\\Stationery_UC1",                       tile = false },
+	{ bgFile = "Interface\\Stationery\\StationeryTest1",                      tile = false },
+	{ bgFile = "Interface\\WorldMap\\UI-WorldMap-Middle1",                    tile = false },
+	{ bgFile = "Interface\\WorldMap\\UI-WorldMap-Middle2",                    tile = false },
 	{ bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-StatsBackground", tile = false },
 };
 
@@ -105,7 +105,7 @@ end
 function TRP3_API.ui.frame.getTiledBackgroundList()
 	local tab = {};
 	for index, info in pairs(tiledBackgrounds) do
-		tinsert(tab, {loc.UI_BKG:format(tostring(index)), index, "|T" .. info.bgFile .. ":200:200|t"});
+		tinsert(tab, { loc.UI_BKG:format(tostring(index)), index, "|T" .. info.bgFile .. ":200:200|t" });
 	end
 	return tab;
 end
@@ -209,7 +209,6 @@ local function openDropDown(anchoredFrame, values, callback, space, addCancel)
 				info.text = CANCEL;
 				UIDropDownMenu_AddButton(info, level);
 			end
-
 		end,
 		"MENU"
 	);
@@ -235,7 +234,7 @@ TRP3_API.ui.listbox.setupDropDownMenu = setupDropDownMenu;
 local function listBoxSetSelected(self, index)
 	assert(self and self.values, "Badly initialized listbox");
 	assert(self.values[index], "Array index out of bound");
-	_G[self:GetName().."Text"]:SetText(self.values[index][1]);
+	_G[self:GetName() .. "Text"]:SetText(self.values[index][1]);
 	self.selectedValue = self.values[index][2];
 	if self.callback then
 		self.callback(self.values[index][2], self);
@@ -260,7 +259,7 @@ end
 -- Setup a ListBox. When the player choose a value, it triggers the function passing the value of the selected element
 local function setupListBox(listBox, values, callback, defaultText, boxWidth, addCancel)
 	assert(listBox and values, "Invalid arguments");
-	assert(_G[listBox:GetName().."Button"], "Invalid arguments: listbox doesn't have a button");
+	assert(_G[listBox:GetName() .. "Button"], "Invalid arguments: listbox doesn't have a button");
 	boxWidth = boxWidth or 115;
 	listBox.values = values;
 	listBox.callback = callback;
@@ -269,7 +268,7 @@ local function setupListBox(listBox, values, callback, defaultText, boxWidth, ad
 			local text = tab[1];
 			local val = tab[2];
 			if val == value then
-				_G[listBox:GetName().."Text"]:SetText(text);
+				_G[listBox:GetName() .. "Text"]:SetText(text);
 			end
 		end
 		if callback then
@@ -277,18 +276,18 @@ local function setupListBox(listBox, values, callback, defaultText, boxWidth, ad
 		end
 	end;
 
-	setupDropDownMenu(_G[listBox:GetName().."Button"], values, listCallback, boxWidth, addCancel, false);
+	setupDropDownMenu(_G[listBox:GetName() .. "Button"], values, listCallback, boxWidth, addCancel, false);
 
 	listBox.SetSelectedIndex = listBoxSetSelected;
 	listBox.GetSelectedValue = listBoxGetValue;
 	listBox.SetSelectedValue = listBoxSetSelectedValue;
 
 	if defaultText then
-		_G[listBox:GetName().."Text"]:SetText(defaultText);
+		_G[listBox:GetName() .. "Text"]:SetText(defaultText);
 	end
-	_G[listBox:GetName().."Middle"]:SetWidth(boxWidth);
-	_G[listBox:GetName().."Text"]:SetWidth(boxWidth-20);
-	listBox:SetWidth(boxWidth+50);
+	_G[listBox:GetName() .. "Middle"]:SetWidth(boxWidth);
+	_G[listBox:GetName() .. "Text"]:SetWidth(boxWidth - 20);
+	listBox:SetWidth(boxWidth + 50);
 end
 TRP3_API.ui.listbox.setupListBox = setupListBox;
 
@@ -298,13 +297,13 @@ TRP3_API.ui.listbox.setupListBox = setupListBox;
 
 -- Handle the mouse wheel for the frame in order to slide the slider
 TRP3_API.ui.list.handleMouseWheel = function(frame, slider)
-	frame:SetScript("OnMouseWheel",function(_, delta)
+	frame:SetScript("OnMouseWheel", function(_, delta)
 		if slider:IsEnabled() then
-			local mini,maxi = slider:GetMinMaxValues();
+			local mini, maxi = slider:GetMinMaxValues();
 			if delta == 1 and slider:GetValue() > mini then
-				slider:SetValue(slider:GetValue()-1);
+				slider:SetValue(slider:GetValue() - 1);
 			elseif delta == -1 and slider:GetValue() < maxi then
-				slider:SetValue(slider:GetValue()+1);
+				slider:SetValue(slider:GetValue() + 1);
 			end
 		end
 	end);
@@ -315,13 +314,13 @@ local function listShowPage(infoTab, pageNum)
 	assert(infoTab.uiTab, "Error : no uiTab in infoTab.");
 
 	-- Hide all widgets
-	for k=1,infoTab.maxPerPage do
+	for k = 1, infoTab.maxPerPage do
 		infoTab.widgetTab[k]:Hide();
 	end
 
 	-- Show list
-	for widgetIndex=1, infoTab.maxPerPage do
-		local dataIndex = pageNum*infoTab.maxPerPage + widgetIndex;
+	for widgetIndex = 1, infoTab.maxPerPage do
+		local dataIndex = pageNum * infoTab.maxPerPage + widgetIndex;
 		if dataIndex <= #infoTab.uiTab then
 			infoTab.widgetTab[widgetIndex]:Show();
 			infoTab.decorate(infoTab.widgetTab[widgetIndex], infoTab.uiTab[dataIndex]);
@@ -356,11 +355,11 @@ TRP3_API.ui.list.initList = function(infoTab, dataTab, slider)
 	wipe(infoTab.uiTab);
 
 	if type(dataTab) == "table" then
-		for key,_ in pairs(dataTab) do
+		for key, _ in pairs(dataTab) do
 			tinsert(infoTab.uiTab, key);
 		end
 	else
-		for i=1, dataTab, 1 do
+		for i = 1, dataTab, 1 do
 			tinsert(infoTab.uiTab, i);
 		end
 	end
@@ -388,14 +387,14 @@ TRP3_API.ui.list.initList = function(infoTab, dataTab, slider)
 	slider:SetScript("OnValueChanged", nil);
 	if count > maxPerPage then
 		slider:Enable();
-		local total = floor((count-1)/maxPerPage);
+		local total = floor((count - 1) / maxPerPage);
 		slider:SetMinMaxValues(0, total);
 	else
 		slider:SetMinMaxValues(0, 0);
 		slider:SetValue(0);
 	end
 	checkUpDown(slider);
-	slider:SetScript("OnValueChanged",function(self)
+	slider:SetScript("OnValueChanged", function(self)
 		if self:IsVisible() then
 			listShowPage(infoTab, floor(self:GetValue()));
 			checkUpDown(self);
@@ -426,7 +425,7 @@ end
 local function refreshTooltip(Frame)
 	if Frame.titleText and Frame.GenFrame and Frame.GenFrameX and Frame.GenFrameY and Frame.GenFrameAnch then
 		TRP3_MainTooltip:Hide();
-		TRP3_MainTooltip:SetOwner(Frame.GenFrame, Frame.GenFrameAnch,Frame.GenFrameX,Frame.GenFrameY);
+		TRP3_MainTooltip:SetOwner(Frame.GenFrame, Frame.GenFrameAnch, Frame.GenFrameX, Frame.GenFrameY);
 		if not Frame.rightText then
 			TRP3_MainTooltip:AddLine(Frame.titleText, 1, 1, 1, true);
 		else
@@ -475,7 +474,7 @@ local function setTooltipForFrame(Frame, GenFrame, GenFrameAnch, GenFrameX, GenF
 		Frame.bodyText = bodyText;
 		Frame.rightText = rightText;
 		if GenFrameAnch then
-			Frame.GenFrameAnch = "ANCHOR_"..GenFrameAnch;
+			Frame.GenFrameAnch = "ANCHOR_" .. GenFrameAnch;
 		else
 			Frame.GenFrameAnch = "ANCHOR_TOPRIGHT";
 		end
@@ -501,7 +500,7 @@ end
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 local DUMMY_TOOLTIP = CreateFrame("GameTooltip", "TRP3_DUMMY_TOOLTIP", nil, "GameTooltipTemplate");
-DUMMY_TOOLTIP:SetOwner( WorldFrame, "ANCHOR_NONE" );
+DUMMY_TOOLTIP:SetOwner(WorldFrame, "ANCHOR_NONE");
 
 local findPetOwner, findBattlePetOwner, UnitName = TRP3_API.Locale.findPetOwner, TRP3_API.Locale.findBattlePetOwner, UnitName;
 
@@ -513,7 +512,7 @@ TRP3_API.ui.misc.TYPE_MOUNT = TRP3_Enums.UNIT_TYPE.MOUNT;
 TRP3_API.ui.misc.TYPE_NPC = TRP3_Enums.UNIT_TYPE.NPC;
 
 function TRP3_API.ui.misc.isTargetTypeACompanion(unitType)
-    return unitType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or unitType == TRP3_Enums.UNIT_TYPE.PET;
+	return unitType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or unitType == TRP3_Enums.UNIT_TYPE.PET;
 end
 
 function TRP3_API.ui.misc.isTargetTypeAnNPC(unitType)
@@ -538,19 +537,19 @@ local function IsBattlePetUnit(unitToken)
 	return guidType == "Creature" and TRP3_API.utils.resources.IsPetCreature(tonumber(creatureID));
 end
 
-function TRP3_API.ui.misc.GetUnitID( unitID )
-    if not( UnitExists( unitID )) then
-        return
-    end
+function TRP3_API.ui.misc.GetUnitID(unitID)
+	if not (UnitExists(unitID)) then
+		return
+	end
 
-    local guid = UnitGUID( unitID )
-    local unitType, _, _, _, _, id, _ = strsplit("-", guid)
-    if not( unitType == "Creature" and id ) then
-        return
-    end
-    
-    id = tonumber( id );
-    return id;
+	local guid = UnitGUID(unitID)
+	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
+	if not ((unitType == "Creature" or unitType == "Vehicle") and id) then
+		return
+	end
+
+	id = tonumber(id);
+	return id;
 end
 
 ---
@@ -571,7 +570,7 @@ end
 local function getDummyGameTooltipTexts()
 	local tab = {};
 	for j = 1, DUMMY_TOOLTIP:NumLines() do
-		tab[j] = _G["TRP3_DUMMY_TOOLTIPTextLeft" ..  j]:GetText();
+		tab[j] = _G["TRP3_DUMMY_TOOLTIPTextLeft" .. j]:GetText();
 	end
 	return tab;
 end
@@ -619,9 +618,11 @@ function TRP3_API.ui.misc.getCompanionFullID(unitToken, unitType)
 end
 
 function TRP3_API.ui.misc.getNPCFullID(unitToken, _)
-    local phaseID = C_Epsilon.GetPhaseId();
-    local NPCGUID = TRP3_API.ui.misc.GetUnitID(unitToken);
-	return phaseID .. '_' .. NPCGUID;
+	local phaseID = C_Epsilon.GetPhaseId();
+	local NPCGUID = TRP3_API.ui.misc.GetUnitID(unitToken);
+	if NPCGUID ~= nil then
+		return phaseID .. '_' .. NPCGUID;
+	end
 end
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -677,10 +678,10 @@ end
 local FIELDSET_DEFAULT_CAPTION_WIDTH = 100;
 
 function TRP3_API.ui.frame.setupFieldPanel(fieldset, text, size)
-	if fieldset and _G[fieldset:GetName().."CaptionPanelCaption"] then
-		_G[fieldset:GetName().."CaptionPanelCaption"]:SetText(text);
-		if _G[fieldset:GetName().."CaptionPanel"] then
-			_G[fieldset:GetName().."CaptionPanel"]:SetWidth(size or FIELDSET_DEFAULT_CAPTION_WIDTH);
+	if fieldset and _G[fieldset:GetName() .. "CaptionPanelCaption"] then
+		_G[fieldset:GetName() .. "CaptionPanelCaption"]:SetText(text);
+		if _G[fieldset:GetName() .. "CaptionPanel"] then
+			_G[fieldset:GetName() .. "CaptionPanel"]:SetWidth(size or FIELDSET_DEFAULT_CAPTION_WIDTH);
 		end
 	end
 end
@@ -699,7 +700,7 @@ function TRP3_API.ui.frame.setupEditBoxesNavigation(tabEditBoxes)
 				if cursor == minBound then
 					cursor = maxBound
 				else
-					cursor = cursor -1
+					cursor = cursor - 1
 				end
 			else
 				if cursor == maxBound then
@@ -723,15 +724,15 @@ local tabBar_HEIGHT_NORMAL = 32;
 
 local function tabBar_onSelect(tabGroup, index)
 	assert(#tabGroup.tabs >= index, "Index out of bound.");
-	for i=1, #tabGroup.tabs do
+	for i = 1, #tabGroup.tabs do
 		local widget = tabGroup.tabs[i];
 		if i == index then
 			widget:SetAlpha(1);
 			widget:Disable();
 			widget:LockHighlight();
-			_G[widget:GetName().."Left"]:SetHeight(tabBar_HEIGHT_SELECTED);
-			_G[widget:GetName().."Middle"]:SetHeight(tabBar_HEIGHT_SELECTED);
-			_G[widget:GetName().."Right"]:SetHeight(tabBar_HEIGHT_SELECTED);
+			_G[widget:GetName() .. "Left"]:SetHeight(tabBar_HEIGHT_SELECTED);
+			_G[widget:GetName() .. "Middle"]:SetHeight(tabBar_HEIGHT_SELECTED);
+			_G[widget:GetName() .. "Right"]:SetHeight(tabBar_HEIGHT_SELECTED);
 			widget:GetHighlightTexture():SetAlpha(0.7);
 			widget:GetHighlightTexture():SetDesaturated(1);
 			tabGroup.current = index;
@@ -739,9 +740,9 @@ local function tabBar_onSelect(tabGroup, index)
 			widget:SetAlpha(0.85);
 			widget:Enable();
 			widget:UnlockHighlight();
-			_G[widget:GetName().."Left"]:SetHeight(tabBar_HEIGHT_NORMAL);
-			_G[widget:GetName().."Middle"]:SetHeight(tabBar_HEIGHT_NORMAL);
-			_G[widget:GetName().."Right"]:SetHeight(tabBar_HEIGHT_NORMAL);
+			_G[widget:GetName() .. "Left"]:SetHeight(tabBar_HEIGHT_NORMAL);
+			_G[widget:GetName() .. "Middle"]:SetHeight(tabBar_HEIGHT_NORMAL);
+			_G[widget:GetName() .. "Right"]:SetHeight(tabBar_HEIGHT_NORMAL);
 			widget:GetHighlightTexture():SetAlpha(0.5);
 			widget:GetHighlightTexture():SetDesaturated(0);
 		end
@@ -778,7 +779,7 @@ local function tabBar_setTabVisible(tabGroup, index, isVisible)
 end
 
 local function tabBar_setAllTabsVisible(tabGroup, isVisible)
-	for index=1, #tabGroup.tabs do
+	for index = 1, #tabGroup.tabs do
 		if isVisible then
 			tabGroup.tabs[index]:Show();
 		else
@@ -808,9 +809,9 @@ function TRP3_API.ui.frame.createTabPanel(tabBar, data, callback, confirmCallbac
 		tabWidget:SetWidth(width or (text:len() * 11));
 		local clickFunction = function()
 			tabBar_onSelect(tabGroup, index);
-				if callback then
-					callback(tabWidget, value);
-				end
+			if callback then
+				callback(tabWidget, value);
+			end
 		end
 		tabWidget:SetScript("OnClick", function()
 			if not confirmCallback then
@@ -850,19 +851,19 @@ end
 
 local TAGS_INFO = {
 	{
-		openTags = {"{h1}", "{h1:c}", "{h1:r}"},
+		openTags = { "{h1}", "{h1:c}", "{h1:r}" },
 		closeTag = "{/h1}",
 	},
 	{
-		openTags = {"{h2}", "{h2:c}", "{h2:r}"},
+		openTags = { "{h2}", "{h2:c}", "{h2:r}" },
 		closeTag = "{/h2}",
 	},
 	{
-		openTags = {"{h3}", "{h3:c}", "{h3:r}"},
+		openTags = { "{h3}", "{h3:c}", "{h3:r}" },
 		closeTag = "{/h3}",
 	},
 	{
-		openTags = {"{p:c}", "{p:r}"},
+		openTags = { "{p:c}", "{p:r}" },
 		closeTag = "{/p}",
 	}
 }
@@ -926,14 +927,14 @@ end
 local function onContainerTagClicked(button, frame, isP)
 	local values = {};
 	if not isP then
-		tinsert(values, {loc.REG_PLAYER_ABOUT_HEADER});
-		tinsert(values, {loc.CM_LEFT, 1});
-		tinsert(values, {loc.CM_CENTER, 2});
-		tinsert(values, {loc.CM_RIGHT, 3});
+		tinsert(values, { loc.REG_PLAYER_ABOUT_HEADER });
+		tinsert(values, { loc.CM_LEFT, 1 });
+		tinsert(values, { loc.CM_CENTER, 2 });
+		tinsert(values, { loc.CM_RIGHT, 3 });
 	else
-		tinsert(values, {loc.REG_PLAYER_ABOUT_P});
-		tinsert(values, {loc.CM_CENTER, 1});
-		tinsert(values, {loc.CM_RIGHT, 2});
+		tinsert(values, { loc.REG_PLAYER_ABOUT_P });
+		tinsert(values, { loc.CM_CENTER, 1 });
+		tinsert(values, { loc.CM_RIGHT, 2 });
 	end
 	openDropDown(button, values, function(alignIndex, mouseButton) insertContainerTag(alignIndex, mouseButton, frame) end, 0, true);
 end
@@ -957,19 +958,19 @@ function TRP3_API.ui.text.setupToolbar(toolbar, textFrame, parentFrame, point, p
 		if toolbar.textFrame then
 			TRP3_API.popup.showPopup(
 				TRP3_API.popup.ICONS,
-				{parent = parentFrame, point = point, parentPoint = parentPoint},
-				{function(icon) onIconTagSelected(icon, toolbar.textFrame) end});
+				{ parent = parentFrame, point = point, parentPoint = parentPoint },
+				{ function(icon) onIconTagSelected(icon, toolbar.textFrame) end });
 		end
 	end);
 	toolbar.color:SetScript("OnClick", function()
 		if toolbar.textFrame then
 			if shiftDown() or (getConfigValue and getConfigValue("default_color_picker")) then
-				TRP3_API.popup.showDefaultColorPicker({function(red, green, blue) onColorTagSelected(red, green, blue, toolbar.textFrame) end});
+				TRP3_API.popup.showDefaultColorPicker({ function(red, green, blue) onColorTagSelected(red, green, blue, toolbar.textFrame) end });
 			else
 				TRP3_API.popup.showPopup(
 					TRP3_API.popup.COLORS,
-					{parent = parentFrame, point = point, parentPoint = parentPoint},
-					{function(red, green, blue) onColorTagSelected(red, green, blue, toolbar.textFrame) end});
+					{ parent = parentFrame, point = point, parentPoint = parentPoint },
+					{ function(red, green, blue) onColorTagSelected(red, green, blue, toolbar.textFrame) end });
 			end
 		end
 	end);
@@ -977,8 +978,8 @@ function TRP3_API.ui.text.setupToolbar(toolbar, textFrame, parentFrame, point, p
 		if toolbar.textFrame then
 			TRP3_API.popup.showPopup(
 				TRP3_API.popup.IMAGES,
-				{parent = parentFrame, point = point, parentPoint = parentPoint},
-				{function(image) onImageTagSelected(image, toolbar.textFrame) end});
+				{ parent = parentFrame, point = point, parentPoint = parentPoint },
+				{ function(image) onImageTagSelected(image, toolbar.textFrame) end });
 		end
 	end);
 	toolbar.link:SetScript("OnClick", function() if toolbar.textFrame then onLinkTagClicked(toolbar.textFrame) end end);
@@ -1000,7 +1001,7 @@ function TRP3_API.ui.misc.playUISound(pathToSound, url)
 		if url then
 			PlaySoundFile(pathToSound, "SFX");
 		else
-			PlaySound(pathToSound,"SFX");
+			PlaySound(pathToSound, "SFX");
 		end
 	end
 end

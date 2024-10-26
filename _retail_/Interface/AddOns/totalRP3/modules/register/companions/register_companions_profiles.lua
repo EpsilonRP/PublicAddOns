@@ -493,7 +493,7 @@ local function npcProfileSelectionList(unitID, targetType, _, button)
 	
     companionID = TRP3_API.ui.misc.GetUnitID("target");
     companionFullID = C_Epsilon.GetPhaseId() .. '_' .. companionID;
-    if C_Epsilon.IsOwner() or C_Epsilon.IsOfficer() then
+    if (C_Epsilon.IsOwner() or C_Epsilon.IsOfficer()) and getProfiles()[getCompanionRegisterProfileID(C_Epsilon.GetPhaseId() .. '_' .. companionID)] ~= nil  then
         local list = {};
         tinsert(list, { loc.REG_COMPANION_TF_OPEN, 0 });
         tinsert(list, { loc.REG_COMPANION_TF_UNBOUND, 1 });
