@@ -1788,7 +1788,9 @@ function Epsilon_MerchantFrame_ConfirmExtendedItemCost(itemButton, numToPurchase
   local usingCurrency = false;
   for i = 1, GetMerchantItemCostInfo(index) do
     local itemTexture, costItemCount, itemLink, currencyName = GetMerchantItemCostItem(index, i);
-    costItemCount = costItemCount * (numToPurchase / stackCount); -- cost per stack times number of stacks
+	if costItemCount then
+		costItemCount = costItemCount * (numToPurchase / stackCount); -- cost per stack times number of stacks
+	end
     if ( currencyName ) then
       usingCurrency = true;
       if ( itemsString ) then
