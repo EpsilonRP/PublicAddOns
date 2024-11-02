@@ -152,7 +152,7 @@ local function createSpellCooldownBox(mainFrame)
 
 	cooldownBox:SetAutoFocus(false)
 	cooldownBox:SetSize(60, 23)
-	cooldownBox:SetPoint("LEFT", descBox, "RIGHT", 6, 0)
+	cooldownBox:SetPoint("LEFT", descBox, "RIGHT", 6, 8.5)
 
 	cooldownBox:HookScript("OnTextChanged", function(self, userInput)
 		if self:GetText() == self:GetText():match("%d+") or self:GetText() == self:GetText():match("%d+%.%d+") or self:GetText() == self:GetText():match("%.%d+") then
@@ -172,6 +172,15 @@ local function createSpellCooldownBox(mainFrame)
 	return cooldownBox
 end
 
+local castbarType = 1
+local function setCastbarType(type)
+	castbarType = type
+end
+local function getCastbarType()
+	return castbarType
+end
+
+--[[ --// The Castbar CheckButton is deprecated and the functionality moved into the spell's Options menu
 ---@param mainFrame SCForgeMainFrame
 local function createCastbarCheckButton(mainFrame)
 	---@class CastbarCheckButton : CheckButton, UICheckButtonTemplate
@@ -244,13 +253,14 @@ local function createCastbarCheckButton(mainFrame)
 
 	return castbarCheckButton
 end
+--]]
 
 ---@param mainFrame SCForgeMainFrame
 ---@param IconPicker UI_IconPicker
 local function createIconButton(mainFrame, IconPicker)
 	iconButton = CreateFrame("BUTTON", nil, mainFrame)
 	iconButton:SetSize(34, 34)
-	iconButton:SetPoint("TOPRIGHT", nameBox, "TOPLEFT", -14, -6)
+	iconButton:SetPoint("TOPRIGHT", nameBox, "TOPLEFT", -14, -5)
 	--iconButton:SetPoint("TOPLEFT", 70, -26)
 	iconButton:SetNormalTexture("Interface/Icons/inv_misc_questionmark")
 	iconButton.normal = iconButton:GetNormalTexture()
@@ -344,7 +354,7 @@ end
 local function createConditionsButton(mainFrame)
 	condButton = CreateFrame("BUTTON", nil, mainFrame)
 	condButton:SetSize(26, 26)
-	condButton:SetPoint("BOTTOMLEFT", cooldownBox, "BOTTOMRIGHT", 0, 6)
+	condButton:SetPoint("LEFT", cooldownBox, "RIGHT", 0, 0)
 	ns.Utils.UIHelpers.setupCoherentButtonTextures(condButton, ASSETS_PATH .. "/ConditionsButtonGreyed")
 	condButton:SetMotionScriptsWhileDisabled(true)
 	condButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -438,11 +448,12 @@ local function getInfo()
 	newSpellData.fullName = nameBox:GetText()
 	newSpellData.description = descBox:GetText()
 	newSpellData.cooldown = tonumber(cooldownBox:GetText())
-	newSpellData.castbar = castbarCheckButton:GetCheckState()
+	newSpellData.castbar = getCastbarType()
 	newSpellData.icon = iconButton:GetSelectedTexID()
 	newSpellData.profile = AtticProfileDropdown.getSelectedProfile()
 	newSpellData.author = author or nil
 	newSpellData.items = itemsCached
+	newSpellData.breakOnMove = (AtticProfileDropdown.getBreakOnMove() and AtticProfileDropdown.getBreakOnMove()) or nil
 	newSpellData.conditions = (SCForgeMainFrame.conditionsData and #SCForgeMainFrame.conditionsData > 0) and CopyTable(SCForgeMainFrame.conditionsData) or nil
 
 	ns.Actions.Migrations.applyDefaultSpellMigrationFlags(newSpellData)
@@ -454,7 +465,7 @@ local function updateInfo(spell)
 	commandBox:SetText(spell.commID)
 	nameBox:SetText(spell.fullName)
 	cooldownBox:SetText(spell.cooldown and tostring(spell.cooldown) or "")
-	castbarCheckButton:SetCheckState(spell.castbar)
+	setCastbarType(spell.castbar)
 	iconButton:SelectTex(spell.icon or 0)
 	if spell.description then
 		descBox:SetText(spell.description)
@@ -463,6 +474,7 @@ local function updateInfo(spell)
 	editCommID = spell.commID
 	author = spell.author or nil
 	itemsCached = spell.items or nil
+	AtticProfileDropdown.setBreakOnMove(spell.breakOnMove)
 	SCForgeMainFrame.conditionsData = spell.conditions or {}
 
 	condButton:update()
@@ -483,8 +495,8 @@ local function updateSize(mainFrameWidth)
 	nameBox:SetWidth((mainFrameWidth / 4.5) * squareRootWidthScale)
 	descBox:SetWidth((mainFrameWidth / 2.5) * squareRootWidthScale)
 
-	iconButton:SetPoint("TOPRIGHT", nameBox, "TOPLEFT", -14 * effectiveOffsetScale, -6)
-	condButton:SetPoint("BOTTOMLEFT", cooldownBox, "BOTTOMRIGHT", 2 * (effectiveOffsetScale * 3) - 3, 6)
+	iconButton:SetPoint("TOPRIGHT", nameBox, "TOPLEFT", -14 * effectiveOffsetScale, -5)
+	condButton:SetPoint("LEFT", cooldownBox, "RIGHT", 2 * (effectiveOffsetScale * 3) - 3, 0)
 	--print(widthScale, effectiveOffsetScale, squareRootWidthScale)
 end
 
@@ -505,7 +517,7 @@ local function init(mainFrame, IconPicker)
 	mainFrame.SpellInfoCommandBox = createCommandBox(mainFrame)
 	mainFrame.SpellInfoDescBox = createInfoDescBox(mainFrame)
 	mainFrame.SpellCooldownBox = createSpellCooldownBox(mainFrame)
-	mainFrame.CastBarCheckButton = createCastbarCheckButton(mainFrame)
+	--mainFrame.CastBarCheckButton = createCastbarCheckButton(mainFrame)
 	mainFrame.IconButton = createIconButton(mainFrame, IconPicker)
 	mainFrame.ConditionalButton = createConditionsButton(mainFrame)
 	mainFrame.ProfileSelectMenu = AtticProfileDropdown.createDropdown({
@@ -558,4 +570,7 @@ ns.UI.MainFrame.Attic = {
 	setAuthor = setAuthor,
 	setAuthorMe = setAuthorMe,
 	getAuthor = getAuthor,
+
+	getCastbarType = getCastbarType,
+	setCastbarType = setCastbarType,
 }

@@ -26,6 +26,7 @@ local currentMenu = {}
 ---@field hidden? DynamicBoolean
 ---@field keepShownOnClick? DynamicBoolean overwrite options that default to not stay shown on click
 ---@field options? table the rest of the default UIDropDownMenu Info Table options since they are not special-handlers here
+-- See https://warcraft.wiki.gg/wiki/UI_Object_UIDropDownMenu#The_info_table for info table options available via standard UI
 
 ---@class DropdownInputCreationOptions: DropdownItemCreationOptions
 ---@field placeholder string

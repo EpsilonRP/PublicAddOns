@@ -29,7 +29,14 @@ local sfCmd_ReplacerChar = "@N@"
 ---@class RunningRevert: RunningAction
 ---@field func function
 
+---@class RunningSpell
+---@field spellData VaultSpell
+---@field commID CommID
+---@field timer TimerCallback
+---@field spellCastedID number
+
 ---@class RunningSpells
+---@type RunningSpell[]
 local runningSpells = {}
 
 ---@class RunningActions
@@ -103,14 +110,16 @@ local function stopRunningActions(spellCastedID)
 end
 
 ---Add a spell to the Running Spells tracker
----@param commID CommID
+---@param spellData VaultSpell
 ---@param spellCastedID integer?
 ---@param maxDelay number
-local function addSpellToRunningSpells(commID, spellCastedID, maxDelay)
+local function addSpellToRunningSpells(spellData, spellCastedID, maxDelay)
+	local commID = spellData.commID
 	local numRunningSpells = #runningSpells + 1
 	tinsert(runningSpells, {
 		spellCastedID = spellCastedID,
 		commID = commID,
+		spellData = spellData,
 		timer = C_Timer.NewTimer(maxDelay, function() C_Timer.After(0, function() tremove(runningSpells, numRunningSpells) end) end),
 	})
 end
@@ -131,6 +140,29 @@ local function cancelSpellByCommID(commID)
 	for i = 1, #cancelledSpells do
 		tremove(runningSpells, cancelledSpells[i])
 	end
+end
+
+local function cancelSpellByCastedID(castedID)
+	for k, v in ipairs(runningSpells) do
+		if v.spellCastedID == castedID then
+			stopRunningActions(v.spellCastedID)
+			ns.UI.Castbar.stopCastingBars(v.commID) -- TODO: Convert this to only cancel THIS one..?
+			v.timer:Cancel()
+			tremove(runningSpells, k)
+			return
+		end
+	end
+end
+
+-- WARNING: DON'T USE THIS PROBABLY? I DON'T THINK YOU CAN MODIFY IT AT RUN TIME LIKE THIS SAFELY... FUCK
+local function cancelSpellByRunningIndex(index)
+	local v = runningSpells[index]
+	if not v then return end
+
+	stopRunningActions(v.spellCastedID)
+	ns.UI.Castbar.stopCastingBars(v.commID) -- TODO: Convert this to only cancel THIS one..?
+	v.timer:Cancel()
+	tremove(runningSpells, index)
 end
 
 local Conditions = ns.Actions.ConditionsData
@@ -397,7 +429,7 @@ local function executeSpellFinal(actionsToCommit, bypassCheck, spellName, spellD
 
 	if spellData then
 		if spellData.commID then
-			addSpellToRunningSpells(spellData.commID, spellCastID, longestDelay)
+			addSpellToRunningSpells(spellData, spellCastID, longestDelay)
 		end
 
 		if spellData.castbar == 0 then
@@ -498,6 +530,23 @@ hooksecurefunc("ToggleGameMenu", function()
 		runningReverts = runningReverts,
 	}
 end)
+
+local function checkToStopOnMove()
+	local spellsToCancel = {}
+	for k, v in ipairs(runningSpells) do
+		if v.spellData.breakOnMove then
+			tinsert(spellsToCancel, v.spellCastedID)
+		end
+	end
+	if #spellsToCancel > 0 then
+		for i = 1, #spellsToCancel do
+			cancelSpellByCastedID(spellsToCancel[i])
+		end
+	end
+end
+ns.Utils.Hooks.HookEvent("PLAYER_STARTED_MOVING", checkToStopOnMove)
+hooksecurefunc("JumpOrAscendStart", checkToStopOnMove)
+hooksecurefunc("SitStandOrDescendStart", checkToStopOnMove)
 
 ---@class Actions_Execute
 ns.Actions.Execute = {
