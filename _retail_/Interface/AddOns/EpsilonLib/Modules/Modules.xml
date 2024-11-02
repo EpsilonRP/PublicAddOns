@@ -3,6 +3,7 @@
 ..\FrameXML\UI.xsd">
 
 	<Script file="init.lua"/>
+	<Script file="misc.lua"/>
 
 	<Script file="UnitPopupMenus.lua"/>
 
