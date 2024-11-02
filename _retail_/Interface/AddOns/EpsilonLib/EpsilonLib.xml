@@ -21,4 +21,6 @@
 
 	<Script file="ConfigMenu.lua"/>
 
+	<Include file="Modules\Modules.xml"/>
+
 </Ui>
