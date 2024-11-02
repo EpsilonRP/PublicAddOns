@@ -257,8 +257,9 @@ function SCForgeTalkingHeadFrame_PlayCurrent(message, chatType, timeout)
 			local message = frame.Queue[1].message;
 			local sound = frame.Queue[1].sound;
 			local chatType = frame.Queue[1].chatType
+			local timeout = frame.Queue[1].timeout
 
-			SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, sound, chatType)
+			SCForgeTalkingHeadFrame_SetUnit(displayID, name, textureKit, message, sound, chatType, timeout)
 			tremove(frame.Queue, 1)
 		end
 	end
