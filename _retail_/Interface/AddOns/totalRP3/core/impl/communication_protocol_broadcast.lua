@@ -79,7 +79,7 @@ local function broadcast(command, ...)
 		return;
 	end
 	local message = BROADCAST_HEADER .. BROADCAST_SEPARATOR .. command;
-	for _, arg in pairs({...}) do
+	for _, arg in pairs({ ... }) do
 		arg = tostring(arg);
 		if arg:find(BROADCAST_SEPARATOR) then
 			Log.log("Trying a broadcast with a arg containing the separator character. Abord !", Log.level.WARNING);
@@ -162,7 +162,7 @@ end
 
 local function sendP2PMessage(target, command, ...)
 	local message = command;
-	for _, arg in pairs({...}) do
+	for _, arg in pairs({ ... }) do
 		arg = tostring(arg);
 		if arg:find(BROADCAST_SEPARATOR) then
 			Log.log("Trying a broadcast with a arg containing the separator character. Abord !", Log.level.WARNING);
@@ -199,7 +199,7 @@ Comm.broadcast.resetPlayers = function()
 	end
 	local channelName;
 	wipe(connectedPlayers);
-	for i=1, MAX_CHANNEL_BUTTONS, 1 do
+	for i = 1, MAX_CHANNEL_BUTTONS, 1 do
 		channelName = GetChannelDisplayInfo(i);
 		if channelName == config_BroadcastChannel() then
 			local j = 1;
@@ -229,14 +229,13 @@ local function onChannelLeave(_, arg2, _, _, _, _, _, _, arg9)
 end
 
 local function onMessageReceived(...)
-	local prefix, message , distributionType, sender, _, _, _, channel = ...;
+	local prefix, message, distributionType, sender, _, _, _, channel = ...;
 
 	if not sender then
 		return;
 	end
 
 	if prefix == BROADCAST_HEADER then
-
 		if not sender:find('-') then
 			sender = Utils.str.unitInfoToID(sender);
 		end
@@ -249,7 +248,6 @@ local function onMessageReceived(...)
 				onP2PMessageReceived(message, sender);
 			end
 		end
-
 	end
 end
 
@@ -278,7 +276,9 @@ local swapChannelsByIndex = ChatConfigChannelSettings_SwapChannelsByIndex or C_C
 --- This is so the user always have the channels they actually use first and that the broadcast channel
 --- is never taking the General or Trade chat position.
 local function moveBroadcastChannelToTheBottomOfTheList(forceMove)
-	if getConfigValue(TRP3_API.ADVANCED_SETTINGS_KEYS.MAKE_SURE_BROADCAST_CHANNEL_IS_LAST) and (forceMove or helloWorlded) then
+	-- epsi override: We don't need the check on the config key, so just true it..
+	if true and (forceMove or helloWorlded) then
+		--if getConfigValue(TRP3_API.ADVANCED_SETTINGS_KEYS.MAKE_SURE_BROADCAST_CHANNEL_IS_LAST) and (forceMove or helloWorlded) then
 		local broadcastChannelIndex = GetChannelName(config_BroadcastChannel());
 		if broadcastChannelIndex == nil then return end
 
@@ -369,7 +369,9 @@ Comm.broadcast.init = function()
 
 			local firstTime = true;
 			ticker = C_Timer.NewTicker(1, function(_)
-				if firstTime then firstTime = false; return; end
+				if firstTime then
+					firstTime = false; return;
+				end
 				if GetChannelName(string.lower(config_BroadcastChannel())) == 0 then
 					if forceJoinChannel or isChannelListReady() then
 						Log.log("Step 1: Try to connect to broadcast channel: " .. config_BroadcastChannel());

@@ -1,6 +1,11 @@
 ---@class ns
 local ns = select(2, ...)
 
+-- DEV NOTE: This used to be the profile dropdown.
+-- It has migrated to handling all spell options, but due to not wanting to fuck with removing & adding a file for renaming it,
+-- it's staying named as ProfileDropdown in the files...
+-- This does still contain the profile selection & it's logic, so there's that!
+
 local Constants = ns.Constants
 local ProfileFilter = ns.ProfileFilter
 local SavedVariables = ns.SavedVariables
@@ -12,12 +17,14 @@ local ADDON_COLORS = Constants.ADDON_COLORS
 local DEFAULT_PROFILE_NAME = ProfileFilter.DEFAULT_PROFILE_NAME
 
 local markEditorUnsaved
-local profileDropdown
+local optionsDropdown
 local PLAYER_NAME = UnitName("player") --[[@as string]]
 
+local selectedProfile
 ---@return string profileName
 local function getSelectedProfile()
-	return profileDropdown.Text:GetText()
+	return selectedProfile or DEFAULT_PROFILE_NAME
+	--return optionsDropdown.Text:GetText()
 end
 
 ---@param profileName? string
@@ -26,7 +33,8 @@ local function setSelectedProfile(profileName)
 		profileName = DEFAULT_PROFILE_NAME
 	end
 
-	profileDropdown.Text:SetText(profileName)
+	selectedProfile = profileName
+	--optionsDropdown.Text:SetText(profileName)
 	markEditorUnsaved()
 end
 
@@ -45,7 +53,7 @@ end
 
 ---@param profileNames string[]
 ---@return DropdownItem[]
-local function createMenu(profileNames)
+local function createProfileMenu(profileNames)
 	local dropdownItems = {
 		Dropdown.header("Select a Profile"),
 		genFilterItem("Account"),
@@ -77,6 +85,7 @@ local function getProfileNames()
 	return profileNames
 end
 
+--[[ -- // This is the old profileDropdown creation function. TO-DO: Remove this on a future commit, keeping it for backup for now
 ---@param inject { mainFrame: SCForgeMainFrame, markEditorUnsaved: fun() }
 local function createDropdown(inject)
 	markEditorUnsaved = inject.markEditorUnsaved
@@ -86,7 +95,7 @@ local function createDropdown(inject)
 	profileDropdown:SetText(DEFAULT_PROFILE_NAME)
 
 	profileDropdown.Button:SetScript("OnClick", function(self)
-		Dropdown.open(createMenu(getProfileNames()), profileDropdown)
+		Dropdown.open(createProfileMenu(getProfileNames()), profileDropdown)
 	end)
 
 	-- Fixes error when opening, clicking outside, then opening again
@@ -101,10 +110,104 @@ local function createDropdown(inject)
 
 	return profileDropdown
 end
+--]]
+
+------ OPTIONS HIJACK
+---
+
+-- Break On Movement
+local breakOnMove
+---@return boolean
+local function getBreakOnMove()
+	return breakOnMove or false
+end
+
+---@param enabled? boolean
+local function setBreakOnMove(enabled)
+	breakOnMove = enabled
+	markEditorUnsaved()
+end
+
+
+---@param inject { mainFrame: SCForgeMainFrame, markEditorUnsaved: fun() }
+---@return DropdownItem[]
+local function createOptionsMenu(inject)
+	local dropdownItems = {
+		Dropdown.header("Spell Options:"),
+
+		Dropdown.submenu("Castbar Style", {
+			Dropdown.radio("Castbar", {
+				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 1 end,
+				set = function()
+					ns.UI.MainFrame.Attic.setCastbarType(1)
+					markEditorUnsaved()
+				end,
+			}),
+			Dropdown.radio("Channel", {
+				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 2 end,
+				set = function()
+					ns.UI.MainFrame.Attic.setCastbarType(2)
+					markEditorUnsaved()
+				end,
+			}),
+			Dropdown.radio("None", {
+				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 0 end,
+				set = function()
+					ns.UI.MainFrame.Attic.setCastbarType(0)
+					markEditorUnsaved()
+				end,
+			}),
+		}, {
+			tooltipTitle = "Casting Bar Style",
+			tooltipText =
+			"Spells under 0.25s in length will not show a casting bar even if set; this is because it looks bad. You can force it manually if you want using a Castbar action.. but it looks bad!"
+		}),
+
+		Dropdown.submenu("Change Profile", createProfileMenu(getProfileNames())),
+
+		Dropdown.checkbox("Break on Movement", {
+			get = function() return breakOnMove end,
+			set = function(self, val) setBreakOnMove(val) end,
+			tooltipTitle = "Break on Movement",
+			tooltipText = "Cancels casting the spell if the character begins moving.",
+		})
+	}
+
+	return dropdownItems
+end
+
+-- We're going to hijack this as our options going forward!
+---@param inject { mainFrame: SCForgeMainFrame, markEditorUnsaved: fun() }
+local function createDropdown(inject)
+	markEditorUnsaved = inject.markEditorUnsaved
+
+	optionsDropdown = Dropdown.create(inject.mainFrame, "SCForgeAtticOptionsButton"):WithAppearance(75)
+	optionsDropdown:SetPoint("BOTTOMRIGHT", inject.mainFrame.Inset, "TOPRIGHT", 16, 0)
+	optionsDropdown:SetText("Options")
+
+	optionsDropdown.Button:SetScript("OnClick", function(self)
+		Dropdown.open(createOptionsMenu(inject), optionsDropdown)
+	end)
+
+	-- Fixes error when opening, clicking outside, then opening again
+	optionsDropdown.Button:SetScript("OnMouseDown", nil)
+
+
+	Tooltip.set(optionsDropdown.Button,
+		"Spell Options",
+		"Change various options for this spell, such as castbar, profile, and more.",
+		{ delay = 0.3 }
+	)
+
+	return optionsDropdown
+end
 
 ---@class UI_MainFrame_AtticProfileDropdown
 ns.UI.MainFrame.AtticProfileDropdown = {
 	createDropdown = createDropdown,
 	getSelectedProfile = getSelectedProfile,
 	setSelectedProfile = setSelectedProfile,
+
+	getBreakOnMove = getBreakOnMove,
+	setBreakOnMove = setBreakOnMove,
 }

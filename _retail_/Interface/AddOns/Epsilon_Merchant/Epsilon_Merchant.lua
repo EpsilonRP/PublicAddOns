@@ -73,6 +73,47 @@ function Me.IsPhaseOwner()
 end
 
 -------------------------------------------------------------------------
+-- Save phase data.
+
+MSG_MULTI_FIRST       = "\001"
+MSG_MULTI_NEXT        = "\002"
+MSG_MULTI_LAST        = "\003"
+MAX_CHARS_PER_SEGMENT = 3000
+
+local function SetPhaseData( data, prefix )
+	if not( data and prefix ) then
+		return
+	end
+
+	local str = table_to_string( data )
+	local length = #str
+	if length > MAX_CHARS_PER_SEGMENT then
+		local numEntriesRequired = math.ceil(length / MAX_CHARS_PER_SEGMENT)
+
+		for i = 1, numEntriesRequired do
+			-- Grab the substring for this segment
+			local strSub = string.sub(str, (MAX_CHARS_PER_SEGMENT * (i - 1)) + 1, (MAX_CHARS_PER_SEGMENT * i))
+            
+			-- Stupid case handler for the first segment, so it's just the normal entry name & uses the 'FIRST' flag to we know to request more blocks after
+			if i == 1 then
+				strSub = MSG_MULTI_FIRST .. strSub
+				C_Epsilon.SetPhaseAddonData(prefix, strSub)
+			else
+			-- For all else, append the segment number to the key
+			-- We also prepend either the NEXT or the LAST character to the string, to act as a signal for if we need to request another block or this is the end
+				local controlChar = MSG_MULTI_NEXT
+				if i == numEntriesRequired then controlChar = MSG_MULTI_LAST end
+				strSub = controlChar .. strSub
+				C_Epsilon.SetPhaseAddonData(prefix .. i, strSub)
+			end
+		end
+	else
+		-- Wasn't long enough to need multi-part, save as one and move on with our lives
+		C_Epsilon.SetPhaseAddonData(prefix, str)
+	end
+end
+
+-------------------------------------------------------------------------
 -- Load our vendor data.
 
 function Epsilon_Merchant_LoadVendor()
@@ -114,7 +155,7 @@ function Epsilon_Merchant_SaveVendor()
 	local key = "VENDOR_DATA_" .. Epsilon_MerchantFrame.merchantID
 
 	if key and str then
-		C_Epsilon.SetPhaseAddonData( key, str );
+		SetPhaseData( key, str );
 	end
 end
 
@@ -152,7 +193,7 @@ function Epsilon_Merchant_SaveSound( soundType, soundKitID )
 	local key = prefix .. id
 
 	if key and soundKitID then
-		C_Epsilon.SetPhaseAddonData( key, soundKitID );
+		SetPhaseData( key, soundKitID );
 	end
 end
 
@@ -279,7 +320,7 @@ function Epsilon_Merchant_SavePortrait( text )
 	local key = prefix .. id
 
 	if key and text then
-		C_Epsilon.SetPhaseAddonData( key, text );
+		SetPhaseData( key, text );
 	end
 
 	if ( Epsilon_MerchantFrame:IsShown() ) then
@@ -355,7 +396,7 @@ function Epsilon_Merchant_SaveOptions( options )
 	local key = prefix .. id;
 
 	if key and text then
-		C_Epsilon.SetPhaseAddonData( key, text );
+		SetPhaseData( key, text );
 	end
 end
 
@@ -549,6 +590,9 @@ local TRANSMOG_TOOLTIP_STRINGS = {
 	TRANSMOGRIFY_TOOLTIP_REVERT,
 }
 
+local STORED_STRINGS_TABLE = {};
+local multipartIter = 0;
+
 function Epsilon_Merchant:OnInitialize()
 	Epsilon_Merchant.db = LibStub( "AceDB-3.0" ):New( "Epsilon_Merchant", DB_Defaults, true );
 
@@ -659,8 +703,34 @@ function Epsilon_Merchant:OnInitialize()
 			for prefixIndex = 1, #Epsilon_Merchant.RegisteredPrefixes do
 				if Epsilon_Merchant.RegisteredPrefixes[prefixIndex] and Epsilon_Merchant.RegisteredPrefixes[prefixIndex].id and prefix == Epsilon_Merchant.RegisteredPrefixes[prefixIndex].id then
 					local prefixType = Epsilon_Merchant.RegisteredPrefixes[prefixIndex].type;
+
+					if text == nil then text = "" end
+
+					if string.match(text, "^[\001-\002]") then
+						multipartIter = multipartIter + 1;
+						text = text:gsub("^[\001-\002]", "");
+						STORED_STRINGS_TABLE[multipartIter] = text;
+
+						local messageTicketID = C_Epsilon.GetPhaseAddonData(prefix + ( multipartIter + 1 ) );
+						local register = {
+							id = messageTicketId;
+							type = prefix;
+						}
+
+						tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+						return
+					elseif string.match(text, "^[\003]") then
+						multipartIter = multipartIter + 1;
+						text = text:gsub("^[\003]", "");
+						STORED_STRINGS_TABLE[multipartIter] = text;
+						text = table.concat(STORED_STRINGS_TABLE, "")
+
+						-- reset our temp data
+						wipe(STORED_STRINGS_TABLE);
+						multipartIter = 0;
+					end
+
 					if prefixType == "items" then
-						if text == nil then text = "" end
 						text = (loadstring or load)("return "..text)()
 						if EPSILON_VENDOR_DATA[ Epsilon_MerchantFrame.merchantID ] then
 							EPSILON_VENDOR_DATA[ Epsilon_MerchantFrame.merchantID ] = text;
@@ -692,7 +762,6 @@ function Epsilon_Merchant:OnInitialize()
 						C_Timer.After(0.01, function() SetVolumeFromNPCDistance() end);
 						PlaySound( soundKitID, "Dialog", true, true )
 					elseif prefixType == "options" then
-						if text == nil then text = "" end
 						text = (loadstring or load)("return "..text)()
 						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc")
 

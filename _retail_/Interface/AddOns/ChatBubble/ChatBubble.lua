@@ -59,9 +59,9 @@ local supportedChatTypes = {
 	{ key = "CHANNEL",   display = "Channel",    default = 0 },
 	{ key = "COMMANDS",  display = "Commands",   default = 0 },
 	{ key = "OOC",       display = "OOC",        default = 0 },
-	{ key = "NPC_SAY",   display = "NPC Say*",   default = 0,     override_pattern = "^%.np?c? say? ",       tooltip = "Applies this 'action' to the NPC when using the '.npc say' command.\n\rMust have Phase DM Mode Enabled.",   notSelf = true, requireDM = true },
-	{ key = "NPC_EMOTE", display = "NPC Emote*", default = 0,     override_pattern = "^%.np?c? e?m?o?t?e? ", tooltip = "Applies this 'action' to the NPC when using the '.npc yell' command.\n\rMust have Phase DM Mode Enabled.",  notSelf = true, requireDM = true },
-	{ key = "NPC_YELL",  display = "NPC Yell*",  default = 0,     override_pattern = "^%.np?c? ye?l?l? ",    tooltip = "Applies this 'action' to the NPC when using the '.npc emote' command.\n\rMust have Phase DM Mode Enabled.", notSelf = true, requireDM = true },
+	{ key = "NPC_SAY",   display = "NPC Say*",   default = 0,     override_pattern = "^%.np?c? say? ",       tooltip = "Applies this 'action' to the NPC when using the '.npc say' command.",   notSelf = true, },
+	{ key = "NPC_EMOTE", display = "NPC Emote*", default = 0,     override_pattern = "^%.np?c? e?m?o?t?e? ", tooltip = "Applies this 'action' to the NPC when using the '.npc emote' command.", notSelf = true, },
+	{ key = "NPC_YELL",  display = "NPC Yell*",  default = 0,     override_pattern = "^%.np?c? ye?l?l? ",    tooltip = "Applies this 'action' to the NPC when using the '.npc yell' command.",  notSelf = true, },
 }
 
 -- Parse our supported chatTypes into quick lookup tables.
@@ -244,11 +244,18 @@ local CBIllegalText = { "|H", "|h", "MogIt:%d*" }
 local function handleApplyingActionID(chatType, id, applyToSelf)
 	local selfStr = ""
 	if applyToSelf then selfStr = " self" end
+	local isNPC = chatType:find("^NPC")
 
 	-- Early exit for ID 0, technically already fails below but this saves the checks.
 	local _idNum = tonumber(id)
 	local _idString = tostring(id)
 	if _idNum and (_idNum == 0) then return end
+
+	if isNPC then
+		-- Early exit if no target, or target is player
+		if not UnitExists("target") or UnitIsPlayer("target") then return end
+	end
+
 
 	-- AnimKit (starts with *)
 	if _idString:find("^*") then
@@ -259,14 +266,16 @@ local function handleApplyingActionID(chatType, id, applyToSelf)
 
 		-- Spell (Positive Number)
 	elseif _idNum > 0 then
-		cmd("aura " .. id .. selfStr)
+		local comm = isNPC and "npc set aura " or "aura "
+		cmd(comm .. id .. selfStr)
 		if chatBubbleOptions["debug"] then
 			cprint("" .. chatType .. " cast using Spell " .. id)
 		end
 
 		-- Emote (Negative Number)
 	elseif _idNum < 0 then --if less than zero (negative) then it's an emote
-		cmd("mod stand " .. math.abs(id))
+		local comm = isNPC and "npc emote " or "mod stand "
+		cmd(comm .. math.abs(id))
 		if chatBubbleOptions["debug"] then
 			cprint("" .. chatType .. " cast using Emote " .. math.abs(id))
 		end
@@ -276,29 +285,35 @@ end
 local function stopTyping()
 	if isTyping then
 		server.send("TYPING", "2") -- this technically should be within an "if chatBubbleOptions["nametag"] == true then" statement, however it's not just incase somehow they turn off nametag setting while typing, much easier this way than checking if that happened lol
-		local selfStr = " self"
-
-		if supportedChatTypes_map[lastSpellType].notSelf then selfStr = "" end
-
 		if chatBubbleOptions["debug"] then
 			cprint("Hiding <Typing> indicator")
 		end
+
+		local selfStr = " self"
+
+		if supportedChatTypes_map[lastSpellType].notSelf then selfStr = "" end
+		local isNPC = lastSpellType:find("^NPC")
+		local unauraComm = isNPC and "npc set unaura " or "unaura "
+		local unemoteComm = isNPC and "npc emote 0" or "mod stand 0"
+
+		if isNPC and ((not UnitExists("target")) or UnitIsPlayer("target")) then return end -- Early escape if isNPC but no NPC selected
+
 		if chatBubbleOptions["diverseAura"] then
 			if chatBubbleOptions.ChatSpells[lastSpellType] then
 				if not tonumber(chatBubbleOptions.ChatSpells[lastSpellType]) then
 					-- not a number, handle the alternatives. For now, there's no way to undo an animkit, so nothing to do.
 				elseif tonumber(chatBubbleOptions.ChatSpells[lastSpellType]) > 0 then
-					cmd("unaura " .. chatBubbleOptions.ChatSpells[lastSpellType] .. selfStr)
+					cmd(unauraComm .. chatBubbleOptions.ChatSpells[lastSpellType] .. selfStr)
 				elseif tonumber(chatBubbleOptions.ChatSpells[lastSpellType]) < 0 then
-					cmd("mod stand 0")
+					cmd(unemoteComm)
 				end
 			end
 		else
 			if chatBubbleOptions.ChatSpells["SAY"] then
 				if tonumber(chatBubbleOptions.ChatSpells["SAY"]) > 0 then
-					cmd("unaura " .. chatBubbleOptions.ChatSpells["SAY"] .. selfStr)
+					cmd(unauraComm .. chatBubbleOptions.ChatSpells["SAY"] .. selfStr)
 				elseif tonumber(chatBubbleOptions.ChatSpells["SAY"]) < 0 then
-					cmd("mod stand 0")
+					cmd(unemoteComm)
 				end
 			end
 		end
@@ -363,7 +378,8 @@ local function CheckForIllegalFirstChar(text, _type)
 			return true
 		elseif CBIllegalFirstChar.Commands[string.sub(text, 1, 1)] then
 			local charTwo = strlower(strsub(text, 2, 2));
-			if (charTwo == " ") or (charTwo == ".") or (charTwo == "!") or (charTwo == "?") or (charTwo == "/") then
+			--if (charTwo == " ") or (charTwo == ".") or (charTwo == "!") or (charTwo == "?") or (charTwo == "/") then
+			if (charTwo == " ") or CBIllegalFirstChar.Commands[charTwo] then
 				return true
 			else
 				return false
@@ -485,7 +501,7 @@ local function createChatBubbleInterfaceOptions()
 
 	local npcTypeHint = ChatBubbleInterfaceOptions.panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLeft")
 	npcTypeHint:SetPoint("BOTTOMLEFT", 25, 60)
-	npcTypeHint:SetText("*NPC Options apply to the target NPC when using that command. Must have Phase DM enabled.")
+	npcTypeHint:SetText("*NPC Options apply to the target NPC when using that command.")
 
 	--Main Addon Toggle
 	local ChatBubbleInterfaceOptionsFullToggle = CreateFrame("CHECKBUTTON", nil, ChatBubbleInterfaceOptions.panel, "InterfaceOptionsCheckButtonTemplate")

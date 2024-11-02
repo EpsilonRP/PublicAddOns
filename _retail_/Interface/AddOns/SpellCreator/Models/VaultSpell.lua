@@ -11,4 +11,5 @@
 ---@field actions VaultSpellAction[]
 ---@field author string
 ---@field items table
+---@field breakOnMove? boolean
 ---@field conditions ConditionDataTable

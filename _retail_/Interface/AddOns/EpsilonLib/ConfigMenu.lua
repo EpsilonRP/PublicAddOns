@@ -30,15 +30,19 @@ widget:SetPoint("TOPLEFT", 20, -60)
 widget:SetSize(144, 17)
 widget.Text:SetText("Force Entity LoD CVar")
 widget.Low:SetText("0")
-widget.High:SetText("200")
-widget:SetMinMaxValues(0, 200)
+widget.High:SetText("1000")
+widget.Value = widget:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+widget.Value:SetPoint("TOP", widget, "BOTTOM")
+widget:SetMinMaxValues(0, 1000)
 widget:SetValueStep(1)
+widget:SetObeyStepOnDrag(true)
 widget:SetScript("OnValueChanged", function(self, value, userInput)
 	if not userInput then return end
 	value = tonumber(value)
 	if value == 0 then value = false end
 	EpsiLib_DB.options.forceEntityLoD = value
 	SetCVar("EntityLodDist", value)
+	self.Value:SetText(value)
 end)
 
 InterfaceOptions_AddCategory(EpsiLib_Interface_Panel);
@@ -50,14 +54,28 @@ function registerForAddonDataLoaded(_, event, addonName, containsBindings)
 	if addonName ~= EpsilonLib then return end
 
 	-- Run anything here you need to load default values into the config options
-	local function updateEntityLoD()
-		if EpsiLib_DB.options.forceEntityLoD then
-			SetCVar("EntityLodDist", EpsiLib_DB.options.forceEntityLoD)
+	local onLoads = {
+		{
+			name = "forceEntityLoD",
+			func = function()
+				if EpsiLib_DB.options.forceEntityLoD then
+					SetCVar("EntityLodDist", EpsiLib_DB.options.forceEntityLoD)
+				end
+				local val = (EpsiLib_DB.options.forceEntityLoD and EpsiLib_DB.options.forceEntityLoD or 0)
+				panel.forceEntityLODDistanceSlider.Value:SetText(val)
+				panel.forceEntityLODDistanceSlider:SetValue(val)
+			end
+		},
+	}
+
+	local funcs = {}
+	for k, v in ipairs(onLoads) do
+		if v.func then
+			table.insert(funcs, v.func)
 		end
-		panel.forceEntityLODDistanceSlider:SetValue(EpsiLib_DB.options.forceEntityLoD and EpsiLib_DB.options.forceEntityLoD or 0)
 	end
-	C_Timer.After(0, updateEntityLoD)
-	C_Timer.After(5, updateEntityLoD)
+	C_Timer.After(0, function() for k, v in ipairs(funcs) do v() end end)
+	C_Timer.After(5, function() for k, v in ipairs(funcs) do v() end end)
 
 	-- Remove our hook
 	EpsiLib.EventManager:Remove(registerForAddonDataLoaded, "ADDON_LOADED")
