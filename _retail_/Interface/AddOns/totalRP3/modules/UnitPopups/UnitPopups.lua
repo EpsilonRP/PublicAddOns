@@ -53,7 +53,7 @@ local function ShouldShowCharacterStatus()
 end
 
 local function ShouldShowOpenCompanionPage()
-	return TRP3_API.ui.misc.getTargetType('target') == TRP3_Enums.UNIT_TYPE.NPC;
+	return (C_Epsilon.IsMember() and (TRP3_API.ui.misc.getTargetType('target') == TRP3_Enums.UNIT_TYPE.NPC));
 end
 --
 -- Unit Popups Module
