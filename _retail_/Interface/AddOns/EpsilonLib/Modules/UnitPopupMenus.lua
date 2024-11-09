@@ -117,35 +117,13 @@ for k, v in pairs(cheatStatus) do
 end
 
 local function cheatToggleListener(self, event, message)
-	if event == "CHAT_MSG_ADDON" then
-		message = message:sub(5) -- remove the addon command part
-	end
-	local rawmsg = message:gsub("|", "||")
-	-- Cheat Toggle Listener
 	if cheatMessages[message] then
 		local table = cheatMessages[message]
 		cheatStatus[table.ref].status = table.type
 		return false
 	end
 end
-
-ChatFrame_AddMessageEventFilter("CHAT_MSG_ADDON", cheatToggleListener)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", cheatToggleListener)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_ACHIEVEMENT", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_XP_GAIN", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_HONOR_GAIN", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_FACTION_CHANGE", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_TRADESKILLS", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_OPENING", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_PET_INFO", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_MISC_INFO", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_HORDE", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_ALLIANCE", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_NEUTRAL", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", cheatToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_CONVERSATION_NOTICE", cheatToggleListener);
-
+EpsiLib.EventManager:AddCommandFilter(cheatToggleListener)
 
 -- util references:
 -- UnitIsConnected(unit)
