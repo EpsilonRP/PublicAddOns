@@ -15,6 +15,7 @@ local gettingSound;
 -- @param tbl Table to convert.
 --
 local function table_to_string(tbl)
+	if type(tbl) ~= "table" then return tostring(tbl) end
 	if not( tbl ) then
 		return "{}"
 	end
@@ -54,7 +55,7 @@ local function GetUnitID( unitID )
 
 	local guid = UnitGUID( unitID )
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
-	if not( unitType == "Creature" and id ) then
+	if not( (unitType == "Creature" or unitType == "Vehicle") and id ) then
 		return
 	end
 
@@ -80,12 +81,13 @@ MSG_MULTI_NEXT        = "\002"
 MSG_MULTI_LAST        = "\003"
 MAX_CHARS_PER_SEGMENT = 3000
 
-local function SetPhaseData( data, prefix )
+local function SetPhaseData( prefix, data )
 	if not( data and prefix ) then
 		return
 	end
 
 	local str = table_to_string( data )
+	print(prefix, str)
 	local length = #str
 	if length > MAX_CHARS_PER_SEGMENT then
 		local numEntriesRequired = math.ceil(length / MAX_CHARS_PER_SEGMENT)
@@ -93,7 +95,7 @@ local function SetPhaseData( data, prefix )
 		for i = 1, numEntriesRequired do
 			-- Grab the substring for this segment
 			local strSub = string.sub(str, (MAX_CHARS_PER_SEGMENT * (i - 1)) + 1, (MAX_CHARS_PER_SEGMENT * i))
-            
+
 			-- Stupid case handler for the first segment, so it's just the normal entry name & uses the 'FIRST' flag to we know to request more blocks after
 			if i == 1 then
 				strSub = MSG_MULTI_FIRST .. strSub
@@ -377,7 +379,7 @@ function Epsilon_Merchant_SaveOptions( options )
 
 	local guid = UnitGUID("npc");
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid);
-	if not(unitType == "Creature") then
+	if not(unitType == "Creature" or unitType == "Vehicle") then
 		return
 	end
 
@@ -747,10 +749,19 @@ function Epsilon_Merchant:OnInitialize()
 						if type( soundKitID ) ~= "number" then
 							return
 						end
-						for i = 1, #DB_SoundList do
-							if DB_SoundList[i].id == soundKitID then
-								Epsilon_MerchantSoundPicker[soundType.."Sound"]:SetText( DB_SoundList[i].name );
+						local soundName
+						local i, iMax = 0, C_Epsilon.SoundKit_Count()-1
+						while not soundName do
+							local tempSound = C_Epsilon.SoundKit_Get(i)
+							if tempSound.id == soundKitID then
+								soundName = table.concat(tempSound.sounds, ", ", 0)
+								print(soundName)
 							end
+							i = i + 1
+							if i > iMax then break end
+						end
+						if soundName then
+							Epsilon_MerchantSoundPicker[soundType.."Sound"]:SetText( soundName );
 						end
 					elseif prefixType == "playsound" then
 						local soundKitID = tonumber( text );
@@ -763,7 +774,9 @@ function Epsilon_Merchant:OnInitialize()
 						PlaySound( soundKitID, "Dialog", true, true )
 					elseif prefixType == "options" then
 						text = (loadstring or load)("return "..text)()
-						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc")
+						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc") or GetUnitID("target")
+
+						if not merchantID then error("MerchantID was nil. Debug:" .. tostring(UnitExists("npc")) .. " - " .. tostring(UnitGUID("npc"))) end
 
 						EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
 						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
