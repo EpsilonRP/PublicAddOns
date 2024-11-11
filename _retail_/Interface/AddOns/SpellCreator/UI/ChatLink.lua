@@ -33,17 +33,27 @@ local function generateSpellLink(spell, vaultType)
 	return chatLink;
 end
 
+local orig_ChatEdit_InsertLink = ChatEdit_InsertLink -- Pre-Hook from our below modifications
+local tryLinkingToHookedEditBoxes
+
 ---@param spell VaultSpell
 ---@param vaultType VaultType
 local function linkSpell(spell, vaultType)
 	local link = generateSpellLink(spell, vaultType)
 
+	if not orig_ChatEdit_InsertLink(link) then
+		if not tryLinkingToHookedEditBoxes(link) then
+			ChatFrame_OpenChat(link)
+		end
+	end
 	-- from ChatEdit_LinkItem
+	--[[
 	if ChatEdit_GetActiveWindow() then
 		ChatEdit_InsertLink(link)
 	else
 		ChatFrame_OpenChat(link)
 	end
+	--]]
 end
 
 local function getSpellIconSequence(iconPath)
@@ -54,59 +64,77 @@ local function getSpellIconSequence(iconPath)
 	return spellIconSequence
 end
 
-local function setupSpellTooltip(spellName, spellDesc, spellComm, numActions, charOrPhase, spellIconSequence)
+local function setupSpellTooltip(spellName, spellDesc, spellComm, numActions, charOrPhase, spellIconSequence, ephemeral)
 	local tooltipTitle = spellIconSequence .. ADDON_COLOR .. spellName
-	GameTooltip_SetTitle(ItemRefTooltip, tooltipTitle)
 
-	ItemRefTooltip:AddLine(spellDesc, nil, nil, nil, true)
-	ItemRefTooltip:AddLine(" ")
-	ItemRefTooltip:AddDoubleLine("Command: " .. spellComm, "Actions: " .. numActions, 1, 1, 1, 1, 1, 1)
-	ItemRefTooltip:AddDoubleLine("Arcanum Spell", charOrPhase, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
+	local tooltip = ItemRefTooltip
+	if ephemeral then
+		tooltip = GameTooltip
+		tooltip:SetOwner(ephemeral, "ANCHOR_BOTTOMRIGHT")
+	end
+
+	GameTooltip_SetTitle(tooltip, tooltipTitle)
+
+	tooltip:AddLine(spellDesc, nil, nil, nil, true)
+	tooltip:AddLine(" ")
+	tooltip:AddDoubleLine("Command: " .. spellComm, "Actions: " .. numActions, 1, 1, 1, 1, 1, 1)
+	tooltip:AddDoubleLine("Arcanum Spell", charOrPhase, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
 
 	C_Timer.After(0, function()
-		if tonumber(charOrPhase) and not ns.Utils.ChatLinkCache.getSpellFromCache(spellComm, charOrPhase) then -- is a phase, not a character, and no spell in cache
-			if charOrPhase == "169" then
-				ItemRefTooltip:AddLine(" ")
-				ItemRefTooltip:AddLine("Get it from the Main Phase Vault")
-			else
-				ItemRefTooltip:AddLine(" ")
-				ItemRefTooltip:AddLine("Get it from Phase " .. charOrPhase .. "'s Vault")
-			end
-		elseif charOrPhase == UnitName("player") then
-			ItemRefTooltip:AddLine(" ")
-			ItemRefTooltip:AddLine("This is your spell.")
-		else
-			if not tooltipButton then
-				tooltipButton = CreateFrame("BUTTON", "SCForgeSpellRefTooltipButton", ItemRefTooltip, "UIPanelButtonTemplate")
-				local cachedSpell = ns.Utils.ChatLinkCache.getSpellFromCache(spellComm, charOrPhase)
-				tooltipButton:SetScript("OnClick", function(self)
-					local cachedSpell = ns.Utils.ChatLinkCache.getSpellFromCache(self.commID, self.playerName)
-					if cachedSpell then
-						Comms.tryToSaveReceivedSpell(cachedSpell, charOrPhase, ns.MainFuncs.updateSpellLoadRows)
-					else
-						Comms.requestSpellFromPlayer(self.playerName, self.commID)
-					end
-				end)
-				if cachedSpell then
-					tooltipButton:SetText("Save Spell")
+		if not ephemeral then
+			if tonumber(charOrPhase) and not ns.Utils.ChatLinkCache.getSpellFromCache(spellComm, charOrPhase) then -- is a phase, not a character, and no spell in cache
+				if charOrPhase == "169" then
+					tooltip:AddLine(" ")
+					tooltip:AddLine("Get it from the Main Phase Vault")
 				else
-					tooltipButton:SetText("Request Spell")
+					tooltip:AddLine(" ")
+					tooltip:AddLine("Get it from Phase " .. charOrPhase .. "'s Vault")
 				end
+			elseif charOrPhase == UnitName("player") then
+				tooltip:AddLine(" ")
+				tooltip:AddLine("This is your spell.")
+			else
+				if not tooltipButton then
+					tooltipButton = CreateFrame("BUTTON", "SCForgeSpellRefTooltipButton", tooltip, "UIPanelButtonTemplate")
+					local cachedSpell = ns.Utils.ChatLinkCache.getSpellFromCache(spellComm, charOrPhase)
+					tooltipButton:SetScript("OnClick", function(self)
+						local cachedSpell = ns.Utils.ChatLinkCache.getSpellFromCache(self.commID, self.playerName)
+						if cachedSpell then
+							Comms.tryToSaveReceivedSpell(cachedSpell, charOrPhase, ns.MainFuncs.updateSpellLoadRows)
+						else
+							Comms.requestSpellFromPlayer(self.playerName, self.commID)
+						end
+					end)
+					if cachedSpell then
+						tooltipButton:SetText("Save Spell")
+					else
+						tooltipButton:SetText("Request Spell")
+					end
+				end
+				tooltipButton:SetHeight(GameTooltip_InsertFrame(tooltip, tooltipButton))
+				tooltipButton:SetPoint("RIGHT", -10, 0)
+				tooltipButton.playerName = charOrPhase
+				tooltipButton.commID = spellComm
 			end
-			tooltipButton:SetHeight(GameTooltip_InsertFrame(ItemRefTooltip, tooltipButton))
-			tooltipButton:SetPoint("RIGHT", -10, 0)
-			tooltipButton.playerName = charOrPhase
-			tooltipButton.commID = spellComm
 		end
 
-		ItemRefTooltip:Show()
-		if ItemRefTooltipTextLeft1:GetRight() > ItemRefTooltip.CloseButton:GetLeft() then
-			ItemRefTooltip:SetPadding(16, 0)
+		tooltip:Show()
+		if tooltip.CloseButton then
+			if tooltip.TextLeft1:GetRight() > tooltip.CloseButton:GetLeft() then
+				tooltip:SetPadding(16, 0)
+			end
 		end
 	end)
 end
 
-local function showSpellTooltip(commID, spellName, charOrPhase, linkData, manualSpellData)
+---comment
+---@param commID any
+---@param spellName any
+---@param charOrPhase any
+---@param linkData any
+---@param manualSpellData any
+---@param ephemeral frame -- The frame to use if this is considered an ephemeral tooltip - aka, temporary popup. if given, does not give the clicky button either
+local function showSpellTooltip(commID, spellName, charOrPhase, linkData, manualSpellData, ephemeral)
 	local theSpell
 	if manualSpellData then
 		theSpell = manualSpellData
@@ -119,11 +147,11 @@ local function showSpellTooltip(commID, spellName, charOrPhase, linkData, manual
 		dprint("Spell Existed somewhere - using it's data, not the link data!")
 		local spellName, spellDesc, spellComm, numActions = theSpell.fullName, theSpell.description, theSpell.commID, #theSpell.actions
 		local spellIconSequence = getSpellIconSequence(theSpell.icon)
-		setupSpellTooltip(spellName, spellDesc, spellComm, numActions, charOrPhase, spellIconSequence)
+		setupSpellTooltip(spellName, spellDesc, spellComm, numActions, charOrPhase, spellIconSequence, ephemeral)
 	else
 		local spellComm, spellcharOrPhase, numActions, spellIconID = strsplit(":", linkData)
 		local spellIconSequence = getSpellIconSequence(spellIconID)
-		setupSpellTooltip(spellName, nil, spellComm, numActions, spellcharOrPhase, spellIconSequence)
+		setupSpellTooltip(spellName, nil, spellComm, numActions, spellcharOrPhase, spellIconSequence, ephemeral)
 	end
 end
 
@@ -179,7 +207,7 @@ local function unregisterEditBoxForChatLinks(editBox)
 	tDeleteItem(hookedEditBoxes, editBox)
 end
 
-hooksecurefunc("ChatEdit_InsertLink", function(link)
+tryLinkingToHookedEditBoxes = function(link)
 	if (not link) then return false end
 	for k, editBox in ipairs(hookedEditBoxes) do
 		if editBox:IsVisible() and editBox:HasFocus() then
@@ -187,7 +215,8 @@ hooksecurefunc("ChatEdit_InsertLink", function(link)
 			return true;
 		end
 	end
-end)
+end
+hooksecurefunc("ChatEdit_InsertLink", tryLinkingToHookedEditBoxes)
 
 --#endregion
 
