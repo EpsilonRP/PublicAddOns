@@ -305,17 +305,6 @@ local announceMessages = {
 	["|cff00CCFFGuild broadcasts are now |renabled|cff00CCFF.|r"] = function() setAnnounceToggled("guild", true) end,
 	["|cff00CCFFGuild broadcasts are now |rdisabled|cff00CCFF.|r"] = function() setAnnounceToggled("guild", false) end,
 }
---[[
-
-|cff00CCFFBroadcasts are now |rdisabled|cff00CCFF.|r
-|cff00CCFFEvent broadcasts are now |rdisabled|cff00CCFF.|r
-|cff00CCFFGuild broadcasts are now |rdisabled|cff00CCFF.|r
-
-|cff00CCFFBroadcasts are now |renabled|cff00CCFF.|r
-|cff00CCFFEvent broadcasts are now |renabled|cff00CCFF.|r
-|cff00CCFFGuild broadcasts are now |renabled|cff00CCFF.|r
-
-]]
 
 local function announceToggleListener(self, event, message)
 	-- Announce Toggle Listener
@@ -323,33 +312,24 @@ local function announceToggleListener(self, event, message)
 		announceMessages[message]()
 		return false
 	end
-
-	-- Ignore Filter --// Deprecated in favor of the server handling this instead, meaning it also respects announce via #main also!
-	--[[
-	if Epsilon_ChatToggle_Account.ignore then
-		local playerName = message:match("|Hplayer:(.-)|h")
-		if playerName then
-			if C_FriendList.IsIgnored(playerName) then
-				--print(playerName.." is Ignored. Message should be hidden.")
-				return true;
-			end
-		end
-	end
-	--]]
 end
 
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", announceToggleListener)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_ACHIEVEMENT", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_XP_GAIN", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_HONOR_GAIN", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_FACTION_CHANGE", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_TRADESKILLS", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_OPENING", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_PET_INFO", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_MISC_INFO", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_HORDE", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_ALLIANCE", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_NEUTRAL", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", announceToggleListener);
-ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_CONVERSATION_NOTICE", announceToggleListener);
+if EpsilonLib and EpsilonLib.EventManager then
+	EpsilonLib.EventManager:AddCommandFilter(announceToggleListener)
+else
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", announceToggleListener)
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_ACHIEVEMENT", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_XP_GAIN", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_HONOR_GAIN", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_FACTION_CHANGE", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_TRADESKILLS", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_OPENING", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_PET_INFO", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_COMBAT_MISC_INFO", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_HORDE", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_ALLIANCE", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_BG_SYSTEM_NEUTRAL", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", announceToggleListener);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_CONVERSATION_NOTICE", announceToggleListener);
+end

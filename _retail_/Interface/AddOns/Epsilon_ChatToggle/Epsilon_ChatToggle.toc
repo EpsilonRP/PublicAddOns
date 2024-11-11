@@ -6,5 +6,6 @@
 ## DefaultState: Enabled
 ## SavedVariables: Epsilon_ChatToggle_Account
 ## SavedVariablesPerCharacter: Epsilon_ChatToggle_Character
+## OptionalDeps: EpsilonLib, EpsilonLib-dev
 
 ChatToggle.lua

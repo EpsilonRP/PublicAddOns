@@ -378,6 +378,18 @@ local function addRow(rowToAdd, copy)
 		inputEntryBox:SetHyperlinksEnabled(true)
 		local widgetScripts = {
 			OnHyperlinkEnter = function(self, link, text, region, boundsLeft, boundsBottom, boundsWidth, boundsHeight)
+				if link:find("arcSpell:") then
+					local linkType, linkData, displayText = LinkUtil.ExtractLink(text)
+					--print(linkType, linkData, displayText)
+
+					if linkType == "arcSpell" then
+						local spellName = displayText:gsub("%[(.+)%]", "%1")
+						local spellComm, charOrPhase, numActions, spellIcon = strsplit(":", linkData)
+
+						ns.UI.ChatLink.showSpellTooltip(spellComm, spellName, charOrPhase, linkData, nil, self)
+					end
+					return
+				end
 				GameTooltip:SetOwner(self, "ANCHOR_PRESERVE");
 				GameTooltip:ClearAllPoints();
 				local cursorClearance = 30;

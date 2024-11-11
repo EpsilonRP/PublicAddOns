@@ -614,7 +614,8 @@ function BuyEpsilon_MerchantItem( itemID, amount )
 			stackCount = 1;
 		end
 
-		SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
+		--SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
+		SendCommand( "additem " .. itemID .. " " .. ( amount ) ) -- I can't figure out why but amount is = stackCount when called anyways it seems so just ignore it?
 		C_Timer.After( 0.5, function()
 			Epsilon_Merchant_PlaySound( "buyitem" )
 			Epsilon_MerchantFrame_Update()
@@ -1777,13 +1778,13 @@ function Epsilon_MerchantFrame_ConfirmExtendedItemCost(itemButton, numToPurchase
     end
     return;
   end
-  
+
   Epsilon_MerchantFrame.itemIndex = index;
   Epsilon_MerchantFrame.count = numToPurchase;
-  
+
   local stackCount = itemButton.count or 1;
   numToPurchase = numToPurchase or stackCount;
-  
+
   local maxQuality = 0;
   local usingCurrency = false;
   for i = 1, GetMerchantItemCostInfo(index) do
@@ -1800,7 +1801,7 @@ function Epsilon_MerchantFrame_ConfirmExtendedItemCost(itemButton, numToPurchase
       end
     elseif ( itemLink ) then
       local itemName, itemLink, itemQuality = GetItemInfo(itemLink);
- 
+
       maxQuality = math.max(itemQuality, maxQuality);
       if ( itemsString ) then
         itemsString = itemsString .. LIST_DELIMITER .. format(ITEM_QUANTITY_TEMPLATE, costItemCount, itemLink);
@@ -1820,15 +1821,15 @@ function Epsilon_MerchantFrame_ConfirmExtendedItemCost(itemButton, numToPurchase
       itemsString = GetMoneyString(itemButton.price);
     end
   end
-  
+
   if ( not usingCurrency and maxQuality <= Enum.ItemQuality.Uncommon and not itemButton.showNonrefundablePrompt) or (not itemsString and not itemButton.price) then
     BuyEpsilon_MerchantItem( itemButton:GetID(), numToPurchase );
     return;
   end
-  
+
   local popupData = Epsilon_MerchantFrame_GetProductInfo( itemButton );
   popupData.count = numToPurchase;
-  
+
   if (itemButton.showNonrefundablePrompt) then
     StaticPopup_Show("EPSILON_MERCHANT_CONFIRM_PURCHASE_NONREFUNDABLE_ITEM", itemsString, nil, popupData );
   else
@@ -1845,16 +1846,16 @@ function Epsilon_MerchantFrame_GetProductInfo( itemButton )
   if(itemButton.link) then
     itemName, itemHyperlink, itemQuality = GetItemInfo(itemButton.link);
   end
- 
+
   if ( itemName ) then
     --It's an item
-    r, g, b = GetItemQualityColor(itemQuality); 
+    r, g, b = GetItemQualityColor(itemQuality);
   else
     --Not an item. Could be currency or something. Just use what's on the button.
     itemName = itemButton.name;
-    r, g, b = GetItemQualityColor(1); 
+    r, g, b = GetItemQualityColor(1);
   end
- 
+
   local productInfo = {
     texture = itemButton.texture,
     name = itemName,
@@ -1862,7 +1863,7 @@ function Epsilon_MerchantFrame_GetProductInfo( itemButton )
     link = itemHyperlink,
     index = itemButton:GetID(),
   };
- 
+
   return productInfo;
 end
 
@@ -1871,7 +1872,7 @@ end
 function Epsilon_MerchantFrame_ConfirmHighCostItem(itemButton, quantity)
   quantity = (quantity or 1);
   local index = itemButton:GetID();
- 
+
   Epsilon_MerchantFrame.itemIndex = index;
   Epsilon_MerchantFrame.count = quantity;
   Epsilon_MerchantFrame.price = itemButton.price;

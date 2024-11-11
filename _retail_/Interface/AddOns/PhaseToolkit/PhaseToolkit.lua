@@ -509,6 +509,7 @@ PhaseToolkit.InfoCustom = {
 			["Hair"] = 12,
 			["Headdress"] = 3,
 			["Horncolor"] = 16,
+			["Hornstyle"] = 20,
 			["JewelryColor"] = 8,
 			["Mane"] = 5,
 			["Necklace"] = 3,
