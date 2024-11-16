@@ -39,7 +39,7 @@ local getConfigValue = TRP3_API.configuration.getValue;
 local function displayNotes(context)
 
 	local profileID = context.profileID;
-	if context.isPlayer then
+	if context.isPlayer or context.IsCompanion then
 		profileID = getPlayerCurrentProfileID();
 		TRP3_RegisterNotesViewAccount:Hide();
 		TRP3_RegisterNotesViewProfile:SetPoint("BOTTOM", TRP3_RegisterNotesView, "BOTTOM", 0, 10);
@@ -95,6 +95,7 @@ local function showNotesTab()
 	TRP3_ProfileReportButton:Hide();
 	displayNotes(context);
 	TRP3_RegisterNotes:Show();
+	TRP3_CompanionNotes:Show();
 end
 TRP3_API.register.ui.showNotesTab = showNotesTab;
 

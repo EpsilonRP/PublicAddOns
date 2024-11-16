@@ -83,7 +83,7 @@ local function openProfile(profileID)
 		registerMenu({
 			id = currentlyOpenedProfilePrefix .. profileID,
 			text = tabText,
-			onSelected = function() setPage(TRP3_API.navigation.page.id.COMPANIONS_PAGE, {profile = profile, profileID = profileID, isPlayer = true}) end,
+			onSelected = function() setPage(TRP3_API.navigation.page.id.COMPANIONS_PAGE, {profile = profile, profileID = profileID, isPlayer = true, isCompanion = true}) end,
 			isChildOf = TRP3_API.navigation.menu.id.COMPANIONS_MAIN,
 			closeable = true,
 		});

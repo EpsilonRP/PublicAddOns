@@ -44,6 +44,7 @@ local showConfirmPopup = TRP3_API.popup.showConfirmPopup;
 local getCompanionProfileID = TRP3_API.companions.player.getCompanionProfileID;
 local boundNPC = TRP3_API.companions.player.boundNPC;
 local displayMessage = Utils.message.displayMessage;
+local showNotesTab = TRP3_API.register.ui.showNotesTab;
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 -- Logic
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -354,13 +355,17 @@ local function createTabBar()
 	frame:SetFrameLevel(1);
 	tabGroup = TRP3_API.ui.frame.createTabPanel(frame,
 	{
-		{loc.REG_COMPANION_INFO, 1, 150}
+		{loc.REG_COMPANION_INFO, 1, 150},
+		{loc.REG_PLAYER_NOTES, 2, 85 }
 	},
 	function(_, value)
 		-- Clear all
 		TRP3_CompanionsPageInformation:Hide();
+		TRP3_CompanionNotes:Hide();
 		if value == 1 then
 			showInformationTab();
+		elseif value == 2 then
+			showNotesTab();
 		end
 	end
 	);
