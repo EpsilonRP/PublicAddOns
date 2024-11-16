@@ -397,40 +397,27 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.ToggleAura] = scriptAction("Toggle Aura", {
 		command = function(spellID)
-			if Aura.checkPlayerAuraID(tonumber(spellID)) then
-				cmd("unaura " .. spellID)
-			else
-				cmd("aura "
-					.. spellID)
-			end
+			Aura.toggleAura(spellID)
 		end,
 		description = "Toggles an Aura on / off.\n\rApplies to your target if you have Phase DM on & Officer+",
 		dataName = "Spell ID",
 		inputDescription = "Accepts multiple IDs, separated by commas, to cast multiple spells at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = function(spellID)
-			if Aura.checkPlayerAuraID(tonumber(spellID)) then
-				cmd("unaura " .. spellID)
-			else
-				cmd("aura "
-					.. spellID)
-			end
+			Aura.toggleAura(spellID)
 		end,
 		revertDesc = "Toggles the Aura again",
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.ToggleAuraSelf] = scriptAction("Toggle Aura (Self)", {
 		command = function(spellID)
-			if Aura.checkPlayerAuraID(tonumber(spellID)) then
-				cmd("unaura " .. spellID .. " self")
-			else
-				cmd("aura "
-					.. spellID .. " self")
-			end
+			Aura.toggleAura(spellID, false)
 		end,
 		description = "Toggles an Aura on / off.\n\rAlways applies on yourself.",
 		dataName = "Spell ID",
 		inputDescription = "Accepts multiple IDs, separated by commas, to cast multiple spells at once.\n\rUse" .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
-		revert = function(spellID) if Aura.checkPlayerAuraID(tonumber(spellID)) then cmd("unaura " .. spellID .. " self") else cmd("aura " .. spellID .. " self") end end,
+		revert = function(spellID)
+			Aura.toggleAura(spellID, false)
+		end,
 		revertDesc = "Toggles the Aura again",
 		convertLinks = true,
 	}),
