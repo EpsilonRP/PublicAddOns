@@ -200,12 +200,21 @@ _commands.Register = function(name, showMessages)
 end
 
 ---Send a one-off command; If you're using this consistently, you might be better off registering instead.
----@param text any
+---@param name string AddOn name calling this command, for logging & debug
+---@param text string The command to run
+---@param callbackFn function The callback function called when the replies are complete
+---@param forceShowMessages
 _commands.Send = function(name, text, callbackFn, forceShowMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
 	iterate()
 	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
 	commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
+end
+
+---Sends a command by the standard chat message instead of the addon command system.
+---@param text string
+_commands.SendByChat = function(text)
+	SendChatMessage("." .. text, "GUILD");
 end
 
 EpsiLib.AddonCommands = _commands

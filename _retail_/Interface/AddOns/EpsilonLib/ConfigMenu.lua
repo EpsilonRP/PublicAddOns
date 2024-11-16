@@ -1,30 +1,17 @@
 local EpsilonLib, EpsiLib = ...
 
-
-
 -- Extra Utils Config Menu
 local EpsiLib_Interface_Panel = CreateFrame("Frame");
 EpsiLib_Interface_Panel.name = "Epsilon (Misc)";
 
 local panel = EpsiLib_Interface_Panel
-local widget
 
 local title = panel:CreateFontString("ARTWORK", nil, "GameFontNormalLarge")
 title:SetPoint("TOP")
 title:SetText("Epsilon - Miscellaneous Config")
 title:SetPoint("TOPLEFT", 15, -15)
 
---[[
-local resetGammaRayBarPosButton = CreateFrame("Button", nil, panel, "OptionsButtonTemplate")
-resetGammaRayBarPosButton:SetPoint("TOPLEFT", 20, -40)
-resetGammaRayBarPosButton:SetSize(256, 23)
-resetGammaRayBarPosButton.Text:SetText("Reset GammaRay Toolbar Position")
-resetGammaRayBarPosButton:SetScript("OnClick", function()
-
-end)
---]]
-
-widget = CreateFrame("SLIDER", nil, panel, "OptionsSliderTemplate")
+local widget = CreateFrame("SLIDER", nil, panel, "OptionsSliderTemplate")
 panel.forceEntityLODDistanceSlider = widget
 widget:SetPoint("TOPLEFT", 20, -60)
 widget:SetSize(144, 17)
@@ -44,6 +31,38 @@ widget:SetScript("OnValueChanged", function(self, value, userInput)
 	SetCVar("EntityLodDist", value)
 	self.Value:SetText(value)
 end)
+widget.tooltipText = [[Force EntityLodDist
+
+Higher values increase the distance before an object switches to a lower detail (LoD) model / textures, allowing you to see 'fully quality' models from further away.
+
+WoW's default is 10, but this sometimes does not play nicely with custom building.
+May impact performance in heavy phases.
+]]
+
+local widget = CreateFrame("SLIDER", nil, panel, "OptionsSliderTemplate")
+panel.rippleDetailSlider = widget
+widget:SetPoint("TOPLEFT", 20, -120)
+widget:SetSize(144, 17)
+widget.Text:SetText("rippleDetail CVar")
+widget.Low:SetText("0")
+widget.High:SetText("3")
+widget.Value = widget:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+widget.Value:SetPoint("TOP", widget, "BOTTOM")
+widget:SetMinMaxValues(0, 3)
+widget:SetValueStep(1)
+widget:SetObeyStepOnDrag(true)
+widget:SetScript("OnValueChanged", function(self, value, userInput)
+	if not userInput then return end
+	SetCVar("rippleDetail", value)
+	self.Value:SetText(value)
+end)
+widget.tooltipText = [[Adjust rippleDetail to improve performance with minor loss of water quality
+
+0 = Animated liquid textures, texture based ripples and no reflection (old water)
+1 = Normalmap liquid textures, texture based rippes and sky reflection
+2 = Normalmap liquid textures, procedural ripples and screen-based reflection (WoW Default)
+3 = Normalmap liquid textures, procedural ripples and full reflection
+]]
 
 InterfaceOptions_AddCategory(EpsiLib_Interface_Panel);
 InterfaceAddOnsList_Update()
@@ -65,6 +84,14 @@ function registerForAddonDataLoaded(_, event, addonName, containsBindings)
 				panel.forceEntityLODDistanceSlider.Value:SetText(val)
 				panel.forceEntityLODDistanceSlider:SetValue(val)
 			end
+		},
+		{
+			name = "rippleDetail",
+			func = function()
+				local val = C_CVar.GetCVar("rippleDetail")
+				panel.rippleDetailSlider.Value:SetText(val)
+				panel.rippleDetailSlider:SetValue(val)
+			end,
 		},
 	}
 
