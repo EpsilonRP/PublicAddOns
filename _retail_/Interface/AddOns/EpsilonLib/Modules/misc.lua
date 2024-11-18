@@ -15,6 +15,8 @@ local lastPhaseInfo = {
 local phaseTextFormat = "%s " .. grey:WrapTextInColorCode("(%s)")
 
 hooksecurefunc("Minimap_SetTooltip", function()
+	if not (GameTooltip:IsOwned(MinimapZoneTextButton)) then return end
+
 	local phaseID = tonumber(C_Epsilon.GetPhaseId())
 	local name = lastPhaseInfo.name
 
