@@ -182,27 +182,10 @@ spellButtonMixin.UpdateCooldown = function(self)
 
 	local remainingTime, cooldownTime = Cooldowns.isSpellOnCooldown(commID)
 	if remainingTime then
-		self.cooldown:SetCooldown(GetTime() - (cooldownTime - remainingTime), cooldownTime)
+		cooldown:SetCooldown(GetTime() - (cooldownTime - remainingTime), cooldownTime)
 	else
-		self.cooldown:Clear()
+		cooldown:Clear()
 	end
-
-
-	--[[ -- blizzard's cooldown updater, but idk if this is needed, or we can use the easier SetCooldown & Clear? hm..
-	if (commID) then
-		local start, duration, enable, modRate = GetSpellCooldown(slot, SpellBookFrame.bookType);
-		if (cooldown and start and duration) then
-			if (enable) then
-				cooldown:Hide();
-			else
-				cooldown:Show();
-			end
-			CooldownFrame_Set(cooldown, start, duration, enable, false, modRate);
-		else
-			cooldown:Hide();
-		end
-	end
-	--]]
 end
 spellButtonMixin.UpdateButton = function(self)
 	local iconTexture = _G[self:GetName() .. "IconTexture"]

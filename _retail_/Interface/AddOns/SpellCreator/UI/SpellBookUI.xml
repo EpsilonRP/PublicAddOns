@@ -32,7 +32,7 @@
     <TexCoords left="0.31250000" right="0.96484375" top="0.37109375" bottom="0.52343750"/>
   </Texture>
 
-  <CheckButton name="ArcanumSpellButtonTemplate" inherits="SecureFrameTemplate" virtual="true">
+  <CheckButton name="ArcanumSpellButtonTemplate" virtual="true">
     <Size>
       <AbsDimension x="37" y="37"/>
     </Size>
