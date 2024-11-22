@@ -92,8 +92,8 @@ local FNV1ACache = setmetatable({},
 
 local KnownBadVersions =
 {
-	[97] = true,  -- 2.3.3: Affected by a bug where it thinks things are out of date.
-	[98] = true,  -- 2.3.4: As above, resolved in 2.3.5.
+	[97] = true, -- 2.3.3: Affected by a bug where it thinks things are out of date.
+	[98] = true, -- 2.3.4: As above, resolved in 2.3.5.
 };
 
 local senderBadVersions = {};
@@ -133,17 +133,17 @@ local function ShouldRespondToObjectRequest(sender, infoType)
 	local requestTimes = senderObjectRequestTimes[sender];
 
 	if type(requestTimes) ~= "table" then
-		return true;   -- They're running an okay version.
+		return true; -- They're running an okay version.
 	end
 
 	local requestTimeAt = requestTimes[infoType];
 
 	if type(requestTimeAt) ~= "number" then
-		return true;   -- They may have a bad version but they've not asked for this data.
+		return true; -- They may have a bad version but they've not asked for this data.
 	elseif GetTime() >= (requestTimeAt + BAD_VERSION_OBJECT_THROTTLE) then
-		return true;   -- The last response was a while ago.
+		return true; -- The last response was a while ago.
 	else
-		return false;  -- Don't respond; received another request too soon.
+		return false; -- Don't respond; received another request too soon.
 	end
 end
 
@@ -229,7 +229,7 @@ local queryInformationType, createVernumQuery;
 --- Vernum query builder
 function createVernumQuery()
 	local query = {};
-	query[VERNUM_QUERY_INDEX_VERSION] = Globals.version; -- Your TRP3 version (number)
+	query[VERNUM_QUERY_INDEX_VERSION] = Globals.version;              -- Your TRP3 version (number)
 	query[VERNUM_QUERY_INDEX_VERSION_DISPLAY] = Globals.version_display; -- Your TRP3 version (as it should be shown on tooltip)
 	-- Character
 	query[VERNUM_QUERY_INDEX_CHARACTER_PROFILE] = getPlayerCurrentProfileID() or "";
@@ -332,7 +332,7 @@ local function GetQueuePoolMinimumWeight()
 	return Clamp(threshold, MINIMUM_QUEUE_POOL_MINIMUM_WEIGHT, MAXIMUM_QUEUE_POOL_MINIMUM_WEIGHT);
 end
 
-local function GetSuggestedQueueStrategy(query, infoType, target)  -- luacheck: no unused
+local function GetSuggestedQueueStrategy(query, infoType, target) -- luacheck: no unused
 	if query == INFO_TYPE_SEND_PREFIX and GetPlayerDataWeight() >= GetQueuePoolMinimumWeight() then
 		return QueueStrategy.Pooled;
 	else
@@ -379,7 +379,7 @@ local function checkVersion(sender, senderVersion, senderVersionText, extendedVe
 	end
 
 	-- Test for Total RP 3
-	if  senderVersion > Globals.version and not has_seen_update_alert then
+	if senderVersion > Globals.version and not has_seen_update_alert then
 		if Utils.table.size(newVersionAlerts[senderVersionText]) >= 10 then
 			local newVersionAlert = loc.NEW_VERSION:format(senderVersionText:sub(1, 15));
 			local numberOfVersionsBehind = senderVersion - Globals.version;
@@ -393,9 +393,9 @@ local function checkVersion(sender, senderVersion, senderVersionText, extendedVe
 	end
 
 	-- Test for Extended
-		if extendedVersion and extendedVersionText and Globals.extended_version and extendedVersion > Globals.extended_version and not has_seen_extended_update_alert then
-			if Utils.table.size(extendedNewVersionAlerts[extendedVersionText]) >= 3 then
-				Utils.message.displayMessage(loc.NEW_EXTENDED_VERSION:format(extendedVersionText));
+	if extendedVersion and extendedVersionText and Globals.extended_version and extendedVersion > Globals.extended_version and not has_seen_extended_update_alert then
+		if Utils.table.size(extendedNewVersionAlerts[extendedVersionText]) >= 3 then
+			Utils.message.displayMessage(loc.NEW_EXTENDED_VERSION:format(extendedVersionText));
 			has_seen_extended_update_alert = true;
 		end
 	end
@@ -440,10 +440,10 @@ end
 local function incomingVernumQuery(structure, senderID, sendBack)
 	-- First: Integrity check
 	if type(structure) ~= "table"
-	or #structure <= 0
-	or type(structure[VERNUM_QUERY_INDEX_VERSION]) ~= "number"
-	or type(structure[VERNUM_QUERY_INDEX_VERSION_DISPLAY]) ~= "string"
-	or type(structure[VERNUM_QUERY_INDEX_CHARACTER_PROFILE]) ~= "string"
+		or #structure <= 0
+		or type(structure[VERNUM_QUERY_INDEX_VERSION]) ~= "number"
+		or type(structure[VERNUM_QUERY_INDEX_VERSION_DISPLAY]) ~= "string"
+		or type(structure[VERNUM_QUERY_INDEX_CHARACTER_PROFILE]) ~= "string"
 	then
 		log("Incoming vernum integrity check fails. Sender: " .. senderID);
 		return;
@@ -604,7 +604,7 @@ local function incomingInformationTypeSent(structure, senderID, channel)
 	end
 
 	if informationType == registerInfoTypes.CHARACTERISTICS or informationType == registerInfoTypes.ABOUT
-	or informationType == registerInfoTypes.MISC or informationType == registerInfoTypes.CHARACTER then
+		or informationType == registerInfoTypes.MISC or informationType == registerInfoTypes.CHARACTER then
 		saveInformation(senderID, informationType, decodedData);
 	elseif informationType:sub(1, COMPANION_PREFIX:len()) == COMPANION_PREFIX then
 		local v = informationType:sub(COMPANION_PREFIX:len() + 1, COMPANION_PREFIX:len() + 1);
@@ -624,35 +624,28 @@ local function onMouseOverCharacter(unitID)
 end
 
 local function onMouseOverCompanion(companionFullID)
-    local ownerID = companionIDToInfo(companionFullID);
-    if isUnitIDKnown(ownerID) then
-        sendQuery(ownerID);
-    end
+	local ownerID = companionIDToInfo(companionFullID);
+	if isUnitIDKnown(ownerID) then
+		sendQuery(ownerID);
+	end
 end
 
-local function handleIncommingProfileData(messageTicketID, npcFullID)
-	f:RegisterEvent("CHAT_MSG_ADDON");
-	f:SetScript("OnEvent", function(self, event, prefix, text, channel, sender, ...)
-        if event == "CHAT_MSG_ADDON" and prefix == messageTicketID then
-            f:UnregisterEvent("CHAT_MSG_ADDON");
-			if text ~= '' then
-				local phaseData = Compression.decompress(text, true);
-				phaseData = Utils.serial.deserialize(phaseData);
-				if phaseData and phaseData['id'] and phaseData['profile'] then
-					local profileID = phaseData['id'];
-					local profile = phaseData['profile'];
-					TRP3_API.companions.register.setProfile(npcFullID, profileID);
-					TRP3_API.companions.register.setProfileData(profileID, profile);
-				end
-			end
-		end
-	end)
+local function processCompanionProfile(text, npcFullID)
+	if text == "" then return end
+
+	local phaseData = Compression.decompress(text, true);
+	phaseData = Utils.serial.deserialize(phaseData);
+	if phaseData and phaseData['id'] and phaseData['profile'] then
+		local profileID = phaseData['id'];
+		local profile = phaseData['profile'];
+		TRP3_API.companions.register.setProfile(npcFullID, profileID);
+		TRP3_API.companions.register.setProfileData(profileID, profile);
+	end
 end
 
 local function onMouseOverNPC(npcFullID)
-    local _, npcID = companionIDToInfo(npcFullID);
-    local profileIdMessageTicketID = C_Epsilon.GetPhaseAddonData('TOTALRP_PROFILE_' .. npcID);
-	handleIncommingProfileData(profileIdMessageTicketID, npcFullID);
+	local _, npcID = companionIDToInfo(npcFullID);
+	EpsilonLib.PhaseAddonData.Get('TOTALRP_PROFILE_' .. npcID, function(text) processCompanionProfile(text, npcFullID) end)
 end
 
 local function onTargetChanged()
@@ -688,7 +681,7 @@ function TRP3_API.register.inits.dataExchangeInit()
 			onMouseOverCharacter(targetID);
 		elseif (targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET) and targetID then
 			onMouseOverCompanion(targetID);
-        elseif (targetMode == TRP3_Enums.UNIT_TYPE.NPC) and targetID then
+		elseif (targetMode == TRP3_Enums.UNIT_TYPE.NPC) and targetID then
 			onMouseOverNPC(targetID);
 		end
 	end);
@@ -719,7 +712,7 @@ local UNIT_TOKENS = { "target", "mouseover", "player", "focus" };
 UNIT_TOKENS = tInvert(UNIT_TOKENS);
 
 function TRP3_API.slash.openProfile(...)
-	local args = {...};
+	local args = { ... };
 
 	if commandOpeningTimerHandle then
 		commandOpeningTimerHandle:Cancel();
@@ -742,13 +735,13 @@ function TRP3_API.slash.openProfile(...)
 			-- neither a name/realm will be returned; in this case we'll
 			-- assume the input is name-only and use the current realm.
 
-			name  = name or characterToOpen;
-			realm = realm or TRP3_API.globals.player_realm_id;
+			name              = name or characterToOpen;
+			realm             = realm or TRP3_API.globals.player_realm_id;
 
-			name  = string.gsub(name, "^%l", string.upper);
-			realm = string.gsub(realm, "^%l", string.upper);
+			name              = string.gsub(name, "^%l", string.upper);
+			realm             = string.gsub(realm, "^%l", string.upper);
 
-			characterToOpen = AddOn_Chomp.NameMergedRealm(name, realm);
+			characterToOpen   = AddOn_Chomp.NameMergedRealm(name, realm);
 		end
 
 		-- If no realm has been entered, we use the player's realm automatically
