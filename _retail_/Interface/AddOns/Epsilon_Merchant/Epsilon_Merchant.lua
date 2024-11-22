@@ -87,7 +87,6 @@ local function SetPhaseData( prefix, data )
 	end
 
 	local str = table_to_string( data )
-	print(prefix, str)
 	local length = #str
 	if length > MAX_CHARS_PER_SEGMENT then
 		local numEntriesRequired = math.ceil(length / MAX_CHARS_PER_SEGMENT)
@@ -750,12 +749,11 @@ function Epsilon_Merchant:OnInitialize()
 							return
 						end
 						local soundName
-						local i, iMax = 0, C_Epsilon.SoundKit_Count()-1
+						local i, iMax = 0, C_Epsilon.SoundKit_Count() - 1
 						while not soundName do
 							local tempSound = C_Epsilon.SoundKit_Get(i)
 							if tempSound.id == soundKitID then
-								soundName = table.concat(tempSound.sounds, ", ", 0)
-								print(soundName)
+								soundName = table.concat(tempSound.sounds, ", ", 0);
 							end
 							i = i + 1
 							if i > iMax then break end
@@ -774,10 +772,7 @@ function Epsilon_Merchant:OnInitialize()
 						PlaySound( soundKitID, "Dialog", true, true )
 					elseif prefixType == "options" then
 						text = (loadstring or load)("return "..text)()
-						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc") or GetUnitID("target")
-
-						if not merchantID then error("MerchantID was nil. Debug:" .. tostring(UnitExists("npc")) .. " - " .. tostring(UnitGUID("npc"))) end
-
+						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc") or GetUnitID("target");
 						EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
 						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
 							local allowRefunds = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowRefunds ) or false;
