@@ -1,0 +1,1480 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+  <!-- Book frame. -->
+
+	<Frame name="EpsilonBookListItemTemplate" virtual="true">
+		<Size x="305" y="45"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture file="Interface\MailFrame\MailItemBorder">
+					<Size x="42" y="48"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0" right="0.1640625" top="0" bottom="0.75"/>
+				</Texture>
+				<Texture file="Interface\MailFrame\MailItemBorder">
+					<Size x="263" y="48"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.1640625" right="1.0" top="0" bottom="0.75"/>
+				</Texture>
+				<Texture>
+					<Size x="322" y="2"/>
+					<Anchors>
+						<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="2"/>
+					</Anchors>
+					<Color r="0.33" g="0.16" b="0" a=".3"/>
+				</Texture>
+				<FontString name="$parentTitle" parentKey="Title" inherits="GameFontNormal" justifyH="LEFT" text="Book Title">
+					<Size x="200" y="16"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="47" y="-4"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentGUID" inherits="GameFontHighlightSmall" justifyV="TOP" justifyH="LEFT">
+					<Size x="248" y="18"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button name="$parentExpireTime">
+				<Size x="100" y="16"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-4" y="-4"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						if ( not self.tooltip ) then
+							return;
+						end
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText(self.tooltip);
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+				<NormalFont style="GameFontHighlightSmallRight"/>
+				<PushedTextOffset x="0" y="0"/>
+			</Button>
+			<Button name="$parentDropdownButton" parentKey="DropdownButton">
+				<Size x="24" y="24"/>
+				<Anchors>
+					<Anchor point="RIGHT" x="0" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+						self:Disable();
+					</OnLoad>
+					<OnClick>
+						-- TODO
+					</OnClick>
+					<OnEnter>
+						-- TODO
+					</OnEnter>
+					<OnLeave>
+						GameTooltip_Hide();
+					</OnLeave>
+				</Scripts>
+				<NormalTexture file="Interface\CHATFRAME/UI-ChatIcon-ScrollDown-Up"/>
+				<PushedTexture file="Interface\CHATFRAME/UI-ChatIcon-ScrollDown-Down"/>
+				<DisabledTexture file="Interface\CHATFRAME/UI-ChatIcon-ScrollDown-Disabled"/>
+				<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+			</Button>
+			<Button parentKey="Button" name="$parentButton" hidden="false">
+				<Size x="37" y="37"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="4" y="-3"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" name="$parentIcon">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="$parent"/>
+								<Anchor point="BOTTOMRIGHT" relativeTo="$parent" x="-1" y="1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+					</OnLoad>
+					<OnClick>
+						-- TODO
+					</OnClick>
+					<OnEnter>
+						-- TODO
+					</OnEnter>
+					<OnLeave>
+						GameTooltip_Hide();
+					</OnLeave>
+				</Scripts>
+				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+			</Button>
+			<Button parentKey="ItemConnectedButton" name="$parentItemConnectedButton" frameLevel="5" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="$parentButton" relativePoint="BOTTOMRIGHT" x="-4" y="4"/>
+				</Anchors>
+				<NormalTexture atlas="QuestSharing-QuestLog-Loot" />
+				<Scripts>
+					<OnLoad>
+						self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+					</OnLoad>
+					<OnClick>
+						-- TODO
+					</OnClick>
+					<OnEnter>
+						if self.connectedItems and #self.connectedItems > 0 then
+							GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+							GameTooltip:SetText("Connected Items");
+							for i = 1, #self.connectedItems do
+								GameTooltip:AddLine( self.connectedItems[i] );
+							end
+							GameTooltip:Show();
+						end
+					</OnEnter>
+					<OnLeave>
+						GameTooltip_Hide();
+					</OnLeave>
+				</Scripts>
+			</Button>
+		</Frames>
+	</Frame>
+
+	<Button name="EpsilonBookFormatButtonTemplate" virtual="true">
+		<Size x="24" y="36"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="icon" file="Interface/AddOns/Epsilon_Book/Texture/format-icons">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="-2" />
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<NormalTexture file="Interface/Buttons/UI-MicroButtonCharacter-Up">
+			<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+		</NormalTexture>
+		<PushedTexture file="Interface/Buttons/UI-MicroButtonCharacter-Down">
+			<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+		</PushedTexture>
+		<HighlightTexture file="Interface/Buttons/UI-MicroButton-Hilight" alphaMode="ADD">
+			<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+		</HighlightTexture>
+		<Scripts>
+			<OnLoad>
+				self.icon:SetTexture("Interface/AddOns/".. Epsilon_Book.RealName .."/Texture/format-icons")
+			</OnLoad>
+			<OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				GameTooltip:AddLine(self.tooltipText)
+				GameTooltip:Show()
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide()
+			</OnLeave>
+		</Scripts>
+	</Button>
+
+    <Frame name="EpsilonBookFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" inherits="ButtonFrameTemplate">
+		<Size x="338" y="424"/>
+		<Anchors>
+		  <Anchor point="TOPLEFT" x="16" y="-116" />
+		</Anchors>
+		<Layers>
+			<Layer level="OVERLAY" textureSubLevel="-1">
+				<Texture parentKey="portrait" file="Interface\Spellbook\Spellbook-Icon">
+					 <Size x="61" y="61"/>
+					 <Anchors>
+						<Anchor point="TOPLEFT" x="-6" y="8" />
+					 </Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BACKGROUND">
+				<Texture name="EpsilonBookFramePageBg" atlas="QuestBG-Parchment">
+					<Size x="299" y="357"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="7" y="-62"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture name="EpsilonBookMaterialLeft">
+					<Size x="256" y="357"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="7" y="-62"/>
+					</Anchors>
+				</Texture>
+				<Texture name="EpsilonBookMaterialRight">
+					<Size x="64" y="357"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="EpsilonBookMaterialLeft" relativePoint="TOPRIGHT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="EpsilonBookMaterialTopLeft">
+					<Size x="256" y="256"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="7" y="-62"/>
+					</Anchors>
+				</Texture>
+				<Texture name="EpsilonBookMaterialTopRight">
+					<Size x="64" y="256"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="EpsilonBookMaterialTopLeft" relativePoint="TOPRIGHT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="EpsilonBookMaterialBotLeft">
+					<Size x="256" y="128"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="EpsilonBookMaterialTopLeft" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="EpsilonBookMaterialBotRight">
+					<Size x="64" y="128"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="EpsilonBookMaterialTopLeft" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString name="EpsilonBookCurrentPage" inherits="GameFontNormal">
+					<Size x="192" y="0"/>
+					<Anchors>
+						<Anchor point="TOP" x="20" y="-35"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="Tutorial" inherits="MainHelpPlateButton" mixin="EpsilonBookTutorialMixin">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="43" y="19"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad method="OnLoad"/>
+					<OnHide method="OnHide"/>
+					<OnClick method="ToggleHelpInfo"/>
+				</Scripts>
+			</Button>
+			<Button name="EpsilonBookEditPageButton" frameLevel="-1">
+				<Size x="16" y="140"/>
+				<Anchors>
+				  <Anchor point="RIGHT" x="24" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture name="$parentBorderTopRight" file="Interface\RaidFrame\RaidPanel-UpperRight">
+						  <Size x="24" y="32"/>
+						  <Anchors>
+							<Anchor point="TOPRIGHT"/>
+						  </Anchors>
+						  <TexCoords left="0.25" right="1" top="0" bottom="1"/>
+						</Texture>
+						<Texture name="$parentBorderBottomRight" file="Interface\RaidFrame\RaidPanel-BottomRight">
+						  <Size x="24" y="32"/>
+						  <Anchors>
+							<Anchor point="BOTTOMRIGHT"/>
+						  </Anchors>
+						  <TexCoords left="0.25" right="1" top="0" bottom="1"/>
+						</Texture>
+						<Texture name="$parentBorderRight" file="Interface\RaidFrame\RaidPanel-Right" vertTile="true">
+						  <Size x="16" y="0"/>
+						  <Anchors>
+							<Anchor point="TOPRIGHT" relativeTo="$parentBorderTopRight" relativePoint="BOTTOMRIGHT" x="2" y="0"/>
+							<Anchor point="BOTTOMRIGHT" relativeTo="$parentBorderBottomRight" relativePoint="TOPRIGHT" x="2" y="0"/>
+						  </Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="BACKGROUND">
+						<Texture name="$parentBg" file="Interface\FrameGeneral\UI-Background-Rock" horizTile="true" vertTile="true">
+						  <Anchors>
+							<Anchor point="TOPLEFT" x="-8" y="-5"/>
+							<Anchor point="BOTTOMRIGHT" relativeTo="$parentBorderBottomRight" x="-7" y="7"/>
+						  </Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+				  <OnLoad>
+					self:GetNormalTexture():SetDrawLayer("OVERLAY");
+				  </OnLoad>
+				  <OnClick>
+					EpsilonBookEditor_SaveCurrentPage();
+					EpsilonBookEditor_Show();
+					PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
+				  </OnClick>
+				  <OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:SetText( "Expand Toolbar", 1, 1, 1 );
+					GameTooltip:AddLine( "Open a panel of editing tools to edit the book.", 1.0, 0.81, 0.0, true);
+					GameTooltip:Show();
+				  </OnEnter>
+				  <OnLeave>
+					GameTooltip:Hide();
+				  </OnLeave>
+				  <OnMouseDown>
+					local tex = self:GetNormalTexture();
+					tex:ClearAllPoints();
+					tex:SetSize(16, 64);
+					tex:SetPoint("CENTER", -8, 0);
+				  </OnMouseDown>
+				  <OnMouseUp>
+					local tex = self:GetNormalTexture();
+					tex:SetPoint("CENTER", -9, 0);
+				  </OnMouseUp>
+				</Scripts>
+				<NormalTexture file="Interface\RaidFrame\RaidPanel-Toggle">
+					<Size x="16" y="64"/>
+					<Anchors>
+					  <Anchor point="CENTER" x="-9" y="0"/>
+					</Anchors>
+					<TexCoords left="0" right="0.5" top="0" bottom="1"/>
+				</NormalTexture>
+			</Button>
+			<ScrollFrame name="EpsilonBookScrollFrame" inherits="UIPanelScrollFrameCodeTemplate">
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-33" y="-83"/>
+					<Anchor point="BOTTOMLEFT" x="25" y="6"/>
+				</Anchors>
+				<Frames>
+					<Slider name="$parentScrollBar" inherits="UIPanelStretchableArtScrollBarTemplate" parentKey="ScrollBar">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookFrame" relativePoint="TOPRIGHT" x="-27" y="-79"/>
+							<Anchor point="BOTTOMLEFT" relativeTo="EpsilonBookFrame" relativePoint="BOTTOMRIGHT" x="-27" y="22"/>
+						</Anchors>
+						<Scripts>
+							<OnLoad>
+								self.scrollStep = 30;
+							</OnLoad>
+						</Scripts>
+					</Slider>
+				</Frames>
+				<ScrollChild>
+					<Frame name="EpsilonBookPageScrollChild">
+						<Size x="10" y="10"/>
+						<Frames>
+							<SimpleHTML name="EpsilonBookPageText">
+								<Size x="270" y="304"/>
+								<Anchors>
+									<Anchor point="TOPLEFT" x="0" y="0"/>
+								</Anchors>
+								<FontString inherits="QuestFont" justifyH="LEFT"/>
+								<Scripts>
+									<OnHyperlinkClick>
+										EpsilonBookFrame_OnHyperlinkClick( self, link, text, button)
+									</OnHyperlinkClick>
+									<OnHyperlinkEnter>
+										EpsilonBookFrame_OnHyperlinkEnter( self, link, text )
+									</OnHyperlinkEnter>
+									<OnHyperlinkLeave>
+										EpsilonBookFrame_OnHyperlinkLeave()
+									</OnHyperlinkLeave>
+								</Scripts>
+							</SimpleHTML>
+							<EditBox name="EpsilonBookPageTextEditor" parentKey="pageTextEditor" multiLine="true" font="QuestFont" hidden="true">
+								<Size x="270" y="304"/>
+								<Anchors>
+								  <Anchor point="TOPLEFT" x="18" y="-15"/>
+								</Anchors>
+								<Scripts>
+								  <OnLoad>
+									self:SetAutoFocus( false )
+									self:SetMaxLetters( 2400 )
+								  </OnLoad>
+								  <OnEditFocusLost>
+									EpsilonBookEditor_SaveCurrentPage()
+								  </OnEditFocusLost>
+								  <OnEscapePressed function="EditBox_ClearFocus"/>
+								  <OnCursorChanged>
+									if not self:HasFocus() then return end
+									ScrollingEdit_SetCursorOffsets(self:GetParent(), y-65, h);
+									self:GetParent().handleCursorChange = true;
+								  </OnCursorChanged>
+								</Scripts>
+							</EditBox>
+						</Frames>
+					</Frame>
+				</ScrollChild>
+			</ScrollFrame>
+			<Frame name="EpsilonBookLibraryFrame">
+				<Size x="328" y="360"/>
+				<Anchors>
+					<Anchor point="TOPLEFT"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture file="Interface\MailFrame\UI-MailFrameBG">
+							<Size x="512" y="512"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="7" y="-62"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="ARTWORK">
+						<FontString parentKey="CurrentPage" inherits="GameFontNormal" text="1/1">
+							<Size x="192" y="0"/>
+							<Anchors>
+								<Anchor point="BOTTOM" x="0" y="-45"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<EditBox parentKey="SearchBar" inherits="SearchBoxTemplate">
+						<Size x="120" y="8" />
+						<Anchors>
+							<Anchor point="TOPLEFT" x="72" y="-31" />
+						</Anchors>
+						<Scripts>
+							<OnTextChanged>
+								SearchBoxTemplate_OnTextChanged(self);
+								EpsilonBookLibrary_FilterChanged();
+							</OnTextChanged>
+							<OnEscapePressed function="EditBox_ClearFocus"/>
+						</Scripts>
+					</EditBox>
+					<Frame parentKey="BookCount" useParentLevel="true" inherits="InsetFrameTemplate3">
+						<Size x="130" y="20"/>
+						<Anchors>
+							<Anchor point="TOPRIGHT" x="0" y="-25"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString parentKey="Count" inherits="GameFontHighlightSmall" justifyH="RIGHT" text="0">
+									<Anchors>
+										<Anchor point="RIGHT" x="-10" y="0"/>
+									</Anchors>
+								</FontString>
+								<FontString parentKey="Label" inherits="GameFontNormalSmall" text="Total Books" justifyH="LEFT">
+									<Anchors>
+										<Anchor point="LEFT" x="10" y="0"/>
+										<Anchor point="RIGHT" relativeKey="$parent.Count" relativePoint="LEFT" x="-3" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+						  <OnEnter>
+							GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+							GameTooltip:AddDoubleLine( "Total Books", EpsilonBookLibraryFrame.BookCount.Count:GetText(), 1, 1, 1, 1, 1, 1 );
+							GameTooltip:AddLine( "The total number of books in the current phase.", 1.0, 0.81, 0.0, true);
+							GameTooltip:Show();
+						  </OnEnter>
+						  <OnLeave>
+							GameTooltip:Hide();
+						  </OnLeave>
+						</Scripts>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem1" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" x="13" y="-70"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem2" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem1" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem3" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem2" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem4" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem3" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem5" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem4" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem6" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem5" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Frame name="EpsilonBookLibraryItem7" inherits="EpsilonBookListItemTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="EpsilonBookLibraryItem6" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						</Anchors>
+					</Frame>
+					<Button parentKey="PrevPageButton">
+						<Size x="32" y="32"/>
+						<Anchors>
+							<Anchor point="CENTER" relativePoint="BOTTOMLEFT" x="30" y="-38"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormal" justifyH="LEFT" text="PREV">
+									<Anchors>
+										<Anchor point="LEFT" relativePoint="RIGHT"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnLoad>
+								self:Disable();
+							</OnLoad>
+							<OnClick>
+								PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+								EpsilonBookLibrary_PrevPage();
+							</OnClick>
+						</Scripts>
+						<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Up"/>
+						<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Down"/>
+						<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Disabled"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+					</Button>
+					<Button parentKey="NextPageButton">
+						<Size x="32" y="32"/>
+						<Anchors>
+							<Anchor point="CENTER" relativePoint="BOTTOMLEFT" x="305" y="-38"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormal" justifyH="RIGHT" text="NEXT">
+									<Anchors>
+										<Anchor point="RIGHT" relativePoint="LEFT"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnLoad>
+								self:Disable();
+							</OnLoad>
+							<OnClick>
+								PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+								EpsilonBookLibrary_NextPage();
+							</OnClick>
+						</Scripts>
+						<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Up"/>
+						<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Down"/>
+						<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Disabled"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+					</Button>
+				</Frames>
+				<Scripts>
+					<OnMouseWheel function="EpsilonBookLibrary_OnMouseWheel"/>
+				</Scripts>
+			</Frame>
+			<Button name="EpsilonBookPrevPageButton">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativePoint="TOPLEFT" x="75" y="-41"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString inherits="GameFontNormal" justifyH="LEFT" text="PREV">
+							<Anchors>
+								<Anchor point="LEFT" relativePoint="RIGHT"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						EpsilonBookFrame_PrevPage();
+					</OnClick>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Up"/>
+				<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Down"/>
+				<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Disabled"/>
+				<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+			</Button>
+			<Button name="EpsilonBookNextPageButton">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativePoint="TOPRIGHT" x="-23" y="-41"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString inherits="GameFontNormal" justifyH="RIGHT" text="NEXT">
+							<Anchors>
+								<Anchor point="RIGHT" relativePoint="LEFT"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						EpsilonBookFrame_NextPage();
+					</OnClick>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Up"/>
+				<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Down"/>
+				<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Disabled"/>
+				<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+			</Button>
+			<Frame name="EpsilonBookEditor" inherits="SimplePanelTemplate" hidden="false" frameStrata="DIALOG" topLevel="true">
+				<Size x="175" y="420" />
+				<Anchors>
+				  <Anchor point="LEFT" relativePoint="RIGHT" />
+				</Anchors>
+
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture name="$parentBorderTopRight" file="Interface\RaidFrame\RaidPanel-UpperRight">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="TOPRIGHT" x="8"/>
+							</Anchors>
+						</Texture>
+						<Texture name="$parentBorderBottomRight" file="Interface\RaidFrame\RaidPanel-BottomRight">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="BOTTOMRIGHT" x="8" y="-6"/>
+							</Anchors>
+						</Texture>
+						<Texture name="$parentBorderTop" file="Interface\RaidFrame\RaidPanel-UpperMiddle" horizTile="true">
+							<Size x="0" y="16"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="1"/>
+								<Anchor point="TOPRIGHT" relativeTo="$parentBorderTopRight" relativePoint="TOPLEFT" x="0" y="1"/>
+							</Anchors>
+						</Texture>
+						<Texture name="$parentBorderBottom" file="Interface\RaidFrame\RaidPanel-BottomMiddle" horizTile="true">
+							<Size x="0" y="16"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="-10"/>
+								<Anchor point="BOTTOMRIGHT" relativeTo="$parentBorderBottomRight" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
+							</Anchors>
+						</Texture>
+						<Texture name="$parentBorderRight" file="Interface\RaidFrame\RaidPanel-Right" vertTile="true">
+							<Size x="16" y="0"/>
+							<Anchors>
+								<Anchor point="TOPRIGHT" relativeTo="$parentBorderTopRight" relativePoint="BOTTOMRIGHT" x="2" y="0"/>
+								<Anchor point="BOTTOMRIGHT" relativeTo="$parentBorderBottomRight" relativePoint="TOPRIGHT" x="2" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString inherits="GameFontNormal" justifyH="center" text="Edit Book">
+							<Anchors>
+								<Anchor point="TOP" x="0" y="-12"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+
+				<Scripts>
+				  <OnLoad>
+					if self.NineSlice then
+						self.NineSlice:SetFrameLevel(1)
+					end
+
+					self.Inset:SetPoint( "BOTTOMLEFT", 4, 72 )
+				  </OnLoad>
+				</Scripts>
+				<Frames>
+					<Button name="$parentToggleButton" parentKey="toggleButton">
+						<Size x="16" y="64"/>
+						<Anchors>
+						  <Anchor point="RIGHT" x="0" y="0"/>
+						</Anchors>
+						<Scripts>
+						  <OnLoad>
+							self:GetNormalTexture():SetDrawLayer("OVERLAY");
+						  </OnLoad>
+						  <OnClick>
+							EpsilonBookEditor_SaveCurrentPage();
+							EpsilonBookEditor_Hide();
+							PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
+						  </OnClick>
+						  <OnEnter>
+							GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+							GameTooltip:SetText( "Collapse Toolbar", 1, 1, 1 );
+							GameTooltip:AddLine( "Close the toolbar panel.", 1.0, 0.81, 0.0, true);
+							GameTooltip:Show();
+						  </OnEnter>
+						  <OnLeave>
+							GameTooltip:Hide();
+						  </OnLeave>
+						  <OnMouseDown>
+							local tex = self:GetNormalTexture();
+							tex:ClearAllPoints();
+							tex:SetSize(self:GetSize());
+							tex:SetPoint("CENTER", 1, 0);
+						  </OnMouseDown>
+						  <OnMouseUp>
+							local tex = self:GetNormalTexture();
+							tex:SetAllPoints();
+						  </OnMouseUp>
+						</Scripts>
+						<NormalTexture file="Interface\RaidFrame\RaidPanel-Toggle">
+						  <TexCoords left="0.5" right="1" top="0" bottom="1"/>
+						</NormalTexture>
+					</Button>
+					<Button parentKey="EditTitleButton" inherits="UIPanelButtonTemplate" text="Edit Title">
+						<Size x="150" y="22"/>
+						<Anchors>
+							<Anchor point="TOP" relativeKey="$parent.Inset" relativePoint="TOP" x="0" y="-8"/>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								StaticPopup_Show( "EPSILONBOOK_EDITBOOKTITLE", nil, nil, EpsilonBookFrame.TitleText:GetText() )
+							</OnClick>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Edit Title", 1, 1, 1)
+								GameTooltip:AddLine("Choose a title for this book.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+					</Button>
+					<Button parentKey="EditIconButton" inherits="UIPanelButtonTemplate" text="Edit Icon">
+						<Size x="150" y="22"/>
+						<Anchors>
+							<Anchor point="TOP" relativeKey="$parent.EditTitleButton" relativePoint="BOTTOM" x="0" y="-4"/>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								EpsilonBookIconPicker_Open( EpsilonBookFrame );
+							</OnClick>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Edit Icon", 1, 1, 1)
+								GameTooltip:AddLine("Choose an icon for this book.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+					</Button>
+					<Button parentKey="DeletePageButton" inherits="UIPanelButtonTemplate" text="Delete Page">
+						<Size x="150" y="22"/>
+						<Anchors>
+							<Anchor point="TOP" relativeKey="$parent.EditIconButton" relativePoint="BOTTOM" x="0" y="-4"/>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								EpsilonBookEditor_DeletePage()
+							</OnClick>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Delete Page", 1, 1, 1)
+								GameTooltip:AddLine("Delete the current page from the book.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+					</Button>
+					<Button parentKey="InsertPageBeforeButton" inherits="UIPanelButtonTemplate" text="Add Page Before">
+						<Size x="150" y="22"/>
+						<Anchors>
+							<Anchor point="TOP" relativeKey="$parent.DeletePageButton" relativePoint="BOTTOM" x="0" y="-4"/>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								EpsilonBookEditor_InsertPage( true )
+							</OnClick>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Add Page Before", 1, 1, 1)
+								GameTooltip:AddLine("Insert a page before the current page.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+					</Button>
+					<Button parentKey="InsertPageAfterButton" inherits="UIPanelButtonTemplate" text="Add Page After">
+						<Size x="150" y="22"/>
+						<Anchors>
+							<Anchor point="TOP" relativeKey="$parent.InsertPageBeforeButton" relativePoint="BOTTOM" x="0" y="-4"/>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								EpsilonBookEditor_InsertPage( false )
+							</OnClick>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Add Page After", 1, 1, 1)
+								GameTooltip:AddLine("Insert a page after the current page.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+					</Button>
+					<Button parentKey="MaterialButton" enableMouse="true" inherits="UIDropDownMenuTemplate">
+						<Size x="135" y="22"/>
+						<Anchors>
+						  <Anchor point="TOP" relativeKey="$parent.InsertPageAfterButton" relativePoint="BOTTOM" x="-24" y="-16"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormal" justifyH="CENTER" text="Material">
+									<Anchors>
+									  <Anchor point="BOTTOM" relativePoint="TOP" x="20" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnLoad>
+								UIDropDownMenu_Initialize( self, EpsilonBookEditorMaterial_OnLoad )
+								UIDropDownMenu_SetText(self, "Book")
+								UIDropDownMenu_SetWidth(self, 135, 5)
+							</OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Book Material", 1, 1, 1)
+								GameTooltip:AddLine("Choose a background texture for this book.", 1.0, 0.81, 0.0, true)
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+				    </Button>
+					<Button parentKey="FontButtonReg" enableMouse="true" inherits="UIDropDownMenuTemplate">
+						<Size x="70" y="22"/>
+						<Anchors>
+						  <Anchor point="TOPLEFT" relativeKey="$parent.MaterialButton" relativePoint="BOTTOMLEFT" x="63" y="-10"/>
+						</Anchors>
+						<Scripts>
+						    <OnLoad>
+								UIDropDownMenu_Initialize( self, EpsilonBookEditorFont_OnLoad )
+								UIDropDownMenu_SetText(self, "Frizqt")
+								UIDropDownMenu_SetWidth(self, 70, 5)
+						    </OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Font Family (P)", 1, 1, 1);
+								GameTooltip:AddLine("Choose a font family for default text and text within a set of P tags.", 1.0, 0.81, 0.0, true);
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+				    </Button>
+					<EditBox parentKey="FontSizeReg" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+						<Size x="30" y="12"/>
+						<Anchors>
+						  <Anchor point="RIGHT" relativeKey="$parent.FontButtonReg" relativePoint="LEFT" x="10" y="2"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormal" justifyH="CENTER" text="Font Options">
+									<Size y="12"/>
+									<Anchors>
+									  <Anchor point="BOTTOM" relativePoint="TOP" x="34" y="10"/>
+									</Anchors>
+								</FontString>
+								<FontString inherits="GameFontNormalLeft" justifyH="CENTER" text="P">
+									<Size x="30" y="12"/>
+									<Anchors>
+									  <Anchor point="RIGHT" relativePoint="LEFT" x="0" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+						  <OnLoad>
+							self:SetAutoFocus( false )
+							self:SetTextColor( 1, 1, 1 )
+							self:SetMaxLetters( 2 )
+							self:SetNumeric( 1 )
+							self:SetText( 13 )
+						  </OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Font Size (P)", 1, 1, 1);
+								GameTooltip:AddLine("Choose a font size for default text and text within a set of P tags.", 1.0, 0.81, 0.0, true);
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						  <OnEditFocusLost>
+							if not EpsilonBookFrame.bookData then
+								return
+							end
+
+							EpsilonBookFrame.bookData.fontSize.p = self:GetText() or 13;
+							EpsilonBookFrame_Update();
+						  </OnEditFocusLost>
+						  <OnEscapePressed function="EditBox_ClearFocus"/>
+						  <OnEnterPressed function="EditBox_ClearFocus"/>
+						  <OnTabPressed>
+							self:ClearFocus()
+							EpsilonBookEditor.FontSizeH1:SetFocus()
+						  </OnTabPressed>
+						</Scripts>
+					</EditBox>
+					<Button parentKey="FontButtonH1" enableMouse="true" inherits="UIDropDownMenuTemplate">
+						<Size x="70" y="22"/>
+						<Anchors>
+						  <Anchor point="TOPLEFT" relativeKey="$parent.FontButtonReg" relativePoint="BOTTOMLEFT" x="0" y="5"/>
+						</Anchors>
+						<Scripts>
+						    <OnLoad>
+								UIDropDownMenu_Initialize( self, EpsilonBookEditorFont_OnLoad )
+								UIDropDownMenu_SetText(self, "Frizqt")
+								UIDropDownMenu_SetWidth(self, 70, 5)
+						    </OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Font Family (H1)", 1, 1, 1);
+								GameTooltip:AddLine("Choose a font family for text within a set of H1 tags.", 1.0, 0.81, 0.0, true);
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+				    </Button>
+					<EditBox parentKey="FontSizeH1" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+						<Size x="30" y="12"/>
+						<Anchors>
+						  <Anchor point="RIGHT" relativeKey="$parent.FontButtonH1" relativePoint="LEFT" x="10" y="2"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormalLeft" justifyH="center" text="H1">
+									<Size x="30" y="12"/>
+									<Anchors>
+									  <Anchor point="RIGHT" relativePoint="LEFT" x="0" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+						  <OnLoad>
+							self:SetAutoFocus( false )
+							self:SetTextColor( 1, 1, 1 )
+							self:SetMaxLetters( 2 )
+							self:SetNumeric()
+							self:SetText( 18 )
+						  </OnLoad>
+						  <OnEditFocusLost>
+							if not EpsilonBookFrame.bookData then
+								return
+							end
+
+							EpsilonBookFrame.bookData.fontSize.h1 = tonumber( self:GetText() ) or 18;
+							EpsilonBookFrame_Update();
+						  </OnEditFocusLost>
+						  <OnEscapePressed function="EditBox_ClearFocus"/>
+						  <OnEnterPressed function="EditBox_ClearFocus"/>
+						  <OnTabPressed>
+							self:ClearFocus()
+							EpsilonBookEditor.FontSizeH2:SetFocus()
+						  </OnTabPressed>
+						</Scripts>
+					</EditBox>
+					<Button parentKey="FontButtonH2" enableMouse="true" inherits="UIDropDownMenuTemplate">
+						<Size x="70" y="22"/>
+						<Anchors>
+						  <Anchor point="TOPLEFT" relativeKey="$parent.FontButtonH1" relativePoint="BOTTOMLEFT" x="0" y="5"/>
+						</Anchors>
+						<Scripts>
+						    <OnLoad>
+								UIDropDownMenu_Initialize( self, EpsilonBookEditorFont_OnLoad )
+								UIDropDownMenu_SetText(self, "Frizqt")
+								UIDropDownMenu_SetWidth(self, 70, 5)
+						    </OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Font Family (H2)", 1, 1, 1);
+								GameTooltip:AddLine("Choose a font family for text within a set of H2 tags.", 1.0, 0.81, 0.0, true);
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+				    </Button>
+					<EditBox parentKey="FontSizeH2" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+						<Size x="30" y="12"/>
+						<Anchors>
+						  <Anchor point="RIGHT" relativeKey="$parent.FontButtonH2" relativePoint="LEFT" x="10" y="2"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormalLeft" justifyH="center" text="H2">
+									<Size x="30" y="12"/>
+									<Anchors>
+									  <Anchor point="RIGHT" relativePoint="LEFT" x="0" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+						  <OnLoad>
+							self:SetAutoFocus( false )
+							self:SetTextColor( 1, 1, 1 )
+							self:SetMaxLetters( 2 )
+							self:SetNumeric()
+							self:SetText( 16 )
+						  </OnLoad>
+						  <OnEditFocusLost>
+							if not EpsilonBookFrame.bookData then
+								return
+							end
+
+							EpsilonBookFrame.bookData.fontSize.h2 = tonumber( self:GetText() ) or 16;
+							EpsilonBookFrame_Update();
+						  </OnEditFocusLost>
+						  <OnEscapePressed function="EditBox_ClearFocus"/>
+						  <OnEnterPressed function="EditBox_ClearFocus"/>
+						</Scripts>
+					</EditBox>
+					<Button parentKey="FontButtonH3" enableMouse="true" inherits="UIDropDownMenuTemplate">
+						<Size x="70" y="22"/>
+						<Anchors>
+						  <Anchor point="TOPLEFT" relativeKey="$parent.FontButtonH2" relativePoint="BOTTOMLEFT" x="0" y="5"/>
+						</Anchors>
+						<Scripts>
+						    <OnLoad>
+								UIDropDownMenu_Initialize( self, EpsilonBookEditorFont_OnLoad )
+								UIDropDownMenu_SetText(self, "Frizqt")
+								UIDropDownMenu_SetWidth(self, 70, 5)
+						    </OnLoad>
+							<OnEnter>
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+								GameTooltip:AddLine("Font Family (H3)", 1, 1, 1);
+								GameTooltip:AddLine("Choose a font family for text within a set of H3 tags.", 1.0, 0.81, 0.0, true);
+								GameTooltip:Show();
+							</OnEnter>
+							<OnLeave>
+								GameTooltip:Hide();
+							</OnLeave>
+						</Scripts>
+				    </Button>
+					<EditBox parentKey="FontSizeH3" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+						<Size x="30" y="12"/>
+						<Anchors>
+						  <Anchor point="RIGHT" relativeKey="$parent.FontButtonH3" relativePoint="LEFT" x="10" y="2"/>
+						</Anchors>
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString inherits="GameFontNormalLeft" justifyH="center" text="H3">
+									<Size x="30" y="12"/>
+									<Anchors>
+									  <Anchor point="RIGHT" relativePoint="LEFT" x="0" y="0"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+						  <OnLoad>
+							self:SetAutoFocus( false )
+							self:SetTextColor( 1, 1, 1 )
+							self:SetMaxLetters( 2 )
+							self:SetNumeric()
+							self:SetText( 16 )
+						  </OnLoad>
+						  <OnEditFocusLost>
+							if not EpsilonBookFrame.bookData then
+								return
+							end
+
+							EpsilonBookFrame.bookData.fontSize.h3 = tonumber( self:GetText() ) or 14;
+							EpsilonBookFrame_Update();
+						  </OnEditFocusLost>
+						  <OnEscapePressed function="EditBox_ClearFocus"/>
+						  <OnEnterPressed function="EditBox_ClearFocus"/>
+						</Scripts>
+					</EditBox>
+					<Frame parentKey="FormatBar">
+						<Size x="265" y="36"/>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" x="0" y="38"/>
+						</Anchors>
+						<Frames>
+
+						  <Button name="$parentColourButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="2" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Colour", 1, 1, 1);
+									GameTooltip:AddLine("Insert a text colour tag.");
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The colour tag uses this format:|n|n|cFF808080{colour:|cFFFF0000RR|r|cFF00FF00GG|r|cFF0000FFBB|r}|rtext|cFF808080{/colour}|r|n|nEach pair of digits represents a colour value as a hexidecimal number.", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0, 0.25, 0, 0.25 )
+								</OnLoad>
+								<OnClick>
+									PlaySound( 54132 )
+									EpsilonBookColourPicker_Open();
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentIconButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentColourButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Icon", 1, 1, 1);
+									GameTooltip:AddLine("Insert an inline icon.");
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The icon tag uses this format:|n|n|cFF808080{icon:|rpath|cFF808080:|rsize|cFF808080}|r|n|nThe path provided must be the full file name of the icon.", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.25, 0.5, 0, 0.25 )
+								</OnLoad>
+								<OnClick>
+									PlaySound( 54132 )
+									EpsilonBookIconPicker_Open( EpsilonBookEditor );
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentImageButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentIconButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Image", 1, 1, 1);
+									GameTooltip:AddLine("Insert an inline image.");
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The image tag uses this format:|n|n|cFF808080{img:|rpath|cFF808080:|rwidth|cFF808080:|rheight|cFF808080:|ralign|cFF808080}|r|n|nThe path provided must be the full file name of the image.", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.5, 0.75, 0, 0.25 )
+								</OnLoad>
+								<OnClick>
+									PlaySound( 54132 )
+									EpsilonBookTexturePicker_Open();
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentListButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentImageButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("List", 1, 1, 1);
+									GameTooltip:AddLine("Insert a bulleted list.")
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0, 0.25, 0.25, 0.5 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_Insert( "∙ Item 1|n∙ Item 2|n∙ Item 3" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentAlignLeftButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentListButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Left Alignment", 1, 1, 1);
+									GameTooltip:AddLine("Insert a left alignment tag.");
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0, 0.25, 0.75, 1.0 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "p:l", "p" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentAlignMiddleButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentAlignLeftButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Center Alignment", 1, 1, 1);
+									GameTooltip:AddLine("Insert a center alignment tag.")
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.25, 0.5, 0.75, 1.0 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "p:c", "p" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentAlignRightButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentAlignMiddleButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Right Alignment", 1, 1, 1);
+									GameTooltip:AddLine("Insert a right alignment tag.")
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.5, 0.75, 0.75, 1.0 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "p:r", "p" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentH1Button" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="$parentColourButton" relativePoint="BOTTOMLEFT" x="0" y="4"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("H1", 1, 1, 1);
+									GameTooltip:AddLine("Insert an H1 tag.")
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The H1 tag uses this format:|n|n|cFF808080{H1:|ralign|cFF808080}|rtext|cFF808080{/H1}|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad>
+									self.icon:SetTexCoord( 0.25, 0.5, 0.5, 0.75 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "h1:l", "h1" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentH2Button" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentH1Button" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("H2", 1, 1, 1);
+									GameTooltip:AddLine("Insert an H2 tag.")
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The H2 tag uses this format:|n|n|cFF808080{H2:|ralign|cFF808080}|rtext|cFF808080{/H2}|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad>
+									self.icon:SetTexCoord( 0.5, 0.75, 0.5, 0.75 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "h2:l", "h2" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentH3Button" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentH2Button" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("H3", 1, 1, 1);
+									GameTooltip:AddLine("Insert an H3 tag.")
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The H3 tag uses this format:|n|n|cFF808080{H3:|ralign|cFF808080}|rtext|cFF808080{/H3}|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad>
+									self.icon:SetTexCoord( 0.75, 1, 0.5, 0.75 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_InsertTag( "h3:l", "h3" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentHyperlinkButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentH3Button" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("URL Link", 1, 1, 1);
+									GameTooltip:AddLine("Insert a URL link.")
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The URL link tag uses this format:|n|n|cFF808080{url:|rurl|cFF808080}|rtext|cFF808080{/url}|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.75, 1, 0.75, 1 )
+								</OnLoad>
+								<OnClick>
+									StaticPopup_Show( "EPSILONBOOK_INSERTURLLINK" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentPageLinkButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentHyperlinkButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Page Link", 1, 1, 1);
+									GameTooltip:AddLine("Insert a link to another page of this book.")
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The page link tag uses this format:|n|n|cFF808080{link:|rpage|cFF808080}|rtext|cFF808080{/link}|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.25, 0.5, 0.25, 0.5 )
+								</OnLoad>
+								<OnClick>
+									StaticPopup_Show( "EPSILONBOOK_INSERTPAGELINK" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentWowLinkButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentPageLinkButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("In-Game Hyperlink", 1, 1, 1);
+									GameTooltip:AddLine("Insert a spell or item hyperlink.");
+									GameTooltip:AddLine("|cFF00ADEFTip:|r The in-game hyperlink tag uses this format:|n|n|cFF808080{|ritemString or spellString|cFF808080}|r|n|nAny valid itemString or spellString is acceptable.|n|nExample: {spell:1449} for |cff67BCFF[Arcane Explosion]|r", 1, 1, 1, true);
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0, 0.25, 0.5, 0.75 )
+								</OnLoad>
+								<OnClick>
+									StaticPopup_Show( "EPSILONBOOK_INSERTWOWLINK" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  <Button name="$parentRuleButton" inherits="EpsilonBookFormatButtonTemplate">
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="$parentWowLinkButton" relativePoint="RIGHT" x="0" y="0"/>
+							</Anchors>
+							<Scripts>
+								<OnEnter>
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+									GameTooltip:AddLine("Line Rule", 1, 1, 1);
+									GameTooltip:AddLine("Insert a horizontal line rule.");
+									GameTooltip:Show()
+								</OnEnter>
+								<OnLoad inherit="prepend">
+									self.icon:SetTexCoord( 0.75, 1, 0, 0.25 )
+								</OnLoad>
+								<OnClick>
+									EpsilonBookEditor_Insert( "{rule}" )
+								</OnClick>
+							</Scripts>
+						  </Button>
+
+						  </Frames>
+					  </Frame>
+				</Frames>
+			</Frame>
+			<Button parentKey="ReturnButton" name="$parentReturnButton" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.portrait" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<Texture parentKey="Icon" file="Interface\Buttons\UI-RefreshButton">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="0"/>
+							</Anchors>
+							<TexCoords left="1" right="0" top="0" bottom="1"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Animations>
+					<AnimationGroup parentKey="Hover" looping="REPEAT">
+						<Rotation startDelay="1" endDelay="1" smoothing="NONE" childKey="Icon" duration="0.3" order="1" degrees="360">
+							<Origin point="CENTER"/>
+						</Rotation>
+					</AnimationGroup>
+				</Animations>
+				<Scripts>
+					<OnMouseDown>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
+					</OnMouseDown>
+					<OnMouseUp>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
+					</OnMouseUp>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText( "Return to Library", 1, 1, 1 );
+						GameTooltip:AddLine("Return to the Book Library.", 1.0, 0.81, 0.0, true);
+						GameTooltip:Show();
+						self.Hover:Play();
+					</OnEnter>
+					<OnClick>
+						EpsilonBookLibrary_Show()
+						PlaySound(SOUNDKIT.IG_SPELLBOOK_CLOSE);
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+						self.Hover:Stop();
+					</OnLeave>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				ButtonFrameTemplate_HideButtonBar(self);
+
+				self:SetClampedToScreen( true )
+				self:RegisterForDrag( "LeftButton" )
+				self:SetScript( "OnDragStart", self.StartMoving )
+				self:SetScript( "OnDragStop", self.StopMovingOrSizing )
+
+				if self.NineSlice then
+					self.NineSlice:SetFrameLevel(1)
+				end
+
+				EpsilonBookCurrentPage:SetText( "1/1" );
+			</OnLoad>
+			<OnShow>
+				PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
+			</OnShow>
+			<OnHide>
+				EpsilonBookFrame_Hide( self )
+				PlaySound(SOUNDKIT.IG_SPELLBOOK_CLOSE);
+			</OnHide>
+		</Scripts>
+	</Frame>
+
+</Ui>
