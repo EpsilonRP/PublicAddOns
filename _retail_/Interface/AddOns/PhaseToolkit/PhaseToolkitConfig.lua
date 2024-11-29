@@ -8,6 +8,16 @@ PhaseToolkitPanel.LangList = {
 	"Spanish",
 	"German",
 }
+
+-- Fallback handler for if a translation doesn't exist, use the original string name.
+local translation_fallback_meta = {
+	__index = function(_, key)
+		-- If the key doesn't exist, return the key itself
+		return key
+	end
+}
+-- usage: setmetatable(translationTable, translation_fallback_meta)
+
 ------------------------------------------------------------------------------------------------------------
 
 local LangFR = {
@@ -268,6 +278,8 @@ local LangFR = {
 	["Twinkle"] = "Scintillement",
 	["Pulsars"] = "Pulsars"
 }
+setmetatable(LangFR, translation_fallback_meta)
+
 local LangES = {
 	["AutoRefreshNPCTooltip"] = "Actualiza automáticamente la raza y el género para que coincidan con el PNJ seleccionado al cambiar de blanco.",
 	["auto update Npc"] = "Actualizar Npc",
@@ -526,6 +538,8 @@ local LangES = {
 	["Twinkle"] = "Centelleo",
 	["Pulsars"] = "Púlsares"
 }
+setmetatable(LangES, translation_fallback_meta)
+
 local LangDE = {
 	["AutoRefreshNPCTooltip"] = "Automatische Aktualisierung der Spezies und des Geschlechts, damit sie mit dem ausgewählten NPC übereinstimmen, wenn das Ziel geändert wird",
 	["auto update Npc"] = "Aktualisieren Npc",
@@ -784,6 +798,8 @@ local LangDE = {
 	["Twinkle"] = "Funkeln",
 	["Pulsars"] = "Pulsare"
 }
+setmetatable(LangDE, translation_fallback_meta)
+
 local LangEN = {
 	["AutoRefreshNPCTooltip"] = "Automatically refresh race & gender to match the selected NPC when changing target",
 	["auto update Npc"] = "Auto Update NPC",
@@ -1042,6 +1058,18 @@ local LangEN = {
 	["Twinkle"] = "Twinkle",
 	["Pulsars"] = "Pulsars"
 }
+setmetatable(LangEN, translation_fallback_meta)
+
+
+local function registerNewString(EN, FR, ES, DE)
+	if not EN then return end
+	LangEN[EN] = EN
+	if FR then LangFR[EN] = FR end
+	if ES then LangES[EN] = ES end
+	if DE then LangDE[EN] = DE end
+end
+
+
 
 local langMap = {
 	English = LangEN,

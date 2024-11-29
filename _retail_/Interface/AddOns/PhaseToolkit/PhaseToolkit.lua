@@ -1,6 +1,8 @@
 --[[
 Define the Addon NameSpace
 --]]
+---@diagnostic disable: codestyle-check
+---@format disable
 
 local addonName, ns = ...
 PhaseToolkit = {}
@@ -8,7 +10,7 @@ PhaseToolkit = {}
 local function dump(obj, indent)
     indent = indent or 0
     local formatting = string.rep("  ", indent)
-    
+
     if type(obj) == "table" then
         print(formatting .. "{")
         for k, v in pairs(obj) do
@@ -39,10 +41,10 @@ PhaseToolkit.MapIconInfo = {
 PhaseToolkit.itemCreatorData={}
 PhaseToolkit.CommandToSend={}
 PhaseToolkit.itemCreatorData.additemOption={
-	{text="anyone",value=false},
-	{text="character",value=false},
-	{text="member",value=false},
-	{text="officer",value=false},
+	{text="Anyone",value=false},
+	{text="Character",value=false},
+	{text="Member",value=false},
+	{text="Officer",value=false},
 }
 PhaseToolkit.currentWhitelistType=""
 
@@ -1440,22 +1442,22 @@ PhaseToolkit.itemInventoryType={
 	{name="Feet",inventoryTypeId=8,usableFor=4},
 	{name="Wrist",inventoryTypeId=9,usableFor=4},
 	{name="Hands",inventoryTypeId=10,usableFor=4},
+	{name="Back (Cloak)",inventoryTypeId=16,usableFor=4},
 	{name="Finger",inventoryTypeId=11,usableFor=4},
 	{name="Trinket",inventoryTypeId=12,usableFor=4},
-	{name="Weapon",inventoryTypeId=13,usableFor=2},
-	{name="Off hand",inventoryTypeId=14,usableFor=2},
-	{name="Ranged",inventoryTypeId=15,usableFor=2},
-	{name="Back",inventoryTypeId=16,usableFor=4},
-	{name="Two-hand",inventoryTypeId=17,usableFor=2},
 	{name="Tabard",inventoryTypeId=19,usableFor=4},
 	{name="Robe",inventoryTypeId=20,usableFor=4},
-	{name="Main hand",inventoryTypeId=21,usableFor=2},
-	{name="Off hand",inventoryTypeId=22,usableFor=2},
 	{name="Holdable",inventoryTypeId=23,usableFor=4},
-	{name="Thrown",inventoryTypeId=25,usableFor=2},
-	{name="Ranged Right",inventoryTypeId=26,usableFor=2},
 	{name="Quiver",inventoryTypeId=27,usableFor=4},
 	{name="Relic",inventoryTypeId=28,usableFor=4},
+	{name="One-hand",inventoryTypeId=13,usableFor=2},
+	{name="Two-hand",inventoryTypeId=17,usableFor=2},
+	{name="Off hand (Shield)",inventoryTypeId=14,usableFor=2},
+	{name="Ranged",inventoryTypeId=15,usableFor=2},
+	{name="Main hand",inventoryTypeId=21,usableFor=2},
+	{name="Off hand (Weapon)",inventoryTypeId=22,usableFor=2},
+	{name="Thrown",inventoryTypeId=25,usableFor=2},
+	{name="Ranged Right",inventoryTypeId=26,usableFor=2},
 }
 
 PhaseToolkit.itemBonding={
@@ -1783,7 +1785,7 @@ end
 
 function PhaseToolkit.ShowTooltip(self, tooltip)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT") -- Positionne le tooltip à droite du bouton
-	GameTooltip:SetText(tooltip, 1, 1, 1)   -- Définit le texte du tooltip
+	GameTooltip:SetText(tooltip, 1, 1, 1, 1, true)   -- Définit le texte du tooltip
 	GameTooltip:Show()                      -- Affiche le tooltip
 end
 
@@ -1799,6 +1801,16 @@ end
 
 function PhaseToolkit.HideTooltip()
 	GameTooltip:Hide() -- Cache le tooltip
+end
+
+local function genericTooltipOnEnter(self)
+	PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang[self.tooltipText] or self.tooltipText)
+end
+
+function PhaseToolkit.RegisterTooltip(frame, tooltip)
+	frame.tooltipText = tooltip
+	frame:HookScript("OnEnter", genericTooltipOnEnter)
+	frame:HookScript("OnLeave", PhaseToolkit.HideTooltip)
 end
 
 function PhaseToolkit.RemoveStringFromTable(t, strToRemove)
@@ -2223,14 +2235,7 @@ function PhaseToolkit.createCustomParamFrame()
 		PhaseToolkit.showCustomButton.icon:SetAllPoints()
 		PhaseToolkit.showCustomButton.currentIcon = "450905"
 		PhaseToolkit.showCustomButton:SetScript("OnClick", PhaseToolkit.switchOpenCustomGridButton)
-		PhaseToolkit.showCustomButton:SetScript("OnEnter", function(self)
-			PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Show Custom Option"])
-		end)
-
-		PhaseToolkit.showCustomButton:SetScript("OnLeave", function(self)
-			PhaseToolkit.HideTooltip()
-		end)
-
+		PhaseToolkit.RegisterTooltip(PhaseToolkit.showCustomButton, "Show Custom Option")
 
 		local AllRandomButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
 		AllRandomButton:SetSize(25, 25)
@@ -2241,14 +2246,8 @@ function PhaseToolkit.createCustomParamFrame()
 		AllRandomButton:SetScript("OnClick", function()
 			PhaseToolkit.RandomiseNpc()
 		end)
+		PhaseToolkit.RegisterTooltip(AllRandomButton, "Randomise customisations")
 
-		AllRandomButton:SetScript("OnEnter", function(self)
-			PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Randomise customisations"] or "Randomise customisations")
-		end)
-
-		AllRandomButton:SetScript("OnLeave", function(self)
-			PhaseToolkit.HideTooltip()
-		end)
 
 		local SetNpcName = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
 		SetNpcName:SetSize(25, 25)
@@ -2259,15 +2258,7 @@ function PhaseToolkit.createCustomParamFrame()
 		SetNpcName:SetScript("OnClick", function()
 			PhaseToolkit.PromptForNPCName()
 		end)
-
-		SetNpcName:SetScript("OnEnter", function(self)
-			PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Set NPC name"] or "Set NPC name")
-		end)
-
-		SetNpcName:SetScript("OnLeave", function(self)
-			PhaseToolkit.HideTooltip()
-		end)
-
+		PhaseToolkit.RegisterTooltip(SetNpcName, "Set NPC name")
 
 
 		local SetNpcSubName = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
@@ -2279,14 +2270,9 @@ function PhaseToolkit.createCustomParamFrame()
 		SetNpcSubName:SetScript("OnClick", function()
 			PhaseToolkit.PromptForNPCSubName()
 		end)
+		PhaseToolkit.RegisterTooltip(SetNpcSubName, "Set NPC Subname")
 
-		SetNpcSubName:SetScript("OnEnter", function(self)
-			PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Set NPC Subname"] or "Set NPC Subname")
-		end)
 
-		SetNpcSubName:SetScript("OnLeave", function(self)
-			PhaseToolkit.HideTooltip()
-		end)
 		PhaseToolkit.CustomMainFrame:Hide()
 		PhaseToolkit.CustomMainFrame:Show()
 	end
@@ -2416,12 +2402,12 @@ function PhaseToolkit.ShowItemClassDropdown(_dropdown,_subDropdown)
 		PhaseToolkit.itemCreatorData.itemClass=realvalue
 		-- For certain class we disable sheath and stackable itemcreator buttons
 		--and we get rid of the inventoryType dropdown if we are not in those two option,cause yes.
-		-- and why bother with giving a displayID cause It's not equippable 
-		if(PhaseToolkit.itemCreatorData.itemClass==2 or PhaseToolkit.itemCreatorData.itemClass==4) then 
+		-- and why bother with giving a displayID cause It's not equippable
+		if(PhaseToolkit.itemCreatorData.itemClass==2 or PhaseToolkit.itemCreatorData.itemClass==4) then
 			PhaseToolkit.DisableComponent(PhaseToolkit.itemCreatorCheckboxStackable)
 			UIDropDownMenu_EnableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
 			PhaseToolkit.EnableCompoment(PhaseToolkit.itemdisplayIdEditBox)
-			
+
 		else
 			PhaseToolkit.EnableCompoment(PhaseToolkit.itemCreatorCheckboxStackable)
 			UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
@@ -2510,7 +2496,7 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			sendAddonCmd("forge item set name "..itemLink..PhaseToolkit.itemCreatorData.itemName,nil,false)
 		end
 	 end)
-	
+
 	C_Timer.After(0.5, function()
 		if(PhaseToolkit.itemCreatorData.itemDescription~=nil) then
 			local maxDescriptionSize=254-(string.len("f i s de ")+string.len(itemLink))
@@ -2610,7 +2596,7 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		end
 	end)
 	if(PhaseToolkit.itemCreatorData.whitelistedChar~=nil and #PhaseToolkit.itemCreatorData.whitelistedChar>0) then
-		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedChar do 
+		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedChar do
 			C_Timer.After(0.2, function()
 				sendAddonCmd("forge item set whitelist character add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedChar[i],nil,false)
 			end)
@@ -2625,7 +2611,7 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		end
 	end
 	if(PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer~=nil and #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer>0) then
-		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer do 
+		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer do
 			C_Timer.After(0.2, function()
 				sendAddonCmd("forge item set whitelist officer add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer[i],nil,false)
 			end)
@@ -2633,7 +2619,7 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 	end
 
 	PhaseToolkit.itemCreatorData.itemLink=nil
-	-- we reset everything now  
+	-- we reset everything now
 	-- Need a delay  wtf was I thinking?
 	C_Timer.After(1.5, function()
 		for key in pairs(PhaseToolkit.itemCreatorData) do
@@ -2641,7 +2627,7 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		end
 		print("Item Forging done !\nyou can use your item !")
 	end)
-	
+
 end
 
 function GetItemIDFromLink(itemLink)
@@ -2701,7 +2687,7 @@ local function updateFields(itemLink)
 	local content = {}
 	local isApparenceCollectedtest=false
 	local isDamagePerSecond=false
-	
+
 
 	local tooltipScanner = CreateFrame("GameTooltip", "TooltipScanner", nil, "GameTooltipTemplate")
 	tooltipScanner:SetOwner(WorldFrame, "ANCHOR_NONE") -- On le rend invisible
@@ -2771,11 +2757,11 @@ local function updateFields(itemLink)
 		description=content[8]
 	else
 		description=""
-	end	
+	end
 	if(classID==4) then
 		description=content[6]
 	end
-	
+
 	-- IN CASE WE REAAAALLLY didn't find the description..we try it all.
 	if(description==nil or description=="") then
 		for key in pairs(content) do
@@ -2789,11 +2775,11 @@ local function updateFields(itemLink)
 		description=description:gsub('"',"")
 		PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetText(description)
 	end
-	
+
 	--subclass thing
 	if(weapontype~=nil and weapontype~="") then
 		local weaponTypeObj=getWeaponTypeId(weapontype,inventoryTypeLabel)
-		if(weaponTypeObj~=nil)then 
+		if(weaponTypeObj~=nil)then
 			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSubClassDropdown,weaponTypeObj.subclassId)
 			UIDropDownMenu_SetText(PhaseToolkit.ItemSubClassDropdown,weaponTypeObj.name)
 		end
@@ -2827,11 +2813,11 @@ local function updateFields(itemLink)
 	end
 
 	PhaseToolkit.nameInputBox:SetText(itemName)
-	
+
 	C_Timer.After(1, function()
 		PhaseToolkit.ModifyItemData=true
 	  end)
-	
+
 end
 
 
@@ -2892,13 +2878,13 @@ function PhaseToolkit.createItemCreatorFrame()
 	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
 
 	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.itemIdField:HasFocus() then 
+		if PhaseToolkit.itemIdField:HasFocus() then
 			PhaseToolkit.itemIdField:Insert(link)
 			PhaseToolkit.itemCreatorData.itemLink=PhaseToolkit.itemIdField:GetText()
 			PhaseToolkit.DisableComponent(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON)
 			PhaseToolkit.EnableCompoment(PhaseToolkit.ApplyDescriptionButton)
 			updateFields(PhaseToolkit.itemCreatorData.itemLink)
-		else 
+		else
 			orig_ChatEdit_InsertLink(link)
 		end
 	end
@@ -2919,7 +2905,7 @@ function PhaseToolkit.createItemCreatorFrame()
 		if(PhaseToolkit.itemCreatorData.itemLink==nil) then
 			PhaseToolkit.previousItems = updateBagContents()
 			PhaseToolkit.ItemCreatorFrame:RegisterEvent("BAG_UPDATE")
-		
+
 
 			PhaseToolkit.ItemCreatorFrame:SetScript("OnEvent",function() C_Timer.After(1, function()
 					for _, itemID in ipairs(PhaseToolkit.currentItems) do
@@ -2938,15 +2924,11 @@ function PhaseToolkit.createItemCreatorFrame()
 				PhaseToolkit.currentItems=updateBagContents()
 			end)
 		end
-		
+
 	end)
 
 
-
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"FORGE ! (may take some time)")
-	end)
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+	PhaseToolkit.RegisterTooltip(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON, "FORGE ! (may take some time)")
 
 	-- Information Name
 
@@ -2988,8 +2970,8 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.DescriptionInputBox:SetPoint("TOP", PhaseToolkit.nameInputBox, "BOTTOM", 0, -15)
 	PhaseToolkit.DescriptionInputBox:SetSize(330, 85)
 
-	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnterPressed", function(self) 
-		self:ClearFocus() 
+	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnterPressed", function(self)
+		self:ClearFocus()
 		PhaseToolkit.itemCreatorData.itemDescription=self:GetText();
 		if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.ModifyItemData) then
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
@@ -3017,7 +2999,7 @@ function PhaseToolkit.createItemCreatorFrame()
 				 end)
 			end
 
-		end	
+		end
 		end)
 
 	local labelDescriptionInputBox = informationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -3030,11 +3012,8 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.ApplyDescriptionButton.icon = PhaseToolkit.ApplyDescriptionButton:CreateTexture(nil, "OVERLAY")
 	PhaseToolkit.ApplyDescriptionButton.icon:SetTexture("Interface\\Icons\\achievement_quests_completed_twilighthighlands")
 	PhaseToolkit.ApplyDescriptionButton.icon:SetAllPoints()
-	
-	PhaseToolkit.ApplyDescriptionButton:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(PhaseToolkit.ApplyDescriptionButton,"Apply the description !\nusefull if you copy/pasted\n or if your description is BIG")
-	end)
-	PhaseToolkit.ApplyDescriptionButton:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+
+	PhaseToolkit.RegisterTooltip(PhaseToolkit.ApplyDescriptionButton, "Apply the description !\nusefull if you copy/pasted\n or if your description is BIG")
 
 	PhaseToolkit.ApplyDescriptionButton:SetScript("OnClick",function(self)
 		PhaseToolkit.itemCreatorData.itemDescription=PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:GetText();
@@ -3049,7 +3028,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	end)
 
 
-	
+
 
 	-- Main property Frame
 
@@ -3091,33 +3070,26 @@ function PhaseToolkit.createItemCreatorFrame()
 			PhaseToolkit.itemCreatorData.itemDisplayLink=nil
 		end
 	end)
-	
+
 	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
 
 	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.itemdisplayIdEditBox:HasFocus() then 
+		if PhaseToolkit.itemdisplayIdEditBox:HasFocus() then
 			PhaseToolkit.itemdisplayIdEditBox:Insert(link)
 			PhaseToolkit.itemCreatorData.itemDisplayLink=PhaseToolkit.itemdisplayIdEditBox:GetText()
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
 				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 				sendAddonCmd("forge item set display "..itemLink..PhaseToolkit.itemCreatorData.itemDisplayLink,nil,false)
 			end
-		else 
+		else
 			orig_ChatEdit_InsertLink(link)
 		end
 	end
 	local LabeldisplayEditBox=mainProperty:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	LabeldisplayEditBox:SetText("display ID from :") 
-	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.itemdisplayIdEditBox, "TOPLEFT", 5, 0) 
+	LabeldisplayEditBox:SetText(PhaseToolkit.CurrentLang["Display ID from:"])
+	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.itemdisplayIdEditBox, "TOPLEFT", 5, 0)
 
-	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEnter",function()
-		PhaseToolkit.ShowTooltip(PhaseToolkit.itemdisplayIdEditBox,"Item Link")
-
-			end)
-
-	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnLeave",function()
-		PhaseToolkit.HideTooltip()
-	end)
+	PhaseToolkit.RegisterTooltip(PhaseToolkit.itemdisplayIdEditBox, "Item Link")
 
 	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEnterPressed",function(self)
 		if(self:GetText()~=nil) then
@@ -3159,11 +3131,11 @@ function PhaseToolkit.createItemCreatorFrame()
 
 
 	PhaseToolkit.itemCreatorCheckboxStackable = CreateFrame("CheckButton", "CheckboxStackable", displayProperty, "ChatConfigCheckButtonTemplate")
-	PhaseToolkit.itemCreatorCheckboxStackable:SetPoint("BOTTOMLEFT",displayProperty,"BOTTOMLEFT",5,5) 
-	PhaseToolkit.itemCreatorCheckboxStackable:SetSize(26, 26) 
+	PhaseToolkit.itemCreatorCheckboxStackable:SetPoint("BOTTOMLEFT",displayProperty,"BOTTOMLEFT",5,5)
+	PhaseToolkit.itemCreatorCheckboxStackable:SetSize(26, 26)
 
-	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetText("Stackable") 
-	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 5, 0) 
+	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetText("Stackable")
+	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 5, 0)
 
 	PhaseToolkit.itemCreatorCheckboxStackable:SetScript("OnClick", function(self)
 		if self:GetChecked() then
@@ -3193,32 +3165,26 @@ function PhaseToolkit.createItemCreatorFrame()
 			end
 		end
 	end)
-	
+
 	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
 
 	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.iconIdEditBox:HasFocus() then 
+		if PhaseToolkit.iconIdEditBox:HasFocus() then
 			PhaseToolkit.iconIdEditBox:Insert(link)
 			PhaseToolkit.itemCreatorData.itemIconIdOrLink=PhaseToolkit.iconIdEditBox:GetText()
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
 				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,nil,false)
 			end
-		else 
+		else
 			orig_ChatEdit_InsertLink(link)
 		end
 	end
 	local LabeldisplayEditBox=displayProperty:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	LabeldisplayEditBox:SetText("Icon from :") 
-	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.iconIdEditBox, "TOPLEFT", 5, 0) 
+	LabeldisplayEditBox:SetText(PhaseToolkit.CurrentLang["Icon from:"])
+	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.iconIdEditBox, "TOPLEFT", 5, 0)
 
-	PhaseToolkit.iconIdEditBox:SetScript("OnEnter",function()
-		PhaseToolkit.ShowTooltip(PhaseToolkit.iconIdEditBox,"item Link or ID")
-	end)
-
-	PhaseToolkit.iconIdEditBox:SetScript("OnLeave",function()
-		PhaseToolkit.HideTooltip()
-	end)
+	PhaseToolkit.RegisterTooltip(PhaseToolkit.iconIdEditBox, "Item Link or ID")
 
 	PhaseToolkit.iconIdEditBox:SetScript("OnEnterPressed",function(self)
 		if(self:GetText()~=nil) then
@@ -3245,32 +3211,37 @@ function PhaseToolkit.createItemCreatorFrame()
 	adderOptionDropdown:SetSize(100, 30)
 	adderOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-5)
 	PhaseToolkit.ShowadderOptionDropdown(adderOptionDropdown)
-
+	PhaseToolkit.RegisterTooltip(adderOptionDropdown, "Controls if the item contains a '<Made by Character>' tag when added.\n\nEnabling this will disable the Creator tag property.")
 
 	local addItemOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	addItemOptionDropdown:SetSize(100, 30)
 	addItemOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-30)
 	PhaseToolkit.addItemOptionDropdown(addItemOptionDropdown)
+	PhaseToolkit.RegisterTooltip(addItemOptionDropdown, "Controls who is allowed to add this item.\n\nIf Member / Officer is enabled, will only work for Phases specifically added to the Member / Officer whitelist (use the buttons to the right!)")
 
 	local copyOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	copyOptionDropdown:SetSize(100, 30)
 	copyOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-55)
 	PhaseToolkit.copyItemOptionDropdown(copyOptionDropdown)
+	PhaseToolkit.RegisterTooltip(copyOptionDropdown, "Controls who is allowed to copy or clone this item via 'forge item copy/clone'.")
 
 	local creatorOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	creatorOptionDropdown:SetSize(100, 30)
 	creatorOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-80)
 	PhaseToolkit.creatorItemOptionDropdown(creatorOptionDropdown)
+	PhaseToolkit.RegisterTooltip(creatorOptionDropdown, "When enabled, adds a <Made by $CreatorCharacterName> to the item.\n\nEnabling this will disable the Adder tag property.")
 
 	local infoOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	infoOptionDropdown:SetSize(100, 30)
 	infoOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-105)
 	PhaseToolkit.infoItemOptionDropdown(infoOptionDropdown)
+	PhaseToolkit.RegisterTooltip(infoOptionDropdown, "Sets if information for this item is visible to others.")
 
 	local lookupOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	lookupOptionDropdown:SetSize(100, 30)
 	lookupOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-130)
 	PhaseToolkit.lookupItemOptionDropdown(lookupOptionDropdown)
+	PhaseToolkit.RegisterTooltip(lookupOptionDropdown, "Sets if the item shows in '.lookup itemforge' for others. Will always show for the creator of the item.")
 
 	-- Whitelist Frame
 
@@ -3295,11 +3266,8 @@ function PhaseToolkit.createItemCreatorFrame()
 		PhaseToolkit.openAddCharToWhitelistFrame()
 	end)
 
-	addCharToWhitelist:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"Add a character to the Whitelist")
-	end)
-	addCharToWhitelist:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
-	
+	PhaseToolkit.RegisterTooltip(addCharToWhitelist, "Add a character to the item's whitelist, so they can add the item.")
+
 	local seeCharAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
 	seeCharAddedToListButton:SetSize(35, 35)
 	seeCharAddedToListButton:SetPoint("LEFT", addCharToWhitelist, "RIGHT", 20, 0)
@@ -3309,13 +3277,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	seeCharAddedToListButton:SetScript("OnClick", function()
 		PhaseToolkit.openWhitelistFor("character",false)
 	end)
-	
-	seeCharAddedToListButton:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"See the whitelisted Character")
-	end)
-	seeCharAddedToListButton:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
-
-
+	PhaseToolkit.RegisterTooltip(seeCharAddedToListButton, "Show a list of currently whitelisted characters.")
 
 	local addMemberToWhitelist=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
 	addMemberToWhitelist:SetSize(40, 40)
@@ -3326,11 +3288,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	addMemberToWhitelist:SetScript("OnClick", function()
 		PhaseToolkit.openAddMemberToWhitelistFrame()
 	end)
-
-	addMemberToWhitelist:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"Add members to the Whitelist")
-	end)
-	addMemberToWhitelist:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+	PhaseToolkit.RegisterTooltip(addMemberToWhitelist, "Add a Phase to the 'Members' Whitelist, allowing that Phases' members to add the item.")
 
 	local seeMemberAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
 	seeMemberAddedToListButton:SetSize(35, 35)
@@ -3341,13 +3299,8 @@ function PhaseToolkit.createItemCreatorFrame()
 	seeMemberAddedToListButton:SetScript("OnClick", function()
 		PhaseToolkit.openWhitelistFor("member",false)
 	end)
+	PhaseToolkit.RegisterTooltip(seeMemberAddedToListButton, "Show a list of Phases currently on the 'Members' Whitelist.")
 
-	seeMemberAddedToListButton:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"See whitelisted Members's phaseID")
-	end)
-	seeMemberAddedToListButton:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
-
-	
 
 	local addOfficerToWhitelist=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
 	addOfficerToWhitelist:SetSize(40, 40)
@@ -3358,28 +3311,18 @@ function PhaseToolkit.createItemCreatorFrame()
 	addOfficerToWhitelist:SetScript("OnClick", function()
 		PhaseToolkit.openAddOfficerToWhitelistFrame()
 	end)
+	PhaseToolkit.RegisterTooltip(addOfficerToWhitelist, "Add a Phase to the 'Officers' Whitelist, allowing that Phases' officers to add the item.")
 
-	addOfficerToWhitelist:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"Add Officers to the Whitelist")
-	end)
-	addOfficerToWhitelist:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
-
-	local seeOfficerddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	seeOfficerddedToListButton:SetSize(35, 35)
-	seeOfficerddedToListButton:SetPoint("LEFT", addOfficerToWhitelist, "RIGHT", 20, 0)
-	seeOfficerddedToListButton.icon = seeOfficerddedToListButton:CreateTexture(nil, "OVERLAY")
-	seeOfficerddedToListButton.icon:SetTexture("Interface\\Icons\\inv_misc_paperbundle04c")
-	seeOfficerddedToListButton.icon:SetAllPoints()
-	seeOfficerddedToListButton:SetScript("OnClick", function()
+	local seeOfficerAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
+	seeOfficerAddedToListButton:SetSize(35, 35)
+	seeOfficerAddedToListButton:SetPoint("LEFT", addOfficerToWhitelist, "RIGHT", 20, 0)
+	seeOfficerAddedToListButton.icon = seeOfficerAddedToListButton:CreateTexture(nil, "OVERLAY")
+	seeOfficerAddedToListButton.icon:SetTexture("Interface\\Icons\\inv_misc_paperbundle04c")
+	seeOfficerAddedToListButton.icon:SetAllPoints()
+	seeOfficerAddedToListButton:SetScript("OnClick", function()
 		PhaseToolkit.openWhitelistFor("officer",false)
 	end)
-	
-	seeOfficerddedToListButton:SetScript("OnEnter",function(self)
-		PhaseToolkit.ShowTooltip(self,"See whitelisted Officer's phaseID")
-	end)
-	seeOfficerddedToListButton:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
-	
-
+	PhaseToolkit.RegisterTooltip(seeOfficerAddedToListButton, "Show a list of Phases currently on the 'Officers' Whitelist.")
 
 end
 local function updateWhitelistDisplay(typeOfWhitelist, data)
@@ -3431,8 +3374,8 @@ end
 
 local function getDataFromWhitelistType(typeOfWhitelist)
 	local data={}
-		if(typeOfWhitelist=="character") then 
-			data=PhaseToolkit.itemCreatorData.whitelistedChar 
+		if(typeOfWhitelist=="character") then
+			data=PhaseToolkit.itemCreatorData.whitelistedChar
 		elseif typeOfWhitelist=="member" then
 			data=PhaseToolkit.itemCreatorData.whitelistedPhaseForMember
 		elseif typeOfWhitelist=="officer" then
@@ -3456,7 +3399,7 @@ function PhaseToolkit.openWhitelistFor(typeOfWhitelist,updating)
 		scrollFrame:SetPoint("TOPLEFT", 10, -30)
 		scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
 		PhaseToolkit.listFrame.scrollFrame = scrollFrame
-		
+
 		PhaseToolkit.currentWhitelistType=typeOfWhitelist
 		-- Initialiser l'affichage
 		updateWhitelistDisplay(typeOfWhitelist, getDataFromWhitelistType(typeOfWhitelist))
@@ -3501,19 +3444,20 @@ function PhaseToolkit.ShowadderOptionDropdown(_dropdown)
 end
 
 function PhaseToolkit.addItemOptionDropdown(_dropdown)
-	
+
 	UIDropDownMenu_Initialize(_dropdown, function(self)
 		local info = UIDropDownMenu_CreateInfo()
 
 		for _,additemOption in ipairs(PhaseToolkit.itemCreatorData.additemOption) do
 			info.text = additemOption.text
+			info.arg1 = strlower(additemOption.text)
 			info.value = additemOption.value
-			info.func = function(self)
+			info.func = function(self, arg1, arg2)
 				additemOption.value = not additemOption.value
 				if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
 					local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-					local realValue= (self.value=="true" and "on") or "off"
-					sendAddonCmd("forge item set property additem "..self.text.." "..itemLink..realValue,nil,false)
+					local realValue= (self.checked==true and "on") or "off"
+					sendAddonCmd("forge item set property additem "..arg1.." "..itemLink..realValue,nil,true)
 				end
 			end
 
@@ -3522,6 +3466,7 @@ function PhaseToolkit.addItemOptionDropdown(_dropdown)
 			if additemOption.value then
 				check = true;
 			end
+			info.isNotRadio = true
 			info.keepShownOnClick = true
 			info.checked = check;
 			UIDropDownMenu_AddButton(info)
@@ -3540,7 +3485,7 @@ function PhaseToolkit.copyItemOptionDropdown(_dropdown)
 			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 			sendAddonCmd("forge item set property copy "..itemLink..self.value,nil,false)
 		end
-		
+
 	end
 
 	UIDropDownMenu_Initialize(_dropdown, function()
@@ -3568,7 +3513,7 @@ function PhaseToolkit.copyItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetWidth(_dropdown, 140)
 	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-	
+
 end
 function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
 	local function OnClick(self)
@@ -3585,7 +3530,7 @@ function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
 		local info2=UIDropDownMenu_CreateInfo()
 		local info3=UIDropDownMenu_CreateInfo()
 
-		info.text="creator"
+		info.text="Creator"
 		info2.text="On"
 		info3.text="Off"
 
@@ -3605,7 +3550,7 @@ function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetWidth(_dropdown, 140)
 	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-	
+
 end
 function PhaseToolkit.infoItemOptionDropdown(_dropdown)
 	local function OnClick(self)
@@ -3642,7 +3587,7 @@ function PhaseToolkit.infoItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetWidth(_dropdown, 140)
 	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-	
+
 end
 function PhaseToolkit.lookupItemOptionDropdown(_dropdown)
 	local function OnClick(self)
@@ -3679,7 +3624,7 @@ function PhaseToolkit.lookupItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetWidth(_dropdown, 140)
 	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-	
+
 end
 
 function PhaseToolkit.CreateAdditionalButtonFrame()
@@ -3812,7 +3757,7 @@ function PhaseToolkit.openAddCharToWhitelistFrame()
 		PhaseToolkit.openAddCharToWhitelistFrame()
 	end)
 	editBoxForName:SetScript("OnEnterPressed",function(self)
-		if(self:GetText()~=nil and self:GetText()~="") then	
+		if(self:GetText()~=nil and self:GetText()~="") then
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.itemCreatorData.itemLink~="") then
 				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 				sendAddonCmd("forge item set whitelist character add"..itemLink..self:GetText())
@@ -3987,7 +3932,7 @@ function PhaseToolkit.changeLang(newLang)
 end
 
 -- -- -- -- -- -- -- -- -- -- -- --
---#region Listes 
+--#region Listes
 -- -- -- -- -- -- -- -- -- -- -- --
 
 --================================= Frame pour Listes ===============================--
@@ -4123,11 +4068,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		PhaseToolkit.filteredTeleList = {}
 		PhaseToolkit.PhaseNpcListSystemMessageCounter()
 	end)
-
-
-	ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["This can take a few seconds"] or "This can take a few seconds") end)
-	ButtonToFetch:SetScript("OnLeave", PhaseToolkit.HideTooltip)
-
+	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
 
 	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
 	ButtonToChangeNumberOfLine:SetSize(15, 15)
@@ -4443,10 +4384,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	ButtonToFetch:SetScript("OnClick", function()
 		PhaseToolkit.PhaseTeleListSystemMessageCounter()
 	end)
-
-	ButtonToFetch:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["This can take a few seconds"] or "This can take a few seconds") end)
-	ButtonToFetch:SetScript("OnLeave", PhaseToolkit.HideTooltip)
-
+	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
 
 	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
 	ButtonToChangeNumberOfLine:SetSize(15, 15)
@@ -4455,9 +4393,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	ButtonToChangeNumberOfLine.icon:SetTexture("Interface\\Icons\\trade_engineering")
 	ButtonToChangeNumberOfLine.icon:SetAllPoints()
 	ButtonToChangeNumberOfLine:SetScript("OnClick", PhaseToolkit.CreerFenetreLignesParPage)
-
-	ButtonToChangeNumberOfLine:SetScript("OnEnter", function(self) PhaseToolkit.ShowTooltip(self, PhaseToolkit.CurrentLang["Change list size"] or "Change list size") end)
-	ButtonToChangeNumberOfLine:SetScript("OnLeave", PhaseToolkit.HideTooltip)
+	PhaseToolkit.RegisterTooltip(ButtonToChangeNumberOfLine, "Change list size")
 
 	local function SearchAndFindTeleByText(self)
 		if self:GetText() ~= nil and self:GetText() ~= "" then
