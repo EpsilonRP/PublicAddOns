@@ -162,7 +162,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 		colorCode = "|cff00ccff",
 		hasArrow = true,
 		notCheckable = true,
-		ShouldShow = function(unit) return C_Epsilon.IsOfficer() end,
+		ShouldShow = function(unit) return C_Epsilon.IsOfficer() and UnitIsPlayer(unit) end,
 		menuList = {
 			{
 				text = "Add to Whitelist",

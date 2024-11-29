@@ -6,6 +6,8 @@ local Phase = {
 local PhaseMixin = {}
 
 local phaseLoadCallbacks = {}
+local phaseOverviewCallbacks = {}
+local currentOverviewOrder = {}
 
 local function _handleAndAssignPhaseDataTable(phaseData)
 	if not phaseData then return end
@@ -15,28 +17,17 @@ local function _handleAndAssignPhaseDataTable(phaseData)
 		phaseData = { strsplit(strchar(31), phaseData) }
 	end
 
-	local phaseID = phaseData[1]
+	local phaseID = tonumber(phaseData[1])
 
-	local keyedData = {
-		phaseID = phaseData[1],
-		name = phaseData[2],
-		icon = phaseData[3],
-		message = phaseData[4],
-		info = phaseData[5],
-		desc = phaseData[6],
-		tags = phaseData[7],
-		color = phaseData[7],
-		background = phaseData[7],
-	}
+	local _phase = Phase:CreateFromInfo(phaseID, phaseData[2], phaseData[3], phaseData[4], phaseData[5], phaseData[6], phaseData[7], phaseData[8], phaseData[9])
 
-	-- assign data to phase
-	local phase = Phase.Store[phaseID] or Phase:Create()
-	Mixin(phase.data, keyedData)
+	-- track it's order in currentOverviewOrder for possible display purposes
+	table.insert(currentOverviewOrder, _phase)
 
 	-- run callbacks
 	if phaseLoadCallbacks[phaseID] then
 		for _, callback in ipairs(phaseLoadCallbacks[phaseID]) do
-			callback()
+			callback(_phase)
 		end
 		phaseLoadCallbacks[phaseID] = nil -- Clear it
 	end
@@ -51,6 +42,9 @@ local function OnPhaseDataReceived(self, event, prefix, text, channel, sender, .
 		return -- spoofed? ignore
 	end
 
+	-- Clean out our current overview order
+	table.wipe(currentOverviewOrder)
+
 	-- parse text into data
 	local phases = { strsplit(strchar(30), text) }
 	for k, phaseDataStr in ipairs(phases) do
@@ -59,16 +53,40 @@ local function OnPhaseDataReceived(self, event, prefix, text, channel, sender, .
 			_handleAndAssignPhaseDataTable(phaseData)
 		end
 	end
+
+	for _, callback in ipairs(phaseOverviewCallbacks) do
+		callback(currentOverviewOrder, Phase.Store)
+	end
+	table.wipe(phaseOverviewCallbacks)
 end
 EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseDataReceived)
 
-local function requestOverviewData()
+function Phase:RequestOverview(callback)
 	EpsiLib.AddonCommands.SendByChat("phase overview addon")
+	if callback then
+		tinsert(phaseOverviewCallbacks, callback)
+	end
 end
 
+function Phase:GetOrderedList()
+	local list = {}
+	for _, _phase in pairs(self.Store) do
+		tinsert(list, _phase)
+	end
+	table.sort(list, function(a, b) return a.data.id < b.data.id end)
+	return list
+end
+
+function Phase:GetOverviewList()
+	return currentOverviewOrder
+end
+
+---Create a baseline phase class object & return it
+---@return PhaseClass
 function Phase:Create()
 	local phase = CreateFromMixins(PhaseMixin)
 	phase.data = {}
+	phase.loaded = false
 
 	return phase
 end
@@ -84,10 +102,21 @@ function Phase:CreateFromID(id)
 	return phase
 end
 
+---Create or Update a Phase in Store based on info
+---@param id number
+---@param name string
+---@param icon string
+---@param message string
+---@param info string
+---@param desc string
+---@param tags string
+---@param color string
+---@param background string
+---@return PhaseClass
 function Phase:CreateFromInfo(id, name, icon, message, info, desc, tags, color, background)
-	-- trust that this is being called from accurate info and allow it to replace the old data
-	--local phase = Phase.Store[id] or self:Create()
-	local phase = self:Create()
+	-- Keep using the old data as a baseline if exists, as there might be additional data stored on it
+	local phase = Phase.Store[id] or self:Create()
+	--local phase = self:Create()
 
 	phase.data.id = id
 	phase.data.name = name
@@ -99,9 +128,23 @@ function Phase:CreateFromInfo(id, name, icon, message, info, desc, tags, color, 
 	phase.data.color = color
 	phase.data.bg = background
 
+	phase.loaded = true
+
 	Phase.Store[id] = phase
 
 	return phase
+end
+
+function Phase:Get(id, callback)
+	local _phase = self:CreateFromID(id) --[[@as PhaseClass]]
+
+	if _phase.loaded then
+		callback(_phase)
+	else
+		_phase:ContinueOnPhaseLoad(callback)
+	end
+
+	return _phase
 end
 
 function PhaseMixin:_Clear()
@@ -120,11 +163,15 @@ end
 function PhaseMixin:_SetPhaseID(id, noClear)
 	if not noClear then
 		self:_Clear()
+		self.loaded = false
 	end
 	self.data.id = id
 	Phase.Store[id] = self
+
+	self:_Init()
 end
 
+-- Goal of this function is singular calls to request a specific phases information
 function PhaseMixin:_Init()
 	--C_Epsilon.RequestPhaseInfo(self.id) -- Maybe?
 end
@@ -155,7 +202,6 @@ end
 
 function PhaseMixin:GetPhaseColor()
 	return (self.data.color and CreateColorFromHexCode(self.data.color)) or nil
-	--return self.data.color -- This should be converted into a color object - is that at request time, or at declaration though?
 end
 
 function PhaseMixin:GetPhaseBackground()
@@ -164,8 +210,8 @@ end
 
 function PhaseMixin:ContinueOnPhaseLoad(callback)
 	local id = self:GetPhaseID()
-	if Phase.Store[id] then
-		callback()
+	if self.loaded then
+		callback(self)
 	else
 		if not phaseLoadCallbacks[id] then phaseLoadCallbacks[id] = {} end
 		tinsert(phaseLoadCallbacks[id], callback)
