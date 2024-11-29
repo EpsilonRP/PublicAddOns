@@ -640,6 +640,9 @@ local function processCompanionProfile(text, npcFullID)
 		local profile = phaseData['profile'];
 		TRP3_API.companions.register.setProfile(npcFullID, profileID);
 		TRP3_API.companions.register.setProfileData(profileID, profile);
+		if C_Epsilon.IsOwner() or C_Epsilon.IsOfficer() then
+			TRP3_Notes[profileID] = phaseData['notes'];
+		end
 	end
 end
 

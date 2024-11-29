@@ -39,7 +39,7 @@ local getConfigValue = TRP3_API.configuration.getValue;
 local function displayNotes(context)
 
 	local profileID = context.profileID;
-	if context.isPlayer or context.IsCompanion then
+	if context.isPlayer and not context.isCompanion then
 		profileID = getPlayerCurrentProfileID();
 		TRP3_RegisterNotesViewAccount:Hide();
 		TRP3_RegisterNotesViewProfile:SetPoint("BOTTOM", TRP3_RegisterNotesView, "BOTTOM", 0, 10);
@@ -50,22 +50,30 @@ local function displayNotes(context)
 
 	local currentName = GetCurrentUser():GetRoleplayingName();
 	local profileNotesTitle = loc.REG_PLAYER_NOTES_PROFILE_NONAME;
-	if currentName then
+	if currentName and not context.isCompanion then
 		profileNotesTitle = string.format(loc.REG_PLAYER_NOTES_PROFILE, currentName);
+	elseif context.isCompanion then
+		profileNotesTitle = loc.REG_PLAYER_NOTES_DM;
+		TRP3_CompanionNotesViewAccountScrollText:SetEnabled(false);
 	end
 	TRP3_RegisterNotesViewProfileTitle:SetText(profileNotesTitle);
+	TRP3_CompanionNotesViewProfileTitle:SetText(profileNotesTitle);
 
 	assert(profileID, "No profileID in context !");
+
 
 	local profileNotes = getPlayerCurrentProfile().notes;
 	TRP3_RegisterNotesViewProfileScrollText:SetText(profileNotes and profileNotes[profileID] or "");
 	TRP3_RegisterNotesViewAccountScrollText:SetText(TRP3_Notes and TRP3_Notes[profileID] or "");
+	TRP3_CompanionNotesViewProfileScrollText:SetText(profileNotes and profileNotes[profileID] or "");
+	TRP3_CompanionNotesViewAccountScrollText:SetText(TRP3_Notes and TRP3_Notes[profileID] or "");
+
 end
 
 local function onProfileNotesChanged()
 	local context = getCurrentContext();
 	local profileID = context.profileID;
-	if context.isPlayer then
+	if context.isPlayer and not context.isCompanion then
 		profileID = getPlayerCurrentProfileID();
 	end
 
@@ -74,17 +82,26 @@ local function onProfileNotesChanged()
 		profile.notes = {};
 	end
 
-	profile.notes[profileID] = stEtN(TRP3_RegisterNotesViewProfileScrollText:GetText());
+	if context.isCompanion then
+		profile.notes[profileID] = stEtN(TRP3_CompanionNotesViewProfileScrollText:GetText());
+	else 
+		profile.notes[profileID] = stEtN(TRP3_RegisterNotesViewProfileScrollText:GetText());
+	end
 end
 
 local function onAccountNotesChanged()
 	local context = getCurrentContext();
 	local profileID = context.profileID;
-	if context.isPlayer then
+	if context.isPlayer and not context.isCompanion then
 		profileID = getPlayerCurrentProfileID();
 	end
 
-	TRP3_Notes[profileID] = stEtN(TRP3_RegisterNotesViewAccountScrollText:GetText());
+	if (context.isCompanion) then
+		TRP3_Notes[profileID] = stEtN(TRP3_CompanionNotesViewProfileScrollText:GetText());
+		TRP3_Notes_Timestamp[profileID] = true; 
+	else 
+		TRP3_Notes[profileID] = stEtN(TRP3_RegisterNotesViewAccountScrollText:GetText());
+	end
 end
 
 local function showNotesTab()
@@ -94,8 +111,11 @@ local function showNotesTab()
 	context.isEditMode = false;
 	TRP3_ProfileReportButton:Hide();
 	displayNotes(context);
-	TRP3_RegisterNotes:Show();
-	TRP3_CompanionNotes:Show();
+	if (context.isCompanion) then
+		TRP3_CompanionNotes:Show();
+	else
+		TRP3_RegisterNotes:Show();
+	end
 end
 TRP3_API.register.ui.showNotesTab = showNotesTab;
 
@@ -105,15 +125,20 @@ function TRP3_API.register.inits.notesInit()
 		TRP3_Notes = {};
 	end
 
+	TRP3_Notes_Timestamp = {};
+
 	setupFieldSet(TRP3_RegisterNotesView, loc.REG_PLAYER_NOTES, 150);
+	setupFieldSet(TRP3_CompanionNotesView, loc.REG_PLAYER_NOTES, 150);
 
 	TRP3_RegisterNotesViewAccountTitle:SetText(loc.REG_PLAYER_NOTES_ACCOUNT);
+	TRP3_CompanionNotesViewAccountTitle:SetText(loc.REG_PLAYER_NOTES_PHASE);
 
 	setTooltipForSameFrame(TRP3_RegisterNotesViewProfileHelp, "LEFT", 0, 10, loc.REG_PLAYER_NOTES_PROFILE_NONAME, loc.REG_PLAYER_NOTES_PROFILE_HELP);
 	setTooltipForSameFrame(TRP3_RegisterNotesViewAccountHelp, "LEFT", 0, 10, loc.REG_PLAYER_NOTES_ACCOUNT, loc.REG_PLAYER_NOTES_ACCOUNT_HELP);
 
 	TRP3_RegisterNotesViewAccountScrollText:SetScript("OnTextChanged", onAccountNotesChanged);
 	TRP3_RegisterNotesViewProfileScrollText:SetScript("OnTextChanged", onProfileNotesChanged);
+	TRP3_CompanionNotesViewProfileScrollText:SetScript("OnTextChanged", onProfileNotesChanged);
 
 	TRP3_API.Events.registerCallback(TRP3_API.Events.WORKFLOW_ON_LOADED, function()
 		if not TRP3_API.target then

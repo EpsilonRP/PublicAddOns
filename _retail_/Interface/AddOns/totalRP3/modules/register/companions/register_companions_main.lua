@@ -36,6 +36,7 @@ local tcopy = Utils.table.copy;
 local TYPE_MOUNT = TRP3_API.ui.misc.TYPE_MOUNT;
 local Compression = AddOn_TotalRP3.Compression;
 local TRP3_Enums = AddOn_TotalRP3.Enums;
+local getPlayerCurrentProfile = TRP3_API.profile.getPlayerCurrentProfile;
 
 local function GetMountIDs()
 	if C_MountJournal then
@@ -506,6 +507,7 @@ local function boundNPC(npcID, profileID, _)
 	local phaseData = {};
 	phaseData['id'] = profileID;
 	phaseData['profile'] = profile;
+	phaseData['notes'] = getPlayerCurrentProfile().notes[profileID];
 
 	local key = 'TOTALRP_PROFILE_' .. npcID;
 	local str = Utils.serial.serialize(phaseData);
