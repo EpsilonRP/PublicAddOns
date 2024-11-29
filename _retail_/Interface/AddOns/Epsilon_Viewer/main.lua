@@ -357,6 +357,10 @@ local page_meta = {
 		if type(key) ~= "number" then return tbl[key] end
 		local realEntry = (fakePaginationGODITableOffset + key) - 1
 
+		if realEntry > (C_Epsilon.GODI_Count()-1) then
+			return { fid = false }
+		end
+
 		local GODI_Data = C_Epsilon.GODI_Get(realEntry)
 		GODI_Data.fid = GODI_Data.fileid
 		return GODI_Data
@@ -374,7 +378,7 @@ local top_meta = {
 
 local fakePaginationGODITable = setmetatable({}, top_meta)
 local function getGODIPageCount()
-	return C_Epsilon.GODI_Count()/numPerPage
+	return math.ceil((C_Epsilon.GODI_Count()-1)/numPerPage)
 end
 getGODIPageCount()
 
