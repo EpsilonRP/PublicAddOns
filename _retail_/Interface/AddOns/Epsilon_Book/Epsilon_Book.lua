@@ -214,8 +214,9 @@ function EpsilonBook_ImportBook( text )
 	end
 
 	text = Decrypt(text);
+	local table = DecompressForDownload(text)
 
-	local _, table = AceSerializer:Deserialize(text)
+	--local _, table = AceSerializer:Deserialize(text)
 	if not( table and table.icon and table.title and table.material and table.pages and table.fontFamily and table.fontSize ) then
 		PlaySound( 47355 );
 		UIErrorsFrame:AddMessage( "Invalid import code.", 1.0, 0.0, 0.0, 53, 5 );
@@ -647,7 +648,7 @@ local function CreateMinimapIcon()
 		else
 			UIErrorsFrame:AddMessage("You must be the phase owner or an officer to do that.", 1.0, 0.0, 0.0, 53, 5);
 		end
-	end, "Interface/Icons/inv_misc_book_09", { "Click to open the Book Library." })
+	end, "Interface/AddOns/" .. addonName .. "/Texture/EpsilonTrayIconBook", { "Click to open the Book Library." })
 end
 
 function Epsilon_Book:OnInitialize()
@@ -873,6 +874,7 @@ function Epsilon_Book:OnInitialize()
 
 						C_Timer.After(1, function() EpsilonBookLibrary_Update() end);
 					elseif prefixType == "export" then
+						text = CompressForUpload(text);
 						text = Encrypt(text);
 						EpsilonBookExportDialog.Title:SetText("Export Book");
 						EpsilonBookExportDialog:Show();

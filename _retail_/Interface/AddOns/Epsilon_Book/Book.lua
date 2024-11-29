@@ -1115,7 +1115,7 @@ end
 
 function EpsilonBookEditor_CreateBook()
 	if not EPSILON_BOOK_LIST then
-		return
+		EPSILON_BOOK_LIST = {};
 	end
 
 	EpsilonBookEditPageButton:Show();
