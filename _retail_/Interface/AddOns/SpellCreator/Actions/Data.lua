@@ -1711,7 +1711,7 @@ local actionTypeData = {
 		inputDescription =
 			"Syntax: title, text, [material, fontFamily, fontSize, icon].\n\r" ..
 			commaDelimitedText .. "\nOnly title and text are required.",
-		example = [["Book of Secrets", "Loose lips sink ships!", TradingPost, Frizqt, 13, Interface/Icons/ability_ambush]],
+		example = [["Book of Secrets", "Loose lips sink ships!", Trading Post, Frizqt, 13, Interface/Icons/ability_ambush]],
 		revertDesc = "Closes the Book frame.",
 		revert = function() EpsilonBookFrame_Hide(); end,
 		dependency = "Epsilon_Book",

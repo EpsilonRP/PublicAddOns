@@ -1427,6 +1427,8 @@ function EpsilonBookLibrary_Show()
 	
 	EpsilonBookFrameCloseButton:SetScript("OnClick", EpsilonBookFrame_Hide)
 
+	EpsilonBookFrame.Tutorial:Show();
+
 	EpsilonBookEditPageButton:Hide();
 	EpsilonBookFrame.ReturnButton:Hide();
 	EpsilonBookPageText:Hide();
@@ -1653,6 +1655,12 @@ function EpsilonBookFrame_Show(bookID, data, canEdit, isAttached)
 		EpsilonBookEditPageButton:Hide();
 		EpsilonBookFrame.ReturnButton:Hide();
 		EpsilonBookFrameCloseButton:SetScript("OnClick", EpsilonBookFrame_Hide)
+	end
+	
+	if (canEdit) then
+		EpsilonBookFrame.Tutorial:Show();
+	else
+		EpsilonBookFrame.Tutorial:Hide();
 	end
 	
 	EpsilonBookEditor_Hide()
