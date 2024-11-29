@@ -179,6 +179,11 @@
 				GameTooltip:AddLine(self.tooltipText)
 				GameTooltip:Show()
 			</OnEnter>
+			<OnUpdate>
+				if GetMouseFocus() and GetMouseFocus():GetName()==self:GetName() then
+					self:GetScript("OnEnter")(self);
+				end
+			</OnUpdate>
 			<OnLeave>
 				GameTooltip:Hide()
 			</OnLeave>
@@ -1117,7 +1122,15 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Colour", 1, 1, 1);
 									GameTooltip:AddLine("Insert a text colour tag.");
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The colour tag uses this format:|n|n|cFF808080{colour:|cFFFF0000RR|r|cFF00FF00GG|r|cFF0000FFBB|r}|rtext|cFF808080{/colour}|r|n|nEach pair of digits represents a colour value as a hexidecimal number.", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										-- Each pair of digits represents a colour value as a hexidecimal number
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The colour tag uses this format:|n|n|cFF808080{colour:|cFFFF0000RR|r|cFF00FF00GG|r|cFF0000FFBB|r}|cFFFFFFFFYour Text|r{/colour}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("|cFFFF0000RR", "|cFF00ADEFThe red value of the colour.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFF00FF00GG", "|cFF00ADEFThe green value of the colour.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFF0000FFBB", "|cFF00ADEFThe blue value of the colour.", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1139,7 +1152,13 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Icon", 1, 1, 1);
 									GameTooltip:AddLine("Insert an inline icon.");
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The icon tag uses this format:|n|n|cFF808080{icon:|rpath|cFF808080:|rsize|cFF808080}|r|n|nThe path provided must be the full file name of the icon.", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The icon tag uses this format:|n|n|cFF808080{icon:|cFFFFFFFFpath|r:|cFFFFFFFFsize|r}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("path", "|cFF00ADEFThe full file path of the icon.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("size", "|cFF00ADEFThe squared size of the icon (in pixels.)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1161,7 +1180,15 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Image", 1, 1, 1);
 									GameTooltip:AddLine("Insert an inline image.");
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The image tag uses this format:|n|n|cFF808080{img:|rpath|cFF808080:|rwidth|cFF808080:|rheight|cFF808080:|ralign|cFF808080}|r|n|nThe path provided must be the full file name of the image.", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The image tag uses this format:|n|n|cFF808080{img:|cFFFFFFFFpath|r:|cFFFFFFFFwidth|r:|cFFFFFFFFheight|r:|cFFFFFFFFalign|r}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("path", "|cFF00ADEFThe full file path of the icon.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("width", "|cFF00ADEFThe width of the image (in pixels.)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("height", "|cFF00ADEFThe height of the image (in pixels.)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the image (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1203,6 +1230,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Left Alignment", 1, 1, 1);
 									GameTooltip:AddLine("Insert a left alignment tag.");
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: Aligned text must be contained inside paragraph (p) tags using this format:|n|n|cFF808080{p:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/p}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1223,6 +1256,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Center Alignment", 1, 1, 1);
 									GameTooltip:AddLine("Insert a center alignment tag.")
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: Aligned text must be contained inside paragraph (p) tags using this format:|n|n|cFF808080{p:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/p}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1243,6 +1282,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Right Alignment", 1, 1, 1);
 									GameTooltip:AddLine("Insert a right alignment tag.")
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: Aligned text must be contained inside paragraph (p) tags using this format:|n|n|cFF808080{p:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/p}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1263,7 +1308,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("H1", 1, 1, 1);
 									GameTooltip:AddLine("Insert an H1 tag.")
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The H1 tag uses this format:|n|n|cFF808080{H1:|ralign|cFF808080}|rtext|cFF808080{/H1}|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The Heading 1 (H1) tag uses this format:|n|n|cFF808080{H1:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/H1}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad>
@@ -1284,7 +1334,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("H2", 1, 1, 1);
 									GameTooltip:AddLine("Insert an H2 tag.")
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The H2 tag uses this format:|n|n|cFF808080{H2:|ralign|cFF808080}|rtext|cFF808080{/H2}|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The Heading 2 (H2) tag uses this format:|n|n|cFF808080{H2:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/H2}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad>
@@ -1305,7 +1360,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("H3", 1, 1, 1);
 									GameTooltip:AddLine("Insert an H3 tag.")
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The H3 tag uses this format:|n|n|cFF808080{H3:|ralign|cFF808080}|rtext|cFF808080{/H3}|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The Heading 3 (H3) tag uses this format:|n|n|cFF808080{H3:|cFFFFFFFFalign|r}|cFFFFFFFFYour Text|r{/H3}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the text (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad>
@@ -1326,7 +1386,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("URL Link", 1, 1, 1);
 									GameTooltip:AddLine("Insert a URL link.")
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The URL link tag uses this format:|n|n|cFF808080{url:|rurl|cFF808080}|rtext|cFF808080{/url}|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The URL link tag uses this format:|n|n|cFF808080{url:|cFFFFFFFFlink|r}|cFFFFFFFFYour Text|r{/url}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("link", "|cFF00ADEFThe URL of your link.", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1347,7 +1412,12 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("Page Link", 1, 1, 1);
 									GameTooltip:AddLine("Insert a link to another page of this book.")
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The page link tag uses this format:|n|n|cFF808080{link:|rpage|cFF808080}|rtext|cFF808080{/link}|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The page link tag uses this format:|n|n|cFF808080{link:|cFFFFFFFFpage|r}|cFFFFFFFFYour Text|r{/link}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("page", "|cFF00ADEFThe page number of your link.", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">
@@ -1368,7 +1438,13 @@
 									GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 									GameTooltip:AddLine("In-Game Hyperlink", 1, 1, 1);
 									GameTooltip:AddLine("Insert a spell or item hyperlink.");
-									GameTooltip:AddLine("|cFF00ADEFTip:|r The in-game hyperlink tag uses this format:|n|n|cFF808080{|ritemString or spellString|cFF808080}|r|n|nAny valid itemString or spellString is acceptable.|n|nExample: {spell:1449} for |cff67BCFF[Arcane Explosion]|r", 1, 1, 1, true);
+									if IsShiftKeyDown() then
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The in-game hyperlink tag uses this format:|n|n|cFF808080{spell:|cFFFFFFFFspellID|r}|r or |cFF808080{item:|cFFFFFFFFitemID|r}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("spellID", "|cFF00ADEFThe global spell ID number.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("itemID", "|cFF00ADEFThe global item ID number.", 1, 1, 1, 1, 1, 1, true);
+									else
+										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
+									end
 									GameTooltip:Show()
 								</OnEnter>
 								<OnLoad inherit="prepend">

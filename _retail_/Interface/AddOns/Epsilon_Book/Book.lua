@@ -438,6 +438,14 @@ end
 
 local BOOK_MATERIALS = {
 	["Legion"] = {
+		["Burning Legion"] = {
+			path = "QuestBackgroundBurningLegion",
+			type = "custom",
+		},
+		["Eredar"] = {
+			path = "QuestBackgroundEredar",
+			type = "custom",
+		},
 		["Hand of Fate"] = {
 			atlas = "QuestBG-TheHandofFate",
 			type = "quest",
@@ -445,7 +453,7 @@ local BOOK_MATERIALS = {
 		["Legionfall"] = {
 			atlas = "QuestBG-Legionfall",
 			type = "quest",
-		}
+		},
 	},
 	["Shadowlands"] = {
 		["Shadowlands"] = {
@@ -785,6 +793,8 @@ local BOOK_TEXT_COLOURS = {
 	["Tazavesh"]					= { 1, 1, 1 },
 	["Tithed"]						= { 1, 1, 1 },
 	["Zereth Mortis"]				= { 1, 1, 1 },
+	["Burning Legion"]				= { 0, 1, 0 },
+	["Eredar"]						= { 1, 0, 0 },
 }
 
 local BOOK_FONTS = {
@@ -940,7 +950,12 @@ function EpsilonBookEditorMaterial_OnLoad(frame, level, menuList)
 			CreateMaterialMenu(frame, level, k);
 		end
 	elseif level == 2 then
-		for material, value in pairs(BOOK_MATERIALS[menuList]) do
+		local materials = {};
+		for k in pairs(BOOK_MATERIALS[menuList]) do
+			table.insert(materials, k)
+		end
+		table.sort(materials)
+		for _, material in pairs(materials) do
 			local info = UIDropDownMenu_CreateInfo();
 			info.text = material;
 			info.checked = UIDropDownMenu_GetText(EpsilonBookEditor.MaterialButton) == info.text;
@@ -989,16 +1004,20 @@ function EpsilonBookEditorFont_OnLoad(frame, level, menuList)
 			CreateMaterialMenu(frame, level, k);
 		end
 	elseif level == 2 then
-		table.sort(BOOK_FONTS[menuList]);
-		for k, v in pairs(BOOK_FONTS[menuList]) do
-			local fontObject = CreateFont(k);
-			if k == "Elementary Gothic Bookhand" then
-				fontObject:SetFont(v, 8, "");
+		local fonts = {};
+		for k in pairs(BOOK_FONTS[menuList]) do
+			table.insert(fonts, k)
+		end
+		table.sort(fonts)
+		for _, font in pairs(fonts) do
+			local fontObject = CreateFont(font);
+			if font == "Elementary Gothic Bookhand" then
+				fontObject:SetFont(BOOK_FONTS[menuList][font], 8, "");
 			else
-				fontObject:SetFont(v, 16, "");
+				fontObject:SetFont(BOOK_FONTS[menuList][font], 16, "");
 			end
 			info.fontObject = fontObject;
-			info.text = k;
+			info.text = font;
 			info.arg1 = frame;
 			info.checked = UIDropDownMenu_GetText(frame) == info.text;
 			info.notCheckable = false;
@@ -1007,9 +1026,9 @@ function EpsilonBookEditorFont_OnLoad(frame, level, menuList)
 			info.funcOnEnter = function( self )
 				EpsilonBookFontTooltip:ClearAllPoints();
 				EpsilonBookFontTooltip:SetPoint("BOTTOMLEFT", self, "TOPRIGHT");
-				EpsilonBookFontTooltip.Title:SetText(k);
+				EpsilonBookFontTooltip.Title:SetText(font);
 				EpsilonBookFontTooltip.Preview:SetText(fontPreview);
-				EpsilonBookFontTooltip.Preview:SetFont(v, 24, "");
+				EpsilonBookFontTooltip.Preview:SetFont(BOOK_FONTS[menuList][font], 24, "");
 				EpsilonBookFontTooltip:Show();
 			end;
 			info.funcOnLeave = function( self )

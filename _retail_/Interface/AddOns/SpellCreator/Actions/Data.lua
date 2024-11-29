@@ -224,6 +224,8 @@ local ACTION_TYPE = {
 	SendMail = "SendMail",
 	TalkingHead = "TalkingHead",
 	ShowBook = "ShowBook",
+	HideBook = "HideBook",
+	ShowPage = "ShowPage",
 	UnitPowerBar = "UnitPowerBar",
 	UnitPowerBarValue = "UnitPowerBarValue",
 
@@ -1659,11 +1661,60 @@ local actionTypeData = {
 		"Displays a Book from the current phase's Book Library.\n\nMust be currently in the correct phase or the book will not load.",
 		dataName = "GUID",
 		inputDescription =
-			"Syntax: GUID\r" ..
-			commaDelimitedText .. "\nThe GUID of the book. GUIDs are case sensitive.",
+			"Syntax: GUID\r\nThe GUID of the book. GUIDs are case sensitive.",
 		example = [[1E2P3_S4I5L60N]],
 		revertDesc = "Closes the Book frame.",
 		revert = function() EpsilonBookFrame_Hide(); end,
+		dependency = "Epsilon_Book",
+	}),
+	-- HideBook = "HideBook"
+	[ACTION_TYPE.HideBook] = scriptAction("Hide Book", {
+		command = function()
+			EpsilonBookFrame_Hide();
+		end,
+		description =
+		"Closes any currently open Book.",
+		revert = nil,
+		dependency = "Epsilon_Book",
+	}),
+	-- ShowPage = "ShowPage"
+	[ACTION_TYPE.ShowPage] = scriptAction("Show Page", {
+		command = function(vars)
+			local success, title, text, material, fontFamily, fontSize, icon = pcall(getArgs, vars);
+			if not (title and text) then
+				return
+			end
+			local data = {
+				icon = icon or "Interface/Icons/inv_misc_book_09",
+				title = title,
+				material = material or "Book",
+				pages = { text },
+				fontFamily = {
+					p = fontFamily or "Frizqt",
+					h1 = fontFamily or "Frizqt",
+					h2 = fontFamily or "Frizqt",
+					h3 = fontFamily or "Frizqt",
+				},
+				fontSize = {
+					p = fontSize or 13,
+					h1 = fontSize or 18,
+					h2 = fontSize or 16,
+					h3 = fontSize or 14,
+				},
+			}
+			-- Use a dummy ID of [0] since it's not "real"
+			EpsilonBookFrame_Show(0, data, false, true);
+		end,
+		description =
+		"Displays a dummy Book page (not attached to an actual Book) with customisable options (see input syntax for help).",
+		dataName = "title, text, [material, fontFamily, fontSize, icon]",
+		inputDescription =
+			"Syntax: title, text, [material, fontFamily, fontSize, icon].\n\r" ..
+			commaDelimitedText .. "\nOnly title and text are required.",
+		example = [["Book of Secrets", "Loose lips sink ships!", TradingPost, Frizqt, 13, Interface/Icons/ability_ambush]],
+		revertDesc = "Closes the Book frame.",
+		revert = function() EpsilonBookFrame_Hide(); end,
+		dependency = "Epsilon_Book",
 		doNotDelimit = true,
 	}),
 	-- UnitPowerBar = "UnitPowerBar"

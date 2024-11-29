@@ -36,7 +36,19 @@ function EpsilonBookTexturePickerButton_ShowTooltip( self )
 		height = 128;
 		width = ratio * height;
 	end
-    GameTooltip:AddLine( "|T"..texture..":"..height..":"..width.."|t", 1, 1, 1, true )
+	if self.texCoords then
+		local left, right, top, bottom = self.texCoords.l, self.texCoords.r, self.texCoords.t, self.texCoords.b;
+		local offsetX, offsetY = 0, 0;	-- TODO?
+		local textureWidth, textureHeight = self.textureWidth, self.textureHeight;
+		left = left * textureWidth;
+		right = right * textureWidth;
+		top = top * textureHeight;
+		bottom = bottom * textureHeight;
+		GameTooltip:AddLine( "|T"..texture..":"..height..":"..width..":"..offsetX..":"..offsetY..":"..textureWidth..":"..textureHeight..":"..left..":"..right..":"..top..":"..bottom.."|t", 1, 1, 1, true )
+	else
+		GameTooltip:AddLine( "|T"..texture..":"..height..":"..width.."|t", 1, 1, 1, true )
+	end
+
     GameTooltip:AddLine( texture, 1, 0.81, 0, true )
     GameTooltip:Show()
 end
@@ -105,6 +117,17 @@ function EpsilonBookTexturePicker_RefreshGrid()
 				btn.height = texture.height;
 				btn.width = texture.width;
 				btn:SetNormalTexture( texture.file );
+				local normalTexture = btn:GetNormalTexture();
+				print(normalTexture)
+				if ( texture.texCoords and texture.textureHeight and texture.textureWidth ) then
+					normalTexture:SetTexCoord(texture.texCoords.l, texture.texCoords.r, texture.texCoords.t, texture.texCoords.b);
+					btn.texCoords = texture.texCoords;
+					btn.textureHeight, btn.textureWidth = texture.textureHeight, texture.textureWidth;
+				else
+					normalTexture:SetTexCoord(0, 1, 0, 1);
+					btn.texCoords = nil;
+					btn.textureHeight, btn.textureWidth = nil, nil;
+				end
 				btn:Show();
 			end
 		end
