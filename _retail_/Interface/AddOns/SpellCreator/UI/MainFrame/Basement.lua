@@ -67,7 +67,7 @@ local function createSaveButton(mainFrame, saveSpell)
 			local strs = { "\n" }
 
 			if self:IsEnabled() then
-				local castHelp = "\rYou can cast it using '/sf " .. (spellInfo.commID or "commID") .. "' for quick use!"
+				local castHelp = "\rYou can cast it using '/arcanum " .. (spellInfo.commID or "commID") .. "' for quick use (or /sf for short)!"
 
 				if isSaving() then
 					tinsert(strs, "Finish editing your spell and save your changes.")

@@ -51,7 +51,11 @@ local ADDON_COLORS = {
 		YELLOW = CreateColorFromBytes(240, 212, 24, 255),
 		ORANGE = CreateColorFromBytes(205, 123, 56, 255),
 		RED = CreateColorFromBytes(224, 36, 32, 255),
-	}
+	},
+	GAME_GREY = CreateColor(0.8, 0.8, 0.8),
+	PHASE_VAULT = CreateColor(0.20, 0.40, 0.50, 0.5),
+	PHASE_VAULT_TEXT = CreateColorFromHexString("FF04BABE"),
+	PERSONAL_VAULT = CreateColor(0.30, 0.10, 0.40, 0.5),
 }
 
 local eventUnlockDates = {

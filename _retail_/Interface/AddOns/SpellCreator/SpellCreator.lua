@@ -228,6 +228,7 @@ local function noSpellsToLoad(fake)
 		else
 			SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText("Vault is Empty");
 		end
+		SpellCreatorMinimapButton:SetLoading(1, 1)
 		SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Enable();
 	end
 	phaseVault.isSavingOrLoadingAddonData = false;
@@ -321,6 +322,8 @@ local function getPhaseVaultDataFromKeys(keys, callback)
 			end
 			phaseVaultLoadingCount = phaseVaultLoadingCount + 1
 			dprint("phaseVaultLoadingCount: " .. phaseVaultLoadingCount .. " | phaseVaultLoadingExpected: " .. phaseVaultLoadingExpected)
+			SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText(("Loading...\n(%s/%s)"):format(phaseVaultLoadingCount, phaseVaultLoadingExpected))
+			SpellCreatorMinimapButton:SetLoading(phaseVaultLoadingCount, phaseVaultLoadingExpected)
 			if phaseVaultLoadingCount == phaseVaultLoadingExpected then
 				dprint("All Spells should be loaded, adding them to the vault..")
 				for k, v in ipairs(keys) do
@@ -414,6 +417,7 @@ local function getSpellForgePhaseVault(callback, iter)
 	end
 	phaseVault.isSavingOrLoadingAddonData = true
 	phaseVault.isLoaded = false
+	--SpellCreatorMinimapButton:SetLoading(0, 1) -- So technically we SHOULD call this here, but we are not because if a phase has very minimal to load, we can skip the grey icon completely
 
 	getPhaseVaultKeys(function()
 		dprint("Phase spell keys: ")
@@ -602,7 +606,7 @@ local function updateSpellLoadRows(fromPhaseDataLoaded)
 		savedSpellFromVault = Vault.personal.getSpells()
 		SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Hide()
 		SCForgeMainFrame.LoadSpellFrame.profileButton:Show()
-		SCForgeMainFrame.LoadSpellFrame.TitleBgColor:SetColorTexture(0.30, 0.10, 0.40, 0.5)
+		SCForgeMainFrame.LoadSpellFrame.TitleBgColor:SetColorTexture(ADDON_COLORS.PERSONAL_VAULT:GetRGBA())
 		SCForgeMainFrame.LoadSpellFrame.UploadToPhaseButton:Show()
 		SCForgeMainFrame.LoadSpellFrame.UploadToPhaseButton:Disable()
 		SCForgeMainFrame.LoadSpellFrame.ImportSpellButton:Show()
@@ -622,7 +626,7 @@ local function updateSpellLoadRows(fromPhaseDataLoaded)
 		SCForgeMainFrame.LoadSpellFrame.ImportSpellButton:Hide()
 		SCForgeMainFrame.LoadSpellFrame.SparkManagerButton:Show()
 		SCForgeMainFrame.LoadSpellFrame.DownloadToPersonalButton:Show()
-		SCForgeMainFrame.LoadSpellFrame.TitleBgColor:SetColorTexture(0.20, 0.40, 0.50, 0.5)
+		SCForgeMainFrame.LoadSpellFrame.TitleBgColor:SetColorTexture(ADDON_COLORS.PHASE_VAULT:GetRGBA())
 		if fromPhaseDataLoaded then
 			-- called from getSpellForgePhaseVault() - that means our saved spell from Vault is ready -- you can call with true also to skip loading the vault, if you know it's already loaded.
 			savedSpellFromVault = Vault.phase.getSpells()
@@ -639,6 +643,7 @@ local function updateSpellLoadRows(fromPhaseDataLoaded)
 			end
 			SCForgeMainFrame.LoadSpellFrame.refreshVaultButton:Disable()
 			SCForgeMainFrame.LoadSpellFrame.spellVaultFrame.LoadingText:SetText("Loading...")
+			SpellCreatorMinimapButton:SetLoading(0, 1)
 		end
 	end
 

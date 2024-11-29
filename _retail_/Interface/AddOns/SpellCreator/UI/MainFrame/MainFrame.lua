@@ -74,7 +74,7 @@ markTitleChanges(false)
 local titleBgColor = SCForgeMainFrame:CreateTexture(nil, "BACKGROUND")
 titleBgColor:SetPoint("TOPLEFT", SCForgeMainFrame.TitleBg)
 titleBgColor:SetPoint("BOTTOMRIGHT", SCForgeMainFrame.TitleBg)
-titleBgColor:SetColorTexture(0.30, 0.10, 0.40, 0.5)
+titleBgColor:SetColorTexture(Constants.ADDON_COLORS.PERSONAL_VAULT:GetRGBA())
 
 SCForgeMainFrame.TitleBgColor = titleBgColor
 
