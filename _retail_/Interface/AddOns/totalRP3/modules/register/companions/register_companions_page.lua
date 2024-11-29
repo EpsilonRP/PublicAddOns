@@ -369,6 +369,7 @@ local function createTabBar()
 		end
 	end
 	);
+	frame.tabGroup = tabGroup;
 end
 
 local function onPageShow(context)
