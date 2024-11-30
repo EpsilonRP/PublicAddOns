@@ -398,7 +398,6 @@ function EpsilonBook_TryBookFromItemID( itemID )
 
 	if not( EPSILON_BOOK_ITEMS ) then
 		EpsilonBook_GetBookItemList();
-		print("|cFFFF0000Error encountered retrieving phase book list. Please try again.");
 		return
 	end
 
@@ -844,7 +843,7 @@ function Epsilon_Book:OnInitialize()
 							EpsilonBookLibrary_Update();
 						end
 					elseif prefixType == "items" then
-						if text ~= "" then
+						if text and text ~= "" then
 							EPSILON_BOOK_ITEMS = text;
 						else
 							EPSILON_BOOK_ITEMS = {};
