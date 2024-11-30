@@ -118,7 +118,6 @@ function EpsilonBookTexturePicker_RefreshGrid()
 				btn.width = texture.width;
 				btn:SetNormalTexture( texture.file );
 				local normalTexture = btn:GetNormalTexture();
-				print(normalTexture)
 				if ( texture.texCoords and texture.textureHeight and texture.textureWidth ) then
 					normalTexture:SetTexCoord(texture.texCoords.l, texture.texCoords.r, texture.texCoords.t, texture.texCoords.b);
 					btn.texCoords = texture.texCoords;

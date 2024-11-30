@@ -1108,9 +1108,9 @@ function EpsilonBookEditor_InsertPage(before)
 	end
 
 	if before then
-		tinsert(EpsilonBookFrame.bookData.pages, #EpsilonBookFrame.bookData.pages, "")
+		tinsert(EpsilonBookFrame.bookData.pages, EpsilonBookFrame.currentPage, "")
 	else
-		tinsert(EpsilonBookFrame.bookData.pages, "")
+		tinsert(EpsilonBookFrame.bookData.pages, EpsilonBookFrame.currentPage+1, "")
 	end
 
 	EpsilonBookFrame_Update()
