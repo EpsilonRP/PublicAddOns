@@ -1830,25 +1830,6 @@ function PhaseToolkit.RemoveCreatureById(creatureList, creatureId)
 	end
 end
 
-function PhaseToolkit.DisableSystemMessagesInChatFrame1()
-	-- Désactiver les messages système dans la ChatFrame1 (fenêtre de chat principale)
-	ChatFrame_RemoveMessageGroup(ChatFrame1, "SYSTEM")
-end
-
-function PhaseToolkit.EnableSystemMessagesInChatFrame1()
-	-- Réactiver les messages système dans la ChatFrame1
-	ChatFrame_AddMessageGroup(ChatFrame1, "SYSTEM")
-end
-
-function PhaseToolkit.CreateTempChatFrame()
-	-- Créer une nouvelle fenêtre de chat temporaire
-	tempChatFrame = FCF_OpenNewWindow("TempSystemMessages")
-
-	-- Désactiver tous les autres types de messages sauf SYSTEM
-	ChatFrame_RemoveAllMessageGroups(tempChatFrame)
-	ChatFrame_AddMessageGroup(tempChatFrame, "SYSTEM")
-end
-
 function PhaseToolkit.RandomiseNpc()
 	for attribute, value in pairs(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) do
 		local randomValue = math.random(1, value)
@@ -3985,8 +3966,16 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		return maxWidth
 	end
 
-	local currentPage = 1
-	local totalPages = 1
+	local currentPage=1
+
+	local totalPages = math.ceil(#PhaseToolkit.creatureList / PhaseToolkit.itemsPerPageNPC)
+	if(PhaseToolkit.NPCListCurrentPage) then
+		if PhaseToolkit.NPCListCurrentPage<=totalPages then
+			currentPage=PhaseToolkit.NPCListCurrentPage
+		else
+			currentPage=totalPages
+		end
+	end
 
 	function PhaseToolkit.CreerFenetreLignesParPage()
 		if NewNumberOfLineframe ~= nil then
@@ -4065,7 +4054,8 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	ButtonToFetch:SetText(PhaseToolkit.CurrentLang["Fetch Npcs"] or "Fetch Npcs")
 	ButtonToFetch:SetScript("OnClick", function()
 		PhaseToolkit.IsCurrentlyFilteringNpc = false
-		PhaseToolkit.filteredTeleList = {}
+		PhaseToolkit.filteredCreatureList = {}
+		PhaseToolkit.NPCListCurrentPage=currentPage
 		PhaseToolkit.PhaseNpcListSystemMessageCounter()
 	end)
 	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
@@ -4301,8 +4291,16 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		return
 	end
 
-	local currentPage = 1
-	local totalPages = 1
+	local currentPage=1
+
+	local totalPages = math.ceil(#PhaseToolkit.teleList / PhaseToolkit.itemsPerPageTELE)
+	if(PhaseToolkit.TELEListcurrentPage) then
+		if PhaseToolkit.TELEListcurrentPage<=totalPages then
+			currentPage=PhaseToolkit.TELEListcurrentPage
+		else
+			currentPage=totalPages
+		end
+	end
 
 	function PhaseToolkit.CreerFenetreLignesParPage()
 		if NewNumberOfLineframe ~= nil then
@@ -4382,6 +4380,9 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", -30, -3.5)
 	ButtonToFetch:SetText(PhaseToolkit.CurrentLang["Fetch Tele"] or "Fetch Tele")
 	ButtonToFetch:SetScript("OnClick", function()
+		PhaseToolkit.IsCurrentlyFilteringTele = false
+		PhaseToolkit.filteredTeleList = {}
+		PhaseToolkit.TELEListcurrentPage=currentPage
 		PhaseToolkit.PhaseTeleListSystemMessageCounter()
 	end)
 	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
