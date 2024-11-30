@@ -7,7 +7,7 @@ local sprintFrame = Main.sprintFrame
 local cmd = Main.cmd
 local playerName = Constants.playerName
 
-local defaultSpeedWalk = 1.6
+local defaultSpeedWalk = 1.66
 local defaultSpeedFly = 10
 local defaultSpeedSwim = 10
 

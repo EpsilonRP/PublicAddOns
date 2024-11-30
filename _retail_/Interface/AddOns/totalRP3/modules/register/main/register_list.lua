@@ -131,7 +131,7 @@ local function openCompanionPage(profileID)
 		registerMenu({
 			id = currentlyOpenedProfilePrefix .. profileID,
 			text = tabText,
-			onSelected = function() setPage(TRP3_API.navigation.page.id.COMPANIONS_PAGE, {profile = profile, profileID = profileID, isPlayer = false}) end,
+			onSelected = function() setPage(TRP3_API.navigation.page.id.COMPANIONS_PAGE, {profile = profile, profileID = profileID, isPlayer = false, isCompanion = true}) end,
 			isChildOf = REGISTER_PAGE,
 			closeable = true,
 			icon = [[interface\icons\]] .. TRP3_InterfaceIcons.CompanionMenuItem,

@@ -615,6 +615,8 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 local function setThrottle(time)
+	if not tonumber(time) then return end
+	time = tonumber(time)
 	throttle = time                                      -- local throttle
 	SpellCreatorMasterTable.Options["sparkThrottle"] = time -- saved throttle
 end
@@ -623,12 +625,20 @@ local function getThrottle()
 	return throttle
 end
 
+local function setThrottleOverride(time)
+	if not tonumber(time) then return end
+	throttle = tonumber(time) -- local throttle only
+end
+
+local function restoreThrottle()
+	throttle = SpellCreatorMasterTable.Options["sparkThrottle"] -- restore from saved val
+end
+
 --#endregion
 -----------------------------------
 --#region || Popup Trigger Save/Load System
 -----------------------------------
 
-local phaseAddonDataListener = CoordinateListener -- reusing the frame - since it only listens for OnUpdate, we can steal it's OnEvent
 local isGettingPopupData
 
 ---Value Order: 1=CommID, 2=x, 3=y, 4=z, 5=radius, 6=style, 7=colorHex
@@ -700,7 +710,6 @@ end
 
 local function noPopupsToLoad()
 	Logging.dprint("Phase Has No Popup Triggers to load.");
-	phaseAddonDataListener:UnregisterEvent("CHAT_MSG_ADDON");
 	setSparkLoadingStatus(false)
 	phaseSparkTriggers = {}
 end
@@ -719,91 +728,55 @@ local function getPopupTriggersFromPhase(callback, iter)
 	hideAllSparks()
 	phaseSparkTriggers = {}
 
-	local dataKey = "SCFORGE_POPUPS"
-	if iter then dataKey = "SCFORGE_POPUPS_" .. iter + 1 end
-	local messageTicketID = C_Epsilon.GetPhaseAddonData(dataKey)
-	phaseAddonDataListener:RegisterEvent("CHAT_MSG_ADDON")
-	phaseAddonDataListener:SetScript("OnEvent", function(self, event, prefix, text, channel, sender, ...)
-		if event == "CHAT_MSG_ADDON" and prefix == messageTicketID and text then
-			phaseAddonDataListener:UnregisterEvent("CHAT_MSG_ADDON")
 
-			if string.match(text, "^[\001-\002]") then -- if first character is a multi-part identifier - \001 = first, \002 = middle, then we can add it to the strings table, and return with a call to get the next segment
-				multipartIter = multipartIter + 1 -- progress the iterator tracker
-				text = text:gsub("^[\001-\002]", "") -- remove the control character
-				sparkStrings[multipartIter] = text -- add to the table
-				Logging.dprint("First, or Mid- Popup Data Received, Asking for Next Segment!")
-				return getPopupTriggersFromPhase(callback, multipartIter)
-			elseif string.match(text, "^[\003]") then -- if first character is a last identifier - \003 = last, then we can add it to our table, then concat into a final string to use and continue
-				multipartIter = multipartIter + 1 -- progress the iterator tracker
-				text = text:gsub("^[\003]", "") -- remove the control character
-				Logging.dprint("Last Popup Data Received, Concat & Save coming up!")
-				sparkStrings[multipartIter] = text -- add to the table
-				text = table.concat(sparkStrings, "")
+	EpsilonLib.PhaseAddonData.Get("SCFORGE_POPUPS", function(sparkText)
+		local noTriggers
 
-				-- reset our temp data
-				wipe(sparkStrings) -- wipe it so we can just reuse the table instead of always making new ones
-				multipartIter = 0
-			else
-				Logging.dprint("Spark Popup Data was not a multi-part tagged string, continuing to load normally.")
+		if not (#sparkText < 1 or sparkText == "") then
+			local loaded
+			loaded, phaseSparkTriggers = pcall(serializer.decompressForAddonMsg_SparkCopy, sparkText)
+
+			if not loaded then
+				message("Arcanum Failed to Load Phase Sparks Data. Report this.")
+				return
 			end
-
-			local noTriggers
-			if not (#text < 1 or text == "") then
-				local loaded
-				--phaseSparkTriggers = serializer.decompressForAddonMsg_SparkCopy(text)
-				loaded, phaseSparkTriggers = pcall(serializer.decompressForAddonMsg_SparkCopy, text)
-				if not loaded then
-					message("Arcanum Failed to Load Phase Sparks Data. Report this.")
-					return
-				end
-				if next(phaseSparkTriggers) then
-					--Logging.dprint("Phase Spark Triggers: ")
-					--Debug.ddump(phaseSparkTriggers)
-				else
-					noTriggers = true
-					Logging.dprint("Failed a next check on phaseSparkTriggers")
-				end
+			if next(phaseSparkTriggers) then
+				--Logging.dprint("Phase Spark Triggers: ")
+				--Debug.ddump(phaseSparkTriggers)
 			else
 				noTriggers = true
-				Logging.dprint("Failed text length or blank string validation on phaseSparkTriggers")
+				Logging.dprint("Failed a next check on phaseSparkTriggers")
 			end
-			if noTriggers then noPopupsToLoad() end
-			if callback then callback() end
-			setSparkLoadingStatus(false)
+		else
+			noTriggers = true
+			Logging.dprint("Failed text length or blank string validation on phaseSparkTriggers")
 		end
+
+		if noTriggers then noPopupsToLoad() end
+		if callback then callback() end
+		setSparkLoadingStatus(false)
 	end)
 end
 
 local function savePopupTriggersToPhaseData()
 	local str = serializer.compressForAddonMsg(phaseSparkTriggers)
-	local sparksLength = #str
-	if sparksLength > MAX_CHARS_PER_SEGMENT then
-		Logging.dprint("Sparks Exceeded MAX_CHARS_PER_SEGMENT : " .. sparksLength)
-		local numEntriesRequired = math.ceil(sparksLength / MAX_CHARS_PER_SEGMENT)
-		for i = 1, numEntriesRequired do
-			local strSub = string.sub(str, (MAX_CHARS_PER_SEGMENT * (i - 1)) + 1, (MAX_CHARS_PER_SEGMENT * i))
-			if i == 1 then
-				strSub = MSG_MULTI_FIRST .. strSub
-				--Logging.dprint(nil, "SCFORGE_POPUPS :: " .. strSub)
-				Logging.dprint(nil, "SCFORGE_POPUPS :: " .. "<trimmed - bulk/first>")
-				C_Epsilon.SetPhaseAddonData("SCFORGE_POPUPS", strSub)
-			else
-				local controlChar = MSG_MULTI_NEXT
-				if i == numEntriesRequired then controlChar = MSG_MULTI_LAST end
-				strSub = controlChar .. strSub
-				--Logging.dprint(nil, "SCFORGE_POPUPS_" .. i .. " :: " .. strSub)
-				Logging.dprint(nil, "SCFORGE_POPUPS_" .. i .. " :: " .. "<trimmed - bulk/mid or last>")
-				C_Epsilon.SetPhaseAddonData("SCFORGE_POPUPS_" .. i, strSub)
-			end
-		end
-	else
-		--Logging.dprint(nil, "SCFORGE_POPUPS :: " .. str)
-		Logging.dprint(nil, "SCFORGE_POPUPS :: " .. "<trimmed - solo>")
-		C_Epsilon.SetPhaseAddonData("SCFORGE_POPUPS", str)
-	end
+
+	EpsilonLib.PhaseAddonData.Set("SCFORGE_POPUPS", str)
 
 	SparkPopups.SparkManagerUI.refreshSparkManagerUI()
 	sendPhaseSparkIOLock(false)
+end
+
+---Internal reusable func for removing the spark from the local cache
+---@param mapID number
+---@param index number
+local function _rawRemoveTriggerFromLocalCache(mapID, index)
+	if not phaseSparkTriggers then return Logging.dprint("No phaseSparkTriggers found. How?") end
+	if not phaseSparkTriggers[mapID] then return Logging.dprint("No phaseSparkTriggers for map " .. mapID .. " found. How?") end
+	tremove(phaseSparkTriggers[mapID], index)
+	if not next(phaseSparkTriggers[mapID]) then
+		phaseSparkTriggers[mapID] = nil
+	end
 end
 
 ---@param commID CommID
@@ -814,8 +787,10 @@ end
 ---@param z number
 ---@param mapID integer
 ---@param options SparkTriggerDataOptions
+---@param overwriteIndex number
+---@param overwriteMapID number
 ---@param sparkType SparkTypes|number
-local function addPopupTriggerToPhaseData(commID, radius, style, x, y, z, colorHex, mapID, options, overwriteIndex, sparkType)
+local function addPopupTriggerToPhaseData(commID, radius, style, x, y, z, colorHex, mapID, options, overwriteIndex, overwriteMapID, sparkType)
 	sendPhaseSparkIOLock(true)
 	getPopupTriggersFromPhase(function()
 		local triggerData = createSparkEntry(commID, radius, style, x, y, z, colorHex, options, sparkType)
@@ -825,10 +800,15 @@ local function addPopupTriggerToPhaseData(commID, radius, style, x, y, z, colorH
 		end
 		if not phaseSparkTriggers[mapID] then
 			phaseSparkTriggers[mapID] = {}
-			Logging.dprint("PhaseSparkTriggers for map " .. mapID .. " was blank.")
+			Logging.dprint("PhaseSparkTriggers for map " .. mapID .. " was nil; created.")
 		end
 		if overwriteIndex then
-			phaseSparkTriggers[mapID][overwriteIndex] = triggerData
+			if mapID == overwriteMapID then -- all good, same map
+				phaseSparkTriggers[mapID][overwriteIndex] = triggerData
+			else                   -- not all good, we changed maps. Remove the old data, then just save it as a new spark in the new map
+				_rawRemoveTriggerFromLocalCache(overwriteMapID, overwriteIndex)
+				tinsert(phaseSparkTriggers[mapID], triggerData)
+			end
 		else
 			tinsert(phaseSparkTriggers[mapID], triggerData)
 		end
@@ -844,12 +824,7 @@ end
 local function removeTriggerFromPhaseDataByMapAndIndex(mapID, index, callback)
 	sendPhaseSparkIOLock(true)
 	getPopupTriggersFromPhase(function()
-		if not phaseSparkTriggers then return Logging.dprint("No phaseSparkTriggers found. How?") end
-		if not phaseSparkTriggers[mapID] then return Logging.dprint("No phaseSparkTriggers for map " .. mapID .. " found. How?") end
-		tremove(phaseSparkTriggers[mapID], index)
-		if not next(phaseSparkTriggers[mapID]) then
-			phaseSparkTriggers[mapID] = nil
-		end
+		_rawRemoveTriggerFromLocalCache(mapID, index)
 
 		--ns.Utils.Debug.ddump(phaseSparkTriggers)
 		savePopupTriggersToPhaseData()
@@ -1027,6 +1002,8 @@ ns.UI.SparkPopups.SparkPopups = {
 
 	setSparkThrottle = setThrottle,
 	getSparkThrottle = getThrottle,
+	setSparkThrottleOverride = setThrottleOverride,
+	restoreSparkThrottle = restoreThrottle,
 
 	hide = hideAllSparks,
 	hide_standard = hideSparkIfShown,

@@ -366,6 +366,7 @@ end
 ---@field y number
 ---@field z number
 ---@field mapID number
+---@field originalMapID? number The original mapID to use for comparing if the set mapID changed
 ---@field overwriteIndex? number
 ---@field spellInputs? string
 ---@field cooldownTime? number|false
@@ -387,6 +388,7 @@ local sparkUI_Helper = {
 	y = 0,
 	z = 0,
 	mapID = 0,
+	originalMapID = nil,
 	overwriteIndex = nil,
 	spellInputs = nil,
 	cooldownTime = false,
@@ -1067,7 +1069,7 @@ local uiOptionsTable = {
 						showHSI = sparkUI_Helper.showHSI,
 						uncast = ((sparkUI_Helper.type == _sparkTypesMap["Auto"]) and sparkUI_Helper.uncastID or nil),
 					},
-					sparkUI_Helper.overwriteIndex, sparkUI_Helper.type)
+					sparkUI_Helper.overwriteIndex, sparkUI_Helper.originalMapID, sparkUI_Helper.type)
 				AceConfigDialog:Close(theUIDialogName)
 			end,
 			disabled = function(info)
@@ -1111,12 +1113,13 @@ end
 local function openSparkCreationUI(commID, editIndex, editMapID)
 	table.wipe(sparkUI_Helper) -- clear any old data
 
-	sparkUI_Helper.overwriteIndex = editIndex or nil
+	sparkUI_Helper.overwriteIndex = editIndex
+	sparkUI_Helper.originalMapID = editMapID
 	sparkUI_Helper.commID = commID
 
 	local sparkType, x, y, z, mapID, radius, style, colorHex, cooldownTime, cooldownTriggerSpellCooldown, cooldownBroadcastToPhase, requirement, spellInputs, conditions
 	local emote, chat, showHSI, uncastID
-	if editIndex then
+	if editIndex and editMapID then
 		local phaseSparkTriggers = SparkPopups.SparkPopups.getPhaseSparkTriggersCache()
 		local triggerData = phaseSparkTriggers[editMapID][editIndex] --[[@as SparkTriggerData]]
 		x, y, z, mapID, radius, style, colorHex = triggerData[2], triggerData[3], triggerData[4], editMapID, triggerData[5], triggerData[6], triggerData[7]

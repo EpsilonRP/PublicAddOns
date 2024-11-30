@@ -1,0 +1,41 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+	<Frame name="EpsilonBookFontTooltip" frameStrata="TOOLTIP" parent="UIParent" inherits="TooltipBackdropTemplate" hidden="true">
+		<Size>
+			<AbsDimension x="10" y="32"/>
+		</Size>
+		<Anchors>
+			<Anchor point="LEFT"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Title" wordwrap="false" inherits="GameTooltipText">
+					<Size x="238" y="0"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="12" y="-12"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Preview" inherits="GameTooltipTextSmall" justifyH="LEFT">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Tip" inherits="GameTooltipTextSmall" justifyH="LEFT">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Preview" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnShow>
+				local totalWidth = math.max( self.Preview:GetWidth(), self.Title:GetWidth(), 230 );
+				local totalHeight = self.Preview:GetHeight() + self.Title:GetHeight() + 10;
+				if self.Tip:IsShown() then
+					totalHeight = totalHeight + self.Tip:GetHeight() + 10;
+				end
+				self:SetSize( totalWidth + 24, totalHeight + 24 );
+			</OnShow>
+		</Scripts>
+	</Frame>
+</Ui>

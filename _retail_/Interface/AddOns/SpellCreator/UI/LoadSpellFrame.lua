@@ -347,7 +347,7 @@ local function init(callbacks)
 	loadSpellFrame.TitleBgColor = loadSpellFrame:CreateTexture(nil, "BACKGROUND")
 	loadSpellFrame.TitleBgColor:SetPoint("TOPLEFT", loadSpellFrame.TitleBg)
 	loadSpellFrame.TitleBgColor:SetPoint("BOTTOMRIGHT", loadSpellFrame.TitleBg)
-	loadSpellFrame.TitleBgColor:SetColorTexture(0.40, 0.10, 0.50, 0.5)
+	loadSpellFrame.TitleBgColor:SetColorTexture(Constants.ADDON_COLORS.PHASE_VAULT:GetRGBA())
 
 	loadSpellFrame.ImportSpellButton = createImportButton(loadSpellFrame, callbacks.import)
 	loadSpellFrame.SparkManagerButton = createSparkButton(loadSpellFrame)

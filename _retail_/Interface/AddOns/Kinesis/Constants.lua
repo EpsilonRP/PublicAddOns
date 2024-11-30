@@ -69,7 +69,7 @@ C.defaultGlobalSettings = {
 				allowSprintWhenNotMoving = false,
 				enabled = true,
 
-				speedWalk = 1.6,
+				speedWalk = 1.66,
 				speedFly = 10,
 				speedSwim = 10,
 				speedWalkEnabled = true,

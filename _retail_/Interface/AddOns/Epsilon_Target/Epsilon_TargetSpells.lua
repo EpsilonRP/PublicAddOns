@@ -50,12 +50,12 @@ local function unauraClick(buffs, debuffs, targetType)
 					if targetType == "target" then
 						--print("buff",name,spellId)
 						if IsControlKeyDown() == true then
-							SendChatMessage(".unaura " .. spellId, "GUILD");
+							SendChatMessage(".aura " .. spellId .. " self", "GUILD");
 						else
-							SendChatMessage(".aura " .. spellId, "GUILD");
+							SendChatMessage(".unaura " .. spellId, "GUILD");
 						end
 					else
-						SendChatMessage(".unaura " .. spellId, "GUILD");
+						SendChatMessage(".unaura " .. spellId .. " self", "GUILD");
 					end
 				end
 			end)
@@ -78,12 +78,12 @@ local function unauraClick(buffs, debuffs, targetType)
 					if targetType == "target" then
 						--print("debuff",name,spellId)
 						if IsControlKeyDown() == true then
-							SendChatMessage(".unaura " .. spellId, "GUILD");
+							SendChatMessage(".aura " .. spellId .. " self", "GUILD");
 						else
-							SendChatMessage(".aura " .. spellId, "GUILD");
+							SendChatMessage(".unaura " .. spellId, "GUILD");
 						end
 					else
-						SendChatMessage(".unaura " .. spellId, "GUILD");
+						SendChatMessage(".unaura " .. spellId .. " self", "GUILD");
 					end
 				end
 			end)

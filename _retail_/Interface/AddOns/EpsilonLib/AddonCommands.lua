@@ -200,12 +200,35 @@ _commands.Register = function(name, showMessages)
 end
 
 ---Send a one-off command; If you're using this consistently, you might be better off registering instead.
----@param text any
+---@param name string AddOn name calling this command, for logging & debug
+---@param text string The command to run
+---@param callbackFn function The callback function called when the replies are complete
+---@param forceShowMessages
 _commands.Send = function(name, text, callbackFn, forceShowMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
 	iterate()
 	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
 	commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
 end
+
+---Sends a command by the standard chat message instead of the addon command system, allowing it to split into chunks like UCM if too long for one.
+---@param message string
+local function sendMessageInChunks(message)
+    local maxLength = 254  -- Max bytes per message chunk
+    local messageLength = #message  -- Get the length of the message in bytes
+
+    -- If message length is less than or equal to maxLength, send it as is
+    if messageLength <= maxLength then
+        SendChatMessage("." .. message, "GUILD")
+        return
+    end
+
+    -- Split the message into chunks of maxLength bytes
+    for i = 1, messageLength, maxLength do
+        local chunk = string.sub(message, i, i + maxLength - 1)
+        SendChatMessage((i==1 and "." or "") .. chunk, "GUILD") -- Send chunks, adding . to first one
+    end
+end
+_commands.SendByChat = sendMessageInChunks
 
 EpsiLib.AddonCommands = _commands

@@ -759,7 +759,7 @@ local options = {
 							step = 0.01,
 							bigStep = 0.1,
 							name = "Ground Sprint Speed",
-							desc = "The speed to use for sprinting on the ground (Walk/Run).\n\rYou can type in any value from 0 to 50 if needed.\n\rDefault: 1.6",
+							desc = "The speed to use for sprinting on the ground (Walk/Run).\n\rYou can type in any value from 0 to 50 if needed.\n\rDefault: 1.66",
 							arg = "speedWalk",
 							get = "GenericGet",
 							set = "GenericSet",
@@ -769,7 +769,7 @@ local options = {
 						},
 						speedWalkReset = {
 							name = "Reset Ground",
-							desc = "Reset Ground (Walk/Run) Sprint Speed to Default (1.6).",
+							desc = "Reset Ground (Walk/Run) Sprint Speed to Default (1.66).",
 							order = autoOrder(),
 							type = "execute",
 							func = function()

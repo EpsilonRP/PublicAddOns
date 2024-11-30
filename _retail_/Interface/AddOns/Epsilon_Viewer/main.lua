@@ -227,13 +227,20 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
    end
 end
 
-local function getGobName(fid)
+---Get's the name of a gob by either fid or gobData if provided. FileID must be from a currentCatalog, cannot access the GODI results directly
+---@param fid number
+---@param gobData? table
+---@return string
+local function getGobName(fid, gobData)
+
+	if gobData and type(gobData) == "table" and gobData.name then return gobData.name end
+
    if fid == 1 or fid == false then
       return " "
    elseif fid == 130738 then
       return "talktomequestionmark.m2" --Since i'm not using the GobList anymore, need to make sure of that.
    else
-	  if not currentCatalog or not currentCatalog[fid] then return false end
+	  if not currentCatalog or not currentCatalog[fid] then return "(no name found)" end
       --local baseName = currentCatalog[fid].name or "(no name found)"
       --local gobName = string.match(baseName, ".*/(.-%.m2)")
       local gobName = currentCatalog[fid].name or "(no name found)"
@@ -350,6 +357,10 @@ local page_meta = {
 		if type(key) ~= "number" then return tbl[key] end
 		local realEntry = (fakePaginationGODITableOffset + key) - 1
 
+		if realEntry > (C_Epsilon.GODI_Count()-1) then
+			return { fid = false }
+		end
+
 		local GODI_Data = C_Epsilon.GODI_Get(realEntry)
 		GODI_Data.fid = GODI_Data.fileid
 		return GODI_Data
@@ -367,7 +378,7 @@ local top_meta = {
 
 local fakePaginationGODITable = setmetatable({}, top_meta)
 local function getGODIPageCount()
-	return C_Epsilon.GODI_Count()/numPerPage
+	return math.ceil((C_Epsilon.GODI_Count()-1)/numPerPage)
 end
 getGODIPageCount()
 
@@ -526,7 +537,7 @@ local function ShowGobBrowser()
 
             local isGobAlreadyInThere = false --In case someone want to glitch it.
             for k, v in pairs(selectedGobs) do
-               if gameObjectsGrid[i][j].label:GetText() == getGobName(v.id) then
+               if gameObjectsGrid[i][j].label:GetText() == getGobName(v.id, {name = v.name}) then
                   isGobAlreadyInThere = true
                end
             end
@@ -534,7 +545,7 @@ local function ShowGobBrowser()
             if not gameObjectsGrid[i][j].buttonSelect.selected and not isGobAlreadyInThere then
                   gameObjectsGrid[i][j].buttonSelect.selected = true
                   gameObjectsGrid[i][j].buttonSelect:LockHighlight()
-                  tinsert(selectedGobs, { id = gameObjectsGrid[i][j]:GetModelFileID(), displayid = gameObjectsGrid[i][j].gobData.displayid--[[, entries = gameObjectsGrid[i][j].gobData.entries]]} )
+                  tinsert(selectedGobs, { id = gameObjectsGrid[i][j]:GetModelFileID(), displayid = gameObjectsGrid[i][j].gobData.displayid, name = gameObjectsGrid[i][j].gobData.name --[[, entries = gameObjectsGrid[i][j].gobData.entries]]} )
             elseif gameObjectsGrid[i][j].buttonSelect.selected then
                gameObjectsGrid[i][j].buttonSelect.selected = false
                gameObjectsGrid[i][j].buttonSelect:UnlockHighlight()
@@ -567,8 +578,16 @@ local function ShowGobBrowser()
             else --Lookup
                --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
 			   gobName = gobName:gsub("%.m2", ""):gsub("%.wmo", "")
-               print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
-               SendChatMessage(".look object "..gobName, "GUILD")
+			   local command = ".lookup object "
+			   if gobName:find("buildingtile") then
+				  command = ".lookup tile "
+				  gobName = gobName:gsub("_[0-9]+$", "")
+			   elseif gobName:find("buildingplane") then
+				  command = ".lookup plane "
+				  gobName = gobName:gsub("_[0-9]+$", "")
+			   end
+			   print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
+               SendChatMessage(command..gobName, "GUILD")
             end
 
          end)
@@ -706,12 +725,9 @@ local function ShowGobBrowser()
          currentGobList = divideGobList(getGobList(" ", value, maxgobs, includeEpsilonTiles), columns, rows)
          updateGobGrid(currentGobList, 1)
 
-      else --if default, show only a page of talktomequestionmark.m2
-
-         local placeHolderTable = {}
+      else --if default, show all objects using the fakePaginationGODITable system
 
          selectedCatalog(value)
-         --currentGobList = divideGobList(placeHolderTable, columns, rows)
 		 currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
 
@@ -904,7 +920,7 @@ local function ShowGobBrowser()
             local countOfDot = 0
             local status = 2
             for i, j in pairs(selectedGobs) do
-               listLabel = listLabel.." "..getGobName(j.id)..";"
+               listLabel = listLabel.." "..(j.name or getGobName(j.id))..";"
                countOfDot = countOfDot + 1 --Window adapt
             end
 
@@ -947,12 +963,12 @@ local function ShowGobBrowser()
 
                      for i, j in pairs(selectedGobs) do
                         if isGobInUserCatalog(value, j.id) then --Already in there
-                           notAddedGobs = notAddedGobs..""..getGobName(j.id).."; "
+                           notAddedGobs = notAddedGobs..""..(j.name or getGobName(j.id)).."; "
                            WasThereAnyGobInHereAlready = true
                         else
                            DoesAnyGobWereAdded = true
-                           addedGobs = addedGobs..""..getGobName(j.id).."; "
-                           g.db.userCatalogs[value][j.id] = { name = getGobName(j.id), displayid = j.displayid--[[, entries = j.entries]]}
+                           addedGobs = addedGobs..""..(j.name or getGobName(j.id)).."; "
+                           g.db.userCatalogs[value][j.id] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
                         end
                      end
 
@@ -981,11 +997,11 @@ local function ShowGobBrowser()
                               for i, j in pairs(selectedGobs) do
                                  if isGobInUserCatalog(value, j.id) then --In there, as expected.
                                     WasThereAnyRemovedGob = true
-                                    removedGobs = removedGobs..""..getGobName(j.id).."; "
+                                    removedGobs = removedGobs..""..(j.name or getGobName(j.id)).."; "
                                     g.db.userCatalogs[value][j.id] = nil
                                  else
                                     WasThereAnyMissingGob = true
-                                    gobNotInUserCatalog = gobNotInUserCatalog..""..getGobName(j.id).."; "
+                                    gobNotInUserCatalog = gobNotInUserCatalog..""..(j.name or getGobName(j.id)).."; "
                                  end
                               end
                               if catalogListScrollDown:GetValue() == (value + 1) then --refresh if same catalog
@@ -1151,9 +1167,7 @@ local function ShowGobBrowser()
 	  elseif input:len() == 1 then
 		print("\124cFF4594C1[Epsilon_Viewer]\124r - Cannot search for a single letter, sorry. Try again.")
 	  else
-         local placeHolderTable = {}
          selectedCatalog(1)
-         --currentGobList = divideGobList(placeHolderTable, columns, rows)
 		 currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
       end

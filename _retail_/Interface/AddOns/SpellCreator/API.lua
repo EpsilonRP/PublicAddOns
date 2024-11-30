@@ -610,6 +610,12 @@ do
 	-- function triggerSparkCooldownVisual(commID: string, cooldownTime: number)
 	ARC.XAPI.sparks.triggerSparkCooldownVisual = wrapToEvalFinalVal(ns.UI.SparkPopups.SparkPopups.triggerSparkCooldownVisual, ARC.XAPI.sparks)
 
+	-- function setSparkThrottleOverride(seconds: number)
+	ARC.XAPI.sparks.setTempThrottleOverride = wrapToEvalFinalVal(ns.UI.SparkPopups.SparkPopups.setSparkThrottleOverride)
+
+	-- function restoreSparkThrottle()
+	ARC.XAPI.sparks.restoreThrottleOverride = ns.UI.SparkPopups.SparkPopups.restoreSparkThrottle
+
 	-- Spark Cooldowns Sub Category (Shared Functions with Sparks API Table)
 	ARC.XAPI.sparks.Cooldowns = sparkCDFuncs
 end

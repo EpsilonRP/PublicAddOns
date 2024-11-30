@@ -614,8 +614,7 @@ function BuyEpsilon_MerchantItem( itemID, amount )
 			stackCount = 1;
 		end
 
-		--SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
-		SendCommand( "additem " .. itemID .. " " .. ( amount ) ) -- I can't figure out why but amount is = stackCount when called anyways it seems so just ignore it?
+		SendCommand( "additem " .. itemID .. " " .. ( amount * stackCount ) )
 		C_Timer.After( 0.5, function()
 			Epsilon_Merchant_PlaySound( "buyitem" )
 			Epsilon_MerchantFrame_Update()

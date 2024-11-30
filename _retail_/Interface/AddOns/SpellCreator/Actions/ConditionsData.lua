@@ -213,7 +213,7 @@ local conditions = {
 				key = "hasMoreThanItems",
 				name = "Has More than X Items",
 				description = "If your character currently has more than X number of this item.",
-				inputs = { input("Item ID", "number"), },
+				inputs = { input("Item ID", "number"), input("Number", "number") },
 				script = function(itemID, number) return GetItemCount(itemID, false, false) > tonumber(number) end,
 			},
 			{

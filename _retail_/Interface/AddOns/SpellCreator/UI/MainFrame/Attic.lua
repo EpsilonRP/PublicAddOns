@@ -95,7 +95,7 @@ local function createCommandBox(mainFrame)
 	Tooltip.set(commandBox,
 		Localization.SPELLCOMM,
 		{
-			"The slash command trigger (commID) you want to use to call this spell.\n\rCast it using '/arcanum $command' after using Create.",
+			"The slash command trigger (commID) you want to use to call this spell.\n\rCast it using '/arcanum $command' after using Create (or /sf for short!).",
 			" ",
 			"This must be unique. Saving a spell with the same command ID as another will over-write the old spell."
 		}

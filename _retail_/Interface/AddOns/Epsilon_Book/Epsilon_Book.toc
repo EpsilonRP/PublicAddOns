@@ -1,0 +1,23 @@
+## Interface: 90207
+## Title: Epsilon Book
+## Author: Skylar
+## Notes: Adds book options to gossip-enabled forge NPCs.
+## Version: 1.0
+## Dependencies: EpsilonLib
+## SavedVariables: Epsilon_Book
+
+Libs\Embeds.xml
+Lists\TextureList.lua
+
+Book.lua
+Epsilon_Book.lua
+ColourPicker.lua
+IconPicker.lua
+TexturePicker.lua
+
+Ui/Widgets/FontTooltip.xml
+Ui/Book.xml
+Ui/Export.xml
+Ui/ColourPicker.xml
+Ui/IconPicker.xml
+Ui/TexturePicker.xml

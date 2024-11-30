@@ -28,7 +28,7 @@ local Globals, Utils, Events = TRP3_API.globals, TRP3_API.utils, TRP3_API.events
 local loc = TRP3_API.loc;
 local log = Utils.log.log;
 local pairs, assert, tostring, wipe, tinsert, strtrim, tonumber = pairs, assert, tostring, wipe, tinsert, strtrim, tonumber;
-local registerMenu= TRP3_API.navigation.menu.registerMenu;
+local registerMenu = TRP3_API.navigation.menu.registerMenu;
 local setPage = TRP3_API.navigation.page.setPage;
 local displayMessage = Utils.message.displayMessage;
 local EMPTY = Globals.empty;
@@ -36,6 +36,7 @@ local tcopy = Utils.table.copy;
 local TYPE_MOUNT = TRP3_API.ui.misc.TYPE_MOUNT;
 local Compression = AddOn_TotalRP3.Compression;
 local TRP3_Enums = AddOn_TotalRP3.Enums;
+local getPlayerCurrentProfile = TRP3_API.profile.getPlayerCurrentProfile;
 
 local function GetMountIDs()
 	if C_MountJournal then
@@ -108,7 +109,7 @@ local function parsePlayerProfiles(profiles)
 end
 
 local function boundPlayerCompanion(companionID, profileID, targetType)
-	assert(playerCompanions[profileID], "Unknown profile: "..tostring(profileID));
+	assert(playerCompanions[profileID], "Unknown profile: " .. tostring(profileID));
 	if not playerCompanions[profileID].links then
 		playerCompanions[profileID].links = {};
 	end
@@ -132,7 +133,7 @@ TRP3_API.companions.player.boundPlayerCompanion = boundPlayerCompanion;
 
 
 local function unboundPlayerCompanion(companionID, targetType)
-    local profileID = playerProfileAssociation[companionID];
+	local profileID = playerProfileAssociation[companionID];
 	assert(profileID, "Cannot find any bound for companionID " .. tostring(companionID));
 	playerProfileAssociation[companionID] = nil;
 	if profileID and playerCompanions[profileID] and playerCompanions[profileID].links then
@@ -161,12 +162,12 @@ TRP3_API.companions.player.isProfileNameAvailable = isProfileNameAvailable;
 -- Duplicate an existing profile
 local function duplicateProfile(duplicatedProfile, profileName)
 	assert(duplicatedProfile, "Nil profile");
-	assert(isProfileNameAvailable(profileName), "Unavailable profile name: "..tostring(profileName));
+	assert(isProfileNameAvailable(profileName), "Unavailable profile name: " .. tostring(profileName));
 	local profileID = Utils.str.id();
 	playerCompanions[profileID] = {};
 	Utils.table.copy(playerCompanions[profileID], duplicatedProfile);
 	playerCompanions[profileID].profileName = profileName;
-	displayMessage(loc.PR_PROFILE_CREATED:format(Utils.str.color("g")..profileName.."|r"));
+	displayMessage(loc.PR_PROFILE_CREATED:format(Utils.str.color("g") .. profileName .. "|r"));
 	return profileID;
 end
 TRP3_API.companions.player.duplicateProfile = duplicateProfile;
@@ -181,8 +182,8 @@ TRP3_API.companions.player.createProfile = createProfile;
 
 -- Edit a profile name
 local function editProfile(profileID, newName)
-	assert(playerCompanions[profileID], "Unknown profile: "..tostring(profileID));
-	assert(isProfileNameAvailable(newName), "Unavailable profile name: "..tostring(newName));
+	assert(playerCompanions[profileID], "Unknown profile: " .. tostring(profileID));
+	assert(isProfileNameAvailable(newName), "Unavailable profile name: " .. tostring(newName));
 	playerCompanions[profileID]["profileName"] = newName;
 end
 TRP3_API.companions.player.editProfile = editProfile;
@@ -190,7 +191,7 @@ TRP3_API.companions.player.editProfile = editProfile;
 -- Delete a profile
 -- If the deleted profile is the currently selected one, assign the default profile
 local function deleteProfile(profileID, silently)
-	assert(playerCompanions[profileID], "Unknown profile: "..tostring(profileID));
+	assert(playerCompanions[profileID], "Unknown profile: " .. tostring(profileID));
 	local profileName = playerCompanions[profileID]["profileName"];
 	for companionID, _ in pairs(playerCompanions[profileID].links or EMPTY) do
 		unboundPlayerCompanion(companionID);
@@ -198,7 +199,7 @@ local function deleteProfile(profileID, silently)
 	wipe(playerCompanions[profileID]);
 	playerCompanions[profileID] = nil;
 	if not silently then
-		displayMessage(loc.PR_PROFILE_DELETED:format(Utils.str.color("g")..profileName.."|r"));
+		displayMessage(loc.PR_PROFILE_DELETED:format(Utils.str.color("g") .. profileName .. "|r"));
 		Events.fireEvent(Events.REGISTER_PROFILE_DELETED, profileID);
 	end
 end
@@ -328,7 +329,7 @@ function TRP3_API.companions.player.getCurrentBattlePetQueryLine()
 		local _, customName, _, _, _, _, _, name = GetPetInfoByPetID(summonedPetGUID);
 		local queryLine = customName or name;
 		if getCompanionProfileID(customName or name) then
-			local profileID =  getCompanionProfileID(customName or name);
+			local profileID = getCompanionProfileID(customName or name);
 			return queryLine .. "_" .. profileID, getCompanionVersionNumbers(profileID);
 		end
 		return queryLine;
@@ -340,7 +341,7 @@ function TRP3_API.companions.player.getCurrentPetQueryLine()
 	if summonedPet then
 		local queryLine = summonedPet;
 		if getCompanionProfileID(summonedPet) then
-			local profileID =  getCompanionProfileID(summonedPet);
+			local profileID = getCompanionProfileID(summonedPet);
 			return queryLine .. "_" .. profileID, getCompanionVersionNumbers(profileID);
 		end
 		return queryLine;
@@ -487,7 +488,6 @@ function TRP3_API.companions.register.saveInformation(profileID, v, data)
 		tcopy(profile.PE, data);
 		Events.fireEvent(Events.REGISTER_DATA_UPDATED, nil, profileID, "misc");
 	end
-
 end
 
 function TRP3_API.companions.register.setProfileData(profileID, profile)
@@ -501,26 +501,26 @@ function TRP3_API.companions.register.setProfile(npcFullID, profileID)
 end
 
 local function boundNPC(npcID, profileID, _)
-
-	assert(playerCompanions[profileID], "Unknown profile: "..tostring(profileID));
-    local profile = playerCompanions[profileID]
+	assert(playerCompanions[profileID], "Unknown profile: " .. tostring(profileID));
+	local profile = playerCompanions[profileID]
 
 	local phaseData = {};
-    phaseData['id'] = profileID;
-    phaseData['profile'] = profile;
-	
-    local key = 'TOTALRP_PROFILE_' .. npcID;
-    local str = Utils.serial.serialize(phaseData);
-    str = Compression.compress(str, true);
+	phaseData['id'] = profileID;
+	phaseData['profile'] = profile;
+	phaseData['notes'] = getPlayerCurrentProfile().notes[profileID];
 
-    local strLength = #str
+	local key = 'TOTALRP_PROFILE_' .. npcID;
+	local str = Utils.serial.serialize(phaseData);
+	str = Compression.compress(str, true);
+
+	local strLength = #str
 	local fullNpcID = C_Epsilon.GetPhaseId() .. "_" .. npcID;
-    if strLength > 3500 then
-        print('Whoops - your profile is a bit too big');
+	if strLength > 3500 then
+		print('Whoops - your profile is a bit too big');
 		return
-    end
+	end
 
-    registerProfileAssociation[fullNpcID] = profileID;
+	registerProfileAssociation[fullNpcID] = profileID;
 	playerProfileAssociation[fullNpcID] = profileID;
 
 
@@ -529,22 +529,23 @@ local function boundNPC(npcID, profileID, _)
 	end
 	playerCompanions[profileID].links[fullNpcID] = TRP3_Enums.UNIT_TYPE.NPC;
 
-    Events.fireEvent(Events.REGISTER_DATA_UPDATED, fullNpcID, profileID);
+	Events.fireEvent(Events.REGISTER_DATA_UPDATED, fullNpcID, profileID);
 
-    C_Epsilon.SetPhaseAddonData(key, str);
+	--C_Epsilon.SetPhaseAddonData(key, str);
+	EpsilonLib.PhaseAddonData.Set(key, str)
 end
 TRP3_API.companions.player.boundNPC = boundNPC;
 
 local function unboundNPC(npcID, _)
-    local profileID = registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID];
+	local profileID = registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID];
 
-    registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID] = nil;
+	registerProfileAssociation[C_Epsilon.GetPhaseId() .. "_" .. npcID] = nil;
 	playerCompanions[C_Epsilon.GetPhaseId() .. "_" .. npcID] = nil;
 
-    if profileID then
+	if profileID then
 		local key = 'TOTALRP_PROFILE_' .. npcID;
-        Events.fireEvent(Events.REGISTER_DATA_UPDATED, C_Epsilon.GetPhaseId() .. "_" .. npcID, profileID);
-		
+		Events.fireEvent(Events.REGISTER_DATA_UPDATED, C_Epsilon.GetPhaseId() .. "_" .. npcID, profileID);
+
 		C_Epsilon.SetPhaseAddonData(key, '');
 	end
 end
@@ -600,7 +601,7 @@ end
 function TRP3_API.companions.register.getUnitMount(ownerID, unitType)
 	local buffIndex = 1;
 	local spellBuffID = select(10, UnitAura(unitType, buffIndex));
-	while(spellBuffID) do
+	while (spellBuffID) do
 		spellBuffID = select(10, UnitAura(unitType, buffIndex));
 		local companionFullID = ownerID .. "_" .. tostring(spellBuffID);
 		if registerProfileAssociation[companionFullID] then
@@ -615,7 +616,6 @@ end
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOAD, function()
-
 	if not TRP3_Companions then
 		TRP3_Companions = {};
 	end
@@ -644,5 +644,4 @@ TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOAD, function()
 		onSelected = function() setPage(TRP3_API.navigation.page.id.COMPANIONS_PROFILES) end,
 		closeable = true,
 	});
-
 end);

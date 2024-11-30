@@ -24,11 +24,35 @@ local function checkTargetAuraID(wantedID)
 	return checkForAuraID(wantedID, "target")
 end
 
-local function toggleAura(spellID)
-	if checkPlayerAuraID(tonumber(spellID)) then
-		ns.Cmd.cmd("unaura " .. spellID)
+---Toggle aura from self or target
+---@param spellID number|string The Spell ID to check
+---@param useTarget boolean? A tri-state boolean. Nil = adaptive, will use target if DM is enabled & target available. False = always use player. True = always use target.
+local function toggleAura(spellID, useTarget)
+	if useTarget == nil then
+		if C_Epsilon.IsDM and UnitExists("target") then
+			useTarget = true
+		else
+			useTarget = false
+		end
+	end
+
+	local func = checkPlayerAuraID
+	local auraComm = "aura "
+	local unauraComm = "unaura "
+
+	if useTarget then
+		func = checkTargetAuraID
+		local isNPC = not UnitIsPlayer('target')
+		if isNPC then
+			auraComm = "npc set aura "
+			unauraComm = "npc set unaura "
+		end
+	end
+
+	if func(tonumber(spellID)) then
+		ns.Cmd.cmd(unauraComm .. spellID .. (useTarget and "" or " self"))
 	else
-		ns.Cmd.cmd("aura " .. spellID)
+		ns.Cmd.cmd(auraComm .. spellID .. (useTarget and "" or " self"))
 	end
 end
 

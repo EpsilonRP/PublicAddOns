@@ -1,0 +1,145 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+  <!-- Template for the texture buttons. -->
+  <Button name="EpsilonBookTexturePickerButton" virtual="true">
+    <Size x="56" y="56"/>
+    <HighlightTexture file="Interface/BUTTONS/ButtonHilight-Square" alphaMode="ADD"/>
+    <Scripts>
+      <OnClick>
+        EpsilonBookTexturePickerButton_OnClick( self )
+      </OnClick>
+      <OnEnter>
+        EpsilonBookTexturePickerButton_ShowTooltip( self )
+      </OnEnter>
+      <OnLeave>
+        GameTooltip:Hide()
+      </OnLeave>
+    </Scripts>
+  </Button>
+  
+  <!-- The texture selector. -->
+  <Frame name="EpsilonBookTexturePicker" parent="UIParent" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="true" toplevel="true">
+    <Size x="262" y="320" />
+	<ResizeBounds>
+		<minResize x="262" y="320"/>
+		<maxResize x="1500" y="800"/>
+	</ResizeBounds>
+    <Anchors>
+      <Anchor point="TOPRIGHT" relativeTo="EpsilonBookEditor" relativePoint="TOPLEFT" x="-48" y="-60" />
+    </Anchors>
+    
+    <Layers>
+    </Layers>
+    
+    <Scripts>
+      <OnLoad>
+        EpsilonBookTexturePicker_OnLoad( self );
+      </OnLoad>
+    </Scripts>
+    <Frames>
+
+      <Slider name="$parentResolutionSlider" parentKey="ResolutionSlider" enableMouse="true" minValue="50" maxValue="150" defaultValue="50" valueStep="10" inherits="OptionsSliderTemplate" orientation="HORIZONTAL">
+		<Size x="100" y="20" />
+		<Anchors>
+			<Anchor point="TOPRIGHT" x="-16" y="-32" />
+		</Anchors>
+		<Scripts>
+			<OnShow>
+				EpsilonBookTexturePicker_ResolutionScale_OnLoad( self )
+			</OnShow>
+			<OnValueChanged>
+				EpsilonBookTexturePicker_ResolutionScale_OnValueChanged( self, value, userInput )
+			</OnValueChanged>
+		</Scripts>
+	  </Slider>
+
+      <!-- Search/filter box. -->
+      <EditBox parentKey="search" inherits="SearchBoxTemplate">
+        <Size x="150" y="8" />
+        <Anchors>
+			<Anchor point="TOPLEFT" x="80" y="-32" />
+			<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ResolutionSlider" relativePoint="BOTTOMLEFT" x="-8" y="0" />
+        </Anchors>
+        
+        <Scripts>
+          <OnTextChanged>
+            SearchBoxTemplate_OnTextChanged(self);
+            EpsilonBookTexturePicker_FilterChanged()
+          </OnTextChanged>
+          
+          
+          <OnEscapePressed function="EditBox_ClearFocus"/>
+        </Scripts>
+      </EditBox>
+
+	  <Button parentKey="resizer">
+	    <Size x="16" y="16"/>
+	    <Anchors>
+		    <Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
+	    </Anchors>
+	    <NormalTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down"/>
+	    <PushedTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up"/>
+	    <HighlightTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight"/>
+	    <Scripts>
+		    <OnMouseDown>
+			    self:GetParent():StartSizing("BOTTOMRIGHT");
+			    self:SetScript("OnUpdate", function() EpsilonBookTexturePicker_RefreshGrid() EpsilonBookTexturePicker_RefreshScroll() end);
+		    </OnMouseDown>
+		    <OnMouseUp>
+			    self:GetParent():StopMovingOrSizing("BOTTOMRIGHT");
+			    self:SetScript("OnUpdate", nil);
+		    </OnMouseUp>
+	    </Scripts>
+	  </Button>
+      
+      <!-- Area for icon selector. -->
+      <Frame parentKey="selectorFrame">
+        <Anchors>
+          <Anchor point="TOPLEFT" x="5" y="-5"/>
+          <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+        </Anchors>
+        <Scripts>
+          <OnLoad>
+            self:EnableMouseWheel(true)
+          </OnLoad>
+          <OnMouseWheel>
+            EpsilonBookTexturePicker_MouseScroll( delta )
+          </OnMouseWheel>
+        </Scripts>
+        
+        <Frames>
+        
+          <!-- Scroll bar -->
+          <Slider parentKey="scroller" inherits="UIPanelScrollBarTrimTemplate" minvalue="0" maxvalue="1" valuestep="3">
+            
+            <Anchors>
+              <Anchor point="TOPRIGHT" relativeTo="EpsilonBookTexturePickerInset" relativePoint="TOPRIGHT" x="2" y="-16" />
+              <Anchor point="BOTTOMRIGHT" relativeTo="EpsilonBookTexturePickerInset" relativePoint="BOTTOMRIGHT" x="2" y="14" />
+            </Anchors>
+            
+            <Layers>
+              <Layer level="BACKGROUND">
+                
+                <!-- scroller background -->
+                <Texture setAllPoints="true">
+                  <Color r="0" g="0" b="0" a="0.25"/>
+                </Texture>
+                
+              </Layer>
+            </Layers>
+            <Scripts>
+              <OnLoad>
+                self:SetValueStep(1)
+                self.scrollStep = 4
+              </OnLoad>
+              <OnValueChanged>
+                EpsilonBookTexturePicker_ScrollChanged( value )
+              </OnValueChanged>
+            </Scripts>
+          </Slider>
+        </Frames>
+      </Frame>
+      
+    </Frames>
+  </Frame>
+</Ui>

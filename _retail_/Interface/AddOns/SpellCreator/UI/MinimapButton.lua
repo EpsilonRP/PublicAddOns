@@ -165,6 +165,46 @@ minimapButton:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Hig
 		-- kept these here for ez copy-paste in-game lol
 --]]
 
+-- Loading Modifiers
+
+minimapButton.loadingBorder = minimapButton:CreateTexture("$parentLoadingBorder", "BORDER")
+if mmBorder.atlas then minimapButton.loadingBorder:SetAtlas(mmBorder.atlas, false) else minimapButton.loadingBorder:SetTexture(mmBorder.tex) end
+minimapButton.loadingBorder:SetSize(56 * mmBorder.size, 56 * mmBorder.size)
+minimapButton.loadingBorder:SetPoint("TOPLEFT", mmBorder.posx, mmBorder.posy)
+minimapButton.loadingBorder:SetDesaturated(true)
+minimapButton.loadingBorder:Hide()
+minimapButton.loadingBorder.min = 0
+minimapButton.loadingBorder.max = 1
+
+minimapButton.loadingBorderMask = minimapButton:CreateMaskTexture()
+minimapButton.loadingBorderMask:SetPoint("TOPLEFT", minimapButton.loadingBorder, 0, 0)
+minimapButton.loadingBorderMask:SetSize(minimapButton.loadingBorder:GetSize())
+minimapButton.loadingBorderMask:SetTexture("interface/framegeneral/uiframeiconmask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+minimapButton.loadingBorder:AddMaskTexture(minimapButton.loadingBorderMask)
+
+minimapButton.loadingIcon = minimapButton:CreateTexture("$parentLoadingIcon", "ARTWORK")
+minimapButton.loadingIcon:SetTexture(mmIcon)
+minimapButton.loadingIcon:SetSize(22, 22)
+minimapButton.loadingIcon:SetPoint("CENTER")
+minimapButton.loadingIcon:SetDesaturated(true)
+minimapButton.loadingIcon:AddMaskTexture(minimapButton.loadingBorderMask)
+minimapButton.loadingIcon:Hide()
+
+function minimapButton:SetLoading(min, max)
+	local fullHeight = minimapButton.loadingBorder:GetHeight()
+	local newHeight = fullHeight - ((min / max) * fullHeight)
+	if min == max then
+		self.loadingIcon:Hide()
+		self.loadingBorder:Hide()
+	else
+		self.loadingBorder.min = min
+		self.loadingBorder.max = max
+		self.loadingBorder:Show()
+		self.loadingIcon:Show()
+		self.loadingBorderMask:SetHeight(newHeight ~= 0 and newHeight or fullHeight)
+	end
+end
+
 minimapButton.contextMenu = Dropdown.create(minimapButton, "SCForgeMinimapContextMenu")
 
 local function createMenu()
@@ -207,12 +247,15 @@ end)
 minimapButton:SetScript("OnEnter", function(self)
 	self.highlight.anim:Play()
 	SetCursor("Interface/CURSOR/voidstorage.blp");
+	--[[
 	-- interface/cursor/argusteleporter.blp , interface/cursor/trainer.blp ,
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip:SetText(ADDON_TITLE)
+	--[=[
 	GameTooltip:AddLine(" ")
 	GameTooltip:AddLine("/arcanum - Toggle UI", 1, 1, 1, true)
 	GameTooltip:AddLine("/sf - Shortcut Command!", 1, 1, 1, true)
+	--]=]
 	GameTooltip:AddLine(" ")
 	GameTooltip:AddLine("" .. ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Left-Click|r to toggle the main UI!", 1, 1, 1, true)
 	GameTooltip:AddLine("" .. ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Right-Click|r for Options.", 1, 1, 1, true)
@@ -220,7 +263,12 @@ minimapButton:SetScript("OnEnter", function(self)
 	GameTooltip:AddLine("Mouse over most UI Elements to see tooltips for help! (Like this one!)", 0.9, 0.75, 0.75, true)
 	GameTooltip:AddDoubleLine(" ", ADDON_TITLE .. " v" .. addonVersion, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8);
 	GameTooltip:AddDoubleLine(" ", "by " .. addonAuthor, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8);
+	GameTooltip:AddLine(" ")
+	GameTooltip:AddDoubleLine("Phase Vault: ", ns.Vault.phase.isLoaded and "Loaded" or ("%s/%s loaded"):format(self.loadingBorder.min, self.loadingBorder.max), 0.8, 0.8, 0.8, 0.8, 0.8, 0.8);
+	GameTooltip:AddDoubleLine("Sparks: ", (not ns.UI.SparkPopups.SparkPopups.getSparkLoadingStatus()) and "Loaded" or "Loading..", 0.8, 0.8, 0.8,
+		0.8, 0.8, 0.8);
 	GameTooltip:Show()
+	--]]
 
 	if self.Flash:IsShown() then UIFrameFlashStop(self.Flash) end
 	Animation.stopRainbowVertex(self.Flash)
@@ -228,8 +276,24 @@ end)
 minimapButton:SetScript("OnLeave", function(self)
 	self.highlight.anim:Pause()
 	ResetCursor();
-	GameTooltip:Hide()
+	--GameTooltip:Hide()
 end)
+
+ns.Utils.Tooltip.set(minimapButton, ADDON_TITLE, function(self)
+	return {
+		" ",
+		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Left-Click|r to toggle the main UI!",
+		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Right-Click|r for Options.",
+		" ",
+		ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("Mouse over most UI Elements to see tooltips for help! (Like this one!)"),
+		ns.Utils.Tooltip.createDoubleLine(" ", ADDON_COLORS.GAME_GREY:WrapTextInColorCode(ADDON_TITLE .. " v" .. addonVersion)),
+		ns.Utils.Tooltip.createDoubleLine(" ", ADDON_COLORS.GAME_GREY:WrapTextInColorCode("by " .. addonAuthor)),
+		" ",
+		ns.Utils.Tooltip.createDoubleLine(ADDON_COLORS.PHASE_VAULT_TEXT:WrapTextInColorCode("Phase Vault: "),
+			ns.Vault.phase.isLoaded and "Loaded" or ("%s/%s loaded"):format(minimapButton.loadingBorder.min, minimapButton.loadingBorder.max)),
+		ns.Utils.Tooltip.createDoubleLine(ADDON_COLORS.PHASE_VAULT_TEXT:WrapTextInColorCode("Sparks: "), (not ns.UI.SparkPopups.SparkPopups.getSparkLoadingStatus()) and "Loaded" or "Loading.."),
+	}
+end, { forced = true, updateOnUpdate = true })
 
 minimapButton:SetScript("OnShow", function(self)
 	if not self.Flash:IsShown() then UIFrameFlash(self.Flash, 0.75, 0.75, 4.5, false, 0, 0); end

@@ -674,7 +674,8 @@ Possible status:
 	TB_SWITCH_PROFILE = "Switch to another profile",
 	TF_OPEN_CHARACTER = "Show character page",
     TF_OPEN_COMPANION = "Show companion page",
-	TF_OPEN_NPC = "Show npc page";
+	TF_OPEN_NPC = "Show npc page",
+	TF_OPEN_DM_NOTES = "Open DM notes",
 	TF_OPEN_MOUNT = "Show mount page",
 	TF_PLAY_THEME = "Play character theme",
 	TF_PLAY_THEME_TT = "|cffffff00Click:|r Play |cff00ff00%s\n|cffffff00Right-click:|r Stop theme",
@@ -1266,6 +1267,8 @@ If you wish to report %s's profile and you cannot target them you will need to o
 	REG_PLAYER_NOTES_PROFILE_HELP = "These private notes are tied to your current profile and will change based on what profile you currently have active.",
 	REG_PLAYER_NOTES_ACCOUNT = "Common notes",
 	REG_PLAYER_NOTES_ACCOUNT_HELP = "These private notes are tied to your account and will be shared with all of your profiles.",
+	REG_PLAYER_NOTES_DM = "DM Notes - these notes get saved to the phase",
+	REG_PLAYER_NOTES_PHASE = "Phase Notes - these notes are what you last saw in the phase profile",
 	---@language Markdown
 	WHATS_NEW_23_4 = [[
 # Changelog version 1.6.4
