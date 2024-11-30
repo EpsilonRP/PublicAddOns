@@ -24,6 +24,15 @@ local function dump(obj, indent)
     end
 end
 
+local minItemLink = "|item:%d|h[%s]|h|r"
+local function getShortLink(link)
+	local preString, hyperlinkStr, postStr = ExtractHyperlinkString(link)
+	local itemID = GetItemInfoFromHyperlink(link)
+	local itemName = hyperlinkStr:match("|h%[(.*)%]|h")
+
+	return minItemLink:format(itemID, itemName)
+end
+
 -- ============================== VARIABLES GLOBALES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
@@ -40,7 +49,7 @@ PhaseToolkit.MapIconInfo = {
 
 PhaseToolkit.itemCreatorData={}
 PhaseToolkit.CommandToSend={}
-PhaseToolkit.itemCreatorData.additemOption={
+PhaseToolkit.additemOption={
 	{text="Anyone",value=false},
 	{text="Character",value=false},
 	{text="Member",value=false},
@@ -2547,8 +2556,8 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			sendAddonCmd("forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder,nil,false)
 		end
 	end)
-	if(PhaseToolkit.itemCreatorData.additemOption~=nil) then
-		for _,option in ipairs(PhaseToolkit.itemCreatorData.additemOption) do
+	if(PhaseToolkit.additemOption~=nil) then
+		for _,option in ipairs(PhaseToolkit.additemOption) do
 			local value=""
 			if option.value==false then  value="off" else value="on" end
 			C_Timer.After(0.2, function()
@@ -2892,6 +2901,12 @@ function PhaseToolkit.createItemCreatorFrame()
 					for _, itemID in ipairs(PhaseToolkit.currentItems) do
 						if not tContains(PhaseToolkit.previousItems, itemID) then
 							local itemName, itemLink = GetItemInfo(itemID)
+
+							if itemLink == nil then
+								-- ItemLink failed. Let's generate a fake link.
+								itemLink = minItemLink:format(tonumber(itemID), "TempLink")
+							end
+
 							PhaseToolkit.itemCreatorData.itemLink=itemLink
 							PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 						end
@@ -3429,7 +3444,7 @@ function PhaseToolkit.addItemOptionDropdown(_dropdown)
 	UIDropDownMenu_Initialize(_dropdown, function(self)
 		local info = UIDropDownMenu_CreateInfo()
 
-		for _,additemOption in ipairs(PhaseToolkit.itemCreatorData.additemOption) do
+		for _,additemOption in ipairs(PhaseToolkit.additemOption) do
 			info.text = additemOption.text
 			info.arg1 = strlower(additemOption.text)
 			info.value = additemOption.value
