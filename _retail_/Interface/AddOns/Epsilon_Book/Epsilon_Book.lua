@@ -1,7 +1,9 @@
 -------------------------------------------------------------------------------
 -- Epsilon (2024)
 -------------------------------------------------------------------------------
+
 -- Main module
+--
 local addonName, ns = ...
 
 local C_Epsilon = C_Epsilon;
@@ -14,6 +16,7 @@ Epsilon_Book.RealName = addonName
 local SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Book");
 
 local f = CreateFrame("Frame")
+local loadCallbacks = {}
 
 -------------------------------------------------------------------------------
 -- Check if DM mode is currently enabled.
@@ -57,7 +60,7 @@ local function HasValidGossipTarget()
 end
 
 ---------------------------------------------------------------------------
--- Get the GUID identifier for a given unit.
+-- Get the GUID for a given unit.
 --
 local function GetUnitGUID(unit)
 	local guid = UnitGUID(unit)
@@ -73,7 +76,7 @@ local function GetUnitGUID(unit)
 end
 
 ---------------------------------------------------------------------------
--- Generate a unique GUID identifier.
+-- Generate a globally unique identifier (GUID).
 --
 local function GenerateGUID()
 	local lastTime;
@@ -122,94 +125,66 @@ local function DecompressForDownload(str)
 	return str;
 end
 
-local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 ---------------------------------------------------------------------------
 -- Encrypt data for export codes.
 --
-local function Encrypt( data )
-	return ((data:gsub('.', function(x) 
-    local r,b='',x:byte()
-    for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
-    return r;
-  end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
-    if (#x < 6) then return '' end
-    local c=0
-    for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
-    return b:sub(c+1,c+1)
-  end)..({ '', '==', '=' })[#data%3+1])
+local function Encrypt(data)
+	return ((data:gsub('.', function(x)
+		local r, b = '', x:byte()
+		for i = 8, 1, -1 do r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and '1' or '0') end
+		return r;
+	end) .. '0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+		if (#x < 6) then return '' end
+		local c = 0
+		for i = 1, 6 do c = c + (x:sub(i, i) == '1' and 2 ^ (6 - i) or 0) end
+		return b:sub(c + 1, c + 1)
+	end) .. ({ '', '==', '=' })[#data % 3 + 1])
 end
 
 ---------------------------------------------------------------------------
 -- Decrypt data for export codes.
 --
-local function Decrypt( data )
-	data = string.gsub(data, '[^'..b..'=]', '')
-  return (data:gsub('.', function(x)
-    if (x == '=') then return '' end
-    local r,f='',(b:find(x)-1)
-    for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-    return r;
-  end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-    if (#x ~= 8) then return '' end
-    local c=0
-    for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-    return string.char(c)
-  end))
+local function Decrypt(data)
+	data = string.gsub(data, '[^' .. b .. '=]', '')
+	return (data:gsub('.', function(x)
+		if (x == '=') then return '' end
+		local r, f = '', (b:find(x) - 1)
+		for i = 6, 1, -1 do r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and '1' or '0') end
+		return r;
+	end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+		if (#x ~= 8) then return '' end
+		local c = 0
+		for i = 1, 8 do c = c + (x:sub(i, i) == '1' and 2 ^ (8 - i) or 0) end
+		return string.char(c)
+	end))
 end
 
 -------------------------------------------------------------------------
 -- Save phase data.
+--
 
-MSG_MULTI_FIRST       = "\001";
-MSG_MULTI_NEXT        = "\002";
-MSG_MULTI_LAST        = "\003";
-MAX_CHARS_PER_SEGMENT = 3000;
-
-local function SetPhaseData( prefix, data )
-	if not( data and prefix ) then
+local function SetPhaseData(prefix, data)
+	if not (data and prefix) then
 		return
 	end
 
-	local str = CompressForUpload( data );
-	local length = #str;
-	if length > MAX_CHARS_PER_SEGMENT then
-		local numEntriesRequired = math.ceil(length / MAX_CHARS_PER_SEGMENT);
-
-		for i = 1, numEntriesRequired do
-			-- Grab the substring for this segment
-			local strSub = string.sub(str, (MAX_CHARS_PER_SEGMENT * (i - 1)) + 1, (MAX_CHARS_PER_SEGMENT * i));
-            
-			-- Stupid case handler for the first segment, so it's just the normal entry name & uses the 'FIRST' flag to we know to request more blocks after
-			if i == 1 then
-				strSub = MSG_MULTI_FIRST .. strSub;
-				C_Epsilon.SetPhaseAddonData(prefix, strSub);
-			else
-			-- For all else, append the segment number to the key
-			-- We also prepend either the NEXT or the LAST character to the string, to act as a signal for if we need to request another block or this is the end
-				local controlChar = MSG_MULTI_NEXT;
-				if i == numEntriesRequired then controlChar = MSG_MULTI_LAST end
-				strSub = controlChar .. strSub;
-				C_Epsilon.SetPhaseAddonData(prefix .. i, strSub);
-			end
-		end
-	else
-		-- Wasn't long enough to need multi-part, save as one and move on with our lives
-		C_Epsilon.SetPhaseAddonData(prefix, str);
-	end
+	data = CompressForUpload(data);
+	EpsiLib.PhaseAddonData.Set(prefix, data);
 end
 
 -------------------------------------------------------------------------------
 -- Generate a new book from an import code.
 --
-function EpsilonBook_ImportBook( text )
-	if not( EPSILON_BOOK_LIST ) then
+function EpsilonBook_ImportBook(text)
+	if not (EPSILON_BOOK_LIST) then
 		return
 	end
 
-	if not( text ) or text == "" then
-		PlaySound( 47355 );
-		UIErrorsFrame:AddMessage( "Invalid import code.", 1.0, 0.0, 0.0, 53, 5 );
+	if not (text) or text == "" then
+		PlaySound(47355);
+		UIErrorsFrame:AddMessage("Invalid import code.", 1.0, 0.0, 0.0, 53, 5);
 		return
 	end
 
@@ -217,9 +192,9 @@ function EpsilonBook_ImportBook( text )
 	local table = DecompressForDownload(text)
 
 	--local _, table = AceSerializer:Deserialize(text)
-	if not( table and table.icon and table.title and table.material and table.pages and table.fontFamily and table.fontSize ) then
-		PlaySound( 47355 );
-		UIErrorsFrame:AddMessage( "Invalid import code.", 1.0, 0.0, 0.0, 53, 5 );
+	if not (table and table.icon and table.title and table.material and table.pages and table.fontFamily and table.fontSize) then
+		PlaySound(47355);
+		UIErrorsFrame:AddMessage("Invalid import code.", 1.0, 0.0, 0.0, 53, 5);
 		return
 	end
 
@@ -228,7 +203,8 @@ function EpsilonBook_ImportBook( text )
 		-- GUIDs are seeded using time() so
 		-- identicals can occur if generated
 		-- within the same second!
-		C_Timer.After(1, function() bookID = GenerateGUID(); end);
+		print("|cFFFF0000Error encountered generating book GUID. Please try again.");
+		return
 	end
 
 	-- create new guid and add to book list...
@@ -240,8 +216,8 @@ function EpsilonBook_ImportBook( text )
 
 	-- push new book to server...
 
-	SetPhaseData( "BOOK_DATA_" .. bookID, table );
-	SetPhaseData( "BOOK_LIST", EPSILON_BOOK_LIST );
+	SetPhaseData("BOOK_DATA_" .. bookID, table);
+	SetPhaseData("BOOK_LIST", EPSILON_BOOK_LIST);
 
 	C_Timer.After(1, function() EpsilonBookLibrary_Update() end);
 end
@@ -253,21 +229,8 @@ function EpsilonBook_ExportBook(guid)
 	if not (guid) then
 		return
 	end
-	
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_DATA_" .. guid);
 
-	if not messageTicketId then
-		-- book not found ??? uh oh...
-		return
-	end
-
-	local register = {
-		id = messageTicketId;
-		type = "export";
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, loadCallbacks.export)
 end
 
 -------------------------------------------------------------------------------
@@ -282,8 +245,8 @@ function EpsilonBook_TurnNPCIntoBook(guid)
 		return
 	end
 
-	SendChatMessage(".phase forge npc gossip enable","GUILD");							-- enable gossip on NPC
-	SendChatMessage(".phase forge npc gossip text add <BOOK:" .. guid .. ">","GUILD");		-- add the <BOOK:ID> tag
+	SendChatMessage(".phase forge npc gossip enable", "GUILD");                      -- enable gossip on NPC
+	SendChatMessage(".phase forge npc gossip text add <BOOK:" .. guid .. ">", "GUILD"); -- add the <BOOK:ID> tag
 end
 
 -------------------------------------------------------------------------------
@@ -297,9 +260,9 @@ function EpsilonBook_AddBookToNPCGossip(text, guid)
 	if not (HasValidGossipTarget()) then
 		return
 	end
-	
-	SendChatMessage(".phase forge npc gossip enable","GUILD");													-- enable gossip on NPC
-	SendChatMessage(".ph f n g o a " .. text .. " <BOOK:" .. guid .. ">","GUILD");								-- add the <BOOK:ID> tag
+
+	SendChatMessage(".phase forge npc gossip enable", "GUILD");                  -- enable gossip on NPC
+	SendChatMessage(".ph f n g o a " .. text .. " <BOOK:" .. guid .. ">", "GUILD"); -- add the <BOOK:ID> tag
 end
 
 -------------------------------------------------------------------------------
@@ -310,15 +273,13 @@ function EpsilonBook_LinkItemToBook(itemID, guid)
 		return
 	end
 
-	if not( EPSILON_BOOK_ITEMS ) then
-		EpsilonBook_GetBookItemList();
-		print("|cFFFF0000Error encountered retrieving phase book item list. Please try again.");
+	if not (EPSILON_BOOK_ITEMS) then
+		EpsilonBook_GetBookItemList(true);
 		return
 	end
 
-	if not( EPSILON_BOOK_LIST and EPSILON_BOOK_LIST[guid] ) then
-		EpsilonBook_GetBookList();
-		print("|cFFFF0000Error encountered retrieving phase book list. Please try again.");
+	if not (EPSILON_BOOK_LIST and EPSILON_BOOK_LIST[guid]) then
+		EpsilonBook_GetBookList(true);
 		return
 	end
 
@@ -340,19 +301,17 @@ function EpsilonBook_RemoveBookItemLink(itemID, guid)
 		return
 	end
 
-	if not( EPSILON_BOOK_ITEMS ) then
-		EpsilonBook_GetBookItemList();
-		print("|cFFFF0000Error encountered retrieving phase book item list. Please try again.");
+	if not (EPSILON_BOOK_ITEMS) then
+		EpsilonBook_GetBookItemList(true);
 		return
 	end
 
-	if not( EPSILON_BOOK_LIST and EPSILON_BOOK_LIST[guid] ) then
-		EpsilonBook_GetBookList();
-		print("|cFFFF0000Error encountered retrieving phase book list. Please try again.");
+	if not (EPSILON_BOOK_LIST and EPSILON_BOOK_LIST[guid]) then
+		EpsilonBook_GetBookList(true);
 		return
 	end
 
-	itemID = tostring( itemID );
+	itemID = tostring(itemID);
 	EPSILON_BOOK_ITEMS[itemID] = nil;
 	SetPhaseData("EPSILON_BOOK_ITEMS", EPSILON_BOOK_ITEMS);
 
@@ -368,41 +327,33 @@ end
 --
 -- *Executes automatically on phase change.
 --
-function EpsilonBook_GetBookItemList()
+function EpsilonBook_GetBookItemList(reasonFailed)
+	if (reasonFailed) then
+		print("|cFFFF0000Error encountered retrieving phase book item list. Please try again.");
+	end
+	-- Any previous list is irrelevant now.
 	EPSILON_BOOK_ITEMS = {};
 
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("EPSILON_BOOK_ITEMS")
-
-	if not messageTicketId then
-		return
-	end
-
-	local register = {
-		id = messageTicketId;
-		type = "items";
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	EpsilonLib.PhaseAddonData.Get("EPSILON_BOOK_ITEMS", loadCallbacks.items)
 end
 
 -------------------------------------------------------------------------
 -- Try to open a book linked to an item.
 --
-function EpsilonBook_TryBookFromItemID( itemID )
-	if not(itemID) then
+function EpsilonBook_TryBookFromItemID(itemID)
+	if not (itemID) then
 		return
 	end
 
-	itemID = tostring( itemID );
+	itemID = tostring(itemID);
 
-	if not( EPSILON_BOOK_ITEMS ) then
+	if not (EPSILON_BOOK_ITEMS) then
 		EpsilonBook_GetBookItemList();
 		return
 	end
 
 	if EPSILON_BOOK_ITEMS[itemID] then
-		EpsilonBook_LoadBook( EPSILON_BOOK_ITEMS[itemID] )
+		EpsilonBook_LoadBook(EPSILON_BOOK_ITEMS[itemID])
 		EpsilonBookFrame:ClearAllPoints();
 		EpsilonBookFrame:SetPoint("TOPLEFT", UIParent, 16, -116);
 	end
@@ -411,22 +362,13 @@ end
 -------------------------------------------------------------------------
 -- Returns a list of all books.
 --
-function EpsilonBook_GetBookList()
-	EPSILON_BOOK_LIST = {};
-
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_LIST")
-
-	if not messageTicketId then
-		return
+function EpsilonBook_GetBookList(reasonFailed)
+	if (reasonFailed) then
+		print("|cFFFF0000Error encountered retrieving phase book list. Please try again.");
 	end
-
-	local register = {
-		id = messageTicketId;
-		type = "list";
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	EPSILON_BOOK_LIST = {};
+	
+	EpsilonLib.PhaseAddonData.Get("BOOK_LIST", loadCallbacks.list)
 end
 
 -------------------------------------------------------------------------
@@ -434,30 +376,22 @@ end
 --
 function EpsilonBook_LoadBook(guid)
 	if not (guid) then
+		-- No GUID? >:(
+		-- Fine, then no book!
 		return
 	end
 
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_DATA_" .. guid);
-
-	if not messageTicketId then
-		-- book not found ??? uh oh...
-		return
-	end
-
-	local register = {
-		id = messageTicketId;
-		type = "book";
-		guid = guid;
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, function(text) 
+		loadCallbacks.book(text, guid);
+	end)
 end
+
 -------------------------------------------------------------------------------
 -- Generate a new book.
 --
 function EpsilonBook_CreateBook()
 	if not EPSILON_BOOK_LIST then
+		EpsilonBook_GetBookList(true);
 		return
 	end
 
@@ -485,7 +419,8 @@ function EpsilonBook_CreateBook()
 		-- GUIDs are seeded using time() so
 		-- identicals can occur if generated
 		-- within the same second!
-		C_Timer.After(1, function() guid = GenerateGUID(); end);
+		print("|cFFFF0000Error encountered generating book GUID. Please try again.");
+		return
 	end
 
 	return guid, data
@@ -498,21 +433,8 @@ function EpsilonBook_DuplicateBook(guid)
 	if not (EPSILON_BOOK_LIST and guid) then
 		return
 	end
-
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_DATA_" .. guid);
-
-	if not messageTicketId then
-		-- book not found ??? uh oh...
-		return
-	end
-
-	local register = {
-		id = messageTicketId;
-		type = "duplicate";
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, loadCallbacks.duplicate)
 end
 
 -------------------------------------------------------------------------
@@ -555,41 +477,33 @@ function EpsilonBook_SaveCurrentBook()
 end
 
 -------------------------------------------------------------------------------
--- OnEvent handler for Gossip NPC books.
+-- Hook Gossip Options to check for <BOOK:GUID> tags.
 --
-
 local option_predicate = function(text, button)
 	return text and text:match("<BOOK:.->")
 end
 
 local option_filter = function(newText, originalText)
-	if ( IsPhaseOfficer() or IsPhaseOwner() ) and C_Epsilon.IsDM then
-		newText = originalText:gsub("(<BOOK:.->)","|cFFFF0000%1|r");
+	if (IsPhaseOfficer() or IsPhaseOwner()) and C_Epsilon.IsDM then
+		newText = originalText:gsub("(<BOOK:.->)", "|cFFFF0000%1|r");
 	else
-		newText = originalText:gsub("<BOOK:.->","");
+		newText = originalText:gsub("<BOOK:.->", "");
 	end
 	return newText
 end
 
 local option_callback = function(self, button, down, originalText)
 	local bookID = originalText:match("<BOOK:(.-)>");
-
-	-- Send a request to the server.
-	local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_DATA_" .. bookID);
-
-	local register = {
-		id = messageTicketId;
-		type = "book";
-		guid = bookID;
-		isAttached = true;
-		isGossip = true;
-	}
-
-	tinsert( Epsilon_Book.RegisteredPrefixes, register );
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text) 
+		loadCallbacks.book(text, bookID, true, true);
+	end)
 end
 
 EpsilonLib.Utils.Gossip:RegisterButtonHook(option_predicate, option_callback, option_filter)
 
+-------------------------------------------------------------------------------
+-- OnEvent handler for Gossip NPC books.
+--
 function EpsilonBook_OnEvent(self, event, ...)
 	if (event == "GOSSIP_SHOW") then
 		if UnitExists("npc") then
@@ -600,46 +514,31 @@ function EpsilonBook_OnEvent(self, event, ...)
 			end
 			local gossipText = C_GossipInfo.GetText();
 			if gossipText and gossipText:match("<BOOK:.->") then
-				if ( IsPhaseOfficer() or IsPhaseOwner() ) and C_Epsilon.IsDM then
-					GossipGreetingText:SetText( gossipText:gsub("(<BOOK:.->)","|cFFFF0000%1|r") )
+				if (IsPhaseOfficer() or IsPhaseOwner()) and C_Epsilon.IsDM then
+					GossipGreetingText:SetText(gossipText:gsub("(<BOOK:.->)", "|cFFFF0000%1|r"))
 				else
 					GossipFrame:SetAlpha(0);
 					GossipFrame:EnableMouse(false);
 					bookID = gossipText:match("<BOOK:(.-)>");
-					-- Send a request to the server.
-					local messageTicketId = C_Epsilon.GetPhaseAddonData("BOOK_DATA_" .. bookID);
-
-					if not messageTicketId then
-						-- book not found ??? uh oh...
-						return
-					end
-
-					local register = {
-						id = messageTicketId;
-						type = "book";
-						guid = bookID;
-						isAttached = true;
-						isGossip = true;
-					}
-
-					tinsert( Epsilon_Book.RegisteredPrefixes, register );
+					EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text) 
+						loadCallbacks.book(text, bookID, true, true);
+					end)
 				end
 			end
 		end
 	elseif (event == "GOSSIP_CLOSED") then
-		if ( EpsilonBookFrame:IsShown() ) then
+		if (EpsilonBookFrame:IsShown()) then
 			EpsilonBookFrame_Hide()
 			return;
 		end
-	elseif (event == "SCENARIO_UPDATE" or event == "PLAYER_ENTERING_WORLD" ) then
+	elseif (event == "SCENARIO_UPDATE" or event == "PLAYER_ENTERING_WORLD") then
 		EpsilonBook_GetBookItemList();
 	end
 end
 
 -------------------------------------------------------------------------------
--- Init
+-- Add the Epsilon Book icon to the Epsilon Addon Tray.
 --
-
 local function CreateMinimapIcon()
 	LibStub("EpsiLauncher-1.0").API.new("Epsilon Book", function()
 		if IsPhaseOfficer() or IsPhaseOwner() then
@@ -650,6 +549,106 @@ local function CreateMinimapIcon()
 	end, "Interface/AddOns/" .. addonName .. "/Texture/EpsilonTrayIconBook", { "Click to open the Book Library." })
 end
 
+-- CALLBACKS:
+
+loadCallbacks.book = function(text, guid, isAttached, isGossip)
+	text = DecompressForDownload(text);
+	local canEdit = IsPhaseOfficer() or IsPhaseOwner();
+	if isGossip then
+		if text == "" then
+			GossipFrame:SetAlpha(1);
+			GossipFrame:EnableMouse(true);
+			if IsPhaseOfficer() or IsPhaseOwner() then
+				GossipGreetingText:SetText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nMake sure the book was not deleted by mistake!");
+			else
+				GossipGreetingText:SetText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nReport this issue to a phase officer!");
+			end
+			return
+		else
+			GossipFrame:SetAlpha(0);
+			GossipFrame:EnableMouse(false);
+		end
+	end
+	if guid then
+		EpsilonBookFrame_Show(guid, text, canEdit, isAttached);
+	end
+	PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
+	if isAttached then
+		EpsilonBookFrame:ClearAllPoints();
+		EpsilonBookFrame:SetPoint("TOPLEFT", GossipFrame);
+	end
+end
+
+loadCallbacks.list = function(text)
+	text = DecompressForDownload(text);
+
+	if text ~= "" then
+		EPSILON_BOOK_LIST = text;
+	else
+		EPSILON_BOOK_LIST = {};
+	end
+	if EpsilonBookLibraryFrame:IsShown() then
+		EpsilonBookLibrary_Update();
+	end
+end
+
+loadCallbacks.items = function(text)
+	text = DecompressForDownload(text);
+
+	if text and text ~= "" then
+		EPSILON_BOOK_ITEMS = text;
+	else
+		EPSILON_BOOK_ITEMS = {};
+	end
+end
+
+loadCallbacks.duplicate = function(text)
+	text = DecompressForDownload(text);
+	-- obtain data from target book...
+
+	-- create new guid
+	local bookID = GenerateGUID();
+	if EPSILON_BOOK_LIST[bookID] then
+		-- GUIDs are seeded using time() so
+		-- identicals can occur if generated
+		-- LITERALLY WITHIN THE SAME SECOND!!!
+		-- (don't do this...)
+		print("|cFFFF0000Error encountered generating book GUID. Please try again.");
+		return
+	end
+
+	-- add to book list
+	EPSILON_BOOK_LIST[bookID] = {
+		icon = text.icon,
+		title = text.title,
+	};
+
+	-- upload to phase and add to phase list
+	SetPhaseData("BOOK_DATA_" .. bookID, text);
+	SetPhaseData("BOOK_LIST", EPSILON_BOOK_LIST);
+
+	C_Timer.After(1, function() EpsilonBookLibrary_Update() end);
+end
+
+loadCallbacks.export = function(text)
+	text = DecompressForDownload(text);
+
+	text = CompressForUpload(text);
+	text = Encrypt(text);
+	EpsilonBookExportDialog.Title:SetText("Export Book");
+	EpsilonBookExportDialog:Show();
+	EpsilonBookExportDialog.ImportButton:Hide();
+	EpsilonBookExportDialog.CancelButton:Show();
+	EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetText(text);
+	EpsilonBookExportDialog.ImportControl.InputContainer:UpdateScrollChildRect();
+	EpsilonBookExportDialog.ImportControl.InputContainer:SetVerticalScroll(EpsilonBookExportDialog.ImportControl.InputContainer:GetVerticalScrollRange());
+	EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:HighlightText();
+	EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetFocus();
+end
+
+-------------------------------------------------------------------------------
+-- Init
+--
 function Epsilon_Book:OnInitialize()
 	Epsilon_Book.RealName = addonName
 
@@ -691,11 +690,11 @@ function Epsilon_Book:OnInitialize()
 			end
 		end
 
-		if not( EPSILON_BOOK_ITEMS ) then
+		if not (EPSILON_BOOK_ITEMS) then
 			return
 		end
 
-		if not( EPSILON_BOOK_ITEMS[itemId] ) then
+		if not (EPSILON_BOOK_ITEMS[itemId]) then
 			return
 		end
 
@@ -706,23 +705,23 @@ function Epsilon_Book:OnInitialize()
 		local leftTextR = {}
 		local leftTextG = {}
 		local leftTextB = {}
-  
+
 		local rightText = {}
 		local rightTextR = {}
 		local rightTextG = {}
 		local rightTextB = {}
-  
+
 		-- Store the number of lines for after ClearLines().
 		local numLines = tooltip:NumLines()
-  
+
 		-- Store all lines of the original tooltip.
 		local offset = 0;
 		for i = 1, numLines, 1 do
-			leftText[i] = _G[tooltip:GetName().."TextLeft"..i]:GetText()
-			leftTextR[i], leftTextG[i], leftTextB[i] = _G[tooltip:GetName().."TextLeft"..i]:GetTextColor()
- 
-			rightText[i] = _G[tooltip:GetName().."TextRight"..i]:GetText()
-			rightTextR[i], rightTextG[i], rightTextB[i] = _G[tooltip:GetName().."TextRight"..i]:GetTextColor()
+			leftText[i] = _G[tooltip:GetName() .. "TextLeft" .. i]:GetText()
+			leftTextR[i], leftTextG[i], leftTextB[i] = _G[tooltip:GetName() .. "TextLeft" .. i]:GetTextColor()
+
+			rightText[i] = _G[tooltip:GetName() .. "TextRight" .. i]:GetText()
+			rightTextR[i], rightTextG[i], rightTextB[i] = _G[tooltip:GetName() .. "TextRight" .. i]:GetTextColor()
 
 			if leftText[i]:match("ItemID") then
 				offset = 2;
@@ -730,7 +729,7 @@ function Epsilon_Book:OnInitialize()
 		end
 
 		tooltip:ClearLines();
-  
+
 		-- Refill the tooltip with the stored lines plus my added lines.
 		local found;
 		for i = 1, numLines do
@@ -748,7 +747,7 @@ function Epsilon_Book:OnInitialize()
 					tooltip:AddLine(leftText[i], leftTextR[i], leftTextG[i], leftTextB[i], true)
 				end
 
-				if not (found) and i == ( numLines - offset ) then
+				if not (found) and i == (numLines - offset) then
 					tooltip:AddLine("<Right Click to Read>", 0, 1, 0, true);
 				end
 			end
@@ -763,133 +762,6 @@ function Epsilon_Book:OnInitialize()
 	EpsilonBookFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 	Epsilon_Book.RegisteredPrefixes = {};
-
-	Epsilon_Book.EventFrame = CreateFrame( "Frame" );
-	Epsilon_Book.EventFrame:RegisterEvent( "CHAT_MSG_ADDON" );
-	Epsilon_Book.EventFrame:SetScript( "OnEvent", function(  self, event, prefix, text, channel, sender, ... )
-		if event == "CHAT_MSG_ADDON" then
-
-			if ( not( prefix and Epsilon_Book.RegisteredPrefixes ) or #Epsilon_Book.RegisteredPrefixes == 0 ) then
-				return
-			end
-
-			for prefixIndex = 1, #Epsilon_Book.RegisteredPrefixes do
-				if Epsilon_Book.RegisteredPrefixes[prefixIndex] and Epsilon_Book.RegisteredPrefixes[prefixIndex].id and prefix == Epsilon_Book.RegisteredPrefixes[prefixIndex].id then
-					local prefixType = Epsilon_Book.RegisteredPrefixes[prefixIndex].type;
-
-					if text == nil then text = "" end
-
-					if string.match(text, "^[\001-\002]") then
-						multipartIter = multipartIter + 1;
-						text = text:gsub("^[\001-\002]", "");
-						STORED_STRINGS_TABLE[multipartIter] = text;
-
-						local messageTicketID = C_Epsilon.GetPhaseAddonData(prefix + ( multipartIter + 1 ) );
-						local register = {
-							id = messageTicketId;
-							type = prefix;
-						}
-
-						tinsert( Epsilon_Book.RegisteredPrefixes, register );
-						return
-					elseif string.match(text, "^[\003]") then
-						multipartIter = multipartIter + 1;
-						text = text:gsub("^[\003]", "");
-						STORED_STRINGS_TABLE[multipartIter] = text;
-						text = table.concat(STORED_STRINGS_TABLE, "")
-
-						-- reset our temp data
-						wipe(STORED_STRINGS_TABLE);
-						multipartIter = 0;
-					end
-
-					text = DecompressForDownload(text);
-
-					if prefixType == "book" then
-						local canEdit = IsPhaseOfficer() or IsPhaseOwner();
-						local guid = Epsilon_Book.RegisteredPrefixes[prefixIndex].guid or false;
-						local isAttached = Epsilon_Book.RegisteredPrefixes[prefixIndex].isAttached or false;
-						local isGossip = Epsilon_Book.RegisteredPrefixes[prefixIndex].isGossip or false;
-						if isGossip then
-							if text == "" then
-								GossipFrame:SetAlpha(1);
-								GossipFrame:EnableMouse(true);
-								if IsPhaseOfficer() or IsPhaseOwner() then
-									GossipGreetingText:SetText("|cFFFF0000Error: Book ".. bookID .." was not found and could not be displayed.|n|nMake sure the book was not deleted by mistake!");
-								else
-									GossipGreetingText:SetText("|cFFFF0000Error: Book ".. bookID .." was not found and could not be displayed.|n|nReport this issue to a phase officer!");
-								end
-								return
-							else
-								GossipFrame:SetAlpha(0);
-								GossipFrame:EnableMouse(false);
-							end
-						end
-						if guid then
-							EpsilonBookFrame_Show(guid, text, canEdit, isAttached);
-						end
-						PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
-						if isAttached then
-							EpsilonBookFrame:ClearAllPoints();
-							EpsilonBookFrame:SetPoint("TOPLEFT", GossipFrame);
-						end
-					elseif prefixType == "list" then
-						if text ~= "" then
-							EPSILON_BOOK_LIST = text;
-						else
-							EPSILON_BOOK_LIST = {};
-						end
-						if EpsilonBookLibraryFrame:IsShown() then
-							EpsilonBookLibrary_Update();
-						end
-					elseif prefixType == "items" then
-						if text and text ~= "" then
-							EPSILON_BOOK_ITEMS = text;
-						else
-							EPSILON_BOOK_ITEMS = {};
-						end
-					elseif prefixType == "duplicate" then
-						-- obtain data from target book...
-
-						local bookID = GenerateGUID();
-						if EPSILON_BOOK_LIST[bookID] then
-							-- GUIDs are seeded using time() so
-							-- identicals can occur if generated
-							-- within the same second!
-							C_Timer.After(1, function() bookID = GenerateGUID(); end);
-						end
-
-						-- create new guid and add to book list...
-
-						EPSILON_BOOK_LIST[bookID] = {
-							icon = text.icon,
-							title = text.title,
-						};
-
-						-- push new book to server...
-
-						SetPhaseData("BOOK_DATA_" .. bookID, text);
-						SetPhaseData("BOOK_LIST", EPSILON_BOOK_LIST);
-
-						C_Timer.After(1, function() EpsilonBookLibrary_Update() end);
-					elseif prefixType == "export" then
-						text = CompressForUpload(text);
-						text = Encrypt(text);
-						EpsilonBookExportDialog.Title:SetText("Export Book");
-						EpsilonBookExportDialog:Show();
-						EpsilonBookExportDialog.ImportButton:Hide();
-						EpsilonBookExportDialog.CancelButton:Show();
-						EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetText( text );
-						EpsilonBookExportDialog.ImportControl.InputContainer:UpdateScrollChildRect();
-						EpsilonBookExportDialog.ImportControl.InputContainer:SetVerticalScroll(EpsilonBookExportDialog.ImportControl.InputContainer:GetVerticalScrollRange());
-						EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:HighlightText();
-						EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetFocus();
-					end
-					tremove( Epsilon_Book.RegisteredPrefixes, prefixIndex );
-				end
-			end
-		end
-	end);
 
 	hooksecurefunc(GossipFrame, "Hide", function(self)
 		self:SetAlpha(1);

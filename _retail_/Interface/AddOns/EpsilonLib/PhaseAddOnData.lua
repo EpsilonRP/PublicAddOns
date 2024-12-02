@@ -55,8 +55,8 @@ end
 
 ---Requests the Data from the Phase via key, then calls the callback with the data as the first variable
 ---@param keyOrTable string
----@param callback? function
----@param strTable? table internal only, the table of strs so far (to calculate iter as well)
+---@param callback? fun(phaseDataString:string) The callback to run once the data is retrieved. Final data string is passed in - if multi-part, it's already pre-joined for you.
+---@param strTable? table **internal only, do not use** the table of strs so far (to calculate iter as well)
 ---@return string|boolean ticket The Message Ticket the server will reply using as the prefix, or the false if it was stashed.
 ---@return table? stashedTable The reference table in the pending queue if the request was stashed
 function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
