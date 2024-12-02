@@ -16,9 +16,9 @@ local MSG_MULTI_NEXT        = "\002"
 local MSG_MULTI_LAST        = "\003"
 local MAX_CHARS_PER_SEGMENT = 3000
 
--- Max Calls Per Minute
-local maxCPM                = 80
-local CPM_Seconds           = 2
+-- Max Calls Per Interval (Seconds)
+local throttle_max_calls    = 45
+local throttle_interval     = 1.5
 
 -- Create our Listener Frame for listening to incoming PhaseAddonData messages
 local listenerFrame         = CreateFrame("Frame")
@@ -54,13 +54,13 @@ local function resumePending()
 end
 
 ---Requests the Data from the Phase via key, then calls the callback with the data as the first variable
----@param keyOrTable string
+---@param keyOrTable string|table The key to request - note that the table option is primarily for internal use, but you can technically pass it as a table with keys for key & callback. Do not use the strs key, it's used internally, unless you just want to read the data later. Also note that table calls are prioritized over standard key calls, as they are assumed to be internal multi-part calls..
 ---@param callback? fun(phaseDataString:string) The callback to run once the data is retrieved. Final data string is passed in - if multi-part, it's already pre-joined for you.
 ---@param strTable? table **internal only, do not use** the table of strs so far (to calculate iter as well)
 ---@return string|boolean ticket The Message Ticket the server will reply using as the prefix, or the false if it was stashed.
 ---@return table? stashedTable The reference table in the pending queue if the request was stashed
 function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
-	if callCount > maxCPM then
+	if callCount > throttle_max_calls then
 		return false, stashRequest(keyOrTable, callback, strTable)
 	end
 
@@ -75,7 +75,7 @@ function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
 
 	callCount = callCount + 1
 	if callCount == 1 then
-		C_Timer.After(CPM_Seconds, function() -- reset after 60 seconds / 1 minute, then resume pending
+		C_Timer.After(throttle_interval, function() -- reset after our throttle interval & resume any pending requests
 			callCount = 0
 			resumePending()
 		end)
