@@ -24,6 +24,15 @@ local function dump(obj, indent)
     end
 end
 
+local minItemLink = "|item:%d|h[%s]|h|r"
+local function getShortLink(link)
+	local preString, hyperlinkStr, postStr = ExtractHyperlinkString(link)
+	local itemID = GetItemInfoFromHyperlink(link)
+	local itemName = hyperlinkStr:match("|h%[(.*)%]|h")
+
+	return minItemLink:format(itemID, itemName)
+end
+
 -- ============================== VARIABLES GLOBALES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
@@ -40,7 +49,7 @@ PhaseToolkit.MapIconInfo = {
 
 PhaseToolkit.itemCreatorData={}
 PhaseToolkit.CommandToSend={}
-PhaseToolkit.itemCreatorData.additemOption={
+PhaseToolkit.additemOption={
 	{text="Anyone",value=false},
 	{text="Character",value=false},
 	{text="Member",value=false},
@@ -2547,8 +2556,8 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			sendAddonCmd("forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder,nil,false)
 		end
 	end)
-	if(PhaseToolkit.itemCreatorData.additemOption~=nil) then
-		for _,option in ipairs(PhaseToolkit.itemCreatorData.additemOption) do
+	if(PhaseToolkit.additemOption~=nil) then
+		for _,option in ipairs(PhaseToolkit.additemOption) do
 			local value=""
 			if option.value==false then  value="off" else value="on" end
 			C_Timer.After(0.2, function()
@@ -2753,7 +2762,7 @@ local function updateFields(itemLink)
 	end
 
 	if(description~=nil and description~="") then
-		description=description:gsub('"',"")
+		description=description:match('^"(.*)"$') or description
 		PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetText(description)
 	end
 
@@ -2871,7 +2880,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	end
 
 	local labelforItem=utilityBelt:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	labelforItem:SetText("Object Link")
+	labelforItem:SetText("Edit Item Link")
 	labelforItem:SetPoint("LEFT",PhaseToolkit.itemIdField,"RIGHT",5,0)
 
 
@@ -2892,6 +2901,12 @@ function PhaseToolkit.createItemCreatorFrame()
 					for _, itemID in ipairs(PhaseToolkit.currentItems) do
 						if not tContains(PhaseToolkit.previousItems, itemID) then
 							local itemName, itemLink = GetItemInfo(itemID)
+
+							if itemLink == nil then
+								-- ItemLink failed. Let's generate a fake link.
+								itemLink = minItemLink:format(tonumber(itemID), "TempLink")
+							end
+
 							PhaseToolkit.itemCreatorData.itemLink=itemLink
 							PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 						end
@@ -2953,6 +2968,8 @@ function PhaseToolkit.createItemCreatorFrame()
 
 	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnterPressed", function(self)
 		self:ClearFocus()
+	end)
+	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEditFocusLost", function(self)
 		PhaseToolkit.itemCreatorData.itemDescription=self:GetText();
 		if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.ModifyItemData) then
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
@@ -2962,18 +2979,18 @@ function PhaseToolkit.createItemCreatorFrame()
 			if((string.len(self:GetText())<maxDescriptionSize)) then
 				sendAddonCmd("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
 				PhaseToolkit.HideTooltip()
-				PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnter",nil)
-				PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnLeave",nil)
+				self:SetScript("OnEnter",nil)
+				self:SetScript("OnLeave",nil)
 			else
 				local border = DescriptionFrame:CreateTexture(nil, "BACKGROUND")
 				border:SetColorTexture(1, 0, 0, 1) -- red (R, G, B, Alpha)
 				border:SetPoint("TOPLEFT", -2, 2)
 				border:SetPoint("BOTTOMRIGHT", 2, -2)
 				PhaseToolkit.ShowTooltip(self,"Your description is too big and will be send in multiple part\nclick the Apply description button on the top-right")
-				PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnter",function(self)
+				self:SetScript("OnEnter",function(self)
 					PhaseToolkit.ShowTooltip(self,"Your description is too big and will be send in multiple part\nclick the Apply description button on the top-right")
 				end)
-				PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+				self:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
 
 				C_Timer.After(1.5, function()
 					border:SetColorTexture(1, 0, 0, 0)
@@ -2981,7 +2998,7 @@ function PhaseToolkit.createItemCreatorFrame()
 			end
 
 		end
-		end)
+	end)
 
 	local labelDescriptionInputBox = informationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	labelDescriptionInputBox:SetPoint("TOP", PhaseToolkit.DescriptionInputBox, "TOP", 0, 15)
@@ -3073,6 +3090,9 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.RegisterTooltip(PhaseToolkit.itemdisplayIdEditBox, "Item Link")
 
 	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEnterPressed",function(self)
+		self:ClearFocus()
+	end)
+	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEditFocusLost",function(self)
 		if(self:GetText()~=nil) then
 			local itemName,itemLink =GetItemInfo(self:GetText())
 			PhaseToolkit.itemCreatorData.DisplayLink=itemLink
@@ -3137,14 +3157,18 @@ function PhaseToolkit.createItemCreatorFrame()
 		end
 	end)
 
-	PhaseToolkit.iconIdEditBox:SetScript("OnEnterPressed",function()
-		if(PhaseToolkit.iconIdEditBox:GetText()~="") then
-			PhaseToolkit.itemCreatorData.IconLink=PhaseToolkit.iconIdEditBox:GetText()
+	PhaseToolkit.iconIdEditBox:SetScript("OnEditFocusLost",function(self)
+		if(self:GetText() and self:GetText()~="") then
+			local itemName, itemLink = GetItemInfo(self:GetText())
+			PhaseToolkit.itemCreatorData.IconLink=itemLink
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
 				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,nil,false)
 			end
 		end
+	end)
+	PhaseToolkit.iconIdEditBox:SetScript("OnEnterPressed",function(self)
+		self:ClearFocus()
 	end)
 
 	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
@@ -3166,14 +3190,6 @@ function PhaseToolkit.createItemCreatorFrame()
 	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.iconIdEditBox, "TOPLEFT", 5, 0)
 
 	PhaseToolkit.RegisterTooltip(PhaseToolkit.iconIdEditBox, "Item Link or ID")
-
-	PhaseToolkit.iconIdEditBox:SetScript("OnEnterPressed",function(self)
-		if(self:GetText()~=nil) then
-			local itemName,itemLink =GetItemInfo(self:GetText())
-			PhaseToolkit.itemCreatorData.IconLink=itemLink
-		end
-	end)
-
 
 	-- item property Frame
 
@@ -3429,7 +3445,7 @@ function PhaseToolkit.addItemOptionDropdown(_dropdown)
 	UIDropDownMenu_Initialize(_dropdown, function(self)
 		local info = UIDropDownMenu_CreateInfo()
 
-		for _,additemOption in ipairs(PhaseToolkit.itemCreatorData.additemOption) do
+		for _,additemOption in ipairs(PhaseToolkit.additemOption) do
 			info.text = additemOption.text
 			info.arg1 = strlower(additemOption.text)
 			info.value = additemOption.value

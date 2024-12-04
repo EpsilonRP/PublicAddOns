@@ -159,11 +159,11 @@ local function init(callbacks)
 		end
 
 		local function runCallbacks()
-			for i = 1, #main_funcs do
-				main_funcs[i](button)
-			end
 			for i = 1, #ext_funcs do
 				ext_funcs[i](button)
+			end
+			for i = 1, #main_funcs do
+				main_funcs[i](button)
 			end
 		end
 
