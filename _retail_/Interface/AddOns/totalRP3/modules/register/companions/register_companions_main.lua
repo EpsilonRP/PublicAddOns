@@ -507,7 +507,12 @@ local function boundNPC(npcID, profileID, _)
 	local phaseData = {};
 	phaseData['id'] = profileID;
 	phaseData['profile'] = profile;
-	phaseData['notes'] = getPlayerCurrentProfile().notes[profileID];
+	if getPlayerCurrentProfile().notes ~= nil then
+		phaseData['notes'] = getPlayerCurrentProfile().notes[profileID];		
+	else
+		phaseData['notes'] = ''
+	end
+
 
 	local key = 'TOTALRP_PROFILE_' .. npcID;
 	local str = Utils.serial.serialize(phaseData);
