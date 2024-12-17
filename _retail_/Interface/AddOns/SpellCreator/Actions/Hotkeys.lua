@@ -15,20 +15,20 @@ local dprint = Logging.dprint
 ---@type table<Hotkey, CommID>
 local hotkeysCache = {}
 
-local hotKeyListenerButton = CreateFrame("Button", "SCForgeHotkeyButton")	-- Call this with SCForgeHotkeyButton:Click(commID) to cast that spell - Frame must remain named in the global space for Blizzard's Binding to work..
+local hotKeyListenerButton = CreateFrame("Button", "SCForgeHotkeyButton") -- Call this with SCForgeHotkeyButton:Click(commID) to cast that spell - Frame must remain named in the global space for Blizzard's Binding to work..
 hotKeyListenerButton:SetScript("OnClick", function(self, commID)
 	local spell = Vault.personal.findSpellByID(commID)
 	if spell then
 		Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
 	else
-		eprint("No Spell '"..commID.."' found in your vault. Seems your binding is an orphan, how sad. Use '/sfdebug clearbinding "..commID.."' to clear it.")
+		eprint("No Spell with ArcSpell ID '" .. commID .. "' found in your vault. Seems your binding is an orphan, how sad. Use '/sfdebug clearbinding " .. commID .. "' to clear it.")
 	end
 end)
 
 local function updateHotkeys(requireVaultRefresh)
 	ClearOverrideBindings(hotKeyListenerButton)
-	for k,v in pairs(hotkeysCache) do
-		dprint(nil, "Binding "..v.." to key: "..k)
+	for k, v in pairs(hotkeysCache) do
+		dprint(nil, "Binding " .. v .. " to key: " .. k)
 		SetOverrideBindingClick(hotKeyListenerButton, false, k, "SCForgeHotkeyButton", v)
 	end
 	if requireVaultRefresh then
@@ -57,7 +57,7 @@ local function deregisterHotkeyByComm(commID)
 		if v == commID then
 			hotkeysCache[k] = nil
 			updateHotkeys(true)
-			dprint("Deregistered hotkey for "..commID)
+			dprint("Deregistered hotkey for " .. commID)
 			return
 		end
 	end
@@ -85,7 +85,7 @@ local function getHotkeyByKey(key)
 end
 
 local function deregisterOrphanedCommIDs()
-	for k,v in pairs(hotkeysCache) do
+	for k, v in pairs(hotkeysCache) do
 		if not Vault.personal.findSpellByID(v) then
 			hotkeysCache[k] = nil
 		end

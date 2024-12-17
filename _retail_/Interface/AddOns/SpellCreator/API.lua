@@ -171,10 +171,10 @@ local function STOP(commID)
 	if commID and commID ~= "" then
 		ns.Actions.Execute.cancelSpellByCommID(commID)
 	else
-		cprint('ARC:API SYNTAX - STOP - Stops all currently running instances of a spell by CommID.')
-		print(ADDON_COLOR .. 'Function: ' .. ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. 'ARC:STOP("commID")|r')
+		cprint('ARC:API SYNTAX - STOP - Stops all currently running instances of a spell by ArcSpell ID.')
+		print(ADDON_COLOR .. 'Function: ' .. ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. 'ARC:STOP("ArcSpell ID")|r')
 		print(ADDON_COLOR .. 'Example: ' .. ADDON_COLORS.TOOLTIP_EXAMPLE:GenerateHexColorMarkup() .. 'ARC:STOP("teleportEffectsSpell")')
-		print(ADDON_COLOR .. 'Silently fails if there is no spell by that commID currently running.')
+		print(ADDON_COLOR .. 'Silently fails if there is no spell by that ArcSpell ID currently running.')
 	end
 end
 ARC.STOP = wrapToEvalFinalVal(STOP)
@@ -368,7 +368,7 @@ function PHASE.SAVE(commID, vocal)
 	dprint("Scanning Phase Vault for Spell to Save: " .. commID)
 	local spell = phaseVault.findSpellByID(commID)
 	local spellIndex = phaseVault.findSpellIndexByID(commID)
-	if not spell or not spellIndex then return eprint(("No Spell with CommID %s found in the Phase Vault"):format(ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode(commID))) end
+	if not spell or not spellIndex then return eprint(("No Spell with ArcSpell ID %s found in the Phase Vault"):format(ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode(commID))) end
 
 	dprint("Found & Saving Spell '" .. commID .. "' (Index: " .. spellIndex .. ") to your Personal Vault.")
 	-- convert vocal to true boolean
@@ -397,9 +397,9 @@ function PHASE.CAST(commID, bypassCD, ...)
 		executePhaseSpell(commID, bypassCD, ...)
 	else
 		cprint('ARC.PHASE:API SYNTAX - CAST - Casts a Spell from the Phase Vault.')
-		print(ADDON_COLOR .. 'Function: ' .. ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. 'ARC.PHASE:CASTP("commID")|r')
+		print(ADDON_COLOR .. 'Function: ' .. ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. 'ARC.PHASE:CASTP("ArcSpell ID")|r')
 		print(ADDON_COLOR .. 'Example: ' .. ADDON_COLORS.TOOLTIP_EXAMPLE:GenerateHexColorMarkup() .. 'ARC.PHASE:CASTP("teleportEffectsSpell")')
-		print(ADDON_COLOR .. 'Silently Fails if there is no spell by that commID in the vault.')
+		print(ADDON_COLOR .. 'Silently Fails if there is no spell by that ArcSpell ID in the vault.')
 	end
 end
 

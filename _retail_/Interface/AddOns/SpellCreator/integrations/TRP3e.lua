@@ -51,27 +51,27 @@ local arcEffects = {
 				f.commID = CreateFrame("EditBox", nil, f, "TRP3_TitledHelpEditBox")
 				f.commID:SetSize(260, 18)
 				f.commID:SetPoint("TOP", 0, -65)
-				f.commID.title:SetText("Arcanum Spell CommID")
+				f.commID.title:SetText("Arcanum Spell ArcSpell ID")
 				function f.load(scriptData)
 					local data = scriptData.args or { {} };
-					f.commID:SetText(data[1] or "commID");
+					f.commID:SetText(data[1] or "ArcSpell ID");
 				end
 
 				function f.save(scriptData)
-					scriptData.args[1] = emptyToNil(strtrim(f.commID:GetText())) or "**trp3e-effect: no commID**";
+					scriptData.args[1] = emptyToNil(strtrim(f.commID:GetText())) or "**trp3e-effect: no ArcSpell ID**";
 				end
 			end
 			return TRP3_EffectEditorArcSpell -- defined above, stop complaining intellisense ffs
 		end,
 		effectScript = function(structure, cArgs, eArgs)
-			local commID = cArgs[1] or "**trp3e-effect: no commID**";
+			local commID = cArgs[1] or "**trp3e-effect: no ArcSpell ID**";
 			ARC:CAST(commID)
 			eArgs.LAST = 0;
 		end,
 		editorData = {
 			title = "Cast Personal ArcSpell",
 			icon = violetGemIcon,
-			description = "Cast an Arcanum Spell by CommID from your Personal Vault",
+			description = "Cast an Arcanum Spell by ArcSpell ID from your Personal Vault",
 			effectFrameDecorator = function(scriptStepFrame, args)
 				scriptStepFrame.description:SetText("ArcSpell:|cff00ff00 " .. tostring(args[1]));
 			end,
@@ -89,20 +89,20 @@ local arcEffects = {
 				f.commID = CreateFrame("EditBox", nil, f, "TRP3_TitledHelpEditBox")
 				f.commID:SetSize(260, 18)
 				f.commID:SetPoint("TOP", 0, -65)
-				f.commID.title:SetText("Arcanum Spell CommID")
+				f.commID.title:SetText("ArcSpell ID")
 				function f.load(scriptData)
 					local data = scriptData.args or { {} };
-					f.commID:SetText(data[1] or "commID");
+					f.commID:SetText(data[1] or "ArcSpell ID");
 				end
 
 				function f.save(scriptData)
-					scriptData.args[1] = emptyToNil(strtrim(f.commID:GetText())) or "**trp3e-effect: no commID**";
+					scriptData.args[1] = emptyToNil(strtrim(f.commID:GetText())) or "**trp3e-effect: no ArcSpell ID**";
 				end
 			end
 			return TRP3_EffectEditorArcSpell -- defined above, stop complaining intellisense ffs
 		end,
 		effectScript = function(structure, cArgs, eArgs)
-			local commID = cArgs[1] or "**trp3e-effect: no commID**";
+			local commID = cArgs[1] or "**trp3e-effect: no ArcSpell ID**";
 			ARC.PHASE:CAST(commID)
 			eArgs.LAST = 0;
 		end,
@@ -110,7 +110,7 @@ local arcEffects = {
 			title = "Cast Phase ArcSpell",
 			icon = prismaticGemIcon,
 			-- icon = "inv_jewelcrafting_argusgemcut_purple_miscicons",
-			description = "Cast an Arcanum Spell by CommID from the Phase Vault",
+			description = "Cast an Arcanum Spell by ArcSpell ID from the Phase Vault",
 			effectFrameDecorator = function(scriptStepFrame, args)
 				scriptStepFrame.description:SetText("Phase ArcSpell:|cff00ff00 " .. tostring(args[1]));
 			end,

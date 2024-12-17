@@ -123,6 +123,7 @@ end
 --*--*--*--*--*--*--*--*--
 --#endregion
 --#region Pre-Hooked Function Hooks
+--TODO
 --*--*--*--*--*--*--*--*--
 
 local hookedFuncs = {}
@@ -130,6 +131,7 @@ local hookedFuncs = {}
 --*--*--*--*--*--*--*--*--
 --#endregion
 --#region Secure Function Hooks
+--TODO
 --*--*--*--*--*--*--*--*--
 
 ---@type table<function, function[]>

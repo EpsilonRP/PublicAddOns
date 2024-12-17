@@ -4,7 +4,7 @@ local ns = select(2, ...)
 
 local ActionsData = ns.Actions.Data
 local actionTypeData = ActionsData.actionTypeData
-local cprint, dprint, eprint = ns.Logging.cprint, ns.Logging.dprint, ns.Logging.eprint
+local cprint, dprint, eprint, softerror = ns.Logging.cprint, ns.Logging.dprint, ns.Logging.eprint, ns.Logging.softerror
 local ADDON_COLORS = ns.Constants.ADDON_COLORS
 
 local Comms = ns.Comms
@@ -327,7 +327,11 @@ local function getPhaseVaultDataFromKeys(keys, callback)
 			if phaseVaultLoadingCount == phaseVaultLoadingExpected then
 				dprint("All Spells should be loaded, adding them to the vault..")
 				for k, v in ipairs(keys) do
-					Vault.phase.addSpell(tempVaultSpellTable[v])
+					if tempVaultSpellTable[v] then
+						Vault.phase.addSpell(tempVaultSpellTable[v])
+					else
+						softerror(string.format("Arcanum Spell Failed to Load (%s missing from tempVaultSpellTable)", v))
+					end
 				end
 				wipe(tempVaultSpellTable)
 				dprint("Phase Vault Loading should be done")
@@ -488,7 +492,7 @@ local function saveSpellToPhaseVault(commID, overwrite, fromPhase, forcePrivate)
 	local needToOverwrite = false
 	local phaseVaultIndex
 	if not commID then
-		eprint("Invalid CommID.")
+		eprint("Invalid ArcSpell ID.")
 		return;
 	end
 	if fromPhase then
@@ -522,7 +526,7 @@ local function saveSpellToPhaseVault(commID, overwrite, fromPhase, forcePrivate)
 				if v == commID then
 					if not overwrite then
 						-- phase already has this ID saved.. Handle over-write...
-						dprint("Phase already has a spell saved by Command '" .. commID .. "'. Prompting to confirm over-write.")
+						dprint("Phase already has a spell saved by ArcSpell ID '" .. commID .. "'. Prompting to confirm over-write.")
 						Popups.showPhaseVaultOverwritePopup(commID)
 						phaseVault.isSavingOrLoadingAddonData = false
 						sendPhaseVaultIOLock(false)
@@ -1322,7 +1326,7 @@ function SlashCmdList.SCFORGEDEBUG(msg, editbox) -- 4.
 			if rest == "confirm" then
 				C_Epsilon.SetPhaseAddonData("SCFORGE_KEYS", "")
 				dprint(true,
-					"Wiped all Spell Keys from Phase Vault memory. This does not wipe the data itself of the spells, so they can technically be recovered by manually adding the key back, or either exporting the data yourself using '/sfdebug getPhaseSpellData $commID' where commID is the command it was saved as...")
+					"Wiped all Spell Keys from Phase Vault memory. This does not wipe the data itself of the spells, so they can technically be recovered by manually adding the key back, or either exporting the data yourself using '/sfdebug getPhaseSpellData $ArcSpellID' where ArcSpellID is the command it was saved as...")
 			else
 				dprint(true, "resetPhaseSpellKeys -- WARNING: YOU ARE ABOUT TO WIPE ALL OF YOUR PHASE VAULT. You need to add 'confirm' after this command in order for it to work.")
 			end
@@ -1412,13 +1416,13 @@ function SlashCmdList.SCFORGEDEBUG(msg, editbox) -- 4.
 		--cprint("RuneIcon: "..runeIconOverlay.atlas or runeIconOverlay.tex)
 		cprint("Debug Commands (/sfdebug ...): ")
 		print("... debug: Toggles Debug mode on/off. Must be on for these commands to work.")
-		print("... clearbinding: Delete's a spell Keybind based on CommID.")
+		print("... clearbinding: Delete's a spell Keybind based on ArcSpell ID.")
 		print("... clearbindingkey: Delete's a spell Keybind based on Key.")
 		print("... resetSpells: reset your vault to empty. Cannot be undone.")
 		print("... listSpells: List all your vault spells' data.. this is alot of text!")
 		print("... listSpellKeys: List all your vault spells by just keys. Easier to read.")
 		print("... getPhaseKeys: Lists all the vault spells by keys.")
-		print("... getPhaseSpellData [$commID/key]: Exports the spell data for all current keys, or the specified commID/key, to your '" ..
+		print("... getPhaseSpellData [$ArcSpell ID/key]: Exports the spell data for all current keys, or the specified ArcSpell ID/key, to your '" ..
 			ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. "..epsilon/_retail_/WTF/Account/NAME/SavedVariables/SpellCreator.lua|r' file.")
 		print("... resetPhaseSpellKeys: reset your phase vault to empty. Technically the spell data remains, and can be exported to your WTF file by using getPhaseSpellData.")
 		print("... removePhaseKey: Removes a single phase key from the Phase Vault. The data for the spell remains, and can be retrieved using getPhaseSpellData also.")

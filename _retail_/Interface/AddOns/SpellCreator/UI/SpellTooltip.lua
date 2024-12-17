@@ -214,7 +214,7 @@ local function getSpellTooltipLines(context, spell, isPhase, noName, spark)
 
 	-- ArcID (CommID) Line:
 	if contextData.showArcID then
-		tinsert(lines, Tooltip.createDoubleLine(goldText("Arcanum ID: "), whiteText(spell.commID)))
+		tinsert(lines, Tooltip.createDoubleLine(goldText("ArcSpell ID: "), whiteText(spell.commID)))
 	end
 
 	-- Remove blank last line if we left an orphaned one..

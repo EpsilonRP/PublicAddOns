@@ -1,9 +1,9 @@
 ---@class ActionTypeDataBase
----@field name string
+---@field name? string
 ---@field description string
 ---@field command string | function
 ---@field dataName? string Leave nil to infer no input / disable input
----@field selfAble boolean
+---@field selfAble? boolean
 ---@field inputDescription? string
 ---@field dependency? string | nil AddOn name it is dependent on. This is a direct AddOn dependency used for hiding it from the list if not available.
 ---@field softDependency? boolean

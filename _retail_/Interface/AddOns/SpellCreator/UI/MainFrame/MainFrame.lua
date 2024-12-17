@@ -107,6 +107,96 @@ end)
 
 SCForgeMainFrame.SettingsButton = settingsButton
 
+-- Help Button (Tutorial)
+
+local function normalizedOffset(n)
+	return n * UIParent:GetScale()
+end
+local _n = normalizedOffset
+
+local helpPlate = {
+	FramePos = { x = 5, y = -22 },
+	FrameSize = { width = 580, height = 500 },
+
+	-- Attic 1 - Spell Info
+	{
+		ButtonPos = { x = _n(209), y = 10 },
+		HighLightBox = { x = _n(65), y = 0, width = 295, height = 35 },
+		ToolTipDir = "DOWN",
+		ToolTipText =
+			"Spell Information" ..
+			"\n\rThis section lets you control the basic details of your spell, including the icon, name, description, and ArcID." ..
+			"\n\rThe ArcID is a unique identifier for each spell, meaning no two spells can share the same ID."
+	},
+
+	-- Attic 2 - Spell Options
+	{
+		ButtonPos = { x = _n(209 + 295), y = 10 },
+		HighLightBox = { x = _n(65) + 295, y = 0, width = 195, height = 35 },
+		ToolTipDir = "DOWN",
+		ToolTipText =
+		"Spell Options\n\rThis section lets you configure additional settings for your spell, such as cooldowns, conditions, and other customizable options."
+	},
+
+	-- Forge Action Rows
+	{
+		ButtonPos = { x = _n(507 / 2), y = _n(-(459 + 46) / 2) },
+		HighLightBox = { x = _n(16), y = _n(-46), width = 530, height = 460 },
+		ToolTipDir = "LEFT",
+		ToolTipText =
+			"Action Rows" ..
+			"This is the section where you define the steps your spell will take when cast." ..
+			"\n\rEach Action requires a Delay, Action Type, and an input (if applicable) to work properly." ..
+			"\n\rYou can add more rows by clicking the large + button, or duplicate a row by clicking the smaller + at the top left when hovering over a row."
+	},
+
+	-- Basement
+	{
+		ButtonPos = { x = 390, y = -490 },
+		HighLightBox = { x = _n(16), y = _n(-46) - 460, width = 530, height = 27 },
+		ToolTipDir = "RIGHT",
+		ToolTipText =
+		"This is the forge 'Basement', where you can Cast a spell currently edited for testing, Save your current data as a new spell (or save your work if editing), and open your ArcSpell Vaults."
+	},
+
+}
+
+local help = CreateFrame("BUTTON", nil, SCForgeMainFrame, "MainHelpPlateButton")
+local scale = 0.75
+help:SetPoint("TOPLEFT", 32 / scale, 21 * scale)
+help:SetScale(scale)
+help.I:SetDesaturated(true)
+help.I:SetVertexColor(89 / 255, 196 / 255, 217 / 255)
+help.Ring:SetTexture(Constants.ASSETS_PATH .. "/" .. "icon_portrait_gold_ring_border")
+help.Ring:SetPoint("CENTER")
+help.Ring:SetSize(24, 24)
+help.Hilight = help:GetHighlightTexture()
+help.Hilight:SetSize(36, 36)
+help.Hilight:SetPoint("CENTER", 0, -1)
+help:HookScript("OnEnter", function(self)
+	if HelpPlateTooltip:IsShown() then
+		HelpPlateTooltip.Text:SetText(MAIN_HELP_BUTTON_TOOLTIP .. "\nRight-Click to Open the Basic Spell Creation Tutorial!")
+		HelpPlateTooltip:SetHeight(HelpPlateTooltip.Text:GetHeight() + 30)
+	end
+end)
+help:SetScript("OnClick", function(self, button, down)
+	if button == "RightButton" then
+		ns.UI.Tutorials:Show(2)
+		return
+	else
+		if not SCForgeMainFrame:IsShown() then return end
+		if HelpPlate_IsShowing(helpPlate) then
+			HelpPlate_Hide(true)
+		else
+			HelpPlate_Show(helpPlate, SCForgeMainFrame, help)
+		end
+	end
+end)
+help:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+SCForgeMainFrame.MainHelpButton = help
+
+
 local dragBar = CreateFrame("Frame", nil, SCForgeMainFrame)
 dragBar:SetPoint("TOPLEFT")
 dragBar:SetSize(size.x, 20)

@@ -257,10 +257,8 @@ end
 
 ---@param spell VaultSpell
 ---@return DropdownItem[]
-local function getPersonalSpellItems(spell)
-	local inQuickcast = tContains(SpellCreatorMasterTable.quickCastSpells, spell.commID)
-
-	return {
+local function getPersonalSpellItems(spell, isSB)
+	local items = {
 		Dropdown.header(spell.fullName),
 		Dropdown.execute(
 			"Cast",
@@ -271,55 +269,90 @@ local function getPersonalSpellItems(spell)
 		Dropdown.execute(
 			"Edit",
 			function()
+				SCForgeMainFrame:Show()
 				loadSpell(spell)
 			end
 		),
-		createProfileMenu(spell),
+	}
+	if not isSB then
+		tinsert(items, createProfileMenu(spell))
+
 		-- TODO change to input
-		Dropdown.execute(
-			function()
-				return spell.author and "Change Author" or "Assign Author"
-			end,
-			function()
-				if spell.author then
-					Popups.showAssignPersonalSpellAuthorPopup(spell.commID, spell.author)
-				else
-					Popups.showAssignPersonalSpellAuthorPopup(spell.commID)
-				end
-			end,
-			{
-				tooltipTitle = function()
-					if spell.author then
-						return "Change Author"
-					end
-
-					return "Assign Author"
+		tinsert(items,
+			Dropdown.execute(
+				function()
+					return spell.author and "Change Author" or "Assign Author"
 				end,
-				tooltipText = function()
+				function()
 					if spell.author then
-						return "You can change the author of this spell. If you did not author this spell, please respect the original author and leave their credit.\n\rCurrent Author: " ..
-							Tooltip.genContrastText(spell.author)
+						Popups.showAssignPersonalSpellAuthorPopup(spell.commID, spell.author)
+					else
+						Popups.showAssignPersonalSpellAuthorPopup(spell.commID)
 					end
-
-					return "This spell has no assigned author. You can manually set the author now."
 				end,
-			}
-		),
-		Dropdown.divider(),
+				{
+					tooltipTitle = function()
+						if spell.author then
+							return "Change Author"
+						end
 
-		createAddQCMenu(spell),
-		createAssignItemMenu(spell),
+						return "Assign Author"
+					end,
+					tooltipText = function()
+						if spell.author then
+							return "You can change the author of this spell. If you did not author this spell, please respect the original author and leave their credit.\n\rCurrent Author: " ..
+								Tooltip.genContrastText(spell.author)
+						end
 
+						return "This spell has no assigned author. You can manually set the author now."
+					end,
+				}
+			)
+		)
+	end
+	table.insert(items, Dropdown.divider())
+
+	table.insert(items, createAddQCMenu(spell))
+	table.insert(items, createAssignItemMenu(spell))
+
+	table.insert(items,
 		Dropdown.execute(
 			"Assign Hotkey",
 			function()
 				Popups.showLinkHotkeyDialog(spell.commID)
 			end
-		),
+		)
+	)
 
-		createAutoCastMenu(spell),
-		createStratacastMenu(spell),
-	}
+	table.insert(items, createAutoCastMenu(spell))
+	table.insert(items, createStratacastMenu(spell))
+
+	return items
+end
+
+local function createSBMenu(commID)
+	if not commID then return end
+	local spell = Vault.personal.findSpellByID(commID)
+	if not spell then return end
+
+	local dropdownItems = getPersonalSpellItems(spell, true)
+	tAppendAll(dropdownItems, {
+		Dropdown.divider(),
+		Dropdown.execute(
+			"Chatlink",
+			function()
+				ChatLink.linkSpell(spell, VAULT_TYPE.PERSONAL)
+			end
+		),
+		Dropdown.execute(
+			"Export",
+			function()
+				ImportExport.exportSpell(spell)
+			end
+		),
+	})
+
+	return dropdownItems
 end
 
 ---@param spell VaultSpell
@@ -377,6 +410,10 @@ local function show(row, spell)
 	Dropdown.open(createMenu(spell), row.contextMenu, "cursor", 0, 0, "MENU")
 end
 
+local function showSB(sb, commID)
+	Dropdown.open(createSBMenu(commID), sb.contextMenu, sb, 32, 0, "MENU")
+end
+
 ---@param inject { loadSpell: fun(spell: VaultSpell), downloadToPersonal: fun(index: integer), upload: fun(commID: CommID), updateRows: fun() }
 local function init(inject)
 	loadSpell = inject.loadSpell
@@ -390,4 +427,5 @@ ns.UI.SpellLoadRowContextMenu = {
 	init = init,
 	createFor = createFor,
 	show = show,
+	showSB = showSB,
 }

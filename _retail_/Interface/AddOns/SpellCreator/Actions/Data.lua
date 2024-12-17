@@ -953,14 +953,14 @@ local actionTypeData = {
 		command = function(commID)
 			local spell = Vault.personal.findSpellByID(commID)
 			if not spell then
-				cprint("No spell with command '" .. commID .. "' found in your Personal Vault.")
+				cprint("No spell with ArcID '" .. commID .. "' found in your Personal Vault.")
 				return
 			end
 			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
 		end,
 		description = "Cast another Arcanum Spell from your Personal Vault.",
-		dataName = "Spell Command",
-		inputDescription = "The command ID (commID) used to cast the ArcSpell",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell",
 		example = "From " .. Tooltip.genContrastText('/sf MySpell') .. ", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.",
 		revert = nil,
 	}),
@@ -984,14 +984,14 @@ local actionTypeData = {
 		command = function(commID)
 			local spell = Vault.phase.findSpellByID(commID)
 			if not spell then
-				cprint("No spell with command '" .. commID .. "' found in your current phase's Phase Vault.")
+				cprint("No spell with ArcID '" .. commID .. "' found in your current phase's Phase Vault.")
 				return
 			end
 			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
 		end,
 		description = "Cast another Arcanum Spell from your Personal Vault.",
-		dataName = "Spell Command",
-		inputDescription = "The command ID (commID) used to cast the ArcSpell",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell",
 		example = "From " .. Tooltip.genContrastText('/sf MySpell') .. ", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.",
 		revert = nil,
 	}),
@@ -1008,8 +1008,8 @@ local actionTypeData = {
 			ARC.PHASE:SAVE(commID, vocal)
 		end,
 		description = "Save an Arcanum Spell from the Phase Vault, with an optional message to let them know they learned a new ArcSpell!",
-		dataName = "Spell Command, [send message (true/false)]",
-		inputDescription = "Syntax: The command ID (commID) used to cast the ArcSpell, [print a 'New Spell Learned' message (true/false)]",
+		dataName = "ArcSpell ID, [send message (true/false)]",
+		inputDescription = "Syntax: The ArcSpell ID (ArcID) used to cast the ArcSpell, [print a 'New Spell Learned' message (true/false)]",
 		example = "My Cool Spell, true",
 		revert = nil,
 		doNotDelimit = true,
@@ -1089,9 +1089,9 @@ local actionTypeData = {
 	[ACTION_TYPE.ArcStopSpellByName] = scriptAction("Stop Other ArcSpell", {
 		command = function(spellCommID) ns.Actions.Execute.cancelSpellByCommID(spellCommID) end,
 		description =
-		"Stops another ArcSpell that's currently running, by commID.\n\rUse ARC:STOP(commID) in a script if you wish to only stop the spell if certain conditions are met.",
-		dataName = "ArcSpell CommID",
-		inputDescription = "The commID of the ArcSpell you wish to stop all remaining actions for.",
+		"Stops another ArcSpell that's currently running, by ArcID.\n\rUse ARC:STOP('ArcID') in a script if you wish to only stop the spell if certain conditions are met.",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID (ArcID) of the ArcSpell you wish to stop all remaining actions for.",
 		revert = nil,
 	}),
 	[ACTION_TYPE.ARCSet] = scriptAction("Set My Variable", {
@@ -1661,7 +1661,7 @@ local actionTypeData = {
 		"Displays a Book from the current phase's Book Library.\n\nMust be currently in the correct phase or the book will not load.",
 		dataName = "GUID",
 		inputDescription =
-			"Syntax: GUID\r\nThe GUID of the book. GUIDs are case sensitive.",
+		"Syntax: GUID\r\nThe GUID of the book. GUIDs are case sensitive.",
 		example = [[1E2P3_S4I5L60N]],
 		revertDesc = "Closes the Book frame.",
 		revert = function() EpsilonBookFrame_Hide(); end,
@@ -1983,7 +1983,7 @@ local actionTypeData = {
 		description = "Add a new page to a Quickcast Book, with optional default spells or dynamic profile assignment.",
 		dataName = "Book, Profile|nil, Spell(s)",
 		inputDescription =
-		"The name of the Quickcast Book; Profile Name to use for dymanic profile, or nil to not use a profile; and a list of commID's to add as the default spells on the page (ignored if using a profile). If your book name, profile name, or any commID has spaces, enclose it in quotations.",
+		"The name of the Quickcast Book; Profile Name to use for dymanic profile, or nil to not use a profile; and a list of ArcSpell ID's to add as the default spells on the page (ignored if using a profile). If your book name, profile name, or any ArcIDs have spaces, enclose it in quotations.",
 		example = '"Quickcast Book 1", nil, MySpell1, "My Cool Spell 2"',
 		revert = nil,
 		doNotDelimit = true,
@@ -2006,10 +2006,10 @@ local actionTypeData = {
 				ns.UI.Quickcast.Quickcast.API.AddSpell(bookName, tonumber(pageNumber), commID)
 			end
 		end,
-		description = "Add a spell by CommID to a specific page in a Quickcast Book.",
-		dataName = "Book, Page, Spell(s)",
+		description = "Add a spell by ArcSpell ID to a specific page in a Quickcast Book.",
+		dataName = "Book, Page, ArcSpell(s)",
 		inputDescription = "The name of the Quickcast Book & the page number, followed by a list of spells to add.\n\r" .. commaDelimitedText,
-		example = '"Quickcast Book 1", 2, SpellCommID1, SpellCommID2',
+		example = '"Quickcast Book 1", 2, ArcSpellID1, ArcSpellID2',
 		revert = nil,
 		doNotDelimit = true,
 	}),
@@ -2209,10 +2209,10 @@ local actionTypeData = {
 			ns.Actions.Cooldowns.addSpellCooldown(commID, cooldownTime, (isPhase and C_Epsilon.GetPhaseId() or nil))
 		end,
 		description = "Triggers a Cooldown on another ArcSpell. Useful for Sparks that are just pre-checks to then cast another ArcSpell.",
-		dataName = "$commID #length &phase",
+		dataName = "$arcSpellID #length &phase",
 		inputDescription =
-			"#commID = The commID of the spell to put on cooldown\n\r#length = How long (in seconds) for the cooldown\n\r&phase = " ..
-			Tooltip.genContrastText("true") .. " if it should be a Phase Spell, leave blank for Personal Spell.\n\rIf your CommID has spaces, enclose it in quotations.",
+			"#arcSpellID = The ArcSpell ID of the spell to put on cooldown\n\r#length = How long (in seconds) for the cooldown\n\r&phase = " ..
+			Tooltip.genContrastText("true") .. " if it should be a Phase Spell, leave blank for Personal Spell.\n\rIf your ArcSpell ID has spaces, enclose it in quotations.",
 		example = Tooltip.genContrastText('"Watergun Blast" 2 true') .. " to put the Phase ArcSpell 'Watergun Blast' on a 2 second cooldown.",
 		revert = nil,
 		revertAlternative = true,
@@ -2329,8 +2329,8 @@ local actionTypeData = {
 			Kinesis.Flight.Spells.SetSpellArcanumStart(vars)
 		end,
 		description = "Set the ArcSpell that will be cast when you start Flying.",
-		dataName = "commID",
-		inputDescription = "The CommID of the spell to cast when you start flying. Must be an ArcSpell in your Personal Vault.",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID of the spell to cast when you start flying. Must be an ArcSpell in your Personal Vault.",
 		example = Tooltip.genContrastText("myFlightModeArcSpell") .. " to set that Arcanum Spell to be cast when you start flying.",
 		revert = nil,
 		dependency = "Kinesis",
@@ -2342,8 +2342,8 @@ local actionTypeData = {
 			Kinesis.Flight.Spells.SetSpellArcanumStop(vars)
 		end,
 		description = "Set the ArcSpell that will be cast when you stop Flying.",
-		dataName = "commID",
-		inputDescription = "The CommID of the spell to cast when you stop flying. Must be an ArcSpell in your Personal Vault.",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID of the spell to cast when you stop flying. Must be an ArcSpell in your Personal Vault.",
 		example = Tooltip.genContrastText("stopFlyingArcSpell") .. " to set that Arcanum Spell to be cast when you stop flying.",
 		revert = nil,
 		dependency = "Kinesis",
@@ -2581,8 +2581,8 @@ local actionTypeData = {
 			Kinesis.Sprint.Spells.SetSpellArcanumStart(vars)
 		end,
 		description = "Set the ArcSpell that will be cast when you start sprinting.",
-		dataName = "commID",
-		inputDescription = "The CommID of the spell to cast when you start sprinting. Must be an ArcSpell in your Personal Vault.",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID of the spell to cast when you start sprinting. Must be an ArcSpell in your Personal Vault.",
 		example = Tooltip.genContrastText("mySprintingArcSpell") .. " to set that Arcanum Spell to be cast when you start sprinting.",
 		revert = nil,
 		dependency = "Kinesis",
@@ -2594,8 +2594,8 @@ local actionTypeData = {
 			Kinesis.Sprint.Spells.SetSpellArcanumStop(vars)
 		end,
 		description = "Set the ArcSpell that will be cast when you stop sprinting.",
-		dataName = "commID",
-		inputDescription = "The CommID of the spell to cast when you stop sprinting. Must be an ArcSpell in your Personal Vault.",
+		dataName = "ArcSpell ID",
+		inputDescription = "The ArcSpell ID of the spell to cast when you stop sprinting. Must be an ArcSpell in your Personal Vault.",
 		example = Tooltip.genContrastText("stopSprintingArcSpell") .. " to set that Arcanum Spell to be cast when you stop sprinting.",
 		revert = nil,
 		dependency = "Kinesis",

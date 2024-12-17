@@ -208,7 +208,7 @@ local function updateStratacastFrame()
 				lastRow = row
 				row:Show()
 			else
-				print("Error creating StrataCast, No CommID Found:", strataData.commID)
+				print("Error creating StrataCast, No ArcSpell ID Found:", strataData.commID)
 			end
 		end
 		frame:SetHeight((numRows * 50) + 20)
