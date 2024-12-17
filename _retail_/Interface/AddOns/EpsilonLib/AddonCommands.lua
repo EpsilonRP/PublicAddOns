@@ -27,7 +27,7 @@ end
 ---@field name string
 ---@field command string
 ---@field callback? function
----@field forceShowMessages? boolean
+---@field overrideMessages? boolean
 ---@field returnMessages? string[]
 ---@field status? string
 
@@ -75,8 +75,8 @@ local function handleCallbackAndMessages(success, data, addon)
 		data.callback = nil -- // Clear our callback so we can't call it twice on accident somehow? I don't think we can get both f & o but... Even TCLib does this to be safe
 	end
 
-	if data.forceShowMessages == false then return end -- // Force block replies if this send had a force hide messages
-	local showMessages = (data.forceShowMessages or (addon and evaluate(addon.showMessages) and data.forceShowMessages ~= false))
+	if data.overrideMessages == false then return end -- // Force block replies if this send had a force hide messages
+	local showMessages = (data.overrideMessages or (addon and evaluate(addon.showMessages) and data.overrideMessages ~= false))
 	if success == false then showMessages = true end -- Force Show Messages on Failure!
 	if showMessages and data.returnMessages then
 		for k, v in ipairs(data.returnMessages) do
@@ -107,7 +107,7 @@ local commandStatusOpcodes = {
 			local addonName = (addon and addon.name) or data.name or "<UNKNOWN ADDON>"
 
 			-- Report the failure to chat, and report the failure to the callback. Result messages are handled in the callback & messages handler
-			if data.forceShowMessages ~= false then
+			if data.overrideMessages ~= false then
 				local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))
 				SendSystemMessage(output)
 			end
@@ -174,14 +174,17 @@ C_ChatInfo.RegisterAddonMessagePrefix(EPSI_ADDON_PREFIX)
 -------------------------------------------
 --#region API Commands
 -- EpsilonLib.AddonCommands 	...
--- 	.Register(name <string>, showMessages <boolean>)	-> SendAddonCommand<func>: command<string>, callback<function>, forceShowMessages<boolean>
---  .Send(AddonName <string>, command <string>, callback <function: success<boolean>, returnMessages[]>, forceShowMessages <boolean>)
+-- 	.Register(name <string>, showMessages <boolean>)	-> SendAddonCommand<func>: command<string>, callback<function: success, returnMessages[]>, overrideMessages?<boolean>
+--		Notes: 	If showMessages is not given/nil, default is same as false, which only shows returns in chat if it's a error/syntax message.
+--				In the SendAddonCommand function, overrideMessages when not given respects showMessages from register. If given, true = show all, false = show NONE, and nil = respect register (which is default of Show only error/syntax)
+--				Basically: You should very likely call Register with false on showMessages, and then SendAddonCommand with nil/not given on the overrideMessages :)
+--  .Send(AddonName <string>, command <string>, callback <function: success<boolean>, returnMessages[]>, overrideMessages<boolean>)
 -------------------------------------------
 
 ---Register for AddonCommands, returning a dedicated function for sending commands using our queue & log system for reporting & handling return data.
 ---@param name string Whatever the name of your AddOn is
----@param showMessages boolean If reply messages for your addon should be shown by default. You can overwrite per call also. Default is nil (no messages shown)
----@return function? SendAddonCommand SendAddonCommand(text, callbackFn, forceShowMessages) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>)
+---@param showMessages? boolean If reply messages for your addon should be shown by default. You can overwrite per call also. Default is nil (only error messages shown)
+---@return function? SendAddonCommand SendAddonCommand(text, callbackFn, overrideMessages) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>, overrideMessages<boolean>)
 _commands.Register = function(name, showMessages)
 	if registry[name] then
 		return error(("EpsilonLib.AddonCommands.Register Warning: Name '%s' is already registered. If you need to overwrite.. Add the code support & commit or let MindScape know why and he will add it."):format(name))
@@ -189,45 +192,47 @@ _commands.Register = function(name, showMessages)
 
 	registry[name] = { name = name, showMessages = showMessages }
 
-	return function(text, callbackFn, forceShowMessages)
+
+	---@param text string The command to run
+	---@param callbackFn function The callback function called when the replies are complete
+	---@param overrideMessages? boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
+	local function SendAddonCommand(text, callbackFn, overrideMessages)
 		iterate()
-
-		--ChatThrottleLib:SendAddonMessage("prio",  "prefix", "text", "chattype"[, "target"[, "queueName"[, callbackFn, callbackArg]]]);
 		ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
-
-		commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
+		commandLog[iter] = { name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages }
 	end
+	return SendAddonCommand
 end
 
 ---Send a one-off command; If you're using this consistently, you might be better off registering instead.
 ---@param name string AddOn name calling this command, for logging & debug
 ---@param text string The command to run
 ---@param callbackFn function The callback function called when the replies are complete
----@param forceShowMessages
-_commands.Send = function(name, text, callbackFn, forceShowMessages)
+---@param overrideMessages? boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
+_commands.Send = function(name, text, callbackFn, overrideMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
 	iterate()
 	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
-	commandLog[iter] = { name = name, command = text, callback = callbackFn, forceShowMessages = forceShowMessages }
+	commandLog[iter] = { name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages }
 end
 
 ---Sends a command by the standard chat message instead of the addon command system, allowing it to split into chunks like UCM if too long for one.
 ---@param message string
 local function sendMessageInChunks(message)
-    local maxLength = 254  -- Max bytes per message chunk
-    local messageLength = #message  -- Get the length of the message in bytes
+	local maxLength = 254       -- Max bytes per message chunk
+	local messageLength = #message -- Get the length of the message in bytes
 
-    -- If message length is less than or equal to maxLength, send it as is
-    if messageLength <= maxLength then
-        SendChatMessage("." .. message, "GUILD")
-        return
-    end
+	-- If message length is less than or equal to maxLength, send it as is
+	if messageLength <= maxLength then
+		SendChatMessage("." .. message, "GUILD")
+		return
+	end
 
-    -- Split the message into chunks of maxLength bytes
-    for i = 1, messageLength, maxLength do
-        local chunk = string.sub(message, i, i + maxLength - 1)
-        SendChatMessage((i==1 and "." or "") .. chunk, "GUILD") -- Send chunks, adding . to first one
-    end
+	-- Split the message into chunks of maxLength bytes
+	for i = 1, messageLength, maxLength do
+		local chunk = string.sub(message, i, i + maxLength - 1)
+		SendChatMessage((i == 1 and "." or "") .. chunk, "GUILD") -- Send chunks, adding . to first one
+	end
 end
 _commands.SendByChat = sendMessageInChunks
 
