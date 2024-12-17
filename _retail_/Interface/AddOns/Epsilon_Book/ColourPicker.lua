@@ -142,7 +142,15 @@ end
 --
 function EpsilonBookColourPicker_OnColourPick()
 	local hex = RGBToHex( EpsilonBookColourPicker.colourSelect:GetColorRGB() )
-	EpsilonBookEditor_InsertTag( "color:"..hex, "color" )
+	local r, g, b = EpsilonBookColourPicker.colourSelect:GetColorRGB();
+	if EpsilonBookColourPicker.parent and EpsilonBookColourPicker.parent == EpsilonBookTexturePicker then
+		EpsilonBookTexturePicker.Red = r;
+		EpsilonBookTexturePicker.Green = g;
+		EpsilonBookTexturePicker.Blue = b;
+		EpsilonBookTexturePicker_UpdatePreview()
+	else
+		EpsilonBookEditor_InsertTag( "color:"..hex, "color" )
+	end
 	EpsilonBookColourPicker_Close()
 end
     
@@ -157,5 +165,10 @@ end
 -- Open the colour picker window.
 --
 function EpsilonBookColourPicker_Open( parent )
+	if parent then
+		EpsilonBookColourPicker.parent = parent;
+	else
+		EpsilonBookColourPicker.parent = nil;
+	end
 	EpsilonBookColourPicker:Show()
 end

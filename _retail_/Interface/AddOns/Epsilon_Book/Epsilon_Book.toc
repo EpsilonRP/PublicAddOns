@@ -8,6 +8,7 @@
 
 Libs\Embeds.xml
 Lists\TextureList.lua
+Lists\AtlasInfo.lua
 
 Book.lua
 Epsilon_Book.lua

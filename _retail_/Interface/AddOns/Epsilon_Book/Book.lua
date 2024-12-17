@@ -284,10 +284,19 @@ local alignmentAttributes = {
 	["r"] = "right",
 };
 
+-- Sanitise each individual texCoord supplied.
+-- 
+-- They can TECHNICALLY be negative values or exceed 1,
+-- but we're not offering that here...
+local function clampTexCoords(coord)
+	coord = tonumber(coord);
+    return max(min(coord, 1), 0)
+end
+
 --- IMAGE_PATTERN is the string pattern used for performing image replacements
 --  in strings that should be rendered as HTML.
 ---
---- The accepted form this is "{img:<src>:<width>:<height>[:align]}".
+--- The accepted form this is "{img:<src>:<width>:<height>[:align:left:right:top:bottom:red:green:blue]}".
 ---
 --- Each individual segment matches up to the next present colon. The third
 --- match (height) and everything thereafter needs to check up-to the next
@@ -296,11 +305,11 @@ local alignmentAttributes = {
 --- Optional segments should of course have the "?" modifer attached to
 --- their preceeding colon, and should use * for the content match rather
 --- than +.
-local IMAGE_PATTERN = [[{img%:([^:]+)%:([^:]+)%:([^:}]+)%:?([^:}]*)%}]];
+local IMAGE_PATTERN = [[{img%:([^:]+)%:([^:]+)%:([^:}]+)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%:?([^:}]*)%}]];
 
 --- Note that the image tag has to be outside a <P> tag.
 ---@language HTML
-local IMAGE_TAG = [[</P><img src="%s" width="%s" height="%s" align="%s"/><P>]];
+local IMAGE_TAG = [[</P><img src="%s" width="%s" height="%s" align="%s" texCoords="%s" vertexColour="%s"/><P>]];
 
 local function FormatLink(type, url, text)
 	if type == "spell" then
@@ -389,10 +398,29 @@ local toHTML = function(text, noColor, noBrackets)
 
 		-- Image tag. Specifiers after the height are optional, so they
 		-- must be suitably defaulted and validated.
-		line = line:gsub(IMAGE_PATTERN, function(img, width, height, align)
+		line = line:gsub(IMAGE_PATTERN, function(img, width, height, align, left, right, top, bottom, red, green, blue)
 			-- If you've not given an alignment, or it's entirely invalid,
 			-- you'll get the old default of center.
 			align = alignmentAttributes[align] or "center";
+
+			-- Similarly, if you don't provide left/right/top/bottom,
+			-- assume it's 0, 1, 0, 1.
+			left		= clampTexCoords(tonumber(left) or 0);
+			right		= clampTexCoords(tonumber(right) or 1);
+			top			= clampTexCoords(tonumber(top) or 0);
+			bottom		= clampTexCoords(tonumber(bottom) or 1);
+
+			-- texCoords must be converted into a single string,
+			-- delimited by commas, e.g. "0,1,0,1" for default.
+			local texCoords = tostring( left..","..right..","..top..","..bottom );
+			
+			red			= tonumber(red) or 1;
+			green		= tonumber(green) or 1;
+			blue		= tonumber(blue) or 1;
+
+			-- vertexColour must be converted into a single string,
+			-- delimited by commas, e.g. "1,1,1" for default.
+			local vertexColour = tostring( red..","..green..","..blue );
 
 			-- Don't blow up on non-numeric inputs. They won't display properly
 			-- but that's a separate issue.
@@ -401,7 +429,7 @@ local toHTML = function(text, noColor, noBrackets)
 
 			-- Width and height should be absolute.
 			-- The tag accepts negative value but people used that to fuck up their profiles
-			return string.format(IMAGE_TAG, img, math.abs(width), math.abs(height), align);
+			return string.format(IMAGE_TAG, img, math.abs(width), math.abs(height), align, texCoords, vertexColour);
 		end);
 
 		line = line:gsub("%!%[(.-)%]%((.-)%)", function(icon, size)
@@ -1713,7 +1741,9 @@ function EpsilonBookFrame_Update()
 	SetBookMaterial(material)
 	SetPortraitToTexture(EpsilonBookFrame.portrait, data.icon or "Interface/Icons/inv_misc_book_09")
 	EpsilonBookFrame.TitleText:SetText(data.title);
-	EpsilonBookPageText:SetText(toHTML(data.pages[page]));
+	--EpsilonBookPageText:SetText(toHTML(data.pages[page]));
+	EpsilonLib.Utils.Misc.SetSimpleHTMLWithImageExtensions(EpsilonBookPageText, toHTML(data.pages[page]))
+
 	EpsilonBookPageText:SetFont("P", GetBookFont(data.fontFamily.p), data.fontSize.p);
 	EpsilonBookPageText:SetFont("H1", GetBookFont(data.fontFamily.h1), data.fontSize.h1);
 	EpsilonBookPageText:SetFont("H2", GetBookFont(data.fontFamily.h2), data.fontSize.h2);

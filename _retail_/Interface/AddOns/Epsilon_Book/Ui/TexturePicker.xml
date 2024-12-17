@@ -16,12 +16,53 @@
       </OnLeave>
     </Scripts>
   </Button>
+
+  <!-- Template for the texture editor editboxes. -->
+  <EditBox name="EpsilonBookTextureEditorEditBox" inherits="InputBoxTemplate" autoFocus="false" virtual="true">
+    <Size x="165" y="8" />
+    <Layers>
+        <Layer level="BACKGROUND">
+			<FontString parentKey="Title" inherits="GameFontNormalSmall" justifyH="LEFT">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="0" y="8"/>
+				</Anchors>
+			</FontString>
+        </Layer>
+    </Layers>
+    <Scripts>
+        <OnLoad>
+            self.Title:SetText(self.title);
+            if self.width == "full" then
+                self:SetWidth(165);
+            elseif self.width == "half" then
+                self:SetWidth(75);
+            elseif self.width == "third" then
+                self:SetWidth(47);
+            end
+        </OnLoad>
+        <OnEnter>
+            if self.instructions then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:AddLine( self.title, 1, 1, 1, true )
+                GameTooltip:AddLine( self.instructions, 1, 0.81, 0, true )
+                GameTooltip:Show()
+            end
+        </OnEnter>
+        <OnLeave>
+            GameTooltip:Hide()
+        </OnLeave>
+        <OnTextChanged>
+            EpsilonBookTexturePicker_UpdatePreview();
+        </OnTextChanged>
+        <OnEscapePressed function="EditBox_ClearFocus"/>
+    </Scripts>
+  </EditBox>
   
   <!-- The texture selector. -->
   <Frame name="EpsilonBookTexturePicker" parent="UIParent" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="true" toplevel="true">
-    <Size x="262" y="320" />
+    <Size x="400" y="500" />
 	<ResizeBounds>
-		<minResize x="262" y="320"/>
+		<minResize x="400" y="500"/>
 		<maxResize x="1500" y="800"/>
 	</ResizeBounds>
     <Anchors>
@@ -53,12 +94,259 @@
 		</Scripts>
 	  </Slider>
 
+      <DropDownToggleButton parentKey="FilterDropdown" inherits="UIMenuButtonStretchTemplate" text="FILTER">
+		<Size x="70" y="22"/>
+		<Anchors>
+			<Anchor point="RIGHT" relativeKey="$parent.ResolutionSlider" relativePoint="LEFT" x="-8" y="0"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+			<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+				<Size x="10" y="12"/>
+				<Anchors>
+				<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+				</Anchors>
+			</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnShow>
+				self:SetHeight(22);
+			</OnShow>
+			<OnMouseDown>
+			    UIMenuButtonStretchMixin.OnMouseDown(self, button);
+			    ToggleDropDownMenu(1, nil, self:GetParent().FilterDropdown, self, 70, 22);
+				self:SetHeight(22);
+			    PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+			</OnMouseDown>
+		</Scripts>
+	  </DropDownToggleButton>
+
+      <Frame parentKey="Inset2" useParentLevel="true" inherits="InsetFrameTemplate">
+		    <Anchors>
+			    <Anchor point="TOPLEFT" relativeTo="EpsilonBookTexturePickerInset" relativePoint="TOPRIGHT" x="2" y="0" />
+			    <Anchor point="BOTTOMRIGHT" x="-6" y="26" />
+		    </Anchors>
+            <Layers>
+                <Layer level="BACKGROUND">
+				    <FontString inherits="GameFontNormal" text="Preview" justifyH="CENTER">
+					    <Anchors>
+						    <Anchor point="TOP" x="0" y="-16"/>
+					    </Anchors>
+				    </FontString>
+				    <Texture parentKey="TexturePreview">
+					    <Size x="150" y="150"/>
+					    <Anchors>
+						    <Anchor point="TOP" x="0" y="-32"/>
+					    </Anchors>
+				    </Texture>
+			    </Layer>
+            </Layers>
+            <Frames>
+              <EditBox parentKey="FileName" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="File Name" type="string"/>
+			        <KeyValue key="instructions" value="The full file path of the image." type="string"/>
+			        <KeyValue key="width" value="full" type="string"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="LEFT" x="16" y="0"/>
+			        <Anchor point="TOP" relativeKey="$parent.TexturePreview" relativePoint="BOTTOM" x="0" y="-24" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Width" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Width" type="string"/>
+			        <KeyValue key="instructions" value="The width of the image (in pixels)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="TOPLEFT" relativeKey="$parent.FileName" relativePoint="BOTTOMLEFT" x="0" y="-28" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Height" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Height" type="string"/>
+			        <KeyValue key="instructions" value="The height of the image (in pixels)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="LEFT" relativeKey="$parent.Width" relativePoint="RIGHT" x="12" y="0" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Left" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Left" type="string"/>
+			        <KeyValue key="instructions" value="The left edge of the image, if you want to crop it (between 0-1)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="TOPLEFT" relativeKey="$parent.Width" relativePoint="BOTTOMLEFT" x="0" y="-28" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Right" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Right" type="string"/>
+			        <KeyValue key="instructions" value="The right edge of the image, if you want to crop it (between 0-1)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="LEFT" relativeKey="$parent.Left" relativePoint="RIGHT" x="12" y="0" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Top" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Top" type="string"/>
+			        <KeyValue key="instructions" value="The top edge of the image, if you want to crop it (between 0-1)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="TOPLEFT" relativeKey="$parent.Left" relativePoint="BOTTOMLEFT" x="0" y="-28" />
+                </Anchors>
+              </EditBox>
+              <EditBox parentKey="Bottom" inherits="EpsilonBookTextureEditorEditBox">
+		        <KeyValues>
+			        <KeyValue key="title" value="Bottom" type="string"/>
+			        <KeyValue key="instructions" value="The bottom edge of the image, if you want to crop it (between 0-1)." type="string"/>
+			        <KeyValue key="width" value="half" type="string"/>
+			        <KeyValue key="numeric" value="true" type="boolean"/>
+		        </KeyValues>
+                <Anchors>
+			        <Anchor point="LEFT" relativeKey="$parent.Top" relativePoint="RIGHT" x="12" y="0" />
+                </Anchors>
+              </EditBox>
+
+              <Slider parentKey="Alignment" enableMouse="true" minValue="1" maxValue="3" defaultValue="1" valueStep="1" inherits="OptionsSliderTemplate" orientation="HORIZONTAL">
+		        <Size x="160" y="20" />
+		        <Anchors>
+			        <Anchor point="TOPLEFT" relativeKey="$parent.Top" relativePoint="BOTTOMLEFT" x="0" y="-24" />
+		        </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString name="$parentMid" parentKey="Mid" inherits="GameFontHighlightSmall" text="Center">
+                          <Anchors>
+                            <Anchor point="TOP" relativePoint="BOTTOM">
+                              <Offset>
+                                <AbsDimension x="0" y="3"/>
+                              </Offset>
+                            </Anchor>
+                          </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+		        <Scripts>
+			        <OnShow>
+	                    self:SetObeyStepOnDrag( true )
+	                    self:SetValue( 1 )
+                        self.Text:SetFontObject("GameFontNormalSmall");
+                        self.Text:SetText("Alignment");
+	                    self.Low:SetText("Left")
+	                    self.High:SetText("Right")
+			        </OnShow>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+                        GameTooltip:SetText("Alignment", 1, 1, 1, 1, true);
+                        GameTooltip:AddLine("Set the alignment of the image.", 1.0, 0.81, 0, true);
+                        GameTooltip:Show();
+                    </OnEnter>
+                    <OnLeave>
+                        GameTooltip:Hide();
+                    </OnLeave>
+		        </Scripts>
+	          </Slider>
+
+              <Button parentKey="ColourPickerButton">
+				<Size x="32" y="32"/>
+                <Anchors>
+			        <Anchor point="TOPLEFT" relativeKey="$parent.Alignment" relativePoint="BOTTOMLEFT" x="-7" y="-8" />
+                </Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="icon" file="Interface/OptionsFrame/ColorblindSettings">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="-2" />
+							</Anchors>
+							<TexCoords left="0.00390625" right="0.582031" top="0.00390625" bottom="0.582031"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<NormalTexture file="Interface/Buttons/UI-MicroButtonCharacter-Up">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</NormalTexture>
+				<PushedTexture file="Interface/Buttons/UI-MicroButtonCharacter-Down">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</PushedTexture>
+				<HighlightTexture file="Interface/Buttons/UI-MicroButton-Hilight" alphaMode="ADD">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</HighlightTexture>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("Tint")
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						EpsilonBookColourPicker_Open( EpsilonBookTexturePicker )
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			  </Button>
+              <Button parentKey="ResetButton">
+				<Size x="32" y="32"/>
+                <Anchors>
+			        <Anchor point="LEFT" relativeKey="$parent.ColourPickerButton" relativePoint="RIGHT" x="0" y="0" />
+                </Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="icon" file="Interface/Buttons/UIFrameButtons">
+							<Size x="16" y="16"/>
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="-2" />
+							</Anchors>
+							<TexCoords left="0.0078125" right="0.257812" top="0.539062" bottom="0.789062"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<NormalTexture file="Interface/Buttons/UI-MicroButtonCharacter-Up">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</NormalTexture>
+				<PushedTexture file="Interface/Buttons/UI-MicroButtonCharacter-Down">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</PushedTexture>
+				<HighlightTexture file="Interface/Buttons/UI-MicroButton-Hilight" alphaMode="ADD">
+					<TexCoords left="0" right="1" top="0.3" bottom="1"/>
+				</HighlightTexture>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("Reset")
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						EpsilonBookTexturePicker_ResetPreview()
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			  </Button>
+            </Frames>
+	  </Frame>
+
       <!-- Search/filter box. -->
       <EditBox parentKey="search" inherits="SearchBoxTemplate">
         <Size x="150" y="8" />
         <Anchors>
 			<Anchor point="TOPLEFT" x="80" y="-32" />
-			<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ResolutionSlider" relativePoint="BOTTOMLEFT" x="-8" y="0" />
+			<Anchor point="BOTTOMRIGHT" relativeKey="$parent.FilterDropdown" relativePoint="BOTTOMLEFT" x="-8" y="0" />
         </Anchors>
         
         <Scripts>
@@ -90,6 +378,18 @@
 			    self:SetScript("OnUpdate", nil);
 		    </OnMouseUp>
 	    </Scripts>
+	  </Button>
+
+      <Button parentKey="insert" text="Insert Image" inherits="MagicButtonTemplate">
+		    <Size x="100" y="22"/>
+		    <Anchors>
+			    <Anchor point="TOP" relativeKey="$parent.Inset2" relativePoint="BOTTOM" x="0" y="0"/>
+		    </Anchors>
+		    <Scripts>
+			    <OnClick>
+				    EpsilonBookTexturePicker_InsertImage();
+			    </OnClick>
+		    </Scripts>
 	  </Button>
       
       <!-- Area for icon selector. -->
