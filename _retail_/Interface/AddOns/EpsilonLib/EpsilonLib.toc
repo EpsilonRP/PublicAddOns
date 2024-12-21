@@ -5,13 +5,14 @@
 ## SavedVariables: EpsiLib_DB
 ## Version: 0.1
 
+Lib\Lib.xml
+
 Utils\EventManager.lua
 Classes\Classes.xml
 
 EpsilonLib.lua
 EpsilonLib.xml
 
-Lib\Lib.xml
 Templates\Templates.xml
 API\API.xml
 
