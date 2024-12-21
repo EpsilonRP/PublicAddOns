@@ -21,6 +21,6 @@
 	<Script file="Libs\Libs.lua"/>
 	<Script file="Libs\FAIAP\indent.lua"/>
 	
-	<Script file="Libs\CustomTutorials-2.1.lua"/>
+	<Script file="Libs\CustomTutorials-2.1e.lua"/>
 
 </Ui>

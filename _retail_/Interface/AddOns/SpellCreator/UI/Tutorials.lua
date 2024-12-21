@@ -13,7 +13,7 @@ local Logging = ns.Logging
 local cprint = Logging.cprint
 
 local Tutorials = {}
-LibStub("CustomTutorials-2.1"):Embed(Tutorials)
+LibStub("CustomTutorials-2.1e"):Embed(Tutorials)
 
 local arcTutorialTitle = "Arcanum - Basic Spell Tutorial"
 local arcTutorialTitlePageFormat = "(%s / %s)"
@@ -46,8 +46,11 @@ function Tutorials:OnLoad()
 
 		{ -- 1
 			title = autoTitle(),
-			image = getTex("tut_img_" .. curStep),
+			image = getTex("arc_logo_web"),
+			imageH = 256 * 0.66,
+			imageW = 512 * 0.66,
 			text = _t([[
+
 Welcome to Arcanum!
 
 It looks like this is your first time using Arcanum. Would you like to start the tutorial to learn the basics?

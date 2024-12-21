@@ -131,9 +131,27 @@ mainFrameMouseBlocker:EnableMouse(true)
 
 local searchbox = CreateFrame("EditBox", nil, mainFrame, "SearchBoxTemplate")
 mainFrame.searchbar = searchbox -- Arcanum_SpellBook.searchbar
-searchbox:SetPoint("TOP", mainFrame, "TOP", 30, -25)
+searchbox:SetPoint("TOP", mainFrame, "TOP", 30, -30)
 searchbox:SetSize(480, 12)
 searchbox:SetFrameStrata("HIGH")
+
+local offAlpha = 0.2
+local onAlpha = 0.5
+searchbox.Left:SetAlpha(offAlpha)
+searchbox.Right:SetAlpha(offAlpha)
+searchbox.Middle:SetAlpha(offAlpha)
+
+searchbox:HookScript("OnEditFocusLost", function(self)
+	searchbox.Left:SetAlpha(offAlpha)
+	searchbox.Right:SetAlpha(offAlpha)
+	searchbox.Middle:SetAlpha(offAlpha)
+end)
+searchbox:HookScript("OnEditFocusGained", function(self)
+	searchbox.Left:SetAlpha(onAlpha)
+	searchbox.Right:SetAlpha(onAlpha)
+	searchbox.Middle:SetAlpha(onAlpha)
+end)
+
 function searchbox:GetFilter()
 	local text = self:GetText()
 	return (text and #text > 2) and text or nil
@@ -203,7 +221,10 @@ spellButtonMixin.UpdateButton = function(self)
 
 	if self.commID then
 		local spell = Vault.personal.findSpellByID(self.commID)
-		if not spell then Logging.eprint("UpdateButton - No spell found with ArcSpell ID in personal vault: ", self.commID) end
+		if not spell then
+			Logging.eprint("UpdateButton - No spell found with ArcSpell ID in personal vault: ", self.commID)
+			return
+		end
 
 		--icon
 		iconTexture:SetTexture(Icons.getFinalIcon(spell.icon))
@@ -234,37 +255,6 @@ spellButtonMixin.UpdateButton = function(self)
 		end
 	end
 end
-
--- helper function for the tooltip when you mouse-over a spell icon
---[[
-local function genSpellTooltipLines(spell, isClickable)
-	local strings = {}
-	local hotkeyKey = Hotkeys.getHotkeyByCommID(spell.commID)
-
-	if spell.description then tinsert(strings, spell.description) end
-	tinsert(strings, " ")
-
-	if spell.profile then tinsert(strings, Tooltip.createDoubleLine("Profile: ", spell.profile)) end
-
-	if spell.cooldown then
-		tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Cooldown: " .. spell.cooldown .. "s"))
-	else
-		tinsert(strings, "Actions: " .. #spell.actions)
-	end
-
-	if spell.author then tinsert(strings, "Author: " .. spell.author); end
-	if spell.items and next(spell.items) then tinsert(strings, "Items: " .. table.concat(spell.items, ", ")) end
-	if hotkeyKey then tinsert(strings, "Hotkey: " .. hotkeyKey) end
-	tinsert(strings, " ")
-
-	if isClickable then
-		tinsert(strings, Tooltip.genContrastText("Left-Click") .. " to cast " .. ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode(spell.commID))
-	else
-		tinsert(strings, "Command: " .. Tooltip.genContrastText("/sf " .. spell.commID))
-	end
-	return strings
-end
---]]
 
 -- create the spell buttons!
 for i = 1, SPELLS_PER_PAGE do
@@ -430,7 +420,7 @@ searchbox:HookScript("OnTextChanged", function(self)
 	end)
 end)
 
-searchbox:SetScript("OnEditFocusLost", function(self)
+searchbox:HookScript("OnEditFocusLost", function(self)
 	updatePage()
 end)
 searchbox.clearButton:HookScript("OnClick", function(self)

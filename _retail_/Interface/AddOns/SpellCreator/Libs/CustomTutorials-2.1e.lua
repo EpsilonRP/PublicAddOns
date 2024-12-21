@@ -17,51 +17,67 @@ You should have received a copy of the GNU General Public License
 along with CustomTutorials. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
--- Custom Epsilon version
+-- Heavily Modified version of CustomTutorials-2.1 for Epsilon.
+-- For compatibility, this modified as major version: 2.1e.
+-- However this should remain compatible with the original CustomTutorials-2.1.
+--
+-- This version is designed to be extensible and flexible for a variety of uses,
+-- along with a more direct method of defining continuations and managing how a
+-- tutorial should advance. Please consult the docs below for more info on how
+-- to use this library.
 
 --[[ Docs:
 
 -- Supported keys inside the main Tutorial Settings (frame.data):
--- title
--- savedvariable
--- key
--- onShow - fun<frame.data (this table), index>
--- bg - Epsi Custom, Bg image
--- Tutorial Objects (data) should then be an array based on index order to define each tutorial step
+-- title: string - The title of the tutorial.
+-- savedvariable: string - The name of the saved variable to track progress.
+-- key?: string - The key within the savedvariable to use. In such a case, savedvariable should be a string name of the global savedvariable table.
+-- onShow?: function(frame.data, index) - Callback function when the tutorial is shown.
+-- bg?: string - Background image for the tutorial - Can be overwrote by Tutorial Objects.
 
+-- Tutorial Objects (data) should then be an array based on index order to define each tutorial step.
 
 -- Supported Keys inside each Tutorial Object (data):
--- title (overrides main title)
--- text
--- textY, textX (text sizes)
--- point - anchor point (SetPoint)
--- anchor - anchor target (SetPoint)
--- relPoint - anchor relative point (SetPoint)
--- x, y - offsets for anchor (SetPoint)
--- height - height, or auto if not provided
--- image
--- imageX, imageY - not size... it's offset!
--- imageW, imageH - Image Size, there we go!
--- shine - parent frame reference for the shine
--- shineRight, shineBottom - sets the BOTTOMRIGHT offsets of shine (default 0,0)
--- shineLeft, shineTop - sets the TOPLEFT offsets of shine (default 0,0)
----- Epsi Custom Stuff:
--- bg - Bg image
--- flash - Frame reference for default handling, or a table containing array of flash data, same format as passed in UIFrameFlash
--- continue - Custom Script to determine if it should continue. Make sure this is light, it's fire in OnUpdate!
--- continueHook - Table with following data: { frame = frame, hookScript = name, callback = function() } - Only runs that hook if this tutorial is shown.
--- button1 - Table with data to create a button at the bottom - if only one button; centered. If 2 buttons, it's on the left!
--- button2 - Table with data to create a button at the bottom - If only button, ignored. If 2 buttons, it's on the right!
+-- // Outside of text, all other keys are optional.
+-- title: string - Overrides the main title for this step.
+-- text: string - The text content of the tutorial step.
+-- textY: number - Vertical offset for the text.
+-- textX: number - Horizontal offset for the text.
+-- point: string - Anchor point for the tutorial frame.
+-- anchor: frame - The frame to anchor to.
+-- relPoint: string - Relative point for the anchor.
+-- x: number - X offset for the anchor.
+-- y: number - Y offset for the anchor.
+-- height: number - Height of the tutorial frame. Default is a dynamic height, recommend to leave unless you specifically need to override it.
+-- image: string - Path to an image to display in the tutorial.
+-- imageX: number - X offset for the image.
+-- imageY: number - Y offset for the image.
+-- imageW: number - Width of the image.
+-- imageH: number - Height of the image.
+-- shine: frame - Frame reference for the shine effect.
+-- shineRight: number - Right offset for the shine effect.
+-- shineBottom: number - Bottom offset for the shine effect.
+-- shineLeft: number - Left offset for the shine effect.
+-- shineTop: number - Top offset for the shine effect.
+
+-- Epsi Custom Stuff:
+-- bg: string - Background image for the tutorial step.
+-- flash: frame|table - Frame reference for default handling, or a table containing flash data.
+-- continue: function - Custom script to determine if the tutorial should continue. This is run OnUpdate with forced 1s interval. Return true to continue.
+-- continueHook: table - Table with the following data: { frame = frame, hookScript = name, callback = function() } - Only runs that hook if this tutorial is shown. If tutorial is shown, runs your custom function on the frame's script hook given; if return true, continue to next tutorial step.
+-- button1: table - Data to create a button at the bottom. If only one button, it is centered. If two buttons, it is on the left.
+-- button2: table - Data to create a button at the bottom. If only one button, it is centered. If two buttons, it is on the right.
 -- -- button table keys supported:
--- -- -- text = Text String on Button
--- -- -- callback = (function, passed self(Lib), frame, then OnClick ...)
--- -- -- shown = function, passed self(Lib), frame - return true to show, false to hide. Default: Shown. Only evaluated when the tutorial is shown.
--- -- -- enabled = function, passed self(Lib), frame - return true to enable, false to disable. Default: Enabled. Evaluated OnUpdate, use sparingly (i.e., maybe use shown & continueHook instead)
+-- -- -- text: string - Text on the button.
+-- -- -- callback: function - Function to call when the button is clicked.
+-- -- -- shown: function - Function to determine if the button should be shown.
+-- -- -- enabled: function - Function to determine if the button should be enabled.
+
 --]]
 
-local Lib = LibStub:NewLibrary('CustomTutorials-2.1', 99)
+local Lib = LibStub:NewLibrary('CustomTutorials-2.1e', 1)
 if Lib then
-	Lib.NewFrame, Lib.NewButton, Lib.UpdateFrame = nil
+	Lib.NewFrame, Lib.NewButton, Lib.UpdateFrame = nil, nil, nil
 	Lib.numFrames = Lib.numFrames or 1
 	Lib.frames = Lib.frames or {}
 else
@@ -390,9 +406,12 @@ end
 
 --[[ User API ]] --
 
+---Registers a set of tutorials.
+---@param data table - The tutorial data.
+---@return frame - The created tutorial frame.
 function Lib:RegisterTutorials(data)
 	assert(type(data) == 'table', 'RegisterTutorials: 2nd arg must be a table', 2)
-	assert(self, 'RegisterTutorials: 1st arg was not provided', 2)
+	assert(self, 'RegisterTutorials: 1st arg (self/Lib) was not provided', 2)
 
 	if not Lib.frames[self] then
 		Lib.frames[self] = NewFrame(self)
@@ -431,9 +450,12 @@ function Lib:RegisterTutorials(data)
 	return Lib.frames[self]
 end
 
+---Triggers a tutorial at a specific index.
+---@param index integer - The index of the tutorial to trigger.
+---@param maxAdvance boolean - Whether to advance to the maximum unlocked step.
 function Lib:TriggerTutorial(index, maxAdvance)
 	assert(type(index) == 'number', 'TriggerTutorial: 2nd arg must be a number', 2)
-	assert(self, 'TriggerTutorial: 1st arg was not provided', 2)
+	assert(self, 'TriggerTutorial: 1st arg (self/Lib) was not provided', 2)
 
 	local frame = Lib.frames[self]
 	if frame then
@@ -448,12 +470,12 @@ function Lib:TriggerTutorial(index, maxAdvance)
 	end
 end
 
----Starts a Tutorial, at the specified index. If advanceToMax is true, then automatically attempts to skip to the furthest unlocked step.
----@param index any
----@param advanceToMax any
+---Starts a tutorial at the specified index. Only shows if it's 'new'.
+---@param index integer - The index of the tutorial to start.
+---@param advanceToMax boolean - Whether to advance to the maximum unlocked step.
 function Lib:StartTutorial(index, advanceToMax)
 	assert(type(index) == 'number', 'StartTutorial: 2nd arg must be a number', 2)
-	assert(self, 'StartTutorial: 1st arg was not provided', 2)
+	assert(self, 'StartTutorial: 1st arg (self/Lib) was not provided', 2)
 
 	local frame = Lib.frames[self]
 	if frame then
@@ -474,12 +496,12 @@ function Lib:StartTutorial(index, advanceToMax)
 	end
 end
 
----Shows a specific tutorial index, optionally with an override on the max unlocked step.
----@param index integer
----@param overrideUnlocked? integer
+---Shows a tutorial at a specific tutorial index. Always shows, even if not new.
+---@param index integer - The index of the tutorial to start.
+---@param overrideUnlocked? integer - Whether to override the max unlocked step to this value.
 function Lib:ShowTutorial(index, overrideUnlocked)
 	assert(type(index) == 'number', 'ShowTutorial: 2nd arg must be a number', 2)
-	assert(self, 'ShowTutorial: 1st arg was not provided', 2)
+	assert(self, 'ShowTutorial: 1st arg (self/Lib) was not provided', 2)
 
 	local frame = Lib.frames[self]
 	if frame then
@@ -496,6 +518,7 @@ function Lib:ShowTutorial(index, overrideUnlocked)
 end
 
 function Lib:NextTutorial()
+	assert(self, 'NextTutorial: 1st arg (self/Lib) was not provided', 2)
 	local frame = Lib.frames[self]
 	if frame then
 		self:ShowTutorial(frame.i + 1)
@@ -503,6 +526,7 @@ function Lib:NextTutorial()
 end
 
 function Lib:HideTutorial()
+	assert(self, 'HideTutorial: 1st arg (self/Lib) was not provided', 2)
 	local frame = Lib.frames[self]
 	if frame then
 		frame:Hide()
@@ -510,6 +534,7 @@ function Lib:HideTutorial()
 end
 
 function Lib:GetLastUnlockedTutorial()
+	assert(self, 'GetLastUnlockedTutorial: 1st arg (self/Lib) was not provided', 2)
 	local frame = Lib.frames[self]
 	if frame then
 		local sv = frame.data.key or frame.data.savedvariable
@@ -522,7 +547,7 @@ function Lib:GetLastUnlockedTutorial()
 end
 
 function Lib:ResetTutorials()
-	assert(self, 'ResetTutorials: 1st arg was not provided', 2)
+	assert(self, 'ResetTutorials: 1st arg (self/Lib) was not provided', 2)
 
 	local frame = Lib.frames[self]
 	if frame then
@@ -537,6 +562,7 @@ function Lib:ResetTutorials()
 end
 
 function Lib:GetTutorials()
+	assert(self, 'GetTutorials: 1st arg (self/Lib) was not provided', 2)
 	return self and Lib.frames[self] and Lib.frames[self].data
 end
 

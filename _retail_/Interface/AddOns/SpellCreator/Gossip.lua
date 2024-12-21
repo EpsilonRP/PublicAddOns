@@ -10,6 +10,7 @@ local Vault = ns.Vault
 local HTML = ns.Utils.HTML
 
 local cmdWithDotCheck = Cmd.cmdWithDotCheck
+local cmd = Cmd.cmd
 local runMacroText = Cmd.runMacroText
 local cprint, dprint, eprint = Logging.cprint, Logging.dprint, Logging.eprint
 local executePhaseSpell = Execute.executePhaseSpell
@@ -28,8 +29,6 @@ local spellsToCast = {}
 local shouldAutoHide = false
 local shouldLoadSpellVault = false
 local loadPhaseVault
-local lastGossipText
-local currGossipText
 
 local gossipScript
 local gossipTags
@@ -55,10 +54,80 @@ local function isLoaded()
 	return isGossipLoaded
 end
 
+local function hideCheck(button)
+	if button then -- came from an OnClick, so we need to close now, instead of toggling AutoHide which already past.
+		CloseGossip();
+		return true
+	else
+		shouldAutoHide = true
+		return false
+	end
+end
+
+local function CallbackClosure(func, ...)
+	if type(func) ~= "function" then error("newCallback arg #1 must be a function") end
+	local args = { ... }
+	local numArgs = select("#", ...)
+	return function() func(unpack(args, numArgs)) end
+end
+
+local function cast(id, trig, self, revert)
+	if trig == nil then trig = true end
+	if self == nil then self = true end
+	cmd(("cast %s %s %s"):format(id, (trig and "triggered" or ""), (self and "self" or "")))
+
+	if revert then
+		C_Timer.After(tonumber(revert) or 0.25, CallbackClosure(cmd, "unaura " .. id .. " self"))
+	end
+end
+
+---@class CastSpellData
+---@field [1] number SpellID
+---@field [2] boolean? triggered
+---@field [3] boolean? self
+---@field [4] boolean|number? revert (true, false, or a number to specify the revert time)
+
+---@alias TeleVisual CastSpellData[]
+
+---@type TeleVisual[]
+local teleVisuals = {
+	{ -- Classic
+		delay = 0.8,
+		{ 41232 },
+	},
+	{ -- Bastion
+		{ 367049 },
+		{ 364475, false, false },
+	},
+	{ -- Arcane
+		-- 361504,361505,355673,367731
+		{ 361504 },
+		{ 361505 },
+	},
+	{ -- Holy
+		{ 253303, nil, nil, true }
+		--317142
+	}
+}
+
+local function tele(comm, visualID)
+	visualID = tonumber(visualID)
+	if not visualID then visualID = 1 end
+
+	for _, v in ipairs(teleVisuals[visualID]) do
+		cast(v[1], v[2], v[3], v[4])
+	end
+
+	local delay = teleVisuals[visualID].delay or 1
+
+	C_Timer.After(delay, CallbackClosure(cmd, comm))
+end
+
 ---@param callbacks { openArcanum: fun(), saveToPersonal: fun(phaseVaultIndex: integer, sendLearnedMessage: boolean), loadPhaseVault: fun(callback: fun()) }
 local function init(callbacks)
 	loadPhaseVault = callbacks.loadPhaseVault
 
+	-- gossipScript functions are passed the 'payload' / matched text from a tag, along with the 'button' clicked if it was a button, or nil if it was auto / from the gossip main text ('greetingText')
 	gossipScript = {
 		show = callbacks.openArcanum,
 		auto_cast = function(payLoad)
@@ -91,13 +160,18 @@ local function init(callbacks)
 		cmd = function(payLoad)
 			cmdWithDotCheck(payLoad)
 		end,
-		hide_check = function(button)
-			if button then -- came from an OnClick, so we need to close now, instead of toggling AutoHide which already past.
-				CloseGossip();
-			else
-				shouldAutoHide = true
-			end
+		tele = function(payLoad)
+			local loc, visual = strsplit(":", payLoad, 2)
+			CloseGossip() -- Teleports have a forced close always
+			tele("tele " .. loc, visual)
 		end,
+		ptele = function(payLoad)
+			local loc, visual = strsplit(":", payLoad, 2)
+			CloseGossip() -- Teleports have a forced close always
+			tele("phase tele " .. loc, visual)
+		end,
+		hide = CloseGossip,
+		hide_check = hideCheck, -- Unused? I don't think we need to worry about this any more, as auto-runs are still run after parsing the entire text.
 	}
 
 	gossipTags = {
@@ -112,10 +186,12 @@ local function init(callbacks)
 			cmd = { tag = "cmd", script = gossipScript.cmd },
 			macro = { tag = "macro", script = runMacroText },
 			copy = { tag = "copy", script = gossipScript.copy },
+			tele = { tag = "tele", script = gossipScript.tele },
+			ptele = { tag = "ptele", script = gossipScript.ptele },
 		},
 		extensions = {
-			{ ext = "hide", script = gossipScript.hide_check },
-			-- auto is officially deprecated.
+			{ ext = "hide", script = gossipScript.hide },
+			-- auto is officially deprecated. Use greeting text. For a gob tele, use an auto-spark.
 		},
 	}
 
@@ -143,7 +219,7 @@ local function init(callbacks)
 			local mainTag, extTags = strsplit("_", strTag, 2) -- split the main tag from the extension tags
 			if gossipTags.option[mainTag] then       -- Checking Main Tags & Running their code if present
 				--gossipTags.body[mainTag].script(strArg)
-				table.insert(main_funcs, f(gossipTags.option[mainTag].script, strArg))
+				table.insert(main_funcs, f(gossipTags.option[mainTag].script, strArg, button))
 			end
 			dprint("Clicked Option with ArcTag | Tag: " ..
 				mainTag .. " | Spell: " .. (strArg or "none") .. " | Ext: " .. (tostring(extTags) or "none"))
@@ -165,6 +241,11 @@ local function init(callbacks)
 			for i = 1, #main_funcs do
 				main_funcs[i](button)
 			end
+
+			if shouldAutoHide then
+				CloseGossip()
+			end
+			shouldAutoHide = false
 		end
 
 		if phaseVault.isLoaded then
