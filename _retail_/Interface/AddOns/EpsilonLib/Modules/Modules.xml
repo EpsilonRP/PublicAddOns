@@ -6,5 +6,6 @@
 	<Script file="misc.lua"/>
 
 	<Script file="UnitPopupMenus.lua"/>
+	<Script file="SpellBookUI.lua"/>
 
 </Ui>

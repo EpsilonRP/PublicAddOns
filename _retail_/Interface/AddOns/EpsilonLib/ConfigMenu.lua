@@ -1,97 +1,212 @@
 local EpsilonLib, EpsiLib = ...
 
--- Extra Utils Config Menu
-local EpsiLib_Interface_Panel = CreateFrame("Frame");
-EpsiLib_Interface_Panel.name = "Epsilon (Misc)";
+-- EpsiLib Generic Config Menu, powered by AceConfig because easy & modular.
+-- Add more modules to the config menu by adding them to the myOptionsTable.plugins table.
 
-local panel = EpsiLib_Interface_Panel
+if not LibStub then error("LibStub Required. Why isn't it here?") end
 
-local title = panel:CreateFontString("ARTWORK", nil, "GameFontNormalLarge")
-title:SetPoint("TOP")
-title:SetText("Epsilon - Miscellaneous Config")
-title:SetPoint("TOPLEFT", 15, -15)
+local AceConfig = LibStub:GetLibrary("AceConfig-3.0")
+local AceConfigDialog = LibStub:GetLibrary("AceConfigDialog-3.0")
+local AceConfigRegistry = LibStub:GetLibrary("AceConfigRegistry-3.0")
 
-local widget = CreateFrame("SLIDER", nil, panel, "OptionsSliderTemplate")
-panel.forceEntityLODDistanceSlider = widget
-widget:SetPoint("TOPLEFT", 20, -60)
-widget:SetSize(144, 17)
-widget.Text:SetText("Force Entity LoD CVar")
-widget.Low:SetText("0")
-widget.High:SetText("1000")
-widget.Value = widget:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-widget.Value:SetPoint("TOP", widget, "BOTTOM")
-widget:SetMinMaxValues(0, 1000)
-widget:SetValueStep(1)
-widget:SetObeyStepOnDrag(true)
-widget:SetScript("OnValueChanged", function(self, value, userInput)
-	if not userInput then return end
-	value = tonumber(value)
-	if value == 0 then value = false end
-	EpsiLib_DB.options.forceEntityLoD = value
-	SetCVar("EntityLodDist", value)
-	self.Value:SetText(value)
-end)
-widget.tooltipText = [[Force EntityLodDist
 
-Higher values increase the distance before an object switches to a lower detail (LoD) model / textures, allowing you to see 'fully quality' models from further away.
+local addonVersion, addonAuthor = GetAddOnMetadata(EpsilonLib, "Version"), "Epsilon Addons Team"
 
-WoW's default is 10, but this sometimes does not play nicely with custom building.
-May impact performance in heavy phases.
-]]
+-------------------------------------------------------------------------------
+-- Interface Options - Addon section
+-------------------------------------------------------------------------------
 
-local widget = CreateFrame("SLIDER", nil, panel, "OptionsSliderTemplate")
-panel.rippleDetailSlider = widget
-widget:SetPoint("TOPLEFT", 20, -120)
-widget:SetSize(144, 17)
-widget.Text:SetText("rippleDetail CVar")
-widget.Low:SetText("0")
-widget.High:SetText("3")
-widget.Value = widget:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-widget.Value:SetPoint("TOP", widget, "BOTTOM")
-widget:SetMinMaxValues(0, 3)
-widget:SetValueStep(1)
-widget:SetObeyStepOnDrag(true)
-widget:SetScript("OnValueChanged", function(self, value, userInput)
-	if not userInput then return end
-	SetCVar("rippleDetail", value)
-	self.Value:SetText(value)
-end)
-widget.tooltipText = [[Adjust rippleDetail to improve performance with minor loss of water quality
+---@param info table
+local function genericGet(info)
+	local key = info.arg
+	return EpsiLib_DB.options[key]
+end
 
-0 = Animated liquid textures, texture based ripples and no reflection (old water)
-1 = Normalmap liquid textures, texture based rippes and sky reflection
-2 = Normalmap liquid textures, procedural ripples and screen-based reflection (WoW Default)
-3 = Normalmap liquid textures, procedural ripples and full reflection
-]]
+---@param info table
+---@param val string|boolean
+---@param func function callback function to add on after doing the set
+local function genericSet(info, val, func)
+	local key = info.arg
+	EpsiLib_DB.options[key] = val
+	if func then func(val) end
+end
 
-InterfaceOptions_AddCategory(EpsiLib_Interface_Panel);
-InterfaceAddOnsList_Update()
+---@param info table
+local function genericGetModule(info)
+	local key = info.arg
+	return EpsiLib_DB.Modules[key]
+end
 
+---@param info table
+---@param val string|boolean
+---@param func function callback function to add on after doing the set
+local function genericSetModule(info, val, func)
+	local key = info.arg
+	EpsiLib_DB.Modules[key] = val
+	if func then func(val) end
+end
+
+local function inlineHeader(text)
+	return WrapTextInColorCode(text, "ffFFD700")
+end
+
+local orderGroup = 0
+local orderItem = 0
+local function autoOrder(isGroup)
+	if isGroup then
+		orderGroup = orderGroup + 1
+		orderItem = 0
+		return orderGroup
+	else
+		orderItem = orderItem + 1
+		return orderItem
+	end
+end
+
+local function spacer(order, size)
+	local item = {
+		name = " ",
+		type = "description",
+		order = order or autoOrder(),
+		fontSize = size or "medium",
+	}
+	return item
+end
+
+local function divider(order)
+	local item = {
+		name = " ",
+		type = "header",
+		order = order or autoOrder(),
+	}
+	return item
+end
+
+StaticPopupDialogs["EPSILONLIB_CONFIG_RELOAD_REQUIRED"] = {
+	text = "Toggling a module requires a UI reload to take effect.\n\rReload now?",
+
+	OnAccept = function()
+		ReloadUI()
+	end,
+	button1 = OKAY,
+	button2 = CANCEL,
+	timeout = 0,
+	whileDead = 1,
+};
+
+local myOptionsTable = {
+	name = "Epsilon AddOns - General Settings" .. " (v" .. addonVersion .. ")",
+	type = "group",
+	childGroups = "tab",
+	args = {
+		generalOptions = {
+			name = "General Settings",
+			type = "group",
+			order = autoOrder(true),
+			args = {
+				miscOptionsSection = {
+					name = "Miscellaneous Options",
+					type = "group",
+					order = autoOrder(),
+					inline = true,
+					args = {
+						forceEntityLoD = {
+							name = "Force Entity LoD Distance",
+							desc =
+							"Higher values increase the distance before an object switches to a lower detail (LoD) model / textures, allowing you to see 'fully quality' models from further away.\n\rSet to 0 to disable the override.",
+							type = "range",
+							min = 0,
+							max = 1000,
+							step = 1,
+							get = genericGet,
+							set = function(info, value)
+								value = tonumber(value)
+								if value == 0 then value = false end
+								EpsiLib_DB.options.forceEntityLoD = value
+								if value then
+									SetCVar("EntityLodDist", value)
+								end
+							end,
+							arg = "forceEntityLoD",
+							order = autoOrder(),
+						},
+						rippleDetail = {
+							name = "Ripple Detail",
+							desc = "Adjust rippleDetail to improve performance with minor loss of water quality",
+							type = "range",
+							min = 0,
+							max = 3,
+							step = 1,
+							get = genericGet,
+							set = function(info, value)
+								EpsiLib_DB.options.rippleDetail = value
+								SetCVar("rippleDetail", value)
+							end,
+							arg = "rippleDetail",
+							order = autoOrder(),
+						},
+					},
+				},
+			},
+		},
+	},
+	plugins = {
+		['Modules'] = {
+			modGroup = {
+				name = "Integrated Modules",
+				type = "group",
+				order = autoOrder(true),
+				args = {
+					SpellBookUI = {
+						name = "SpellBookUI",
+						desc =
+						"Toggle the SpellBookUI module\n\rThis module is an expansion for the default Spellbook UI that adds a searchbar, and right-click menus to spells for additional options.\n\rSpellBookUI is based on by SpellBookSearch by Kerbaal for the Searchbar, modified to expand features & fix casting spells directly.",
+						type = "toggle",
+						get = genericGetModule,
+						set = function(info, val)
+							genericSetModule(info, val,
+								function() StaticPopup_Show('EPSILONLIB_CONFIG_RELOAD_REQUIRED') end)
+						end,
+						arg = "SpellBookUI",
+						order = autoOrder(),
+					},
+				},
+			}
+		}
+	}
+}
+
+EpsiLib.ConfigMenuPlugins = myOptionsTable.plugins
+
+local function newOptionsInit()
+	AceConfig:RegisterOptionsTable(EpsilonLib, myOptionsTable)
+	local frame = AceConfigDialog:AddToBlizOptions(EpsilonLib, "* Epsilon AddOns")
+
+	EpsiLib.ConfigMenuFrame = frame
+	function frame:NotifyChange()
+		AceConfigRegistry:NotifyChange(EpsilonLib)
+	end
+
+	function frame:AddPluginOptions(name, optionsTable)
+		myOptionsTable.plugins[name] = optionsTable
+	end
+end
 
 local registerForAddonDataLoaded
 function registerForAddonDataLoaded(_, event, addonName, containsBindings)
 	if addonName ~= EpsilonLib then return end
 
+	newOptionsInit()
+
 	-- Run anything here you need to load default values into the config options
 	local onLoads = {
-		{
+		{ -- Force set the Entity LoD Distance when we load in
 			name = "forceEntityLoD",
 			func = function()
 				if EpsiLib_DB.options.forceEntityLoD then
 					SetCVar("EntityLodDist", EpsiLib_DB.options.forceEntityLoD)
 				end
-				local val = (EpsiLib_DB.options.forceEntityLoD and EpsiLib_DB.options.forceEntityLoD or 0)
-				panel.forceEntityLODDistanceSlider.Value:SetText(val)
-				panel.forceEntityLODDistanceSlider:SetValue(val)
 			end
-		},
-		{
-			name = "rippleDetail",
-			func = function()
-				local val = C_CVar.GetCVar("rippleDetail")
-				panel.rippleDetailSlider.Value:SetText(val)
-				panel.rippleDetailSlider:SetValue(val)
-			end,
 		},
 	}
 

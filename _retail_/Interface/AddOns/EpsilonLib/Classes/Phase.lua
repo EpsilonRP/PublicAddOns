@@ -21,6 +21,7 @@ local EpsilonLib, EpsiLib = ...;
 
 --]]
 
+local tinsert = table.insert
 
 --#region Main Storage Containers
 
@@ -48,13 +49,14 @@ local function _handleAndAssignPhaseDataTable(phaseData, isOverview)
 
 	local _phase = Phase:CreateFromInfo(phaseID, phaseData[2], phaseData[3], phaseData[4], phaseData[5], phaseData[6], phaseData[7], phaseData[8], phaseData[9])
 
-	-- track it's order in currentOverviewOrder for possible display purposes
+	-- track its order in currentOverviewOrder for possible display purposes
 	if isOverview then
-		table.insert(currentOverviewOrder, _phase)
+		tinsert(currentOverviewOrder, _phase)
 	end
 	-- run callbacks
-	if phaseLoadCallbacks[phaseID] then
-		for _, callback in ipairs(phaseLoadCallbacks[phaseID]) do
+	local callbacks = phaseLoadCallbacks[phaseID]
+	if callbacks then
+		for _, callback in ipairs(callbacks) do
 			callback(_phase)
 		end
 		phaseLoadCallbacks[phaseID] = nil -- Clear it
@@ -70,10 +72,9 @@ local function OnPhaseInfoDataReceived(self, event, prefix, text, channel, sende
 		return -- spoofed? ignore
 	end
 
-	local phaseData = { strsplit(strchar(31), phaseDataStr) }
+	local phaseData = { strsplit(strchar(31), text) }
 
 	_handleAndAssignPhaseDataTable(phaseData, false);
-
 end
 EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseInfoDataReceived)
 
@@ -91,7 +92,7 @@ local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, s
 
 	-- parse text into data
 	local phases = { strsplit(strchar(30), text) }
-	for k, phaseDataStr in ipairs(phases) do
+	for _, phaseDataStr in ipairs(phases) do
 		if #phaseDataStr ~= 0 then -- last one might be an empty string, let's just make sure
 			local phaseData = { strsplit(strchar(31), phaseDataStr) }
 			_handleAndAssignPhaseDataTable(phaseData, true)
@@ -114,7 +115,7 @@ function Phase:RequestPhaseInfo(id)
 	EpsiLib.AddonCommands.SendByChat("phase info " .. id .. " addon")
 end
 
----Requests the current Phase Overview list from the server, handling the callback once the entire list / phases are loaded. Callback is passed the currentOverviewOrder and Phase.Store as it's 2 args for immediate access.
+---Requests the current Phase Overview list from the server, handling the callback once the entire list / phases are loaded. Callback is passed the currentOverviewOrder and Phase.Store as its 2 args for immediate access.
 ---@param callback fun(order:table, store:table)
 function Phase:RequestOverview(callback)
 	EpsiLib.AddonCommands.SendByChat("phase overview addon")
@@ -222,7 +223,7 @@ function PhaseMixin:_Clear()
 	wipe(self.data)
 end
 
----Internal Functon to set a specific data value by key
+---Internal Function to set a specific data value by key
 ---@param key string
 ---@param value string
 function PhaseMixin:_SetDataByKey(key, value)
@@ -250,14 +251,14 @@ function PhaseMixin:_SetPhaseID(id, noClear)
 	Phase.Store[id] = self
 end
 
----Internal function to initialize a phase object by requesting it's data directly from the server. Does not handle callbacks, this should be handled by Phase:Get() or _phase:ContinueOnPhaseLoad()
+---Internal function to initialize a phase object by requesting its data directly from the server. Does not handle callbacks, this should be handled by Phase:Get() or _phase:ContinueOnPhaseLoad()
 function PhaseMixin:_Init()
 	if not self.data.id then error("EpsiLib:PhaseClass Error: Phase Object _Init called on object with no valid data.id") end
 	self.loaded = false -- force mark it as not loaded, as we're requesting data. This is useful in cases like RequestUpdate
 	Phase:RequestPhaseInfo(self.data.id)
 end
 
----Requests an update of this phases data, queuing up a callback once it's loaded, if provided.
+---Requests an update of this phase's data, queuing up a callback once it's loaded, if provided.
 ---@param callback any
 function PhaseMixin:RequestUpdate(callback)
 	self:_Init()
@@ -300,7 +301,7 @@ function PhaseMixin:GetPhaseBackground()
 	return self.data.bg
 end
 
----If the phase is already loaded, runs the callback immediately. If not, sets the callback to run when the phase data has finished loading. Does not .. actually request the phase to load though. Use :Get() instead if needed.
+---If the phase is already loaded, runs the callback immediately. If not, sets the callback to run when the phase data has finished loading. Does not actually request the phase to load though. Use :Get() instead if needed.
 ---@param callback fun(phase:PhaseClass)
 function PhaseMixin:ContinueOnPhaseLoad(callback)
 	if not callback then return end
