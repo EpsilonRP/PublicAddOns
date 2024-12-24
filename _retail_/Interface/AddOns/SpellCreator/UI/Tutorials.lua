@@ -30,6 +30,8 @@ local function formatTutorialText(text)
 	text = string.gsub(text, "<c:b:(.-)>", function(m) return Constants.ADDON_COLORS.MID_CYAN:WrapTextInColorCode(m) end)
 	text = string.gsub(text, "<c:lb:(.-)>", function(m) return Constants.ADDON_COLORS.LIGHT_BLUE:WrapTextInColorCode(m) end)
 	text = string.gsub(text, "<c:g:(.-)>", function(m) return Constants.ADDON_COLORS.GAME_GOLD:WrapTextInColorCode(m) end)
+	text = string.gsub(text, "<c:r:(.-)>", function(m) return Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode(m) end)
+	text = string.gsub(text, "<c:gr:(.-)>", function(m) return Constants.ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode(m) end)
 	text = string.gsub(text, "<(.-)>", function(m) return Tooltip.genContrastText(m) end)
 
 	return text
@@ -42,13 +44,13 @@ function Tutorials:OnLoad()
 		title = "Arcanum - Forge Tutorial",
 		savedvariable = SpellCreatorMasterTable,
 		key = 'Tutorial',
-		bg = getTex("bookbackground_full"),
+		bg = getTex("frame_bg_fractalengraving"),
 
 		{ -- 1
 			title = autoTitle(),
 			image = getTex("arc_logo_web"),
-			imageH = 256 * 0.66,
-			imageW = 512 * 0.66,
+			imageH = 256 * 0.6,
+			imageW = 512 * 0.6,
 			text = _t([[
 
 Welcome to Arcanum!
@@ -76,6 +78,7 @@ It looks like this is your first time using Arcanum. Would you like to start the
 		{ -- 2
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Welcome to the Arcanum - Basic Spell Creation Tutorial!
 
@@ -94,15 +97,16 @@ Click the <c:a:Arcanum> icon (%s) on your mini-map to open the Forge UI, or clic
 		{ -- 3
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 This is the Forge UI - The main interface for creating & editing ArcSpells.
 
-For this tutorial, we'll create a spell to stack lightning buffs until it explodes.
+For this tutorial, we'll create a simple spell to stack lightning buffs until it explodes, highlighting the basics of spell creation, including Actions, Reverts, and Conditions.
 
 Start by naming your spell and setting an ArcSpell ID in the top section of the Forge (called the 'Attic').
 
 • The name can be anything, like <c:lb:Building Storm>.
-• The ArcSpell ID must be unique (letters, numbers, and _ only).
+• The ArcSpell ID must be unique, and can only contain letters, numbers, and _.
 
 Use <stacklightning> as the ArcID for this tutorial.
 ]]),
@@ -117,6 +121,7 @@ Use <stacklightning> as the ArcID for this tutorial.
 		{ -- 4
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Next, we need to set up the actual Actions.
 
@@ -165,6 +170,7 @@ For the first action, we'll use 'Cast Spell' with 0 delay:
 		{ -- 5
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 With the action set to 'Cast Spell,' we now need to specify which spell to use.
 
@@ -199,6 +205,7 @@ Enter <215632> into the <c:g:Input> editbox of the first action.
 		{ -- 6
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Great! You've set up your first action. You can test it now by clicking the <c:g:Cast> button at the bottom of the Forge (the 'Basement').
 
@@ -206,7 +213,7 @@ Next, let's add more flare by making the lightning 'explode' after stacking enou
 
 In the 2nd Action Row:
 • Set a <c:g:Delay> of <0.5> (seconds).
-• Open the <c:g:Action> dropdown menu & select <c:b:Cast Spell (Trig)> as the action type
+• Open the <c:g:Action> dropdown menu & select <c:b:Cast> -> <c:b:Cast Spell (Trig)> as the action type
 • Enable the <c:g:Self> checkbox.
 • Enter the following as the <c:g:Input> exactly: <218963, 136490, 233442, 265673, 215632>.
 
@@ -232,7 +239,7 @@ Tip: Use 'Copy Input' below to copy the input to your clipboard and paste it int
 				enabled = function()
 					if SCForgeMainFrame.spellRows[2]
 						and SCForgeMainFrame.spellRows[2].mainDelayBox:GetText() == "0.5"
-						and SCForgeMainFrame.spellRows[2].SelectedAction == "SpellCast"
+						and SCForgeMainFrame.spellRows[2].SelectedAction == "SpellTrig"
 						and SCForgeMainFrame.spellRows[2].SelfCheckbox:GetChecked()
 						and SCForgeMainFrame.spellRows[2].InputEntryBox:GetText() == "218963, 136490, 233442, 265673, 215632"
 					then
@@ -243,7 +250,7 @@ Tip: Use 'Copy Input' below to copy the input to your clipboard and paste it int
 			continue = function()
 				if SCForgeMainFrame.spellRows[2]
 					and SCForgeMainFrame.spellRows[2].mainDelayBox:GetText() == "0.5"
-					and SCForgeMainFrame.spellRows[2].SelectedAction == "SpellCast"
+					and SCForgeMainFrame.spellRows[2].SelectedAction == "SpellTrig"
 					and SCForgeMainFrame.spellRows[2].SelfCheckbox:GetChecked()
 					and SCForgeMainFrame.spellRows[2].InputEntryBox:GetText() == "218963, 136490, 233442, 265673, 215632"
 				then
@@ -254,6 +261,7 @@ Tip: Use 'Copy Input' below to copy the input to your clipboard and paste it int
 		{ -- 7
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Actions can be reverted using the <c:g:Revert> column. Adding a delay here causes the action to 'undo' itself after the set time.
 
@@ -290,6 +298,7 @@ This ensures enough time for the server to process adding and removing the spell
 		{ -- 8
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Now that we've created the explosion effect, we need to limit it to trigger only when enough stacks are built up. This is done using <c:g:Conditions>.
 
@@ -307,17 +316,24 @@ To add conditions to your explosion action, click the conditions button (%s) on 
 		{ -- 9
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
+<c:gr:INFO>:
 Actions can have multiple conditions arranged in groups to allow both '<c:lb:and>' & '<c:lb:or>' logic:
 
-• Click 'Add Condition' to add another condition to the same condition <group> ('<c:lb:and>' logic).
+• Click 'Add Condition' to add another <condition> to the same condition <group> ('<c:lb:and>' logic).
 • Click the big + button to create a <new group> ('<c:lb:or>' logic).
-If one <group> passes, the action runs. If any <condition> in a group fails, the <entire group fails>.
 
-For this spell, we'll use a single condition:
+For simplicity: If any single <condition> in a group fails, the <entire group fails>. If any single <group> passes, the action runs.
+
+You can remove conditions by clicking the red <c:r:x> at the end of a row, and remove groups using the gold <c:g:X> at their top right.
+
+
+<c:gr:ACTIONS ITEMS>:
+For this spell, we'll use a single condition (Note: Steps here cannot be highlighted, so please follow the instructions carefully):
 
 • Open the 'Select a Condition' dropdown & select '<c:b:Spells & Effects>' -> '<c:b:Has Number of Aura (Self)>'.
-• Enter <215632, 3, true> as the input and click <c:g:Save>.
+• Enter <215632, 3, true> as the input and click <c:g:Save Conditions>.
 
 This makes it so that the action only runs if your character has 3 (or more) of the <c:lb:Focused Lightning (215632)> buff.
 ]]),
@@ -345,6 +361,7 @@ This makes it so that the action only runs if your character has 3 (or more) of 
 		{ -- 10
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Now that we've set up the spell's actions, you'll notice one extra row in the editor that we don't need. Let's remove it.
 
@@ -365,6 +382,7 @@ Now that we've set up the spell's actions, you'll notice one extra row in the ed
 		{ -- 11
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Now, let's test the spell:
 
@@ -385,6 +403,7 @@ After saving, click <c:g:Vault> in the 'Basement' to open the Vault tab, or clic
 		{ -- 12
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 You can <Right-click> the spell in your vault to access additional options. We won't dive into those right now, but feel free to explore them on your own.
 
@@ -403,12 +422,13 @@ To use your spell in-game, you can:
 		{ -- 13
 			title = autoTitle(),
 			image = getTex("tut_img_" .. curStep),
+			imageY = 50,
 			text = _t([[
 Congratulations! You've successfully created an Arc Spell and completed this tutorial!
 
 Tips:
 
-• Want to make changes to your spell? Open your Personal Vault and click the pencil icon (%s) next to the spell.
+• Want to make changes to your spell? Open your Personal Vault and click the %s / edit icon next to the spell.
 • This will load the spell into the Forge where you can edit it and save the changes.
 ]]):format(CreateTextureMarkup(ASSETS_PATH .. "/" .. "icon-edit", 16, 16, 16, 16, 0.2, 0.8, 0.2, 0.85))
 		},

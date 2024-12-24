@@ -109,19 +109,47 @@ SCForgeMainFrame.SettingsButton = settingsButton
 
 -- Help Button (Tutorial)
 
-local function normalizedOffset(n)
-	return n * UIParent:GetScale()
-end
-local _n = normalizedOffset
+-- Helper Funcs
 
+local junkPos = { x = 0, y = 0, width = 0, height = 0 }
+
+local function getJunkWithAnchorData(frame, points)
+	local junk = CopyTable(junkPos)
+	junk.anchorData = {
+		frame = frame,
+		points = points
+	}
+	return junk
+end
+
+local function getJunkWithAnchorOnly(frame, point, relPoint, offX, offY)
+	local junk = CopyTable(junkPos)
+	junk.anchor = {
+		frame = frame,
+		[1] = point,
+		[2] = relPoint,
+		[3] = offX,
+		[4] = offY
+	}
+	return junk
+end
+
+-- //// TODO - CONVERT ALL TO USE JUNKPOS & THEN USE ANCHOR DATA INSTEAD
 local helpPlate = {
-	FramePos = { x = 5, y = -22 },
-	FrameSize = { width = 580, height = 500 },
+	FramePos = junkPos,
+	FrameSize = junkPos,
+	anchorData = {
+		frame = SCForgeMainFrame,
+		points = { { "TOPLEFT", 5, -22 }, { "BOTTOMRIGHT", 0, 0 } }
+	},
 
 	-- Attic 1 - Spell Info
 	{
-		ButtonPos = { x = _n(209), y = 10 },
-		HighLightBox = { x = _n(65), y = 0, width = 295, height = 35 },
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.SpellInfoNameBox", "TOPRIGHT", "TOPRIGHT", 0, 2),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.IconButton", {
+			{ "TOPLEFT",     -3, 3 },
+			{ "BOTTOMRIGHT", 0,  2, frame = "SCForgeMainFrame.SpellInfoDescBox" }
+		}),
 		ToolTipDir = "DOWN",
 		ToolTipText =
 			"Spell Information" ..
@@ -131,8 +159,11 @@ local helpPlate = {
 
 	-- Attic 2 - Spell Options
 	{
-		ButtonPos = { x = _n(209 + 295), y = 10 },
-		HighLightBox = { x = _n(65) + 295, y = 0, width = 195, height = 35 },
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.SpellOptionsDropdown", "TOPRIGHT", "TOPRIGHT", -10, 10),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.SpellInfoCommandBox", {
+			{ "TOPLEFT",     "TOPRIGHT", 0,  -2 },
+			{ "BOTTOMRIGHT", -15,        -0, frame = "SCForgeMainFrame.SpellOptionsDropdown" }
+		}),
 		ToolTipDir = "DOWN",
 		ToolTipText =
 		"Spell Options\n\rThis section lets you configure additional settings for your spell, such as cooldowns, conditions, and other customizable options."
@@ -140,23 +171,29 @@ local helpPlate = {
 
 	-- Forge Action Rows
 	{
-		ButtonPos = { x = _n(507 / 2), y = _n(-(459 + 46) / 2) },
-		HighLightBox = { x = _n(16), y = _n(-46), width = 530, height = 460 },
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.Inset", "CENTER", "CENTER", -50, 40),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.Inset", {
+			{ "TOPLEFT",     0, 0 },
+			{ "BOTTOMRIGHT", 2, 0 }
+		}),
 		ToolTipDir = "LEFT",
 		ToolTipText =
 			"Action Rows" ..
-			"This is the section where you define the steps your spell will take when cast." ..
+			"\n\rThis is the section where you define the steps your spell will take when cast." ..
 			"\n\rEach Action requires a Delay, Action Type, and an input (if applicable) to work properly." ..
 			"\n\rYou can add more rows by clicking the large + button, or duplicate a row by clicking the smaller + at the top left when hovering over a row."
 	},
 
 	-- Basement
 	{
-		ButtonPos = { x = 390, y = -490 },
-		HighLightBox = { x = _n(16), y = _n(-46) - 460, width = 530, height = 27 },
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.ExecuteSpellButton", "CENTER", "CENTER", 100, 0),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.Inset", {
+			{ "TOPLEFT",     "BOTTOMLEFT", 0,  0 },
+			{ "BOTTOMRIGHT", 2,            -24 }
+		}),
 		ToolTipDir = "RIGHT",
 		ToolTipText =
-		"This is the forge 'Basement', where you can Cast a spell currently edited for testing, Save your current data as a new spell (or save your work if editing), and open your ArcSpell Vaults."
+		"This is the forge 'Basement', where you can cast the actions currently in the editor above, Save your current data as a new spell (or save your work if editing), and open your ArcSpell Vaults."
 	},
 
 }
@@ -193,6 +230,9 @@ help:SetScript("OnClick", function(self, button, down)
 	end
 end)
 help:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+SCForgeMainFrame:HookScript("OnHide", function()
+	HelpPlate_Hide()
+end)
 
 SCForgeMainFrame.MainHelpButton = help
 

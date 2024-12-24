@@ -522,7 +522,7 @@ local function init(mainFrame, IconPicker)
 	--mainFrame.CastBarCheckButton = createCastbarCheckButton(mainFrame)
 	mainFrame.IconButton = createIconButton(mainFrame, IconPicker)
 	mainFrame.ConditionalButton = createConditionsButton(mainFrame)
-	mainFrame.ProfileSelectMenu = AtticProfileDropdown.createDropdown({
+	mainFrame.SpellOptionsDropdown = AtticProfileDropdown.createDropdown({
 		mainFrame = mainFrame,
 		markEditorUnsaved = markEditorUnsaved,
 	})
