@@ -451,7 +451,7 @@ local function showSparkManagerUI(mapSelectOverride)
 	filterEditBox:SetText(sparkFilter)
 	filterEditBox:SetCallback("OnRelease", clearSparkFilter)
 	tinsert(releaseWithMain, filterEditBox)
-	Tooltip.setAceTT(filterEditBox, "Filter Sparks by CommID(s)", "Separated by commas", { forced = true, delay = 0 })
+	Tooltip.setAceTT(filterEditBox, "Filter Sparks by ArcSpell ID(s)", "Separated by commas", { forced = true, delay = 0 })
 
 	local onTextChangedDelay
 

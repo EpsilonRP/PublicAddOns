@@ -3,6 +3,8 @@ local EpsilonLib, EpsiLib   = ...;
 -- Module Table
 EpsiLib.PhaseAddonData      = EpsiLib.PhaseAddonData or {}
 
+local debug                 = false
+
 -- Local Util & Generic Vars
 local CopyTable             = CopyTable
 local wipe                  = wipe
@@ -50,6 +52,10 @@ local function getIterKey(key, iter)
 	end
 
 	return key
+end
+
+local function dprint(...)
+	if debug then print(...) end
 end
 
 local function stashRequest(keyOrTable, callback, strs)
@@ -109,21 +115,9 @@ function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
 
 	local iter = strTable and #strTable or nil
 	if iter == 0 then iter = nil end -- in the case it's stashed with no strs yet, iter should be nil still
-	local dataKey = key
+	local dataKey = getIterKey(key, (iter and iter+1))
 
-	if iter then
-		-- Allow us to use %s in keys to explicitly state where the iter goes
-		if dataKey:find("%%s") then
-			dataKey = dataKey:gsub("%%s", iter + 1)
-		else
-			-- not iter marker, append
-			dataKey = dataKey .. "_" .. iter + 1
-		end
-	else
-		-- not an iter, remove marker if present
-		dataKey = dataKey:gsub("%%s", "")
-	end
-
+	dprint("Requested: " .. dataKey)
 	local ticket = getAddonData(dataKey)
 	EpsiLib.PhaseAddonData.queue[ticket] = { callback = callback, key = key, strs = (strTable or {}) }
 	return ticket
@@ -149,6 +143,7 @@ function EpsiLib.PhaseAddonData.SetAddonData(key, str)
 				-- remove iter marker for first key if present; no iter for first!
 				local dataKey = getIterKey(key)
 				setAddonData(dataKey, strSub)
+				dprint("Set1: " .. dataKey)
 			else
 				local controlChar = MSG_MULTI_NEXT
 				if i == numEntriesRequired then controlChar = MSG_MULTI_LAST end
@@ -157,12 +152,14 @@ function EpsiLib.PhaseAddonData.SetAddonData(key, str)
 				-- Allow us to use %s in keys to explicitly state where the iter goes
 				local dataKey = getIterKey(key, i)
 				setAddonData(dataKey, strSub)
+				dprint("Set2: " .. dataKey)
 			end
 		end
 	else
 		-- remove the iter marker if present & save
 		local dataKey = getIterKey(key)
 		setAddonData(dataKey, str)
+		dprint("Set3: " .. dataKey)
 	end
 end
 
@@ -177,6 +174,7 @@ listenerFrame:SetScript("OnEvent", function(self, event, prefix, text, channel, 
 		local dataTable = EpsiLib.PhaseAddonData.queue[prefix]
 
 		local iter = #dataTable.strs
+		dprint("Received: " .. getIterKey(dataTable.key, iter + 1))
 
 		if string.match(text, "^[\001-\002]") then -- if first character is a multi-part identifier - \001 = first, \002 = middle, then we can add it to the strings table, and return with a call to get the next segment
 			-- remove the control character

@@ -11,14 +11,14 @@ local DataUtils = ns.Utils.Data
 
 local slashCommands = {
 	arcanum = {
-		cmd = "arcanum [$commID]",
+		cmd = "arcanum [$ArcSpell ID]",
 		desc = {
-			"Cast an ArcSpell by it's command ID you gave it (aka CommID),",
+			"Cast an ArcSpell by it's ArcSpell ID you gave it,",
 			"or open the Spell Forge UI if left blank.",
 		},
 	},
 	sf = {
-		cmd = "sf [$commID]",
+		cmd = "sf [$ArcSpell ID]",
 		desc = "Shorter Alternative to /arcanum.",
 	},
 	arc = {
@@ -217,14 +217,14 @@ local function arcSlashCommandHandler(msg)
 			end
 			local numArgs = math.max(arcSubCommand.numArgs + 2, 10)
 			args = { AceConsole:GetArgs(msg, numArgs) }
-			table.remove(args, 1) -- remove the base
-			table.remove(args, numArgs-1) -- remove the nextposition. Nils are dropped once we unpack
+			table.remove(args, 1)  -- remove the base
+			table.remove(args, numArgs - 1) -- remove the nextposition. Nils are dropped once we unpack
 			ARC[arcSubCommand.fnTable][arcSubCommand.fn](unpack(args))
 		else
 			local numArgs = math.max(arcCommand.numArgs + 2, 10)
 			args = { AceConsole:GetArgs(msg, numArgs) }
-			table.remove(args, 1) -- remove the base
-			table.remove(args, numArgs-1) -- remove the nextposition. Nils are dropped once we unpack
+			table.remove(args, 1)  -- remove the base
+			table.remove(args, numArgs - 1) -- remove the nextposition. Nils are dropped once we unpack
 			ARC[arcCommand.fn](unpack(args))
 		end
 	else -- need to make this a general else instead of just a capture of nil because otherwise we miss if they do an invalid command also

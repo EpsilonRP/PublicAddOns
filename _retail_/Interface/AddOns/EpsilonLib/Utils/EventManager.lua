@@ -17,7 +17,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 
 ---@param event FrameEvent
 ---@param callback function
----@return function
+---@return function?
 function _events:Register(event, callback)
 	if type(event) ~= "string" or type(callback) ~= "function" then error("Register requires an event & callback function.") end
 

@@ -84,7 +84,7 @@ local function tryToSaveReceivedSpell(spell, charName, callback)
 		saveReceivedSpell(spell, charName)
 		if callback then callback() end
 	else
-		eprint("SpellData did not contain a valid CommID.")
+		eprint("SpellData did not contain a valid ArcSpell ID (commID).")
 	end
 end
 

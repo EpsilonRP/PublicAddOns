@@ -40,6 +40,8 @@ local ADDON_COLORS = {
 	TOOLTIP_CONTRAST = CreateColorFromHexString("FFFFAAAA"),     -- FFAAAA : Light Red
 	TOOLTIP_WARNINGRED = CreateColorFromHexString("FFFF0000"),   -- FF0000 : Bright Red
 	LIGHT_BLUE_ALMOST_WHITE = CreateColorFromHexString("FFd7eef1"), -- d7eef1 : Light Light Blue
+	LIGHT_BLUE = CreateColorFromHexString("ff71d5ff"),           -- 71d5ff : Light Blue / Cyan
+	MID_CYAN = CreateColorFromHexString("ff00d8ff"),             -- 71d5ff : Light Blue / Cyan
 	GEM_BOOK = {
 		--PRISMATIC = CreateColorFromBytes(),
 		PINK = CreateColorFromBytes(240, 24, 216, 255),
@@ -52,10 +54,10 @@ local ADDON_COLORS = {
 		ORANGE = CreateColorFromBytes(205, 123, 56, 255),
 		RED = CreateColorFromBytes(224, 36, 32, 255),
 	},
-	GAME_GREY = CreateColor(0.8, 0.8, 0.8),
-	PHASE_VAULT = CreateColor(0.20, 0.40, 0.50, 0.5),
+	GAME_GREY = CreateColor(0.8, 0.8, 0.8),           -- "FFCCCCCC"
+	PHASE_VAULT = CreateColor(0.20, 0.40, 0.50, 0.5), -- "FF336680"
 	PHASE_VAULT_TEXT = CreateColorFromHexString("FF04BABE"),
-	PERSONAL_VAULT = CreateColor(0.30, 0.10, 0.40, 0.5),
+	PERSONAL_VAULT = CreateColor(0.30, 0.10, 0.40, 0.5), -- "ff4d1a66"
 }
 
 local eventUnlockDates = {

@@ -75,13 +75,13 @@ local function createSaveButton(mainFrame, saveSpell)
 				else
 					tinsert(strs, "Finish your spell & save it to your Personal Vault.")
 					tinsert(strs, castHelp)
-					tinsert(strs, "\rRight-click to over-write a previous spell with the same Command ID without confirmation.")
+					tinsert(strs, "\rRight-click to over-write a previous spell with the same ArcSpell ID without confirmation.")
 				end
 			else
 				local saveOrCreateText = isSaving() and "Save" or "Create"
 				tinsert(strs, ("Cannot %s Spell:"):format(saveOrCreateText))
 				if not Attic.isInfoValid() then
-					tinsert(strs, "- You must specify a valid Spell Name & Spell Command")
+					tinsert(strs, "- You must specify a valid Spell Name & ArcSpell ID")
 				end
 				if not ns.UI.SpellRow.isAnyActionRowValid() then
 					tinsert(strs, "- You do not have any valid Actions (are they missing a delay?)")

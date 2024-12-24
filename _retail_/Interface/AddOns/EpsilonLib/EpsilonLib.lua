@@ -218,7 +218,10 @@ end
 
 
 EpsiLib_DB = {
-	options = {}
+	options = {},
+	Modules = {
+		SpellBookUI = true
+	}
 }
 local default_db = EpsiLib_DB
 

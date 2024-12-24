@@ -16,6 +16,8 @@ EpsiLib.Classes = {}
 ---@field GetPhaseMessage function
 ---@field GetPhaseName function
 ---@field GetPhaseTags function
+---@field GetPhaseIcon function
+---@field Update function
 ---@field _Clear function
 ---@field _GetDataByKey function
 ---@field _Init function

@@ -20,10 +20,32 @@ Use a blank " " for a big spacer, or "" for a small spacer.
 --]]
 
 local versions = {
+
+	{
+		ver = "1.3.8",
+		changes = {
+			"##>>>Arcanum v1.3.8 - September - December, 2024 (Cumulative)",
+			"##Highlights:",
+			"Added a new Basic Spell Creation Tutorial & Help (i-button) support",
+			"Add Auto-Cast ArcSpells (Account-wide & Per-Character)",
+			"Added 'Break On Move' option toggle for spells",
+			"You can now search ArcSpells in your Spellbook",
+			"",
+			"##Misc:",
+			"Rewrote Vault Loading to use EpsiLib",
+			"Added Vault Loading Status to Mini-Map Icon",
+			"Gossip Integration Refactored to use EpsiLib",
+			"Spell Descriptions now support ||n for new lines & ||c for color formatting.",
+			"Has Slot Equipped condition now supports checking if a specific item is equipped also.",
+			"CommID has been renamed to ArcSpell ID across the UI",
+			"Various bug fixes along the way.",
+			""
+		},
+	},
 	{
 		ver = "1.3.7",
 		changes = {
-			"##>>>Arcanum v1.3.7 - Sometime IDK",
+			"##>>>Arcanum v1.3.7 - September 6, 2024",
 			"##Highlights:",
 			"Arc Conditions System!",
 			"Spark Expansion: Types!",

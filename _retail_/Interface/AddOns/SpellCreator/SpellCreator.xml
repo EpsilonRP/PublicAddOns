@@ -145,6 +145,7 @@
 	<Script file="UI/SpellVaultFrame.lua"/>
 	<Script file="UI/Stratacast.lua"/>
 	<Script file="UI/Options.lua"/>
+	<Script file="UI/Tutorials.lua"/>
 
 	<Include file="UI/SpellBookUI.xml"/>
 	<Script file="UI/SpellBookUI.lua"/>

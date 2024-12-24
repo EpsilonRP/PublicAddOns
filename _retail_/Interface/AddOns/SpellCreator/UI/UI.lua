@@ -37,4 +37,5 @@ local ns = select(2, ...)
 ---@field UnitPowerBar UI_UnitPowerBar
 ---@field SpellTooltip UI_SpellTooltip
 ---@field Options UI_Options
+---@field Tutorials UI_Tutorials
 ns.UI = {}

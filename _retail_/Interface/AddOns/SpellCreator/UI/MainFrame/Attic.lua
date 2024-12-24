@@ -95,9 +95,11 @@ local function createCommandBox(mainFrame)
 	Tooltip.set(commandBox,
 		Localization.SPELLCOMM,
 		{
-			"The slash command trigger (commID) you want to use to call this spell.\n\rCast it using '/arcanum $command' after using Create (or /sf for short!).",
+			"A unique identifier for this spell.",
 			" ",
-			"This must be unique. Saving a spell with the same command ID as another will over-write the old spell."
+			"Saving a spell with the same ArcSpell ID as another will over-write the old spell.",
+			" ",
+			"You can use the ArcSpell ID (arcID) to cast the spell via slash commands or in macros, using '/arcanum $arcID' (or use /sf for short).",
 		}
 	)
 
@@ -520,7 +522,7 @@ local function init(mainFrame, IconPicker)
 	--mainFrame.CastBarCheckButton = createCastbarCheckButton(mainFrame)
 	mainFrame.IconButton = createIconButton(mainFrame, IconPicker)
 	mainFrame.ConditionalButton = createConditionsButton(mainFrame)
-	mainFrame.ProfileSelectMenu = AtticProfileDropdown.createDropdown({
+	mainFrame.SpellOptionsDropdown = AtticProfileDropdown.createDropdown({
 		mainFrame = mainFrame,
 		markEditorUnsaved = markEditorUnsaved,
 	})

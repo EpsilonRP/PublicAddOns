@@ -33,6 +33,11 @@ local function getShortLink(link)
 	return minItemLink:format(itemID, itemName)
 end
 
+local function updateContainers()
+	ContainerFrame_UpdateAll()
+	C_Timer.After(0.25,ContainerFrame_UpdateAll)
+end
+
 -- ============================== VARIABLES GLOBALES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
@@ -1627,11 +1632,11 @@ function PhaseToolkit.ToggleMainFrame()
 end
 
 function PhaseToolkit.ChangeNpcRace(RaceId)
-	sendAddonCmd("phase forge npc outfit race " .. RaceId, nil, false)
+	sendAddonCmd("phase forge npc outfit race " .. RaceId, nil)
 end
 
 function PhaseToolkit.ChangeNpcGender(GenderString)
-	sendAddonCmd("phase forge npc outfit gender " .. GenderString, nil, false)
+	sendAddonCmd("phase forge npc outfit gender " .. GenderString, nil)
 end
 
 function PhaseToolkit.CountElements(tbl)
@@ -1669,6 +1674,22 @@ local function getQualityObject(qualityId)
 	for _,quality in ipairs(PhaseToolkit.itemQuality) do
 		if(quality.qualityId==qualityId) then
 			return quality
+		end
+	end
+end
+
+local function getClassByClassID(classID)
+	for _,class in ipairs(PhaseToolkit.itemClass)do
+		if(class.classId==classID) then
+			return class
+		end
+	end
+end
+
+local function getBindingObject(bindingID)
+	for _,binding in ipairs(PhaseToolkit.itemBonding) do
+		if(binding.bondingId==bindingID) then
+			return binding
 		end
 	end
 end
@@ -1728,7 +1749,7 @@ function PhaseToolkit.GetRaceNameByID(id)
 end
 
 function PhaseToolkit.ChangePhaseWeather()
-	sendAddonCmd("phase set weather " .. PhaseToolkit.SelectedMeteo .. " " .. PhaseToolkit.IntensiteMeteo, nil, false)
+	sendAddonCmd("phase set weather " .. PhaseToolkit.SelectedMeteo .. " " .. PhaseToolkit.IntensiteMeteo, nil)
 end
 
 function PhaseToolkit.GetMaxNameWidth(creatureTable)
@@ -1843,7 +1864,7 @@ function PhaseToolkit.RandomiseNpc()
 	for attribute, value in pairs(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) do
 		local randomValue = math.random(1, value)
 		PhaseToolkit.GeneralStat[attribute] = randomValue
-		sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. randomValue, nil, false)
+		sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. randomValue, nil)
 	end
 	if (PhaseToolkit.CustomFrame ~= nil) then
 		if PhaseToolkit.CustomFrame:IsShown() then
@@ -2006,7 +2027,7 @@ function PhaseToolkit.ShowToggleDropDown(DropDown)
 				else
 					PhaseToolkit.Toggleslist_checked[i] = 0;
 				end
-				sendAddonCmd('phase toggle ' .. self.value, nil, false)
+				sendAddonCmd('phase toggle ' .. self.value, nil)
 			end
 
 			local check = false;
@@ -2041,26 +2062,21 @@ PhaseToolkit.NPCCustomiserMainFrame:SetScript("OnDragStop", PhaseToolkit.NPCCust
 PhaseToolkit.NPCCustomiserMainFrame:SetClampedToScreen(true)
 PhaseToolkit.NPCCustomiserMainFrame:Hide()
 
-PhaseToolkit.NPCCustomMainFrameSettingsButton = CreateFrame("BUTTON", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonNoTooltipTemplate")
-PhaseToolkit.NPCCustomMainFrameSettingsButton:SetSize(24, 20)
-PhaseToolkit.NPCCustomMainFrameSettingsButton:SetPoint("RIGHT", PhaseToolkit.NPCCustomiserMainFrame.CloseButton, "LEFT", 4, 1)
-PhaseToolkit.NPCCustomMainFrameSettingsButton.icon = PhaseToolkit.NPCCustomMainFrameSettingsButton:CreateTexture(nil, "ARTWORK")
-PhaseToolkit.NPCCustomMainFrameSettingsButton.icon:SetTexture("interface/buttons/ui-optionsbutton")
-PhaseToolkit.NPCCustomMainFrameSettingsButton.icon:SetSize(16, 16)
-PhaseToolkit.NPCCustomMainFrameSettingsButton.icon:SetPoint("CENTER")
+PhaseToolkit.NPCCustomMainFrameSettingsButton = CreateFrame("BUTTON", nil, PhaseToolkit.NPCCustomiserMainFrame, "IconButtonTemplate")
+PhaseToolkit.NPCCustomMainFrameSettingsButton:SetSize(16, 16)
+PhaseToolkit.NPCCustomMainFrameSettingsButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
+PhaseToolkit.NPCCustomMainFrameSettingsButton.Icon = PhaseToolkit.NPCCustomMainFrameSettingsButton:CreateTexture(nil, "OVERLAY")
+PhaseToolkit.NPCCustomMainFrameSettingsButton.Icon:SetPoint("CENTER", -1, 0)
+PhaseToolkit.NPCCustomMainFrameSettingsButton.Icon:SetSize(PhaseToolkit.NPCCustomMainFrameSettingsButton:GetSize())
+PhaseToolkit.NPCCustomMainFrameSettingsButton.Icon:SetTexture("interface/buttons/ui-optionsbutton")
+PhaseToolkit.NPCCustomMainFrameSettingsButton:SetPoint("RIGHT", PhaseToolkit.NPCCustomiserMainFrame.CloseButton, "LEFT", 2, 0)
 PhaseToolkit.NPCCustomMainFrameSettingsButton:SetScript("OnClick", function()
 	-- Needs to be called twice because of a bug in Blizzard's frame - the first call will initialize the frame if it's not initialized
+	PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
 	InterfaceOptionsFrame_OpenToCategory("PhaseToolkitConfig")
 	InterfaceOptionsFrame_OpenToCategory("PhaseToolkitConfig")
 end)
-PhaseToolkit.NPCCustomMainFrameSettingsButton:SetScript("OnMouseDown", function(self)
-	local point, relativeTo, relativePoint, xOfs, yOfs = self.icon:GetPoint(1)
-	self.icon:SetPoint(point, relativeTo, relativePoint, xOfs - 1, yOfs - 2)
-end)
-PhaseToolkit.NPCCustomMainFrameSettingsButton:SetScript("OnMouseUp", function(self)
-	local point, relativeTo, relativePoint, xOfs, yOfs = self.icon:GetPoint(1)
-	self.icon:SetPoint(point, relativeTo, relativePoint, xOfs + 1, yOfs + 2)
-end)
+
 
 PhaseToolkit.NPCCustomMainFrameTitle = PhaseToolkit.NPCCustomiserMainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 PhaseToolkit.NPCCustomMainFrameTitle:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 10, -5)
@@ -2478,6 +2494,93 @@ local function updateBagContents()
     end
     return currentItems
 end
+
+local function resetItemCreatorData()
+	for key in pairs(PhaseToolkit.itemCreatorData) do
+		PhaseToolkit.itemCreatorData[key] = nil
+	end
+end
+
+local function resetForgeUI()
+	local editboxes = {
+		"itemIdField", "nameInputBox", "DescriptionInputBox", "itemdisplayIdEditBox", "iconIdEditBox",
+	}
+	for _, box in ipairs(editboxes) do
+		box = PhaseToolkit[box]
+		box:SetText("")
+	end
+
+
+	do
+		-- Item Class
+		local classObj=getClassByClassID(-1)
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemClassDropdown,classObj.classId)
+		UIDropDownMenu_SetText(PhaseToolkit.ItemClassDropdown,classObj.name)
+
+		-- Subclass
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSubClassDropdown,0)
+		UIDropDownMenu_SetText(PhaseToolkit.ItemSubClassDropdown,"")
+		UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemSubClassDropdown)
+
+		-- Inv Type
+		local position =getInventoryTypePosition("Inventory type");
+		if(position~=nil) then
+			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemInventoryTypeDropdown,position)
+			UIDropDownMenu_SetText(PhaseToolkit.ItemInventoryTypeDropdown,"Inventory type")
+			UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
+		end
+
+		-- Quality
+		local quality = getQualityObject(-1)
+		if(quality~=nil) then
+			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemQualityDropdown,quality.qualityId)
+			UIDropDownMenu_SetText(PhaseToolkit.ItemQualityDropdown,quality.name)
+		end
+
+		-- Binding
+		local binding = getBindingObject(-1)
+		if(binding~=nil) then
+			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemBondingDropdown,binding.bondingId)
+			UIDropDownMenu_SetText(PhaseToolkit.ItemBondingDropdown,binding.name)
+		end
+
+		-- Sheath
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSheathDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.ItemSheathDropdown,"Sheath")
+		UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemSheathDropdown)
+
+		-- Adder
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.adderOptionDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.adderOptionDropdown,"Adder")
+
+		-- Additem
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.addItemOptionDropdownButton,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.addItemOptionDropdownButton,"Additem")
+
+		-- Copy
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.copyOptionDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.copyOptionDropdown,"Copy")
+
+		-- Copy
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.creatorOptionDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.creatorOptionDropdown,"Creator")
+
+		-- Info
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.infoOptionDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.infoOptionDropdown,"Info")
+
+		-- Lookup
+		UIDropDownMenu_SetSelectedValue(PhaseToolkit.lookupOptionDropdown,-1)
+		UIDropDownMenu_SetText(PhaseToolkit.lookupOptionDropdown,"Lookup")
+	end
+
+end
+
+local function resetForge()
+	resetItemCreatorData()
+	resetForgeUI()
+end
+
 -- Function to forge the item with all the data needed
 function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 	local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
@@ -2547,11 +2650,6 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		end
 	end)
 	C_Timer.After(1.2, function()
-		if(PhaseToolkit.itemCreatorData.sheath~=nil and PhaseToolkit.itemCreatorData.sheath~=-1) then
-			sendAddonCmd("forge item set sheath "..itemLink..PhaseToolkit.itemCreatorData.sheath,nil,false)
-		end
-	end)
-	C_Timer.After(1.3, function()
 		if(PhaseToolkit.itemCreatorData.adder~=nil and PhaseToolkit.itemCreatorData.adder~=-1) then
 			sendAddonCmd("forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder,nil,false)
 		end
@@ -2616,6 +2714,8 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			PhaseToolkit.itemCreatorData[key] = nil
 		end
 		print("Item Forging done !\nyou can use your item !")
+		sendAddonCmd("forge item request"..itemLink) -- Just in case!
+		ContainerFrame_UpdateAll()
 	end)
 
 end
@@ -2625,21 +2725,6 @@ function GetItemIDFromLink(itemLink)
     -- Extrait l'ID de l'objet depuis le lien
     local itemID = itemLink:match("item:(%d+)")
     return  itemID
-end
-local function getClassByClassID(classID)
-	for _,class in ipairs(PhaseToolkit.itemClass)do
-		if(class.classId==classID) then
-			return class
-		end
-	end
-end
-
-local function getBindingObject(bindingID)
-	for _,binding in ipairs(PhaseToolkit.itemBonding) do
-		if(binding.bondingId==bindingID) then
-			return binding
-		end
-	end
 end
 
 function PhaseToolkit.updateItemLink()
@@ -2789,7 +2874,7 @@ local function updateFields(itemLink)
 	if(itemQuality~=nil and itemQuality~="") then
 		local quality = getQualityObject(itemQuality)
 		if(quality~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemQualityDropdown,quality.bondingId)
+			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemQualityDropdown,quality.qualityId)
 			UIDropDownMenu_SetText(PhaseToolkit.ItemQualityDropdown,quality.name)
 		end
 	end
@@ -2926,6 +3011,25 @@ function PhaseToolkit.createItemCreatorFrame()
 
 	PhaseToolkit.RegisterTooltip(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON, "FORGE ! (may take some time)")
 
+	-- Reset Button
+	PhaseToolkit.ResetForgeButton=CreateFrame("Button",nil,utilityBelt,"UIPanelButtonTemplate");
+	PhaseToolkit.ResetForgeButton:SetSize(25, 25)
+	PhaseToolkit.ResetForgeButton:SetPoint("RIGHT", utilityBelt, "RIGHT", -20-25-10, 0)
+	PhaseToolkit.ResetForgeButton.icon = PhaseToolkit.ResetForgeButton:CreateTexture(nil, "OVERLAY")
+	PhaseToolkit.ResetForgeButton.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
+	PhaseToolkit.ResetForgeButton.icon:SetAllPoints()
+	PhaseToolkit.ResetForgeButton.icon2 = PhaseToolkit.ResetForgeButton:CreateTexture(nil, "OVERLAY", nil, select(2,PhaseToolkit.ResetForgeButton.icon:GetDrawLayer())+1)
+	PhaseToolkit.ResetForgeButton.icon2:SetAtlas("common-icon-redx")
+	PhaseToolkit.ResetForgeButton.icon2:SetAllPoints()
+
+	PhaseToolkit.RegisterTooltip(PhaseToolkit.ResetForgeButton, "Reset Forge")
+	PhaseToolkit.ResetForgeButton:SetScript("OnClick", function()
+		resetForge()
+		--updateFields()
+	end)
+
+
+
 	-- Information Name
 
 	local informationFrame=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
@@ -2965,6 +3069,9 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.DescriptionInputBox  = CreateFrame("FRAME", "$parentEdit", DescriptionFrame, "EpsilonInputScrollTemplate")
 	PhaseToolkit.DescriptionInputBox:SetPoint("TOP", PhaseToolkit.nameInputBox, "BOTTOM", 0, -15)
 	PhaseToolkit.DescriptionInputBox:SetSize(330, 85)
+	PhaseToolkit.DescriptionInputBox.SetText = function(self, ...)
+		PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetText(...)
+	end
 
 	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnterPressed", function(self)
 		self:ClearFocus()
@@ -3151,19 +3258,37 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.iconIdEditBox:SetPoint("TOPLEFT",PhaseToolkit.ItemSheathDropdown,"BOTTOMLEFT",20,-10)
 	PhaseToolkit.iconIdEditBox:SetAutoFocus(false)
 
-	PhaseToolkit.iconIdEditBox:SetScript("OnTextChanged",function()
-		if(PhaseToolkit.iconIdEditBox:GetText()=="") then
-			PhaseToolkit.itemCreatorData.IconLink=nil
+	local function saveItemIconIdOrLink(idOrLink)
+		if idOrLink and idOrLink ~= "" then
+			if not tonumber(idOrLink) then
+				-- It's not an number ID, probably. Try it as a Link
+				local itemName, itemLink = GetItemInfo(idOrLink)
+				if itemLink then
+					-- Valid link, use it
+					PhaseToolkit.itemCreatorData.itemIconIdOrLink=itemLink
+					return
+				end
+			else
+				-- Just save the ID or possibly weird link to try it lol
+				PhaseToolkit.itemCreatorData.itemIconIdOrLink = idOrLink
+			end
+		else
+			-- Link was blank, nil it to be sure
+			PhaseToolkit.itemCreatorData.itemIconIdOrLink=nil
 		end
+	end
+
+	PhaseToolkit.iconIdEditBox:SetScript("OnTextChanged",function(self)
+		saveItemIconIdOrLink(self:GetText())
 	end)
 
 	PhaseToolkit.iconIdEditBox:SetScript("OnEditFocusLost",function(self)
-		if(self:GetText() and self:GetText()~="") then
-			local itemName, itemLink = GetItemInfo(self:GetText())
-			PhaseToolkit.itemCreatorData.IconLink=itemLink
+		local idOrLink = self:GetText()
+		if(idOrLink and idOrLink~="") then
+			saveItemIconIdOrLink(idOrLink)
 			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
 				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,nil,false)
+				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,updateContainers,false)
 			end
 		end
 	end)
@@ -3176,11 +3301,6 @@ function PhaseToolkit.createItemCreatorFrame()
 	ChatEdit_InsertLink = function(link)
 		if PhaseToolkit.iconIdEditBox:HasFocus() then
 			PhaseToolkit.iconIdEditBox:Insert(link)
-			PhaseToolkit.itemCreatorData.itemIconIdOrLink=PhaseToolkit.iconIdEditBox:GetText()
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,nil,false)
-			end
 		else
 			orig_ChatEdit_InsertLink(link)
 		end
@@ -3207,36 +3327,42 @@ function PhaseToolkit.createItemCreatorFrame()
 	local adderOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	adderOptionDropdown:SetSize(100, 30)
 	adderOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-5)
+	PhaseToolkit.adderOptionDropdown = adderOptionDropdown
 	PhaseToolkit.ShowadderOptionDropdown(adderOptionDropdown)
 	PhaseToolkit.RegisterTooltip(adderOptionDropdown, "Controls if the item contains a '<Made by Character>' tag when added.\n\nEnabling this will disable the Creator tag property.")
 
 	local addItemOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	addItemOptionDropdown:SetSize(100, 30)
 	addItemOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-30)
+	PhaseToolkit.addItemOptionDropdownButton = addItemOptionDropdown
 	PhaseToolkit.addItemOptionDropdown(addItemOptionDropdown)
 	PhaseToolkit.RegisterTooltip(addItemOptionDropdown, "Controls who is allowed to add this item.\n\nIf Member / Officer is enabled, will only work for Phases specifically added to the Member / Officer whitelist (use the buttons to the right!)")
 
 	local copyOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	copyOptionDropdown:SetSize(100, 30)
 	copyOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-55)
+	PhaseToolkit.copyOptionDropdown = copyOptionDropdown
 	PhaseToolkit.copyItemOptionDropdown(copyOptionDropdown)
 	PhaseToolkit.RegisterTooltip(copyOptionDropdown, "Controls who is allowed to copy or clone this item via 'forge item copy/clone'.")
 
 	local creatorOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	creatorOptionDropdown:SetSize(100, 30)
 	creatorOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-80)
+	PhaseToolkit.creatorOptionDropdown = creatorOptionDropdown
 	PhaseToolkit.creatorItemOptionDropdown(creatorOptionDropdown)
 	PhaseToolkit.RegisterTooltip(creatorOptionDropdown, "When enabled, adds a <Made by $CreatorCharacterName> to the item.\n\nEnabling this will disable the Adder tag property.")
 
 	local infoOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	infoOptionDropdown:SetSize(100, 30)
 	infoOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-105)
+	PhaseToolkit.infoOptionDropdown = infoOptionDropdown
 	PhaseToolkit.infoItemOptionDropdown(infoOptionDropdown)
 	PhaseToolkit.RegisterTooltip(infoOptionDropdown, "Sets if information for this item is visible to others.")
 
 	local lookupOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
 	lookupOptionDropdown:SetSize(100, 30)
 	lookupOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-130)
+	PhaseToolkit.lookupOptionDropdown = lookupOptionDropdown
 	PhaseToolkit.lookupItemOptionDropdown(lookupOptionDropdown)
 	PhaseToolkit.RegisterTooltip(lookupOptionDropdown, "Sets if the item shows in '.lookup itemforge' for others. Will always show for the creator of the item.")
 
@@ -3331,7 +3457,7 @@ local function updateWhitelistDisplay(typeOfWhitelist, data)
 
     -- Contenu à scroller
     local content = CreateFrame("Frame", nil, PhaseToolkit.listFrame.scrollFrame)
-    content:SetSize(100, 30 * #data) -- Ajuste la hauteur en fonction du nombre d'éléments
+    content:SetSize(100, 30 * (#data or 1)) -- Ajuste la hauteur en fonction du nombre d'éléments
     PhaseToolkit.listFrame.content = content
 	local tableau={}
 
@@ -4129,11 +4255,11 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	local PNJRows = {}
 
 	local function OnSpawnClick(pnjId)
-		sendAddonCmd("n spawn " .. pnjId, nil, false)
+		sendAddonCmd("n spawn " .. pnjId, nil)
 	end
 
 	local function OnDeleteClick(pnjId)
-		sendAddonCmd("ph forge npc delete " .. pnjId, nil, false)
+		sendAddonCmd("ph forge npc delete " .. pnjId, nil)
 		PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, pnjId)
 		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
 	end
@@ -4457,13 +4583,13 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 	-- Fonction appelée lors du clic sur le bouton "Spawn"
 	local function OnSpawnClick(teleId)
-		sendAddonCmd("phase tele " .. teleId .. " ", nil, false)
+		sendAddonCmd("phase tele " .. teleId .. " ", nil)
 		-- Logique d'apparition (spawn) de la créature
 	end
 
 	-- Fonction appelée lors du clic sur le bouton "Delete"
 	local function OnDeleteClick(teleId)
-		sendAddonCmd("phase tele delete " .. teleId .. " ", nil, false)
+		sendAddonCmd("phase tele delete " .. teleId .. " ", nil)
 		PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, teleId)
 		TeleUpdatePagination(PhaseToolkit.teleList)
 
@@ -4846,12 +4972,12 @@ function PhaseToolkit.createPhaseAccessFrame()
 			if self:GetName() == "RadioWhitelist" then
 				return
 			elseif self:GetName() == "RadioBlacklist" then
-				sendAddonCmd("phase toggle private", nil, false)
+				sendAddonCmd("phase toggle private", nil)
 				PhaseToolkit.IsPhaseWhitelist = false
 			end
 		elseif not PhaseToolkit.IsPhaseWhitelist then
 			if self:GetName() == "RadioWhitelist" then
-				sendAddonCmd("phase toggle private", nil, false)
+				sendAddonCmd("phase toggle private", nil)
 				PhaseToolkit.IsPhaseWhitelist = true
 			elseif self:GetName() == "RadioBlacklist" then
 				return
@@ -4964,7 +5090,7 @@ function PhaseToolkit.createTimeSettingsFrame()
 	slider:SetScript("OnValueChanged", function(self, value)
 		if self.last == value then return end
 		local time = self.getTime(value)
-		sendAddonCmd("phase set time " .. time, nil, false)
+		sendAddonCmd("phase set time " .. time, nil)
 		self.Text:SetText(time)
 		self.last = value
 	end)
@@ -4993,7 +5119,7 @@ function PhaseToolkit.createSetStartingFrame()
 	ButtonSetStarting:SetPoint("RIGHT", -5, 0)
 	ButtonSetStarting:SetText(PhaseToolkit.CurrentLang["Set Current Location"] or "Set Current Location")
 	ButtonSetStarting:SetScript("OnClick", function()
-		sendAddonCmd("phase set starting ", nil, false)
+		sendAddonCmd("phase set starting ", nil)
 	end
 	)
 
@@ -5003,7 +5129,7 @@ function PhaseToolkit.createSetStartingFrame()
 	ButtonDisableStart:SetPoint("RIGHT", -15, 0)
 	ButtonDisableStart:SetText(PhaseToolkit.CurrentLang["Disable Starting"] or "Disable Starting")
 	ButtonDisableStart:SetScript("OnClick", function()
-		sendAddonCmd("phase set starting disable ", nil, false)
+		sendAddonCmd("phase set starting disable ", nil)
 	end
 	)
 end
@@ -5050,7 +5176,7 @@ function PhaseToolkit.createPhaseSetNameFrame()
 	GlobalNPCCUSTOMISERnameTextEdit:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame, "CENTER", 2.5, 0)
 	GlobalNPCCUSTOMISERnameTextEdit:SetAutoFocus(false)
 	GlobalNPCCUSTOMISERnameTextEdit:SetScript("OnEnterPressed", function(self)
-		sendAddonCmd("phase rename " .. self:GetText(), nil, false)
+		sendAddonCmd("phase rename " .. self:GetText(), nil)
 	end)
 
 	local labelForNameTextEdit = GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -5075,7 +5201,7 @@ function PhaseToolkit.createPhaseSetDescriptionFrame()
 	GlobalNPCCUSTOMISER_DescTextEdit:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame, "CENTER", 2.5, 0)
 	GlobalNPCCUSTOMISER_DescTextEdit:SetAutoFocus(false)
 	GlobalNPCCUSTOMISER_DescTextEdit:SetScript("OnEnterPressed", function(self)
-		sendAddonCmd("phase set description " .. self:GetText(), nil, false)
+		sendAddonCmd("phase set description " .. self:GetText(), nil)
 	end)
 
 	local labelForNameTextEdit = GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -5112,7 +5238,7 @@ function PhaseToolkit.createMotdFrame()
 	buttonToSendMotd:SetSize(80, 20)
 	buttonToSendMotd:SetText(PhaseToolkit.CurrentLang["SetMotd"] or "SetMotd")
 	buttonToSendMotd:SetScript("OnClick", function(self)
-		sendAddonCmd("phase set message " .. textForMotd, nil, false)
+		sendAddonCmd("phase set message " .. textForMotd, nil)
 	end
 	)
 end
@@ -5137,7 +5263,7 @@ function PhaseToolkit.PromptForNPCName()
 		local npcName = self:GetText()
 		if npcName and npcName ~= "" then
 			-- Envoi de la commande
-			sendAddonCmd("phase forge npc name " .. npcName, nil, false)
+			sendAddonCmd("phase forge npc name " .. npcName, nil)
 		end
 		self:ClearFocus()
 		self:Hide() -- Ferme l'EditBox après la saisie
@@ -5166,7 +5292,7 @@ function PhaseToolkit.PromptForNPCSubName()
 	local function OnEnterPressed(self)
 		local npcName = self:GetText()
 		if npcName and npcName ~= "" then
-			sendAddonCmd("phase forge npc subname " .. npcName, nil, false)
+			sendAddonCmd("phase forge npc subname " .. npcName, nil)
 		end
 		self:ClearFocus()
 		self:Hide() -- Ferme l'EditBox après la saisie
@@ -5312,7 +5438,7 @@ function PhaseToolkit.CreateCustomGrid(data)
 					end
 					PhaseToolkit.GeneralStat[attribute] = AttributeValueEditBox:GetNumber()
 
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:ClearFocus()
 				end
 			end)
@@ -5330,7 +5456,7 @@ function PhaseToolkit.CreateCustomGrid(data)
 			randomValueButton:SetScript("OnClick", function()
 				local randomNumber = math.random(1, value)
 				PhaseToolkit.GeneralStat[attribute] = randomNumber
-				sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+				sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 				AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
 				return
 			end)
@@ -5345,13 +5471,13 @@ function PhaseToolkit.CreateCustomGrid(data)
 				if (PhaseToolkit.GeneralStat[attribute] == 1) then
 					-- si on est a 1 et qu'on fais -1 on arrive au max
 					PhaseToolkit.GeneralStat[attribute] = value
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
 					return
 				end
 				if PhaseToolkit.GeneralStat[attribute] - 1 >= 1 then
 					PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] - 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
 					return
 				end
@@ -5368,13 +5494,13 @@ function PhaseToolkit.CreateCustomGrid(data)
 				if (PhaseToolkit.GeneralStat[attribute] == value) then
 					-- si on est a 1 et qu'on fais -1 on arrive au max
 					PhaseToolkit.GeneralStat[attribute] = 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
 					return
 				end
 				if PhaseToolkit.GeneralStat[attribute] + 1 <= value then
 					PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] + 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil, false)
+					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
 					return
 				end

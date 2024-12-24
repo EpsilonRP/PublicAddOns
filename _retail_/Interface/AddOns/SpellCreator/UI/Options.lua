@@ -258,7 +258,7 @@ local myOptionsTable = {
 							name = "Account Wide",
 							desc =
 								"Automatically Cast ArcSpells in this list when you login to any character on this account.\n\r" ..
-								"Enter spells by their ArcID/CommID, separated by commas.\n\r" ..
+								"Enter spells by their ArcSpell ID(s), separated by commas.\n\r" ..
 								"Note: Spells are cast on a slight delay, to allow the UI to finish loading.",
 							type = "multiselect",
 							order = autoOrder(),
@@ -302,7 +302,7 @@ local myOptionsTable = {
 							name = "This Character",
 							desc =
 								"Automatically Cast ArcSpells in this list when you login to this current character.\n\r" ..
-								"Enter spells by their ArcID/CommID, separated by commas.\n\r" ..
+								"Enter spells by their ArcSpell ID(s), separated by commas.\n\r" ..
 								"Note: Spells are cast on a slight delay, to allow the UI to finish loading.\r" ..
 								"Account Spells are cast first, then Character Spells.",
 							type = "multiselect",

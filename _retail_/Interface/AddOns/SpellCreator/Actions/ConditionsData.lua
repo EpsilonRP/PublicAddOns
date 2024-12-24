@@ -233,10 +233,11 @@ local conditions = {
 			{
 				key = "hasSlotEquipped",
 				name = "Has Item Equipped in Slot",
-				description = "If your character currently has any item equipped in a specific slot.",
-				inputs = { input("Slot Name", "string", "Head", "Neck", "Shoulder", "Shirt", "Chest", "Waist", "Legs", "Feet", "Wrist", "Hands", "Finger0", "Finger1", "Trinket0", "Trinket1", "Back", "Mainhand", "Secondaryhand", "Ranged", "Tabard") },
+				description = "If your character currently has any item equipped in a specific slot, or if ItemID is given, that specific itemID is equipped in that slot.",
+				inputs = { input("Slot Name", "string", "Head", "Neck", "Shoulder", "Shirt", "Chest", "Waist", "Legs", "Feet", "Wrist", "Hands", "Finger0", "Finger1", "Trinket0", "Trinket1", "Back", "Mainhand", "Secondaryhand", "Ranged", "Tabard"), input("ItemID?", "number") },
 				inputDesc = nil,
-				script = function(invSlotId)
+				script = function(invSlotId, itemID)
+					itemID = tonumber(itemID)
 					if not invSlotId then return false end
 					if type(invSlotId) == "string" then                      -- if it's a string..
 						-- convert to ID
@@ -245,7 +246,11 @@ local conditions = {
 						invSlotId = GetInventorySlotInfo(invSlotId)
 						if not invSlotId then return false end               -- Well, if it's not a valid slot.. they don't have anything equipped in it! FAIL!
 					end
-					return GetInventoryItemID("player", invSlotId)
+					local equipped = GetInventoryItemID("player", invSlotId)
+					if itemID and equipped then
+						return (itemID == equipped)
+					end
+					return equipped
 				end,
 			},
 		}
@@ -708,6 +713,19 @@ local conditions = {
 					return false                                             -- if you made it here, then something failed
 				end,
 			},
+			{
+				key = "arcLocations",
+				name = "Arc Location Exists",
+				description = "Checks if an Arc Location already exists, by name.",
+				inputDesc =
+				"The name of the Arc Location 'Key', created by the ARC.LOCATIONS API or a 'Save Location (ARC)' action.",
+				inputExample = "<169_Tavern> - Checks if the ArcLocation named <169_Tavern> exists.",
+				inputs = { input("Location Name/Key", "string") },
+				script = function(key)
+					if ARC.LOCATIONS.locs[key] then return true end
+					return false -- if you made it here, then something failed
+				end,
+			},
 		}
 	},
 
@@ -781,8 +799,8 @@ local conditions = {
 	},
 
 	-- Arcanum
-	---- ArcSpell Exists (CommID) (input = commID, phaseBoolean)
-	---- ArcSpell is on Cooldown (input = commID, phaseBoolean)
+	---- ArcSpell Exists (ArcID) (input = ArcID, phaseBoolean)
+	---- ArcSpell is on Cooldown (input = ArcID, phaseBoolean)
 	---- ArcVar is True (input = ArcVar, isPhase)
 	---- ArcVar equals... (input = ArcVar, Value, isPhase)
 	{ header = "Advanced" },
@@ -810,13 +828,51 @@ local conditions = {
 		}
 	},
 	{
+		catName = "Key Pressed",
+		catItems = {
+			{
+				key = "shiftKeyDown",
+				name = "Shift Key Pressed",
+				description = "Returns true if the Shift Key is currently pressed. No input required.",
+				script = function()
+					return IsShiftKeyDown()
+				end,
+			},
+			{
+				key = "altKeyDown",
+				name = "Alt Key Pressed",
+				description = "Returns true if the Alt Key is currently pressed. No input required.",
+				script = function()
+					return IsAltKeyDown()
+				end,
+			},
+			{
+				key = "ctrlKeyDown",
+				name = "Control Key Pressed",
+				description = "Returns true if the Control Key is currently pressed. No input required.",
+				script = function()
+					return IsControlKeyDown()
+				end,
+			},
+			{
+				key = "genKeyDown",
+				name = "Other Key Pressed",
+				description = "Returns true if the user-defined key is currently pressed. Can accept key (i.e., <tab>) or mouse button (i.e., <LeftButton>, <RightButton>) names.",
+				inputs = { input("Key or Mouse Button", "string") },
+				script = function(key)
+					return IsKeyDown(key)
+				end,
+			},
+		}
+	},
+	{
 		catName = "Arcanum",
 		catItems = {
 			{
 				key = "arcSpellExists",
-				name = "ArcSpell Exists (CommID)",
+				name = "ArcSpell Exists (ArcID)",
 				description = "Returns true if an ArcSpell exists. Can use this in a Cast ArcSpell action for example to make sure that spell exists first before attempting to cast it.",
-				inputs = { input("ArcSpell CommID", "string<commID>"), input("Phase?", "boolean?"), },
+				inputs = { input("ArcSpell ID", "string<arcID>"), input("Phase?", "boolean?"), },
 				script = function(arcspellCommid, phase)
 					if not arcspellCommid then return false end
 					if phase and toBoolean(phase) then
@@ -830,7 +886,7 @@ local conditions = {
 				key = "arcSpellOnCd",
 				name = "ArcSpell is on Cooldown",
 				description = "Returns true if the ArcSpell is on cooldown. Use a 'Not' condition if you want to ensure the spell is .. NOT.. on cooldown.",
-				inputs = { input("ArcSpell CommID", "string<commID>"), input("Phase?", "boolean?"), },
+				inputs = { input("ArcSpell ID", "string<arcID>"), input("Phase?", "boolean?"), },
 				script = function(arcspellCommid, phase)
 					if not arcspellCommid then return false end
 					return ns.Actions.Cooldowns.isSpellOnCooldown(arcspellCommid, toBoolean(phase))
@@ -991,6 +1047,15 @@ local function setDataByName(row, key, value)
 	data[key] = value
 end
 
+local function parseTextFormatting(text)
+	if text:find("<.*>") then
+		-- convert < > to contrast text
+		text = text:gsub("<(.-)>", ns.Utils.Tooltip.genContrastText("%1"))
+	end
+
+	return text
+end
+
 local function genCondRadio(key)
 	local conditionData = conditionKeysMap[key] --[[@as ConditionTypeData]]
 	local options = {
@@ -1003,7 +1068,7 @@ local function genCondRadio(key)
 			lastSelectedConditionRow:GetUserData("update")()
 		end,
 		tooltipTitle = conditionData.name,
-		tooltipText = conditionData.description,
+		tooltipText = parseTextFormatting(conditionData.description),
 		hidden = conditionData.requirement,
 	} --[[@as DropdownToggleCreationOptions]]
 	return Dropdown.radio(conditionData.name, options)

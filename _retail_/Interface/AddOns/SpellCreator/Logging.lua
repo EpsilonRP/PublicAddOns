@@ -75,11 +75,16 @@ local function arcWarning(text)
 	ns.UI.Popups.showCustomGenericConfirmation(data)
 end
 
+local softerror = function(err)
+	geterrorhandler()(err)
+end
+
 ns.Logging = {
 	cprint = cprint,
 	dprint = dprint,
 	eprint = eprint,
 	raidWarning = raidWarning,
 	uiErrorMessage = uiErrorMessage,
-	arcWarning = arcWarning
+	arcWarning = arcWarning,
+	softerror = softerror,
 }

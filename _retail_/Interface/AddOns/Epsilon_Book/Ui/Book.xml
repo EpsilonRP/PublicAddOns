@@ -1181,11 +1181,19 @@
 									GameTooltip:AddLine("Image", 1, 1, 1);
 									GameTooltip:AddLine("Insert an inline image.");
 									if IsShiftKeyDown() then
-										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The image tag uses this format:|n|n|cFF808080{img:|cFFFFFFFFpath|r:|cFFFFFFFFwidth|r:|cFFFFFFFFheight|r:|cFFFFFFFFalign|r}|r|n ", 1, 0.81, 0, true);
-										GameTooltip:AddDoubleLine("path", "|cFF00ADEFThe full file path of the icon.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The image tag uses this format:|n|n|cFF808080{img:|cFFFFFFFFpath|r:|cFFFFFFFFwidth|r:|cFFFFFFFFheight|r:|cFFFFFF00align|r:|cFFFFFF00left|r:|cFFFFFF00right|r:|cFFFFFF00top|r:|cFFFFFF00bottom|r:|cFFFF0000red|r:|cFF00FF00green|r:|cFF0000FFblue|r}|r|n ", 1, 0.81, 0, true);
+										GameTooltip:AddDoubleLine("path", "|cFF00ADEFThe full file path of the image.", 1, 1, 1, 1, 1, 1, true);
 										GameTooltip:AddDoubleLine("width", "|cFF00ADEFThe width of the image (in pixels.)", 1, 1, 1, 1, 1, 1, true);
 										GameTooltip:AddDoubleLine("height", "|cFF00ADEFThe height of the image (in pixels.)", 1, 1, 1, 1, 1, 1, true);
-										GameTooltip:AddDoubleLine("align", "|cFF00ADEFThe alignment of the image (l, r, c)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddLine("|nOptional Arguements:|r|n ", 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFFFF00align|r |cFF808080(l, r, c)|r", "|cFF00ADEFThe alignment of the image (left if omitted)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFFFF00left|r", "|cFF00ADEFThe left edge of the image, if you want to crop it (between 0-1)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFFFF00right|r", "|cFF00ADEFThe right edge of the image, if you want to crop it (between 0-1)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFFFF00top|r", "|cFF00ADEFThe top edge of the image, if you want to crop it (between 0-1)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFFFF00bottom|r", "|cFF00ADEFThe bottom edge of the image, if you want to crop it (between 0-1)", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFFFF0000red", "|cFF00ADEFThe red value of the image, if you want to tint it (between 0-1).", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFF00FF00green", "|cFF00ADEFThe green value of the colour, if you want to tint it (between 0-1).", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("|cFF0000FFblue", "|cFF00ADEFThe blue value of the colour, if you want to tint it (between 0-1).", 1, 1, 1, 1, 1, 1, true);
 									else
 										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);
 									end
@@ -1441,6 +1449,8 @@
 									if IsShiftKeyDown() then
 										GameTooltip:AddLine("|TInterface/HELPFRAME/HelpIcon-Suggestion:16|t|cFF00ADEFTip: The in-game hyperlink tag uses this format:|n|n|cFF808080{spell:|cFFFFFFFFspellID|r}|r or |cFF808080{item:|cFFFFFFFFitemID|r}|r|n ", 1, 0.81, 0, true);
 										GameTooltip:AddDoubleLine("spellID", "|cFF00ADEFThe global spell ID number.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddDoubleLine("itemID", "|cFF00ADEFThe global item ID number.", 1, 1, 1, 1, 1, 1, true);
+										GameTooltip:AddLine("|nOptional Arguements:|r|n ", 1, 1, 1, true);
 										GameTooltip:AddDoubleLine("itemID", "|cFF00ADEFThe global item ID number.", 1, 1, 1, 1, 1, 1, true);
 									else
 										GameTooltip:AddLine("&lt;Hold Shift for More Information>", 0.5, 0.5, 0.5, true);

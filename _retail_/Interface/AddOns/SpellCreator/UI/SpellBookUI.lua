@@ -79,20 +79,8 @@ local pageText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontBlack")
 pageText:SetJustifyH("RIGHT")
 pageText:SetSize(102, 0)
 pageText:SetPoint("BOTTOMRIGHT", -110, 38)
---pageText:SetTextColor(0.25, 0.12, 0, 1)
 pageText:SetTextColor(ADDON_COLORS.LIGHT_BLUE_ALMOST_WHITE:GetRGB())
 pageText:SetText("Page 1")
-
---[[ -- Simple Open Forge Button, deprecated
-local openForgeButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-openForgeButton:SetText("Open Forge")
-openForgeButton:SetSize(100, 22)
-openForgeButton:SetPoint("RIGHT", SpellBookPrevPageButton, "LEFT", -320, 0)
-openForgeButton.tooltipText = "Open the Spell Forge Interface to Create & Edit Spells."
-openForgeButton:SetScript("OnClick", function()
-	ns.MainFuncs.scforge_showhide()
-end)
---]]
 
 local buttonSize = 32
 local openForgeButton = CreateFrame("Button", nil, mainFrame)
@@ -140,6 +128,44 @@ mainFrameMouseBlocker:SetPoint("TOPLEFT", 7, -25)
 mainFrameMouseBlocker:SetPoint("BOTTOMRIGHT", -10, 5)
 mainFrameMouseBlocker:EnableMouse(true)
 
+
+local searchbox = CreateFrame("EditBox", nil, mainFrame, "SearchBoxTemplate")
+mainFrame.searchbar = searchbox -- Arcanum_SpellBook.searchbar
+searchbox:SetPoint("TOP", mainFrame, "TOP", 30, -30)
+searchbox:SetSize(480, 12)
+searchbox:SetFrameStrata("HIGH")
+
+local offAlpha = 0.2
+local onAlpha = 0.5
+searchbox.Left:SetAlpha(offAlpha)
+searchbox.Right:SetAlpha(offAlpha)
+searchbox.Middle:SetAlpha(offAlpha)
+
+searchbox:HookScript("OnEditFocusLost", function(self)
+	searchbox.Left:SetAlpha(offAlpha)
+	searchbox.Right:SetAlpha(offAlpha)
+	searchbox.Middle:SetAlpha(offAlpha)
+end)
+searchbox:HookScript("OnEditFocusGained", function(self)
+	searchbox.Left:SetAlpha(onAlpha)
+	searchbox.Right:SetAlpha(onAlpha)
+	searchbox.Middle:SetAlpha(onAlpha)
+end)
+
+function searchbox:GetFilter()
+	local text = self:GetText()
+	return (text and #text > 2) and text or nil
+end
+
+Tooltip.set(searchbox,
+	"Search Arcanum Spells",
+	"You can search multiple key-words by separating them with a comma! Searches must be three characters or more.",
+	{
+		forced = true,
+		delay = 0,
+	}
+)
+
 -- holding table for our buttons to easier iterate them
 local arcSpellFrameButtons = {}
 local lastOddButton -- easier memory of the last odd button for positioning
@@ -163,7 +189,7 @@ spellButtonMixin.OnClick = function(self, button)
 	end
 
 	local spell = Vault.personal.findSpellByID(self.commID)
-	if not spell then return Logging.eprint("OnClick - No spell found with commID in personal vault: ", self.commID) end
+	if not spell then return Logging.eprint("OnClick - No spell found with ArcSpell ID in personal vault: ", self.commID) end
 
 	if button == "LeftButton" then
 		if IsModifiedClick("CHATLINK") then
@@ -171,6 +197,8 @@ spellButtonMixin.OnClick = function(self, button)
 			return;
 		end
 		ARC:CAST(self.commID)
+	elseif button == "RightButton" then
+		ns.UI.SpellLoadRowContextMenu.showSB(self, self.commID)
 	end
 end
 spellButtonMixin.OnDragStart = function() end
@@ -193,7 +221,10 @@ spellButtonMixin.UpdateButton = function(self)
 
 	if self.commID then
 		local spell = Vault.personal.findSpellByID(self.commID)
-		if not spell then Logging.eprint("UpdateButton - No spell found with commID in personal vault: ", self.commID) end
+		if not spell then
+			Logging.eprint("UpdateButton - No spell found with ArcSpell ID in personal vault: ", self.commID)
+			return
+		end
 
 		--icon
 		iconTexture:SetTexture(Icons.getFinalIcon(spell.icon))
@@ -224,37 +255,6 @@ spellButtonMixin.UpdateButton = function(self)
 		end
 	end
 end
-
--- helper function for the tooltip when you mouse-over a spell icon
---[[
-local function genSpellTooltipLines(spell, isClickable)
-	local strings = {}
-	local hotkeyKey = Hotkeys.getHotkeyByCommID(spell.commID)
-
-	if spell.description then tinsert(strings, spell.description) end
-	tinsert(strings, " ")
-
-	if spell.profile then tinsert(strings, Tooltip.createDoubleLine("Profile: ", spell.profile)) end
-
-	if spell.cooldown then
-		tinsert(strings, Tooltip.createDoubleLine("Actions: " .. #spell.actions, "Cooldown: " .. spell.cooldown .. "s"))
-	else
-		tinsert(strings, "Actions: " .. #spell.actions)
-	end
-
-	if spell.author then tinsert(strings, "Author: " .. spell.author); end
-	if spell.items and next(spell.items) then tinsert(strings, "Items: " .. table.concat(spell.items, ", ")) end
-	if hotkeyKey then tinsert(strings, "Hotkey: " .. hotkeyKey) end
-	tinsert(strings, " ")
-
-	if isClickable then
-		tinsert(strings, Tooltip.genContrastText("Left-Click") .. " to cast " .. ADDON_COLORS.TOOLTIP_EXAMPLE:WrapTextInColorCode(spell.commID))
-	else
-		tinsert(strings, "Command: " .. Tooltip.genContrastText("/sf " .. spell.commID))
-	end
-	return strings
-end
---]]
 
 -- create the spell buttons!
 for i = 1, SPELLS_PER_PAGE do
@@ -305,6 +305,7 @@ for i = 1, SPELLS_PER_PAGE do
 			spellButton:SetScript(k, spellButton[k])
 		end
 	end
+	spellButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
 	local getSpell = Vault.personal.findSpellByID
 	ns.Utils.Tooltip.set(
@@ -319,6 +320,7 @@ for i = 1, SPELLS_PER_PAGE do
 			local strings = ns.UI.SpellTooltip.getLines("vault", spell, false, true)
 			tinsert(strings, " ")
 			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. " to link in chat.")
+			tinsert(strings, Tooltip.genContrastText("Right-Click") .. " for more options.")
 			return strings
 		end,
 		{
@@ -330,13 +332,45 @@ for i = 1, SPELLS_PER_PAGE do
 	)
 
 	ns.UI.ActionButton.makeButtonDraggableToActionBar(spellButton, spellButton.Icon)
+	spellButton.contextMenu = ns.UI.SpellLoadRowContextMenu.createFor(spellButton, "SB" .. i)
 
 	tinsert(arcSpellFrameButtons, spellButton)
 end
 
+local function filterSpells(spells, filter)
+	if (not filter) or (#filter < 3) then
+		return spells
+	end
+
+	local filteredList = {}
+	local filterKeys = { strsplit(",", filter:lower()) }
+
+	for _, commID in ipairs(spells) do
+		local spell = Vault.personal.findSpellByID(commID)
+		local commIDLower = spell.commID:lower()
+		local nameLower = spell.fullName:lower()
+		local descLower = spell.description and spell.description:lower()
+
+		local match = true
+		for _, v in ipairs(filterKeys) do
+			v = strtrim(v)
+			if not (commIDLower:find(v) or nameLower:find(v) or (descLower and descLower:find(v))) then
+				match = false
+				break
+			end
+		end
+
+		if match then
+			tinsert(filteredList, commID)
+		end
+	end
+
+	return filteredList
+end
+
 local function updateButtons()
 	for k, v in ipairs(arcSpellFrameButtons) do
-		local spellIDs = ns.Vault.personal.getIDs()
+		local spellIDs = filterSpells(ns.Vault.personal.getIDs(), searchbox:GetFilter())
 		table.sort(spellIDs, DataUtils.caseInsensitiveCompare)
 
 		local pageOffset = (12 * (spellIconsFrame.currentPage - 1))
@@ -347,8 +381,8 @@ local function updateButtons()
 end
 
 local function updatePage()
-	local spellIDs = ns.Vault.personal.getIDs()
-	local numSpells = #spellIDs
+	local spellIDs = filterSpells(ns.Vault.personal.getIDs(), searchbox:GetFilter())
+	local numSpells = #spellIDs + 1 -- // + 1 so we always get a "create new spell" button even if it's a final full page
 	spellIconsFrame.maxPages = ceil(numSpells / SPELLS_PER_PAGE)
 
 	do
@@ -376,6 +410,24 @@ local function updatePage()
 
 	updateButtons()
 end
+
+local timer = C_Timer.NewTimer(0, function() end)
+
+searchbox:HookScript("OnTextChanged", function(self)
+	timer:Cancel()
+	timer = C_Timer.NewTimer(0.25, function(self)
+		updatePage()
+	end)
+end)
+
+searchbox:HookScript("OnEditFocusLost", function(self)
+	updatePage()
+end)
+searchbox.clearButton:HookScript("OnClick", function(self)
+	updatePage()
+end)
+
+
 
 local function prevButtonOnClick(self)
 	spellIconsFrame.currentPage = spellIconsFrame.currentPage - 1
@@ -406,6 +458,7 @@ end
 mainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 
 mainFrame:SetScript("OnShow", function()
+	SpellBookFrame.TitleText:SetText("Arcanum Spellbook")
 	updatePage()
 end)
 
@@ -497,6 +550,23 @@ local function updateArcSpellBook()
 		updatePage()
 	end
 end
+
+local helpPlate = {
+	FramePos = { x = 5, y = -22 },
+	FrameSize = { width = 580, height = 500 },
+	[1] = { ButtonPos = { x = 250, y = -50 }, HighLightBox = { x = 65, y = -25, width = 460, height = 410 }, ToolTipDir = "DOWN", ToolTipText = "Spells in your Personal Vault are shown here. You can drag them to your action bars, or left-click to cast, or right-click to edit the spell!" },
+	[2] = { ButtonPos = { x = 330, y = -435 }, HighLightBox = { x = 360, y = -440, width = 160, height = 40 }, ToolTipDir = "LEFT", ToolTipText = "Vault getting too big for one page? You can also use your scroll-wheel anywhere in the Spellbook to quick flip through pages!" },
+	[3] = { ButtonPos = { x = 7, y = -375 }, HighLightBox = { x = 13, y = -400, width = 50, height = 80 }, ToolTipDir = "RIGHT", ToolTipText = "Open the Spell Forge to create new Arcanum Spells!" },
+
+}
+hooksecurefunc("SpellBook_ToggleTutorial", function()
+	if not mainFrame:IsShown() then return end
+	if HelpPlate_IsShowing(helpPlate) then
+		HelpPlate_Hide(true)
+	else
+		HelpPlate_Show(helpPlate, mainFrame, SpellBookFrame.MainHelpButton)
+	end
+end)
 
 ---@class UI_SpellBookUI
 ns.UI.SpellBookUI = {

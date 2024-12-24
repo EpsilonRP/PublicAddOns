@@ -759,7 +759,7 @@ local contextMenuLastItem = {}
 local itemContextMenu_PhaseVaultDropdown = Libs.AceGUI:Create("Dropdown") --[[@as AceGUIDropdown]]
 itemContextMenu_PhaseVaultDropdown:SetCallback("OnValueChanged", function(widget, callback, key, toggled)
 	local spell = Vault.phase.getSpellByIndex(key)
-	if not spell then error("Arc Error: No Spell with CommID (" .. key .. ") found in the phase vault. How?") end
+	if not spell then error("Arc Error: No Spell with ArcSpell ID (" .. key .. ") found in the phase vault. How?") end
 	if toggled then
 		-- link item
 		ns.Logging.cprint("Linking item " .. contextMenuLastItem.id .. " with Phase ArcSpell: " .. spell.commID)
@@ -779,7 +779,7 @@ Mixin(itemContextMenu_PhaseVaultDropdown.pullout.frame, UIDropDownCustomMenuEntr
 local itemContextMenu_PersonalVaultDropdown = Libs.AceGUI:Create("Dropdown") --[[@as AceGUIDropdown]]
 itemContextMenu_PersonalVaultDropdown:SetCallback("OnValueChanged", function(widget, callback, key, toggled)
 	local spell = Vault.personal.findSpellByID(key)
-	if not spell then error("Arc Error: No Spell with CommID (" .. key .. ") found in the personal vault. How?") end
+	if not spell then error("Arc Error: No Spell with ArcSpell ID (" .. key .. ") found in the personal vault. How?") end
 	if toggled then
 		-- link item
 		ns.Logging.cprint("Linking item " .. contextMenuLastItem.id .. " with Personal ArcSpell: " .. spell.commID)

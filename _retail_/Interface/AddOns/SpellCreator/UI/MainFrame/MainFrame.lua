@@ -107,6 +107,136 @@ end)
 
 SCForgeMainFrame.SettingsButton = settingsButton
 
+-- Help Button (Tutorial)
+
+-- Helper Funcs
+
+local junkPos = { x = 0, y = 0, width = 0, height = 0 }
+
+local function getJunkWithAnchorData(frame, points)
+	local junk = CopyTable(junkPos)
+	junk.anchorData = {
+		frame = frame,
+		points = points
+	}
+	return junk
+end
+
+local function getJunkWithAnchorOnly(frame, point, relPoint, offX, offY)
+	local junk = CopyTable(junkPos)
+	junk.anchor = {
+		frame = frame,
+		[1] = point,
+		[2] = relPoint,
+		[3] = offX,
+		[4] = offY
+	}
+	return junk
+end
+
+-- //// TODO - CONVERT ALL TO USE JUNKPOS & THEN USE ANCHOR DATA INSTEAD
+local helpPlate = {
+	FramePos = junkPos,
+	FrameSize = junkPos,
+	anchorData = {
+		frame = SCForgeMainFrame,
+		points = { { "TOPLEFT", 5, -22 }, { "BOTTOMRIGHT", 0, 0 } }
+	},
+
+	-- Attic 1 - Spell Info
+	{
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.SpellInfoNameBox", "TOPRIGHT", "TOPRIGHT", 0, 2),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.IconButton", {
+			{ "TOPLEFT",     -3, 3 },
+			{ "BOTTOMRIGHT", 0,  2, frame = "SCForgeMainFrame.SpellInfoDescBox" }
+		}),
+		ToolTipDir = "DOWN",
+		ToolTipText =
+			"Spell Information" ..
+			"\n\rThis section lets you control the basic details of your spell, including the icon, name, description, and ArcID." ..
+			"\n\rThe ArcID is a unique identifier for each spell, meaning no two spells can share the same ID."
+	},
+
+	-- Attic 2 - Spell Options
+	{
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.SpellOptionsDropdown", "TOPRIGHT", "TOPRIGHT", -10, 10),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.SpellInfoCommandBox", {
+			{ "TOPLEFT",     "TOPRIGHT", 0,  -2 },
+			{ "BOTTOMRIGHT", -15,        -0, frame = "SCForgeMainFrame.SpellOptionsDropdown" }
+		}),
+		ToolTipDir = "DOWN",
+		ToolTipText =
+		"Spell Options\n\rThis section lets you configure additional settings for your spell, such as cooldowns, conditions, and other customizable options."
+	},
+
+	-- Forge Action Rows
+	{
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.Inset", "CENTER", "CENTER", -50, 40),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.Inset", {
+			{ "TOPLEFT",     0, 0 },
+			{ "BOTTOMRIGHT", 2, 0 }
+		}),
+		ToolTipDir = "LEFT",
+		ToolTipText =
+			"Action Rows" ..
+			"\n\rThis is the section where you define the steps your spell will take when cast." ..
+			"\n\rEach Action requires a Delay, Action Type, and an input (if applicable) to work properly." ..
+			"\n\rYou can add more rows by clicking the large + button, or duplicate a row by clicking the smaller + at the top left when hovering over a row."
+	},
+
+	-- Basement
+	{
+		ButtonPos = getJunkWithAnchorOnly("SCForgeMainFrame.ExecuteSpellButton", "CENTER", "CENTER", 100, 0),
+		HighLightBox = getJunkWithAnchorData("SCForgeMainFrame.Inset", {
+			{ "TOPLEFT",     "BOTTOMLEFT", 0,  0 },
+			{ "BOTTOMRIGHT", 2,            -24 }
+		}),
+		ToolTipDir = "RIGHT",
+		ToolTipText =
+		"This is the forge 'Basement', where you can cast the actions currently in the editor above, Save your current data as a new spell (or save your work if editing), and open your ArcSpell Vaults."
+	},
+
+}
+
+local help = CreateFrame("BUTTON", nil, SCForgeMainFrame, "MainHelpPlateButton")
+local scale = 0.75
+help:SetPoint("TOPLEFT", 32 / scale, 21 * scale)
+help:SetScale(scale)
+help.I:SetDesaturated(true)
+help.I:SetVertexColor(89 / 255, 196 / 255, 217 / 255)
+help.Ring:SetTexture(Constants.ASSETS_PATH .. "/" .. "icon_portrait_gold_ring_border")
+help.Ring:SetPoint("CENTER")
+help.Ring:SetSize(24, 24)
+help.Hilight = help:GetHighlightTexture()
+help.Hilight:SetSize(36, 36)
+help.Hilight:SetPoint("CENTER", 0, -1)
+help:HookScript("OnEnter", function(self)
+	if HelpPlateTooltip:IsShown() then
+		HelpPlateTooltip.Text:SetText(MAIN_HELP_BUTTON_TOOLTIP .. "\nRight-Click to Open the Basic Spell Creation Tutorial!")
+		HelpPlateTooltip:SetHeight(HelpPlateTooltip.Text:GetHeight() + 30)
+	end
+end)
+help:SetScript("OnClick", function(self, button, down)
+	if button == "RightButton" then
+		ns.UI.Tutorials:Show(2)
+		return
+	else
+		if not SCForgeMainFrame:IsShown() then return end
+		if HelpPlate_IsShowing(helpPlate) then
+			HelpPlate_Hide(true)
+		else
+			HelpPlate_Show(helpPlate, SCForgeMainFrame, help)
+		end
+	end
+end)
+help:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+SCForgeMainFrame:HookScript("OnHide", function()
+	HelpPlate_Hide()
+end)
+
+SCForgeMainFrame.MainHelpButton = help
+
+
 local dragBar = CreateFrame("Frame", nil, SCForgeMainFrame)
 dragBar:SetPoint("TOPLEFT")
 dragBar:SetSize(size.x, 20)

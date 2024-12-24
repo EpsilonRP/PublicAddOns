@@ -517,7 +517,7 @@ local function executePhaseSpell(commID, bypassCD, ...)
 			return true
 		end
 	else
-		cprint("No spell with command " .. commID .. " found in the Phase Vault (or vault was not loaded). Please let a phase officer know.")
+		cprint("No spell with ArcSpell ID " .. commID .. " found in the Phase Vault (or vault was not loaded). Please let a phase officer know.")
 		return false
 	end
 end

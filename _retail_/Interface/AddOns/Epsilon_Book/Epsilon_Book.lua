@@ -7,6 +7,7 @@
 local addonName, ns = ...
 
 local C_Epsilon = C_Epsilon;
+local EpsiLib = EpsilonLib;
 local LibDeflate = LibStub:GetLibrary("LibDeflate");
 local AceSerializer = LibStub:GetLibrary("AceSerializer-3.0");
 

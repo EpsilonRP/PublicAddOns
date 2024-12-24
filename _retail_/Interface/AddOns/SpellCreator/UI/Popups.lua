@@ -479,7 +479,7 @@ local function genOverwriteString(newname, oldname)
 end
 
 StaticPopupDialogs["SCFORGE_CONFIRM_OVERWRITE"] = {
-	text = "Spell with CommID %s already exists.\n\r%s",
+	text = "Spell with ArcSpell ID %s already exists.\n\r%s",
 	OnAccept = function(self, data, data2)
 		data.callback(true, (data.fromPhaseVaultID and data.fromPhaseVaultID or nil), (data.manualData and data.manualData or nil), (data.vocal and data.vocal or nil),
 			(data.callbacksCallback and data.callbacksCallback or nil))
@@ -504,7 +504,7 @@ local function showPersonalVaultOverwritePopup(newSpellData, oldSpellData, fromP
 end
 
 StaticPopupDialogs["SCFORGE_CONFIRM_COMMOVERWRITE"] = {
-	text = "Spell with CommID %s already exists.\n\r%s",
+	text = "Spell with ArcSpell ID %s already exists.\n\r%s",
 	OnAccept = function(self, data, data2)
 		Comms.saveReceivedSpell(data, data2.charName)
 		if data2.callback then data2.callback() end

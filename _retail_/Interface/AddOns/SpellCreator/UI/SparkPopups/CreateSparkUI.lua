@@ -381,7 +381,7 @@ end
 ---@type SparkUIHelper
 local sparkUI_Helper = {
 	type = 1,
-	commID = "Type a CommID",
+	commID = "Type an ArcSpell ID",
 	radius = 5,
 	style = defaultSparkPopupStyle,
 	x = 0,
@@ -553,9 +553,9 @@ local uiOptionsTable = {
 						return msg
 					end,
 					desc = function()
-						local msg = "CommID of the ArcSpell from the Phase Vault"
+						local msg = "ArcSpell ID of the ArcSpell from the Phase Vault"
 						if sparkUI_Helper.type == _sparkTypesMap["Multi"] then
-							msg = "CommIDs for the ArcSpells (from the Phase Vault) to include in the Spark, separated by commas.\n\rSupports up to 4 ArcSpells/commIDs."
+							msg = "ArcSpell IDs for the ArcSpells (from the Phase Vault) to include in the Spark, separated by commas.\n\rSupports up to 4 ArcSpells."
 						end
 						if sparkUI_Helper.type == _sparkTypesMap["Auto"] then
 							msg = msg ..
@@ -686,7 +686,7 @@ local uiOptionsTable = {
 				},
 				uncastID = {
 					name = "Cast on Leave (Uncast)",
-					desc = "Casts another ArcSpell, by CommID (from Phase Vault), when leaving the radius of the Auto Spark.\rRespects Spark Cooldown Overrides if given (for uncast only).",
+					desc = "Casts another ArcSpell, by ArcSpell ID (from Phase Vault), when leaving the radius of the Auto Spark.\rRespects Spark Cooldown Overrides if given (for uncast only).",
 					type = "input",
 					dialogControl = "MAW-Editbox",
 					order = autoOrder(),
