@@ -714,7 +714,7 @@ function Epsilon_Merchant:OnInitialize()
 
 						local messageTicketID = C_Epsilon.GetPhaseAddonData(prefix + ( multipartIter + 1 ) );
 						local register = {
-							id = messageTicketId;
+							id = messageTicketID;
 							type = prefix;
 						}
 
