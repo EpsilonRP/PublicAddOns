@@ -571,3 +571,86 @@ function Lib:Embed(object)
 		object[k] = self[k]
 	end
 end
+
+-- An extension of the HelpPlate system to allow HelpPlateData to contain custom anchor data for buttons and highlight boxes.
+-- While not part of the original CustomTutorials-2.1, this is a useful extension for the SCForge UI for the 'i' help buttons also.
+
+local function getGlobalReferenceByString(str)
+	local t = _G
+	for w in str:gmatch("[^%.]+") do
+		t = t[w]
+		if not t then return end -- Path invalid; cannot continue
+	end
+	return t
+end
+
+local function _eval(t, i)
+	if type(t) == "function" then
+		return t(i)
+	end
+	return t
+end
+
+local function getFrameRef(frame)
+	if not frame then return HelpPlate end
+	if type(frame) == "string" then
+		return getGlobalReferenceByString(frame)
+	end
+	return frame
+end
+
+hooksecurefunc("HelpPlate_Show", function(self, parent, mainHelpButton)
+	for i = 1, #self do
+		local button = HELP_PLATE_BUTTONS[i]
+		if button then
+			local buttonData = self[i]
+
+			-- Custom ButtonPos anchor support, overrides all previous point data.
+			if buttonData.ButtonPos and buttonData.ButtonPos.anchor then
+				local point = buttonData.ButtonPos.anchor
+				button:ClearAllPoints();
+				button:SetPoint(point[1], getFrameRef(point.frame), point[2], point[3], point[4]);
+			end
+
+			-- Custom HighLightBox anchorData support, overrides all previous point data.
+			if buttonData.HighLightBox and buttonData.HighLightBox.anchorData then
+				button.box:ClearAllPoints();
+				button.boxHighlight:ClearAllPoints();
+				local frame = getFrameRef(buttonData.HighLightBox.anchorData.frame) -- base frame to use unless overridden by points
+				if not buttonData.HighLightBox.anchorData.points then
+					buttonData.HighLightBox.anchorData.points = { { "TOPLEFT", 0, 0 }, { "BOTTOMRIGHT", 0, 0 } }
+				end
+				for j = 1, #buttonData.HighLightBox.anchorData.points do
+					local point = buttonData.HighLightBox.anchorData.points[j]
+					local frame = frame
+					if point.frame then
+						frame = getFrameRef(point.frame)
+					end
+					button.boxHighlight:SetPoint(point[1], frame, point[2], point[3], point[4]);
+					button.box:SetPoint(point[1], frame, point[2], point[3], point[4]);
+				end
+				if buttonData.HighLightBox.anchorData.width then
+					button.boxHighlight:SetWidth(_eval(buttonData.HighLightBox.anchorData.width))
+					button.box:SetWidth(_eval(buttonData.HighLightBox.anchorData.width))
+				end
+				if buttonData.HighLightBox.anchorData.height then
+					button.boxHighlight:SetHeight(_eval(buttonData.HighLightBox.anchorData.height))
+					button.box:SetHeight(_eval(buttonData.HighLightBox.anchorData.height))
+				end
+			end
+		end
+	end
+
+	if self.anchorData then
+		HelpPlate:ClearAllPoints();
+		local frame = self.anchorData.frame
+		for j = 1, #self.anchorData.points do
+			local point = self.anchorData.points[j]
+			HelpPlate:SetPoint(point[1], frame, point[2], point[3], point[4]);
+		end
+	end
+end)
+-- Force cleanse HelpPlate anchors on hide to prevent anchor bleed-over
+HelpPlate:HookScript("OnHide", function(self)
+	self:ClearAllPoints()
+end)
