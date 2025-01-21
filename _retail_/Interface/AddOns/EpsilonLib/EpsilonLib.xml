@@ -23,4 +23,9 @@
 
 	<Include file="Modules\Modules.xml"/>
 
+	<Include file="Pickers\IconPicker.xml"/>
+	<Script file="Pickers\IconPicker.lua"/>
+	<Include file="Pickers\ColourPicker.xml"/>
+	<Script file="Pickers\ColourPicker.lua"/>
+
 </Ui>
