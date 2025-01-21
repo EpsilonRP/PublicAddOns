@@ -906,6 +906,17 @@ StaticPopupDialogs["SCFORGE_ADD_GOSSIP"] = {
 local function showAddGossipPopup(commID)
 	local spellTable = ns.MainFuncs.getSavedSpellFromVaultTable()
 	local spell = spellTable[commID]
+
+	-- First we try a simple lookup by index if called by index; if not found, we try a lookup by commID.
+	if not spell then
+		spell = ns.Vault.phase.findSpellByID(commID)
+	end
+
+	-- If we still don't have a spell, we can't continue.
+	if not spell then
+		return dprint("No spell found for commID: " .. commID)
+	end
+
 	StaticPopup_Show("SCFORGE_ADD_GOSSIP", nil, nil, spell, gossipAddMenuInsert)
 end
 

@@ -380,28 +380,6 @@ local function genChangeItem(change, subItemDepth)
 	return changeItem, wasHeader
 end
 
-local function genOlderVersionsEntry()
-	local versionTable = {
-		name = "Older Versions",
-		type = "group",
-		order = autoOrder(),
-		args = {
-			header = genChangeItem("##Looking for older changes?"),
-			description = genChangeItem("Check out the Forums for a full Changelog history!"),
-			spacer = spacer(),
-			forums = {
-				type = "input",
-				name = "Forums",
-				arg = "https://forums.epsilonwow.net/topic/3413-addon-arcanum-spell-forge-user-guide/",
-				dialogControl = "SFX-Info-URL",
-				order = autoOrder(),
-				get = genericGetArgFunc,
-			},
-		}
-	}
-	return versionTable
-end
-
 local argsTable = {}
 
 ---@param versionTable table
@@ -471,7 +449,6 @@ local function genChangeLogArgs()
 		end
 		argsTable[v.ver] = versionTable
 	end
-	argsTable["Older"] = genOlderVersionsEntry()
 	return argsTable
 end
 

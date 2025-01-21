@@ -18,15 +18,10 @@ local isDMEnabled = Permissions.isDMEnabled
 local phaseVault = Vault.phase
 
 local CloseGossip = CloseGossip or C_GossipInfo.CloseGossip;
-local GetNumGossipOptions = GetNumGossipOptions or C_GossipInfo.GetNumOptions;
-local SelectGossipOption = SelectGossipOption or C_GossipInfo.SelectOption;
-local GetGossipText = GetGossipText or C_GossipInfo.GetText;
 
-local modifiedGossips = {}
 local isGossipLoaded
 
 local spellsToCast = {}
-local shouldAutoHide = false
 local shouldLoadSpellVault = false
 local loadPhaseVault
 
@@ -52,16 +47,6 @@ end
 
 local function isLoaded()
 	return isGossipLoaded
-end
-
-local function hideCheck(button)
-	if button then -- came from an OnClick, so we need to close now, instead of toggling AutoHide which already past.
-		CloseGossip();
-		return true
-	else
-		shouldAutoHide = true
-		return false
-	end
 end
 
 local function CallbackClosure(func, ...)
@@ -171,7 +156,6 @@ local function init(callbacks)
 			tele("phase tele " .. loc, visual)
 		end,
 		hide = CloseGossip,
-		hide_check = hideCheck, -- Unused? I don't think we need to worry about this any more, as auto-runs are still run after parsing the entire text.
 	}
 
 	gossipTags = {
@@ -217,7 +201,8 @@ local function init(callbacks)
 		for payload in originalText:gmatch(gossipTags.capture) do
 			local strTag, strArg = strsplit(":", payload, 2) -- split the tag from the data
 			local mainTag, extTags = strsplit("_", strTag, 2) -- split the main tag from the extension tags
-			if gossipTags.option[mainTag] then       -- Checking Main Tags & Running their code if present
+			if gossipTags.option[mainTag] then       -- Checking Main Tags & queueing their code to run if present
+				-- Don't run the function here, as we need to run them in order of appearance, after all are collected
 				--gossipTags.body[mainTag].script(strArg)
 				table.insert(main_funcs, f(gossipTags.option[mainTag].script, strArg, button))
 			end
@@ -227,6 +212,7 @@ local function init(callbacks)
 			if extTags then
 				for _, v in ipairs(gossipTags.extensions) do -- Checking for any tag extensions
 					if extTags:match(v.ext) then
+						-- again, don't run the function here, as we need to run them in order of appearance, after all are collected
 						--v.script()
 						table.insert(ext_funcs, v.script)
 					end
@@ -241,11 +227,6 @@ local function init(callbacks)
 			for i = 1, #main_funcs do
 				main_funcs[i](button)
 			end
-
-			if shouldAutoHide then
-				CloseGossip()
-			end
-			shouldAutoHide = false
 		end
 
 		if phaseVault.isLoaded then
