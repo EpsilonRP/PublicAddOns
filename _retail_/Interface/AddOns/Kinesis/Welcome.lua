@@ -111,19 +111,19 @@ local welcomeMenu = {
 					order = autoOrder(true),
 					width = "full",
 				},
-				forumsDesc = {
+				discordDesc = {
 					type = "description",
-					name = "Found a bug? Have some feedback?\nWant to see some examples of what Kinesis can do?\nCheck out the forums post:",
+					name = "Found a bug? Have some feedback?\nFeel free to reach out on Discord (@mindscape or in the Epsilon server)!",
 					fontSize = "medium",
 					order = autoOrder(true),
 					width = 2,
 				},
-				forumsButton = {
+				discordButton = {
 					type = "execute",
-					name = "Copy Forum URL",
+					name = "Copy Dicsord Invite",
 					order = autoOrder(true),
 					width = 1,
-					arg = "https://forums.epsilonwow.net/topic/3638-kinesis-sandbox-flight-shift-sprint-addon/",
+					arg = "https://discord.gg/6PawD2e",
 					func = function(info)
 						ns.Dialogs.copyLink(info.arg)
 					end,
