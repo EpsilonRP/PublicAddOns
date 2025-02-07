@@ -1,0 +1,16 @@
+## Interface: 90207
+## Title: Epsilon Phase Codex
+## Notes: Phase List and Phase manager for Epsilon
+## Author: SystemError
+## SavedVariables: EpsilonPhasesDB
+## RequiredDeps: EpsilonLib
+## Version: 1.0
+
+Libs\Embeds.xml
+
+Epsilon_Phases.xml
+
+
+# phase list should collapse instead of main window
+# Link color https://discord.com/channels/172452891485929472/356044641616789505/1330997205909114990
+# Maybe Sort phases
