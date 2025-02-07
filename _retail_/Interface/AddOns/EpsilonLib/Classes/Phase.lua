@@ -34,6 +34,7 @@ local PhaseMixin = {}
 local phaseLoadCallbacks = {}
 local phaseOverviewCallbacks = {}
 local currentOverviewOrder = {}
+local wipeOverview = true
 
 --#endregion
 --#region Event Handlers
@@ -82,19 +83,22 @@ EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseInfoDataReceived)
 local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, sender, ...)
 	-- Check it's a message for us!
 	if prefix ~= "EPSILON_PH_OVE" then return end -- not what we're looking for
-
 	local myself = table.concat({ UnitFullName("PLAYER") }, "-")
 	if sender ~= myself and (not string.gsub(myself, "%s+", "")) then
 		return -- spoofed? ignore
 	end
 
 	-- Clean out our current overview order
-	table.wipe(currentOverviewOrder)
+	if wipeOverview then
+		table.wipe(currentOverviewOrder)
+	end
+
+	wipeOverview = text == string.char( 28 )
 
 	-- parse text into data
 	local phases = { strsplit(strchar(30), text) }
 	for _, phaseDataStr in ipairs(phases) do
-		if #phaseDataStr ~= 0 then -- last one might be an empty string, let's just make sure
+		if #phaseDataStr > 1 then -- last one might be an empty string or a control char, let's just make sure
 			local phaseData = { strsplit(strchar(31), phaseDataStr) }
 			_handleAndAssignPhaseDataTable(phaseData, true)
 		end
@@ -103,7 +107,9 @@ local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, s
 	for _, callback in ipairs(phaseOverviewCallbacks) do
 		callback(currentOverviewOrder, Phase.Store)
 	end
-	table.wipe(phaseOverviewCallbacks)
+	if wipeOverview then
+		table.wipe(phaseOverviewCallbacks)
+	end
 end
 EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseOverviewDataReceived)
 
@@ -119,6 +125,8 @@ end
 ---Requests the current Phase Overview list from the server, handling the callback once the entire list / phases are loaded. Callback is passed the currentOverviewOrder and Phase.Store as its 2 args for immediate access.
 ---@param callback fun(order:table, store:table)
 function Phase:RequestOverview(callback)
+	-- means a phase overview is in progress atm
+	if not wipeOverview then return end
 	EpsiLib.AddonCommands.SendByChat("phase overview addon")
 	if callback then
 		tinsert(phaseOverviewCallbacks, callback)
@@ -188,12 +196,17 @@ function Phase:CreateFromInfo(id, name, icon, message, info, desc, tags, color, 
 	phase.data.message = message
 	phase.data.info = info
 	phase.data.desc = desc
-	phase.data.color = color
-	phase.data.bg = background
+	phase.data.color = color or 0
+	phase.data.bg = background or 162
 
 	phase.data.tags = phase.data.tags or {}
 	wipe(phase.data.tags)
-	tAppendAll(phase.data.tags, { strsplit(",", tags) })
+	tAppendAll(phase.data.tags, { strsplit(",", tags or '') })
+
+	if phase.data.tags[1] == "" then
+		-- If the first tag was a random blank string, remove it
+		table.remove(phase.data.tags, 1)
+	end
 
 	phase.loaded = true
 
@@ -237,7 +250,9 @@ end
 
 function PhaseMixin:_Clear()
 	local tags = self.data.tags
-	wipe(tags)
+	if tags ~= nil then
+		wipe(tags)
+	end
 	wipe(self.data)
 	self.data.tags = tags
 end
@@ -304,24 +319,51 @@ function PhaseMixin:GetPhaseMessage()
 	return self.data.message
 end
 
-function PhaseMixin:GetPhaseIcon()
-	return self.data.icon
-end
-
 ---Get Phase Tags
 ---@return string[]
 function PhaseMixin:GetPhaseTags()
-	return self.data.tags -- Tags is an array of tags, may need this changed to a k,v but for now it is what it is
+	-- no side effects in a getter. Bad Systemerror, bad!
+	local tags = {}
+	for i, tag in pairs(self.data.tags) do
+		local r,g,b = string.match(tag, '^.+-(%d+)-(%d+)-(%d+)$')
+		local tagString = string.match(tag, '^(.+)-%d+-%d+-%d+$') or tag
+		if r == nil and g == nil and b == nil then
+			r = "255"
+			g = "255"
+			b = "255"
+		end
+		local color = CreateColorFromBytes(tonumber(r),tonumber(g),tonumber(b), 0)
+		tags[i] = color:WrapTextInColorCode(tagString)
+	end
+	return tags -- Tags is an array of tags, may need this changed to a k,v but for now it is what it is
+end
+
+function PhaseMixin:GetRawPhaseTags()
+	local tags = self.data.tags
+	return tags
+end
+
+function PhaseMixin:GetPhaseIcon(asID)
+	local icon = self.data.icon
+	if asID then
+		icon = GetFileIDFromPath('Interface/Icons/' .. icon)
+	end
+	return icon
 end
 
 ---Get the Phase Color, as a ColorMixin Object, or nil if no color assigned.
 ---@return ColorMixin? color
 function PhaseMixin:GetPhaseColor()
-	return (self.data.color and CreateColorFromHexCode(self.data.color)) or nil
+	local color = self.data.color
+	local r = math.floor(color / 2^24) % 256
+	local g = math.floor(color / 2^16) % 256
+	local b = math.floor(color / 2^8) % 256
+	local alpha = color % 256
+	return CreateColorFromBytes(r, g, b, alpha)
 end
 
 function PhaseMixin:GetPhaseBackground()
-	return self.data.bg
+	return tonumber(self.data.bg)
 end
 
 ---If the phase is already loaded, runs the callback immediately. If not, sets the callback to run when the phase data has finished loading. Does not actually request the phase to load though. Use :Get() instead if needed.

@@ -42,6 +42,8 @@ local function GetIconPath( button )
 	local list = filteredList or EPSILONLIB_ICONS;
 	local texture = list[ button.pickerIndex + startOffset ];
 	
+	texture = "Interface/Icons/" .. texture
+
 	return texture
 end
 
@@ -77,7 +79,7 @@ end
 function EpsilonLibIconPickerButton_OnClick( self )
 	-- Return the icon path through the provided return function
 	if EpsilonLibIconPicker.returnFunc then
-		returnFunc( GetIconPath(self) );
+		EpsilonLibIconPicker.returnFunc( GetIconPath(self) );
 	end
 	EpsilonLibIconPicker.IconPath = GetIconPath(self);
 	if EpsilonLibIconPicker.playSound then
@@ -127,7 +129,7 @@ end
 function EpsilonLibIconPicker_RefreshGrid()
 	local list = filteredList or EPSILONLIB_ICONS;
 	for k,v in ipairs( EpsilonLibIconPicker.icons ) do
-		local tex = list[startOffset + k];
+		local tex = GetIconPath(v)
 		if tex then
 			v:Show();
 			v:SetNormalTexture( tex );
