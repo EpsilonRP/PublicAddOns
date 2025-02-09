@@ -99,7 +99,7 @@ end)
 
 --NineSliceUtil.ApplyLayout(SCForgeMainFrame, "BFAMissionAlliance") -- You can use this to apply other nine-slice templates to a nine-slice frame. We want a custom Nine-Slice tho so below is my application of it.
 
-NineSlice.ApplyLayoutByName(SCForgeMainFrame.NineSlice, "ArcanumFrameTemplate")
+NineSliceUtil.ApplyLayoutByName(SCForgeMainFrame.NineSlice, "EpsilonGoldBorderFrameDoubleButtonTemplate")
 
 Portrait.init()
 

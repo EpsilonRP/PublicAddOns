@@ -1,0 +1,13 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd" xmlns="http://www.blizzard.com/wow/ui/">
+
+<script file="Epsilon_Phases.lua"/>
+<script file="Utils.lua"/>
+<script file="Constants.lua"/>
+<script file="Malls.lua"/>
+<script file="UI/MainFrame.lua"/>
+<script file="UI/SettingsFrame.lua"/>
+<script file="UI/PhaseList.lua"/>
+<script file="UI/PhaseListItem.lua"/>
+
+
+</Ui>

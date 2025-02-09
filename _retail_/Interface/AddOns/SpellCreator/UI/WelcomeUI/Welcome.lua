@@ -122,16 +122,6 @@ local welcomeMenu = {
 					inline = true,
 					order = autoOrder(),
 					args = {
-						forums = {
-							type = "input",
-							name = "Epsilon Forums",
-							dialogControl = "SFX-Info-URL",
-							order = autoOrder(),
-							arg = "https://forums.epsilonwow.net/topic/3413-addon-arcanum-spell-forge-user-guide/",
-							get = getArgFunc,
-							set = setNullFunc,
-						},
-						spacer = spacer(),
 						buildersHaven = {
 							type = "input",
 							name = "Builder's Haven",
@@ -167,7 +157,7 @@ local welcomeMenu = {
 				cred2 = credLine("Iyadriel (|cff5865F2@iyadriel|r) - Coding & Support"),
 				cred3 = credLine("skylar (|cff5865F2@sunkencastles|r) - IconPicker & ExtraButtons borrowed from DiceMaster, & Support"),
 				spacer1 = spacer(),
-				cred4 = credLine("Thank you to Azarchius & Razmatas for Epsilon, and Executable / Server support!"),
+				cred4 = credLine("Thank you to Azarchius & Razmataz for Epsilon, and Executable / Server support!"),
 				spacer2 = spacer(),
 				cred5 = credLine("|cff57F287And thank YOU, the players of Epsilon, for being the drive behind this server, community, and the amazing things you have, and will, create.|r")
 

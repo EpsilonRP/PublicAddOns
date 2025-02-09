@@ -4258,10 +4258,33 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		sendAddonCmd("n spawn " .. pnjId, nil)
 	end
 
+	local function GetNpcById( npcId)
+		for _, npc in ipairs(PhaseToolkit.creatureList) do
+			if npc["IdCreature"] == npcId then
+				return npc
+			end
+		end
+		return nil
+	end
+
 	local function OnDeleteClick(pnjId)
-		sendAddonCmd("ph forge npc delete " .. pnjId, nil)
-		PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, pnjId)
-		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+		local creature = GetNpcById(pnjId)
+		StaticPopupDialogs["CONFIRM_DELETE_NPC"] = {
+			text = creature and "Are you sure you want to delete this NPC ?\n"..creature["NomCreature"] or "Are you sure you want to delete this NPC?",
+			button1 = "Yes",
+			button2 = "No",
+			OnAccept = function()
+				sendAddonCmd("ph forge npc delete " .. pnjId, nil, false)
+				PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, pnjId)
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+			end,
+			timeout = 0,
+			whileDead = true,
+			hideOnEscape = true,
+			preferredIndex = 3,
+		}
+
+		StaticPopup_Show("CONFIRM_DELETE_NPC")
 	end
 
 	for i = 1, PhaseToolkit.itemsPerPageNPC do

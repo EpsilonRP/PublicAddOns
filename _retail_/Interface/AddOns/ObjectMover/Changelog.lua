@@ -116,7 +116,7 @@ ObjectMoverChangelog = [[
 
 ## _________________________________________________
 
-See [https://forums.epsilonwow.net/topic/467-addon-objectmover/](https://forums.epsilonwow.net/topic/467-addon-objectmover/) for more.
+The rest is history!
 ]]
 
 ObjectMoverHelpManual = [[

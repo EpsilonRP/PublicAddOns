@@ -1,0 +1,5 @@
+<Bindings>
+ <Binding name="PHASE_CODEX_QUICK_ACCESS" header="PHASE_CODEX" category="ADDONS" runOnUp="true">
+    EpsilonPhases.quickAccessShowHide()
+ </Binding>
+</Bindings>

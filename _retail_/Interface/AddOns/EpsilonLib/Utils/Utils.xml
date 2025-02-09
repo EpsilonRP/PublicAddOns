@@ -5,6 +5,8 @@
 	<!-- Event Manager Loaded in TOC -->
 
 	<Script file="init.lua"/>
+
+	<Script file="NineSliceTemplates.lua"/>
 	<Script file="FrameRotationUtil.lua"/>
 	<Script file="GossipUtil.lua"/>
 

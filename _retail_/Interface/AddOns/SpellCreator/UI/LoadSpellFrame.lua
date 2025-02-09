@@ -325,7 +325,7 @@ local function init(callbacks)
 	local loadSpellFrame = CreateFrame("Frame", "SCForgeLoadFrame", SCForgeMainFrame, "ButtonFrameTemplate")
 	ButtonFrameTemplate_HidePortrait(loadSpellFrame)
 
-	NineSlice.ApplyLayoutByName(loadSpellFrame.NineSlice, "ArcanumFrameTemplateNoPortrait")
+	NineSliceUtil.ApplyLayoutByName(loadSpellFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
 
 	loadSpellFrame:SetPoint("TOPLEFT", SCForgeMainFrame, "TOPRIGHT", 0, 0)
 	loadSpellFrame:SetSize(280, SCForgeMainFrame:GetHeight())

@@ -55,7 +55,7 @@ end
 function IconPicker.IconPicker_OnLoad(self)
 	-- self.portrait:SetTexture("Interface/AddOns/DiceMaster/Texture/logo")
 	ButtonFrameTemplate_HidePortrait(self)
-	NineSlice.ApplyLayoutByName(self.NineSlice, "ArcanumFrameTemplateNoPortrait")
+	NineSliceUtil.ApplyLayoutByName(self.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
 	self.TitleText:SetText("Icons")
 
 	self:SetClampedToScreen(true)

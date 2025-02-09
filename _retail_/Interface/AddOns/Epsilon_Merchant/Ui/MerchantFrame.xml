@@ -17,12 +17,19 @@
 						Epsilon_MerchantItemEditorChooseCurrency( itemID, Epsilon_MerchantItemEditor.choosingIndex )
 						ResetCursor()
 						Epsilon_MerchantCursorOverlay:Hide()
+					elseif Epsilon_Loot and EpsilonLootFrame.choosingItem then
+						Epsilon_LootFrame_AddItem( itemID )
 					end
 					PlaySound( 83 )
 				end
 			elseif button == "RightButton" then
 				ResetCursor()
-				Epsilon_MerchantCursorOverlay:Hide()
+				if Epsilon_MerchantCursorOverlay and Epsilon_MerchantCursorOverlay:IsShown() then
+					Epsilon_MerchantCursorOverlay:Hide()
+				end
+				if EpsilonLootCursorOverlay and EpsilonLootCursorOverlay:IsShown() then
+					EpsilonLootCursorOverlay:Hide()
+				end
 			end
 		</OnClick>
 		<OnEnter>

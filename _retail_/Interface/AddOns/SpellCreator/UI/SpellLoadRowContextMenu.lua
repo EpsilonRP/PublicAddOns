@@ -104,7 +104,11 @@ local function getPhaseSpellArgs(spell)
 				return Gossip.isLoaded() and "Add to Gossip" or "(Open a Gossip Menu)"
 			end,
 			function()
-				_G["scForgeLoadRow" .. spell.commID].gossipButton:Click()
+				Popups.showAddGossipPopup(spell.commID)
+				-- Why the hell did we originally try and just click the button here? probably cuz we needed rowID, not commID..
+				--_G["scForgeLoadRow" .. spell.commID].gossipButton:Click()
+
+				-- Alt method is to add a row reference in the createMenu which is very easy to add, but lets do this for now.
 			end,
 			{
 				disabled = function()

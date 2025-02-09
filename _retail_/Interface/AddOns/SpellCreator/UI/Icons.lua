@@ -852,10 +852,19 @@ local function getIconTextureFromName(name)
 	return path
 end
 
-local function SelectIcon(self, texID)
-	if tonumber(texID) and tonumber(texID) < 10000 then
-		texID = getCustomIconPathFromIndex(texID)
+local function getFinalIcon(icon)
+	if icon then
+		if tonumber(icon) and tonumber(icon) < 10000 then
+			icon = getCustomIconPathFromIndex(icon)
+		end
+	else
+		icon = FALLBACK_ICON
 	end
+	return icon
+end
+
+local function SelectIcon(self, texID)
+	local icon = getFinalIcon(texID)
 	self.selectedTex = texID
 	self:SetNormalTexture(texID)
 end
@@ -863,22 +872,6 @@ end
 local function ResetIcon(self)
 	self.selectedTex = nil
 	self:SetNormalTexture(FALLBACK_ICON)
-end
-
-local function getFinalIcon(icon)
-	if icon then
-		if tonumber(icon) and tonumber(icon) < 10000 then
-			icon = getCustomIconPathFromIndex(icon)
-			--dprint(nil, "Path of Custom Icon: " .. icon)
-		else
-			icon = icon
-		end
-	else
-		--icon = "Interface/Icons/inv_misc_questionmark"
-		--icon = Gems.gemPath("Violet")
-		icon = FALLBACK_ICON
-	end
-	return icon
 end
 
 ---@class UI_Icons

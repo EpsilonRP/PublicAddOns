@@ -30,7 +30,6 @@ end
 
 -- Feel free to extend the usage more if needed - right now, it's primary use is texCoord support in SimpleHTML
 
-
 local customAttrs = {
 	{
 		key = 'texCoords',
