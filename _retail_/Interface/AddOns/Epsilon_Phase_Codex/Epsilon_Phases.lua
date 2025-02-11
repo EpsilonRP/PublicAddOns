@@ -122,24 +122,37 @@ local function setQuickAccessHotkey(hotkey)
     end
 end
 
-local function setSettingsFunctions(options)
+local function setHomePhaseEntry(entry)
+    EpsilonPhases.HomePhaseEntry = entry
+end
+
+local function setSettingsFunctions(options, homePhaseEntry)
     setPhaseJoinModKeyDownFunction(options.PhaseJoinModKey)
     setIsRankToAutomaticallyAddPhase(options.PhaseJoinMinimumRank)
     setStartTab(options.StartTab)
     setQuickAccessHotkey(options.quickAccesHotkey)
+    setHomePhaseEntry(homePhaseEntry)
 end
 
-function EpsilonPhases:Show(phaseID)
+function EpsilonPhases:Show(phaseID, tab)
     if EpsilonPhasesMainFrame:IsVisible() then
         EpsilonPhasesMainFrame:Hide()
         EpsilonPhasesPhaseListFrame:Hide()
     else 
         EpsilonPhasesMainFrame:Show()
         EpsilonPhasesPhaseListFrame:Show()
+
+        if tab == 1 then
+            EpsilonPhases:SetPhaseListToPublic()
+        elseif tab == 2 then
+            EpsilonPhases:SetPhaseListToMalls()
+        elseif tab == 3 then
+            EpsilonPhases:SetPhaseListToPrivate()
+        else 
+            EpsilonPhases.SetStartTab()
+        end
         if phaseID ~= nil then
             EpsilonPhases.SetCurrentActivePhaseByPhaseID(phaseID)
-        else
-            EpsilonPhases.SetStartTab()
         end
     end
 end
@@ -198,6 +211,28 @@ local function GetPrivatePhases()
     end
 end
 
+local function SlashCommandProcessor(input)
+    if string.match(input, 'open') then
+        
+        EpsilonPhases:Show()
+
+    elseif string.find(input,'addphase') then
+        local phaseID = string.match(input,'addphase (%d+)')
+        EpsilonPhases:addPrivatePhase(phaseID)
+    elseif string.find(input, 'fave') then
+        EpsilonPhases.Favourites[tonumber(C_Epsilon.GetPhaseId())] = true
+    elseif string.find(input, 'malls') then
+        EpsilonPhases.UpdatePhaseMallsHorizCache()
+        EpsilonPhases:Show(nil, 2)
+    elseif string.find(input, 'public') then
+        EpsilonPhases:Show(nil, 1)
+    elseif string.find(input, 'personal') then
+        EpsilonPhases:Show(nil, 3)
+    end
+end
+
+EpsilonPhases:RegisterChatCommand("codex", SlashCommandProcessor )
+
 function EpsilonPhases:OnInitialize()
     self:RegisterChatCommand("phases", "Show")
     self.db = LibStub("AceDB-3.0"):New("EpsilonPhasesDB", { 
@@ -210,8 +245,12 @@ function EpsilonPhases:OnInitialize()
                 PhaseJoinMinimumRank = 2,
                 StartTab = 1,
             },
-            HomePhase = nil
-    }})
+        },
+        char = {
+            HomePhase = nil,
+            HomePhaseEntry = 'here',
+        }
+    })
     local addonOptions = {
         type = "group",
         args = {
@@ -266,6 +305,18 @@ function EpsilonPhases:OnInitialize()
                 setQuickAccessHotkey(value)
             end
           },
+          homePhaseEntry = {
+            name = "Home Phase Entrypoint",
+            desc = "The entrypoint to join your home phase",
+            type = "input",
+            get = function()
+                return self.db.char.HomePhaseEntry
+            end,
+            set = function(_, value)
+                self.db.char.HomePhaseEntry = value
+                setHomePhaseEntry(value)
+            end
+          }
         },
     }
     LibStub("AceConfig-3.0"):RegisterOptionsTable("EpsilonPhases", addonOptions)
@@ -273,7 +324,7 @@ function EpsilonPhases:OnInitialize()
     EpsilonPhases.PrivatePhases = {}
     EpsilonPhases.Malls = {}
     EpsilonPhases.Favourites = self.db.global.Favourites
-    EpsilonPhases.HomePhase = self.db.global.HomePhase
+    EpsilonPhases.HomePhase = self.db.char.HomePhase
     EpsilonPhases.PublicPhases = {}
     CreateMinimapIcon()
     EpsilonPhases.setMallsCache(self.db.global.Malls)
@@ -324,7 +375,12 @@ end
 
 EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function( _, isLogin, isReload)
     if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
-        sendAddonCmd("phase enter " .. EpsilonPhases.HomePhase)
+        EpsilonPhases:RegisterEvent("FIRST_FRAME_RENDERED", function()
+            if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
+                C_Timer.After(1, function() sendAddonCmd("phase enter " .. EpsilonPhases.HomePhase .. ' ' .. EpsilonPhases.HomePhaseEntry) end)
+            end
+            EpsilonPhases:UnregisterEvent("FIRST_FRAME_RENDERED")
+        end)
     end
 
     --only on zone switch
@@ -361,7 +417,7 @@ end)
 
 
 function EpsilonPhases:OnEnable()
-    setSettingsFunctions(self.db.global.Options)
+    setSettingsFunctions(self.db.global.Options, self.db.char.HomePhaseEntry)
     EpsilonPhasesMainFrame:SetScript("OnEvent",OnEvent)
     EpsilonPhasesMainFrame:RegisterEvent("SCENARIO_UPDATE")
     EpsilonPhasesMainFrame:RegisterEvent("CHAT_MSG_ADDON")

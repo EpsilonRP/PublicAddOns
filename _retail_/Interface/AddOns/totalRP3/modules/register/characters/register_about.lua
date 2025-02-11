@@ -631,7 +631,11 @@ local function refreshEditDisplay()
 		tcopy(draftData, dataTab);
 	end
 
-	TRP3_RegisterAbout_Edit_BckField:SetSelectedIndex(draftData.BK and TRP3_RegisterAbout_Edit_BckField.values[draftData.BK] or 1); -- // Epsi Edit: Ensure this BK exists as an option.
+	-- // Epsi Edit: Ensure this BK exists as an option, else use default (1)
+	if draftData.BK and not TRP3_RegisterAbout_Edit_BckField.values[draftData.BK] then
+		draftData.BK = 1;
+	end
+	TRP3_RegisterAbout_Edit_BckField:SetSelectedIndex(draftData.BK or 1); -- // Epsi Edit: Ensure this BK exists as an option.
 	TRP3_RegisterAbout_Edit_TemplateField:SetSelectedIndex(draftData.TE or 1);
 	selectMusic(draftData.MU);
 	-- Template 1

@@ -186,10 +186,10 @@ autoJoinButton.tooltip = "Join phase on login"
 autoJoinButton:SetPoint("RIGHT", removePhaseButton, "LEFT")
 autoJoinButton:SetScript("OnClick", function(self)
     if self:GetChecked() then
-        EpsilonPhases.db.global.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
+        EpsilonPhases.db.char.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
         EpsilonPhases.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
     else 
-        EpsilonPhases.db.global.HomePhase = nil
+        EpsilonPhases.db.char.HomePhase = nil
         EpsilonPhases.HomePhase = nil
     end
 end)

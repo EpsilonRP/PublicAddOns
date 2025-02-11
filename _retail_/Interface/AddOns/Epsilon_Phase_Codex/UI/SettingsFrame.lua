@@ -21,10 +21,10 @@ local function sendPhaseInfo(detailsInput)
     end
     if #text > 200 then
         sendAddonCmd("phase set info init " .. string.sub(text, 1, 200))
-        for i = 201, math.min(#text, 800), 200 do
-            sendAddonCmd("phase set info append " .. string.sub(text, i, i+200))
+        for i = 201, math.min(#text, 800), 201 do
+            sendAddonCmd("phase set info append " .. string.sub(text, i, i + 200))
         end
-    else 
+    else
         sendAddonCmd("phase set info init " .. text)
     end
     EpsilonPhases.currentActivePhase.data.info = text
@@ -51,21 +51,21 @@ iconChangeButton:SetSize(64, 64)
 iconChangeButton:SetPoint("TOPLEFT", settingsFrame, "TOPLEFT", 10, -30)
 iconChangeButton:SetNormalTexture(134400)
 iconChangeButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-iconChangeButton:SetScript("OnClick", function ()
-    local returnfunc =  function(icon)
+iconChangeButton:SetScript("OnClick", function()
+    local returnfunc = function(icon)
         local icon = string.gsub(icon, 'Interface/Icons/', '')
         sendAddonCmd("phase set icon " .. icon)
         EpsilonPhases.currentActivePhase.data.icon = icon
         EpsilonPhases.DrawPhases(EpsilonPhases.PrivatePhases)
         EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
-        iconChangeButton:SetNormalTexture('Interface/Icons/' ..icon)
+        iconChangeButton:SetNormalTexture('Interface/Icons/' .. icon)
     end
-    EpsilonLibIconPicker_Open( returnfunc, true, false )
+    EpsilonLibIconPicker_Open(returnfunc, true, false)
 end)
 settingsFrame.iconChangeButton = iconChangeButton
 
 local phaseColorPickerLabel = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-phaseColorPickerLabel:SetPoint("BOTTOM", iconChangeButton, "BOTTOM", 80 , -25)
+phaseColorPickerLabel:SetPoint("BOTTOM", iconChangeButton, "BOTTOM", 80, -25)
 phaseColorPickerLabel:SetJustifyH("CENTER")
 phaseColorPickerLabel:SetText("Phase Colour")
 
@@ -91,12 +91,12 @@ backgroundDropdown.frame:Show()
 backgroundDropdown:SetCallback("OnValueChanged", selectBackground)
 settingsFrame.backgroundDropdown = backgroundDropdown
 
-for i=1, #EpsilonPhases.PHASE_BACKGROUNDS, 1 do
-     local item = _G["AceGUI30DropDownItem" .. i]
-     item:SetScript("OnEnter", function(self)
+for i = 1, #EpsilonPhases.PHASE_BACKGROUNDS, 1 do
+    local item = _G["AceGUI30DropDownItem" .. i]
+    item:SetScript("OnEnter", function(self)
         local backgroundX, backgroundX2, backgroundY, backgroundY2 = calcBackground(i)
 
-        local textureInfoTable =  {
+        local textureInfoTable = {
             width = 200,
             height = 72,
             margin = { left = 0, right = -8, top = 0, bottom = 0 }
@@ -108,18 +108,18 @@ for i=1, #EpsilonPhases.PHASE_BACKGROUNDS, 1 do
         if (i > 91) then
             GameTooltip:AddTexture(EpsilonPhases.ASSETS_PATH .. "/Backgrounds2.blp", textureInfoTable)
             _G["GameTooltipTexture1"]:SetTexture(EpsilonPhases.ASSETS_PATH .. "/Backgrounds2")
-            _G["GameTooltipTexture1"]:SetTexCoord(backgroundX,  backgroundX2 ,backgroundY, backgroundY2)
+            _G["GameTooltipTexture1"]:SetTexCoord(backgroundX, backgroundX2, backgroundY, backgroundY2)
         else
             GameTooltip:AddTexture(EpsilonPhases.ASSETS_PATH .. "/Backgrounds1.blp", textureInfoTable)
             _G["GameTooltipTexture1"]:SetTexture(EpsilonPhases.ASSETS_PATH .. "/Backgrounds1")
-            _G["GameTooltipTexture1"]:SetTexCoord(backgroundX,  backgroundX2 ,backgroundY, backgroundY2)
+            _G["GameTooltipTexture1"]:SetTexCoord(backgroundX, backgroundX2, backgroundY, backgroundY2)
         end
         GameTooltip:Show()
-     end)
-     item:SetScript("OnLeave", function()
+    end)
+    item:SetScript("OnLeave", function()
         local GameTooltip = _G["GameTooltip"]
         GameTooltip:Hide()
-     end)
+    end)
 end
 
 local phaseTypeLabel = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -138,7 +138,8 @@ detailsLabel:SetJustifyH("CENTER")
 detailsLabel:SetPoint("TOP", phaseType, "BOTTOM", 0, -20)
 detailsLabel:SetText("Information")
 
-local details = CreateFrame("FRAME", "EpsilonPhasesSettingsFrameDetailsInput", settingsFrame, "EpsilonInputScrollTemplate")
+local details = CreateFrame("FRAME", "EpsilonPhasesSettingsFrameDetailsInput", settingsFrame,
+    "EpsilonInputScrollTemplate")
 details:SetSize(200, 140)
 details:SetPoint("TOP", detailsLabel, "BOTTOM", 0, -20)
 details:Show()
@@ -177,23 +178,23 @@ local function setupTags(phase)
     end
     i = 1
 
-    -- necessary for deletion
-    local rawPhaseTags = phase:GetRawPhaseTags()
     for tagIndex, tag in pairs(phase:GetPhaseTags()) do
         local tagFontString
         if _G["EpsilonPhasesSettingsFrameTag" .. i] == nil then
-            tagFontString = settingsFrame:CreateFontString("EpsilonPhasesSettingsFrameTag" .. i, "OVERLAY", "GameTooltipText")
+            tagFontString = settingsFrame:CreateFontString("EpsilonPhasesSettingsFrameTag" .. i, "OVERLAY",
+                "GameTooltipText")
             local deleteButton = CreateFrame("Button", "EpsilonPhasesSettingsFrameTagButton" .. i, settingsFrame)
             deleteButton:SetPoint("CENTER", tagFontString, "TOPRIGHT", 2, 2)
             deleteButton:SetNormalTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
-            deleteButton:SetSize(12 , 12)
+            deleteButton:SetSize(12, 12)
             deleteButton:Show()
             deleteButton:SetScript("OnClick", function()
-                local dialog = StaticPopup_Show("DELETE_PHASE_TAG", phase:GetPhaseTags()[tagIndex])
-                dialog.data = rawPhaseTags
+                local dialog = StaticPopup_Show("DELETE_PHASE_TAG",
+                    EpsilonPhases.currentActivePhase:GetPhaseTags()[tagIndex])
+                dialog.data = EpsilonPhases.currentActivePhase:GetRawPhaseTags()
                 dialog.data2 = tagIndex
             end)
-        else 
+        else
             tagFontString = _G["EpsilonPhasesSettingsFrameTag" .. i];
             _G["EpsilonPhasesSettingsFrameTagButton" .. i]:Show()
             tagFontString:Show()
@@ -206,7 +207,7 @@ local function setupTags(phase)
         tagFontString:SetPoint("TOP", tagsColor, "BOTTOM", 0, 15 + (-20 * currentLine))
         tagFontString:SetPoint("LEFT", settingsFrame, "LEFT", currentLineLength + 10, 0)
         currentLineLength = currentLineLength + tagFontString:GetWidth() + 10
-        
+
         i = i + 1
     end
 end
@@ -217,20 +218,21 @@ local function addTag(success, data)
         tinsert(EpsilonPhases.currentActivePhase.data.tags, tagString)
         setupTags(EpsilonPhases.currentActivePhase)
         EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
-    else 
-        UIErrorsFrame:AddMessage("The tag could not be added - maybe it contains forbidden characters?", 1.0, 0.0, 0.0, 53, 5);
+    else
+        UIErrorsFrame:AddMessage("The tag could not be added - maybe it contains forbidden characters?", 1.0, 0.0, 0.0,
+            53, 5);
     end
 end
 
 tagsInput:SetScript("OnEnterPressed", function(self)
     local tagString = self:GetText()
+    if currentTagColor ~= nil then
         if currentTagColor ~= nil then
-            if currentTagColor ~= nil then
-                tagString = tagString .. '-' .. currentTagColor.r .. '-' .. currentTagColor.g .. '-' .. currentTagColor.b
-            end
+            tagString = tagString .. '-' .. currentTagColor.r .. '-' .. currentTagColor.g .. '-' .. currentTagColor.b
         end
-        self:SetText('')
-        sendAddonCmd("phase set addtag " .. #EpsilonPhases.currentActivePhase:GetPhaseTags() + 1 .. " " .. tagString, addTag)
+    end
+    self:SetText('')
+    sendAddonCmd("phase set addtag " .. #EpsilonPhases.currentActivePhase:GetPhaseTags() + 1 .. " " .. tagString, addTag)
 end)
 
 tagsInput:SetScript("OnTextChanged", function(self)
@@ -245,12 +247,12 @@ StaticPopupDialogs["DELETE_PHASE_TAG"] = {
     button1 = "Yes",
     button2 = "No",
     OnAccept = function(self, data, data2)
-       local tag = data[data2]
-       sendAddonCmd("phase set deltag " .. tag)
-       table.remove(data,data2)
-       setupTags(EpsilonPhases.currentActivePhase)
-       EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
-     end,
+        local tag = data[data2]
+        sendAddonCmd("phase set deltag " .. tag)
+        table.remove(data, data2)
+        setupTags(EpsilonPhases.currentActivePhase)
+        EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
+    end,
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
@@ -300,23 +302,23 @@ phaseType:SetScript("OnEditFocusLost", function(self)
 end)
 
 phaseColorPicker:SetScript("OnClick", function()
-      local function swatchFunc()
+    local function swatchFunc()
         local r, g, b = ColorPickerFrame:GetColorRGB();
         settingsFrame.phaseColorPicker:GetNormalTexture():SetVertexColor(r, g, b)
-      end
+    end
 
-      local function cancelFunc()
+    local function cancelFunc()
         local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRBG()
         settingsFrame.phaseColorPicker:GetNormalTexture():SetVertexColor(r, g, b)
         _G["ColorPickerOkayButton"]:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
-      end
+    end
 
-      _G["ColorPickerOkayButton"]:SetScript("OnClick", function(self)
+    _G["ColorPickerOkayButton"]:SetScript("OnClick", function(self)
         local r, g, b = ColorPickerFrame:GetColorRGB()
-        r, g, b =  CreateColor(r, g, b):GetRGBAsBytes()
-        local uintColor = (r * 2^24) + (g * 2^16) + (b * 2^8) + 0
+        r, g, b = CreateColor(r, g, b):GetRGBAsBytes()
+        local uintColor = (r * 2 ^ 24) + (g * 2 ^ 16) + (b * 2 ^ 8) + 0
         sendAddonCmd("phase set adbgcolor " .. uintColor)
         EpsilonPhases.currentActivePhase.data.color = uintColor
         EpsilonPhases.DrawPhases(EpsilonPhases.PrivatePhases)
@@ -326,11 +328,11 @@ phaseColorPicker:SetScript("OnClick", function()
         self:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
-      end)
-    
-      local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRGB()
+    end)
 
-      local options = {
+    local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRGB()
+
+    local options = {
         swatchFunc = swatchFunc,
         opacityFunc = nil,
         cancelFunc = cancelFunc,
@@ -339,9 +341,9 @@ phaseColorPicker:SetScript("OnClick", function()
         r = r,
         g = g,
         b = b,
-      };
-    
-      OpenColorPicker(options)
+    };
+
+    OpenColorPicker(options)
 end)
 
 tagsColor:SetScript("OnClick", function()
@@ -362,44 +364,44 @@ tagsColor:SetScript("OnClick", function()
     end
 
     _G["ColorPickerOkayButton"]:SetScript("OnClick", function(self)
-      local r, g, b = ColorPickerFrame:GetColorRGB()
-      r, g, b =  CreateColor(r, g, b):GetRGBAsBytes()
-      currentTagColor = { r = r, g = g, b = b}
+        local r, g, b = ColorPickerFrame:GetColorRGB()
+        r, g, b = CreateColor(r, g, b):GetRGBAsBytes()
+        currentTagColor = { r = r, g = g, b = b }
 
-      _G["ColorPickerFrame"]:Hide()
-      self:SetScript("OnClick", function()
-          _G["ColorPickerFrame"]:Hide()
-      end)
+        _G["ColorPickerFrame"]:Hide()
+        self:SetScript("OnClick", function()
+            _G["ColorPickerFrame"]:Hide()
+        end)
     end)
-  
+
     if currentTagColor ~= nil then
         r = currentTagColor.r
         g = currentTagColor.g
         b = currentTagColor.b
-    else 
+    else
         r = 255
         g = 255
         b = 255
     end
 
     local options = {
-      swatchFunc = swatchFunc,
-      opacityFunc = nil,
-      cancelFunc = cancelFunc,
-      hasOpacity = false,
-      opacity = 0,
-      r = r,
-      g = g,
-      b = b,
+        swatchFunc = swatchFunc,
+        opacityFunc = nil,
+        cancelFunc = cancelFunc,
+        hasOpacity = false,
+        opacity = 0,
+        r = r,
+        g = g,
+        b = b,
     };
-  
+
     OpenColorPicker(options)
 end)
 
 function EpsilonPhases:showHideSettings()
     if settingsFrame:IsVisible() then
         settingsFrame:Hide()
-    else 
+    else
         setupFrame()
         settingsFrame:Show()
     end
