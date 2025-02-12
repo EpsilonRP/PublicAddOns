@@ -11,5 +11,5 @@
 	<Script file="GossipUtil.lua"/>
 
 	<Script file="MiscUtils.lua"/>
-
+	<Script file="GenericDialogs.lua"/>
 </Ui>
