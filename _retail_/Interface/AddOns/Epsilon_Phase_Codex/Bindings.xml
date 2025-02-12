@@ -2,4 +2,7 @@
  <Binding name="PHASE_CODEX_QUICK_ACCESS" header="PHASE_CODEX" category="ADDONS" runOnUp="true">
     EpsilonPhases.quickAccessShowHide()
  </Binding>
+ <Binding name="PHASE_CODEX_OPEN" category="ADDONS" >
+   EpsilonPhases.Show()
+ </Binding>
 </Bindings>

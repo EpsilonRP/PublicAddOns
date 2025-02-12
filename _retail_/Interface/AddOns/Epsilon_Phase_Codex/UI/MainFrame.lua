@@ -305,7 +305,7 @@ details:SetText("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed di
 details:SetWidth(400)
 details:SetWordWrap(true)
 details:SetNonSpaceWrap(true)
-details:SetTextScale(1.1)
+details:SetTextScale(0.96)
 
 local BigJoinButton = CreateFrame("Button", nil, EpsilonPhasesMainFrame)
 BigJoinButton:SetSize(200, 50)

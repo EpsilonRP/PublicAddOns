@@ -128,6 +128,29 @@ EPSILON_BH_MALLS_CACHE = {
     [1459] = false,
     [171169] = false,
     [187080] = false,
+    [200] = true,
+    [47690] = true,
+    [124905] = true,
+    [82098] = true,
+    [81962] = true,
+    [83412] = true,
+    [86836] = true,
+    [2322] = true,
+    [143315] = true,
+    [80110] = true,
+    [80108] = true,
+    [64757] = true,
+    [49420] = true,
+    [70270] = true,
+    [35945] = true,
+    [130421] = true,
+    [108273] = true,
+    [80982] = true,
+    [166503] = true,
+    [67558] = true,
+    [149709] = true,
+    [112442] = true,
+    [86836] = true,
 }
 
 -- quicker local access
@@ -146,10 +169,10 @@ local function mallInfoCallback(phase)
 end
 
 local function UpdatePhaseMallsHorizCache(cache)
-   local cache = cache or _malls
-   for k, _ in pairs(cache) do
-       PhaseClass:Get(k, mallInfoCallback)
-   end
+    local cache = cache or _malls
+    for k, _ in pairs(cache) do
+        PhaseClass:Get(k, mallInfoCallback)
+    end
 end
 EpsilonPhases.UpdatePhaseMallsHorizCache = UpdatePhaseMallsHorizCache
 
@@ -179,7 +202,7 @@ end
 
 ---Gets the list of malls from the main phase directory and saves to local cache
 function EpsilonPhases:GetMallsFromMPDirectory(callback)
-    if tonumber(C_Epsilon.GetPhaseId()) ~= 169 then return end 
+    if tonumber(C_Epsilon.GetPhaseId()) ~= 169 then return end
     EpsilonLib.PhaseAddonData.Get("BH_MALLS", function(data) processMPDirectoryString(data, callback) end)
 end
 
@@ -244,7 +267,7 @@ function EpsilonPhases:RemoveMallFromMPDirectory(mallId)
                 table.insert(malls, mall)
             end
         end
-        
+
         local finalMallsStr = table.concat(malls, ",")
         EpsilonLib.PhaseAddonData.Set("BH_MALLS", finalMallsStr)
 

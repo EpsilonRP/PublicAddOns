@@ -41,6 +41,49 @@ ButtonFrameTemplate_HideButtonBar(settingsFrame)
 NineSliceUtil.ApplyLayoutByName(settingsFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
 settingsFrame:Hide()
 
+local colorPickerFrame = _G["ColorPickerFrame"]
+local hexInput = CreateFrame("EditBox", nil, colorPickerFrame, 'InputBoxInstructionsTemplate')
+hexInput:SetSize(73, 22)
+hexInput:SetPoint("BOTTOMRIGHT", colorPickerFrame, "BOTTOMRIGHT", -23, 44)
+hexInput:SetMaxBytes(7)
+hexInput:SetAutoFocus(false)
+hexInput:SetCursorPosition(0)
+hexInput:Show()
+
+hexInput:SetScript("OnEnterPressed", function(self)
+    local text = self:GetText();
+    local length = string.len(text);
+    if length == 0 then
+        self:SetText("ffffff");
+    elseif length < 6 then
+        local startingText = text;
+        while length < 6 do
+            for i = 1, #startingText do
+                local char = startingText:sub(i,i);
+                text = text..char;
+
+                length = length + 1;
+                if length == 6 then
+                    break;
+                end
+            end
+        end
+        self:SetText(text);
+    end
+
+    -- Update color to match string.
+    -- Add alpha values to the end to be correct format.
+    local color = CreateColorFromHexString("ff" .. self:GetText());
+    _G["ColorPickerFrame"]:SetColorRGB(color:GetRGB());
+end)
+    
+
+local hexLabel = hexInput:CreateFontString('Label', "OVERLAY", "GameFontNormal")
+hexLabel:SetText("Hex Code")
+hexLabel:SetPoint("CENTER", hexInput, "TOP")
+hexLabel:SetJustifyH("CENTER")
+
+
 local titleBgColor = settingsFrame:CreateTexture(nil, "BACKGROUND")
 titleBgColor:SetPoint("TOPLEFT", settingsFrame.TitleBg)
 titleBgColor:SetPoint("BOTTOMRIGHT", settingsFrame.TitleBg)
@@ -150,14 +193,21 @@ tagsLabel:SetPoint("BOTTOM", details, "BOTTOM", 0, -30)
 tagsLabel:SetText("Tags")
 
 local tagsInput = CreateFrame("EditBox", nil, settingsFrame, "InputBoxTemplate")
-tagsInput:SetSize(210, 20)
-tagsInput:SetPoint("BOTTOM", tagsLabel, "BOTTOM", 0, -30)
+tagsInput:SetSize(190, 20)
+tagsInput:SetPoint("BOTTOM", tagsLabel, "BOTTOM", -10, -30)
 tagsInput:SetAutoFocus(false)
 tagsInput:SetCursorPosition(0)
 
 tagsInput:SetScript("OnEscapePressed", function(self)
     self:ClearFocus()
 end)
+
+local tagsButton = CreateFrame("Button", nil, settingsFrame)
+tagsButton:SetSize(20, 20)
+tagsButton:SetPoint("LEFT", tagsInput, "RIGHT")
+tagsButton:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/CodexAdd")
+tagsButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+
 
 local tagsColor = CreateFrame("Button", nil, settingsFrame)
 tagsColor:SetSize(64, 20)
@@ -224,15 +274,18 @@ local function addTag(success, data)
     end
 end
 
-tagsInput:SetScript("OnEnterPressed", function(self)
-    local tagString = self:GetText()
+local function sendTag(tagString)
     if currentTagColor ~= nil then
         if currentTagColor ~= nil then
             tagString = tagString .. '-' .. currentTagColor.r .. '-' .. currentTagColor.g .. '-' .. currentTagColor.b
         end
     end
-    self:SetText('')
     sendAddonCmd("phase set addtag " .. #EpsilonPhases.currentActivePhase:GetPhaseTags() + 1 .. " " .. tagString, addTag)
+end
+
+tagsInput:SetScript("OnEnterPressed", function(self)
+    sendTag(self:GetText())
+    self:SetText('')
 end)
 
 tagsInput:SetScript("OnTextChanged", function(self)
@@ -240,6 +293,25 @@ tagsInput:SetScript("OnTextChanged", function(self)
     if text:match("[%sB]") ~= nil then
         self:SetText(text:gsub("%s+", ""))
     end
+end)
+
+tagsButton:SetScript("OnClick", function()
+    sendTag(tagsInput:GetText())
+    tagsInput:SetText('')
+end)
+
+tagsButton:SetScript("OnEnter", function(self)
+    local tooltip = _G["GameTooltip"]
+    tooltip:SetOwner(self, "ANCHOR_CURSOR");
+    tooltip:ClearLines()
+    tooltip:AddLine('Add Tag')
+    tooltip:Show()
+end)
+
+tagsButton:SetScript('OnLeave', function()
+    local tooltip = _G["GameTooltip"]
+    tooltip:ClearLines()
+    tooltip:Hide()
 end)
 
 StaticPopupDialogs["DELETE_PHASE_TAG"] = {
