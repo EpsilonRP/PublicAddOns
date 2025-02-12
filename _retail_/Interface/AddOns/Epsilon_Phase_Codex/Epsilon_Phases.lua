@@ -1,8 +1,8 @@
-
 local EpsilonPhases = LibStub("AceAddon-3.0"):NewAddon("EpsilonPhases", "AceConsole-3.0", "AceEvent-3.0")
 local PhaseClass = EpsilonLib.Classes.Phase
 BINDING_HEADER_PHASE_CODEX = "Phase Codex"
 BINDING_NAME_PHASE_CODEX_QUICK_ACCESS = "Quick Access"
+PHASE_CODEX_OPEN = "Open Codex"
 
 EpsilonPhases.previousTempPhase = nil
 
@@ -12,7 +12,7 @@ local function phaseInfoCallback(phase)
 end
 local function addPrivatePhase(phaseId, permanent)
     if permanent then
-        tinsert(EpsilonPhases.db.global.PrivatePhases, phaseId, '') 
+        tinsert(EpsilonPhases.db.global.PrivatePhases, phaseId, '')
     end
     if not EpsilonPhases:IsPhaseInTable(phaseId, EpsilonPhases.PrivatePhases) then
         PhaseClass:Get(phaseId, phaseInfoCallback)
@@ -55,9 +55,9 @@ StaticPopupDialogs["CLICK_LINK_CLICKURL"] = {
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
-    preferredIndex = 3, 
-    OnShow = 
-        function (self, data)
+    preferredIndex = 3,
+    OnShow =
+        function(self, data)
             self.editBox:SetText(data)
             self.editBox:HighlightText()
         end,
@@ -66,7 +66,7 @@ StaticPopupDialogs["CLICK_LINK_CLICKURL"] = {
 
 local function phaseShareCallback(phase)
     if not EpsilonPhases:IsPhaseInTable(phase:GetPhaseID(), EpsilonPhases.PrivatePhases) then
-        tinsert(EpsilonPhases.PrivatePhases, phase) 
+        tinsert(EpsilonPhases.PrivatePhases, phase)
     end
     EpsilonPhases:Show(phase:GetPhaseID())
 end
@@ -101,7 +101,7 @@ local function setIsRankToAutomaticallyAddPhase(value)
         EpsilonPhases.IsRankToAutomaticallyAddPhase = C_Epsilon.IsOfficer
     elseif value == 3 then
         EpsilonPhases.IsRankToAutomaticallyAddPhase = C_Epsilon.IsMember
-    else 
+    else
         EpsilonPhases.IsRankToAutomaticallyAddPhase = function() return true end
     end
 end
@@ -122,50 +122,70 @@ local function setQuickAccessHotkey(hotkey)
     end
 end
 
-local function setSettingsFunctions(options)
+local function setOpenAccessHotkey(hotkey)
+    if hotkey ~= nil then
+        SetBinding(hotkey, "PHASE_CODEX_OPEN")
+    end
+end
+
+local function setHomePhaseEntry(entry)
+    EpsilonPhases.HomePhaseEntry = entry
+end
+
+local function setSettingsFunctions(options, homePhaseEntry)
     setPhaseJoinModKeyDownFunction(options.PhaseJoinModKey)
     setIsRankToAutomaticallyAddPhase(options.PhaseJoinMinimumRank)
     setStartTab(options.StartTab)
     setQuickAccessHotkey(options.quickAccesHotkey)
+    setOpenAccessHotkey(options.openHotkey)
+    setHomePhaseEntry(homePhaseEntry)
 end
 
-function EpsilonPhases:Show(phaseID)
+function EpsilonPhases:Show(phaseID, tab)
     if EpsilonPhasesMainFrame:IsVisible() then
         EpsilonPhasesMainFrame:Hide()
         EpsilonPhasesPhaseListFrame:Hide()
-    else 
+    else
         EpsilonPhasesMainFrame:Show()
         EpsilonPhasesPhaseListFrame:Show()
-        if phaseID ~= nil then
-            EpsilonPhases.SetCurrentActivePhaseByPhaseID(phaseID)
+
+        if tab == 1 then
+            EpsilonPhases:SetPhaseListToPublic()
+        elseif tab == 2 then
+            EpsilonPhases:SetPhaseListToMalls()
+        elseif tab == 3 then
+            EpsilonPhases:SetPhaseListToPrivate()
         else
             EpsilonPhases.SetStartTab()
+        end
+        if phaseID ~= nil then
+            EpsilonPhases.SetCurrentActivePhaseByPhaseID(phaseID)
         end
     end
 end
 
 if EpsilonLib and EpsilonLib.AddonCommands then
-	sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseCodex")
+    sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseCodex")
 else
-	-- command, callbackFn, forceShowMessages
-	function sendAddonCmd(command, callbackFn, forceShowMessages)
-		if EpsilonLib and EpsilonLib.AddonCommands then
-			-- Reassign it.
-			sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseCodex")
-			sendAddonCmd(command, callbackFn, forceShowMessages)
-			return
-		end
+    -- command, callbackFn, forceShowMessages
+    function sendAddonCmd(command, callbackFn, forceShowMessages)
+        if EpsilonLib and EpsilonLib.AddonCommands then
+            -- Reassign it.
+            sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseCodex")
+            sendAddonCmd(command, callbackFn, forceShowMessages)
+            return
+        end
 
-		-- Fallback ...
-		print("Warning: PhaseCodex had to fallback to standard chat commands. Is your EpsilonLib okay??")
-		SendChatMessage("." .. command, "GUILD")
-	end
+        -- Fallback ...
+        print("Warning: PhaseCodex had to fallback to standard chat commands. Is your EpsilonLib okay??")
+        SendChatMessage("." .. command, "GUILD")
+    end
 end
 
 local function CreateMinimapIcon()
-	LibStub("EpsiLauncher-1.0").API.new("Phase Codex", function()
-	EpsilonPhases:Show()
-	end, EpsilonPhases.ASSETS_PATH .. "/EpsilonTrayIconCodex", { "Click to open the Phase Codex." })
+    LibStub("EpsiLauncher-1.0").API.new("Phase Codex", function()
+        EpsilonPhases:Show()
+    end, EpsilonPhases.ASSETS_PATH .. "/EpsilonTrayIconCodex", { "Click to open the Phase Codex." })
 end
 
 local function phaseOverviewCallback()
@@ -198,9 +218,29 @@ local function GetPrivatePhases()
     end
 end
 
+local function SlashCommandProcessor(input)
+    if string.match(input, 'open') then
+        EpsilonPhases:Show()
+    elseif string.find(input, 'addphase') then
+        local phaseID = string.match(input, 'addphase (%d+)')
+        EpsilonPhases:addPrivatePhase(phaseID)
+    elseif string.find(input, 'fave') then
+        EpsilonPhases.Favourites[tonumber(C_Epsilon.GetPhaseId())] = true
+    elseif string.find(input, 'malls') then
+        EpsilonPhases.UpdatePhaseMallsHorizCache()
+        EpsilonPhases:Show(nil, 2)
+    elseif string.find(input, 'public') then
+        EpsilonPhases:Show(nil, 1)
+    elseif string.find(input, 'personal') then
+        EpsilonPhases:Show(nil, 3)
+    end
+end
+
+EpsilonPhases:RegisterChatCommand("codex", SlashCommandProcessor)
+
 function EpsilonPhases:OnInitialize()
     self:RegisterChatCommand("phases", "Show")
-    self.db = LibStub("AceDB-3.0"):New("EpsilonPhasesDB", { 
+    self.db = LibStub("AceDB-3.0"):New("EpsilonPhasesDB", {
         global = {
             PrivatePhases = {},
             Favourites = {},
@@ -210,62 +250,111 @@ function EpsilonPhases:OnInitialize()
                 PhaseJoinMinimumRank = 2,
                 StartTab = 1,
             },
-            HomePhase = nil
-    }})
+        },
+        char = {
+            HomePhase = nil,
+            HomePhaseEntry = 'here',
+        }
+    })
+
     local addonOptions = {
         type = "group",
         args = {
-          modKey = {
-            name = "Phase Join modifier key",
-            desc = "When holding this key while clicking the join button you will enter the phase where you are",
-            type = "select",
-            values = {"CTRL", "SHIFT", "ALT"},
-            get = function()
-                return self.db.global.Options.PhaseJoinModKey
-             end,
-            set = function(_, value)
-                self.db.global.Options.PhaseJoinModKey = value
-                setPhaseJoinModKeyDownFunction(value)
-            end
-          },
-          joinRank = {
-            name = "Minimum auto-add rank",
-            desc = "The minimum rank you need to have for a phase you join to be automatically added to your list of personal phases",
-            type = "select",
-            values = {"Owner", "Officer", "Member", "Every Phase"},
-            get = function() 
-                return self.db.global.Options.PhaseJoinMinimumRank
-            end,
-            set = function(_, value)
-                self.db.global.Options.PhaseJoinMinimumRank = value
-                setIsRankToAutomaticallyAddPhase(value)
-            end
-        },
-          startTab = {
-            name = "Start tab",
-            desc = "The tab that is selected by default when you open the Phase Codex",
-            type = "select",
-            values = {"Public", "Mall", "Personal"},
-            get = function() 
-                return self.db.global.Options.StartTab
-            end,
-            set = function(_, value)
-                self.db.global.Options.StartTab = value
-                setStartTab(value)
-            end
-          },
-          quickAccesHotkey = {
-            name = "Quick access",
-            desc = "Hotkey to open the phase list while pressed",
-            type = "keybinding",
-            get = function()
-                return self.db.global.Options.quickAccesHotkey
-            end,
-            set = function (_, value)
-                self.db.global.Options.quickAccesHotkey = value
-                setQuickAccessHotkey(value)
-            end
-          },
+            hotkeys = {
+                type = "group",
+                name = "Hotkeys",
+                args = {
+                    quickAccesHotkey = {
+                        name = "Quick access",
+                        desc = "Hotkey to open the phase list while pressed",
+                        type = "keybinding",
+                        get = function()
+                            return self.db.global.Options.quickAccesHotkey
+                        end,
+                        set = function(_, value)
+                            self.db.global.Options.quickAccesHotkey = value
+                            setQuickAccessHotkey(value)
+                        end
+                    },
+                    openHotkey = {
+                        name = "Open",
+                        desc = "Hotkey to open the phase list",
+                        type = "keybinding",
+                        get = function()
+                            return self.db.global.Options.openHotkey
+                        end,
+                        set = function(_, value)
+                            self.db.global.Options.openHotkey = value
+                            setOpenAccessHotkey(value)
+                        end
+                    },
+                },
+            },
+            general = {
+                type = "group",
+                name = "General",
+                args = {
+                    startTab = {
+                        name = "Start tab",
+                        desc = "The tab that is selected by default when you open the Phase Codex",
+                        type = "select",
+                        values = { "Public", "Mall", "Personal" },
+                        get = function()
+                            return self.db.global.Options.StartTab
+                        end,
+                        set = function(_, value)
+                            self.db.global.Options.StartTab = value
+                            setStartTab(value)
+                        end
+                    },
+                }
+            },
+            phaseJoin = {
+                type = "group",
+                name = "Phase Join",
+                args = {
+                    modKey = {
+                        name = "Phase Join modifier key",
+                        desc =
+                        "When holding this key while clicking the join button you will enter the phase where you are",
+                        type = "select",
+                        values = { "CTRL", "SHIFT", "ALT" },
+                        get = function()
+                            return self.db.global.Options.PhaseJoinModKey
+                        end,
+                        set = function(_, value)
+                            self.db.global.Options.PhaseJoinModKey = value
+                            setPhaseJoinModKeyDownFunction(value)
+                        end
+                    },
+                    homePhaseEntry = {
+                        name = "Home Phase Entrypoint",
+                        desc = "The entrypoint to join your home phase",
+                        type = "input",
+                        get = function()
+                            return self.db.char.HomePhaseEntry
+                        end,
+                        set = function(_, value)
+                            self.db.char.HomePhaseEntry = value
+                            setHomePhaseEntry(value)
+                        end
+                    },
+                    joinRank = {
+                        name = "Minimum auto-add rank",
+                        desc =
+                        "The minimum rank you need to have for a phase you join to be automatically added to your list of personal phases",
+                        type = "select",
+                        values = { "Owner", "Officer", "Member", "Every Phase" },
+                        get = function()
+                            return self.db.global.Options.PhaseJoinMinimumRank
+                        end,
+                        set = function(_, value)
+                            self.db.global.Options.PhaseJoinMinimumRank = value
+                            setIsRankToAutomaticallyAddPhase(value)
+                        end
+                    },
+                }
+            }
         },
     }
     LibStub("AceConfig-3.0"):RegisterOptionsTable("EpsilonPhases", addonOptions)
@@ -273,11 +362,10 @@ function EpsilonPhases:OnInitialize()
     EpsilonPhases.PrivatePhases = {}
     EpsilonPhases.Malls = {}
     EpsilonPhases.Favourites = self.db.global.Favourites
-    EpsilonPhases.HomePhase = self.db.global.HomePhase
+    EpsilonPhases.HomePhase = self.db.char.HomePhase
     EpsilonPhases.PublicPhases = {}
     CreateMinimapIcon()
     EpsilonPhases.setMallsCache(self.db.global.Malls)
-    EpsilonPhases.SetPhaseListToPublic()
 end
 
 function EpsilonPhases:IsPhaseInTable(phaseID, phaseTable)
@@ -305,7 +393,7 @@ local function OnEvent(_, event, prefix, text, _, sender)
 
         if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
             addPrivatePhase(phaseId, true)
-        elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then 
+        elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
             addPrivatePhase(phaseId, false)
             EpsilonPhases.previousTempPhase = phaseId
         end
@@ -322,23 +410,32 @@ local function OnEvent(_, event, prefix, text, _, sender)
     end
 end
 
-EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function( _, isLogin, isReload)
+EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isReload)
     if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
-        sendAddonCmd("phase enter " .. EpsilonPhases.HomePhase)
+        EpsilonPhases:RegisterEvent("FIRST_FRAME_RENDERED", function()
+            if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
+                C_Timer.After(1,
+                    function()
+                        sendAddonCmd("phase enter " ..
+                            EpsilonPhases.HomePhase .. ' ' .. EpsilonPhases.HomePhaseEntry)
+                    end)
+            end
+            EpsilonPhases:UnregisterEvent("FIRST_FRAME_RENDERED")
+        end)
     end
 
     --only on zone switch
     if not isLogin and not isReload then
         local phaseId = tonumber(C_Epsilon:GetPhaseId())
         EpsilonPhases:SetSettingsButtonEnable()
-    
+
         if EpsilonPhases.previousTempPhase ~= nil then
             EpsilonPhases.RemovePhaseFromList(EpsilonPhases.previousTempPhase, EpsilonPhases.PrivatePhases)
         end
-    
+
         if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
             addPrivatePhase(phaseId, true)
-        elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then 
+        elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
             addPrivatePhase(phaseId, false)
             EpsilonPhases.previousTempPhase = phaseId
         end
@@ -361,21 +458,24 @@ end)
 
 
 function EpsilonPhases:OnEnable()
-    setSettingsFunctions(self.db.global.Options)
-    EpsilonPhasesMainFrame:SetScript("OnEvent",OnEvent)
+    setSettingsFunctions(self.db.global.Options, self.db.char.HomePhaseEntry)
+    EpsilonPhasesMainFrame:SetScript("OnEvent", OnEvent)
     EpsilonPhasesMainFrame:RegisterEvent("SCENARIO_UPDATE")
     EpsilonPhasesMainFrame:RegisterEvent("CHAT_MSG_ADDON")
     C_ChatInfo.RegisterAddonMessagePrefix(EpsilonPhases.SEND_ADDON_MESSAGE_PREFIX)
 
-    GetPrivatePhases()
+    C_Timer.After(5, function()
+        EpsilonPhases.SetPhaseListToPublic()
+        GetPrivatePhases()
+        self:GetMallsFromMPDirectory()
 
-    local phaseID = tonumber(C_Epsilon:GetPhaseId())
+        local phaseID = tonumber(C_Epsilon:GetPhaseId())
 
-    if EpsilonPhases.Utils.isPhaseTemp(phaseID) and phaseID ~= 0 then
-        addPrivatePhase(phaseID, false)
-    end
+        if EpsilonPhases.Utils.isPhaseTemp(phaseID) and phaseID ~= 0 then
+            addPrivatePhase(phaseID, false)
+        end
+    end)
     EpsilonPhases.Utils.ChatLinks_Init()
-    self:GetMallsFromMPDirectory()
 end
 
 _G.EpsilonPhases = EpsilonPhases

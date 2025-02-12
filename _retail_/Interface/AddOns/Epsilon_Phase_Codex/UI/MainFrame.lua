@@ -186,10 +186,10 @@ autoJoinButton.tooltip = "Join phase on login"
 autoJoinButton:SetPoint("RIGHT", removePhaseButton, "LEFT")
 autoJoinButton:SetScript("OnClick", function(self)
     if self:GetChecked() then
-        EpsilonPhases.db.global.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
+        EpsilonPhases.db.char.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
         EpsilonPhases.HomePhase = EpsilonPhases.currentActivePhase:GetPhaseID()
     else 
-        EpsilonPhases.db.global.HomePhase = nil
+        EpsilonPhases.db.char.HomePhase = nil
         EpsilonPhases.HomePhase = nil
     end
 end)
@@ -305,7 +305,7 @@ details:SetText("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed di
 details:SetWidth(400)
 details:SetWordWrap(true)
 details:SetNonSpaceWrap(true)
-details:SetTextScale(1.1)
+details:SetTextScale(0.96)
 
 local BigJoinButton = CreateFrame("Button", nil, EpsilonPhasesMainFrame)
 BigJoinButton:SetSize(200, 50)
