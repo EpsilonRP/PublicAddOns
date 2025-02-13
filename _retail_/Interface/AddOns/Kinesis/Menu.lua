@@ -1343,8 +1343,12 @@ local function chatCommandHandler(msg)
 		KinesisOptions.global.extendedFlightDetection = true
 		ACR:NotifyChange("Kinesis-Settings");
 	else
-		InterfaceOptionsFrame_OpenToCategory(menuFrame.optionsFrame)
-		InterfaceOptionsFrame_OpenToCategory(menuFrame.optionsFrame)
+		if InterfaceOptionsFrame:IsShown() and InterfaceOptionsFramePanelContainer.displayedPanel == menuFrame.optionsFrame then
+			InterfaceOptionsFrame:Hide()
+		else
+			InterfaceOptionsFrame_OpenToCategory(menuFrame.optionsFrame)
+			InterfaceOptionsFrame_OpenToCategory(menuFrame.optionsFrame)
+		end
 	end
 end
 menuFrame:RegisterChatCommand("kinesis", chatCommandHandler)
