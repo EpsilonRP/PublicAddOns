@@ -104,11 +104,11 @@ local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, s
 		end
 	end
 
-	for _, callback in ipairs(phaseOverviewCallbacks) do
-		callback(currentOverviewOrder, Phase.Store)
-	end
 	if wipeOverview then
-		table.wipe(phaseOverviewCallbacks)
+    	for _, callback in ipairs(phaseOverviewCallbacks) do
+    		callback(currentOverviewOrder, Phase.Store)
+    	end
+        table.wipe(phaseOverviewCallbacks)
 	end
 end
 EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseOverviewDataReceived)
