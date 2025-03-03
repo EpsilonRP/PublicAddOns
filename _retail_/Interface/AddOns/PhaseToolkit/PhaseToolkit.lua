@@ -120,7 +120,7 @@ PhaseToolkit.GeneralStat = {
 	["TattooColor"] = 1,
 	["Tusks"] = 1,
 	["Vines"] = 1,
-	["VinesColor"] = 1,
+	["VineColor"] = 1,
 	["Accentcolor"] = 1,
 	["Goggles"] = 1,
 	["Haircolor"] = 1,
@@ -462,7 +462,7 @@ PhaseToolkit.InfoCustom = {
 			["SkinColor"] = 35,
 			["TattooColor"] = 11,
 			["Vines"] = 2,
-			["VinesColor"] = 20
+			["VineColor"] = 20
 		},
 		["female"] = {
 			["Blindfold"] = 12,
@@ -493,7 +493,7 @@ PhaseToolkit.InfoCustom = {
 			["Stubble"] = 0,
 			["TattooColor"] = 21,
 			["Vines"] = 2,
-			["VinesColor"] = 20
+			["VineColor"] = 20
 		}
 	},
 	["Undead"] = {
@@ -516,6 +516,7 @@ PhaseToolkit.InfoCustom = {
 			["Ribs"] = 4,
 			["SecondaryEyeColor"] = 20,
 			["Sideburns"] = 6,
+			["Skintype"] = 3,
 			["SkinColor"] = 12,
 			["Spine"] = 2,
 		},
