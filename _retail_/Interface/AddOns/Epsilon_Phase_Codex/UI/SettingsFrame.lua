@@ -48,7 +48,7 @@ hexInput:SetPoint("BOTTOMRIGHT", colorPickerFrame, "BOTTOMRIGHT", -23, 44)
 hexInput:SetMaxBytes(7)
 hexInput:SetAutoFocus(false)
 hexInput:SetCursorPosition(0)
-hexInput:Show()
+hexInput:Hide()
 
 hexInput:SetScript("OnEnterPressed", function(self)
     local text = self:GetText();
@@ -374,17 +374,21 @@ phaseType:SetScript("OnEditFocusLost", function(self)
 end)
 
 phaseColorPicker:SetScript("OnClick", function()
+    hexInput:Show()
     local function swatchFunc()
         local r, g, b = ColorPickerFrame:GetColorRGB();
+        local color = CreateColor(r,g,b)
+        hexInput:SetText(color:GenerateHexColor():sub(3,8))
         settingsFrame.phaseColorPicker:GetNormalTexture():SetVertexColor(r, g, b)
     end
 
     local function cancelFunc()
-        local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRBG()
+        local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRGB()
         settingsFrame.phaseColorPicker:GetNormalTexture():SetVertexColor(r, g, b)
         _G["ColorPickerOkayButton"]:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
+        hexInput:Hide()
     end
 
     _G["ColorPickerOkayButton"]:SetScript("OnClick", function(self)
@@ -400,6 +404,7 @@ phaseColorPicker:SetScript("OnClick", function()
         self:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
+        hexInput:Hide()
     end)
 
     local r, g, b = EpsilonPhases.currentActivePhase:GetPhaseColor():GetRGB()
@@ -420,9 +425,12 @@ end)
 
 tagsColor:SetScript("OnClick", function()
     tagsColor:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/InterfaceSwatch")
+    hexInput:Show()
 
     local function swatchFunc()
         local r, g, b = ColorPickerFrame:GetColorRGB();
+        local color = CreateColor(r,g,b)
+        hexInput:SetText(color:GenerateHexColor():sub(3,8))
         settingsFrame.tagsColor:GetNormalTexture():SetVertexColor(r, g, b)
     end
 
@@ -433,6 +441,7 @@ tagsColor:SetScript("OnClick", function()
         _G["ColorPickerOkayButton"]:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
+        hexInput:Hide()
     end
 
     _G["ColorPickerOkayButton"]:SetScript("OnClick", function(self)
@@ -444,6 +453,7 @@ tagsColor:SetScript("OnClick", function()
         self:SetScript("OnClick", function()
             _G["ColorPickerFrame"]:Hide()
         end)
+        hexInput:Hide()
     end)
 
     if currentTagColor ~= nil then
