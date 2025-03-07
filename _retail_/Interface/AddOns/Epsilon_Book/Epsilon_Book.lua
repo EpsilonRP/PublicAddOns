@@ -368,7 +368,7 @@ function EpsilonBook_GetBookList(reasonFailed)
 		print("|cFFFF0000Error encountered retrieving phase book list. Please try again.");
 	end
 	EPSILON_BOOK_LIST = {};
-	
+
 	EpsilonLib.PhaseAddonData.Get("BOOK_LIST", loadCallbacks.list)
 end
 
@@ -382,7 +382,7 @@ function EpsilonBook_LoadBook(guid)
 		return
 	end
 
-	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, function(text) 
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, function(text)
 		loadCallbacks.book(text, guid);
 	end)
 end
@@ -434,7 +434,7 @@ function EpsilonBook_DuplicateBook(guid)
 	if not (EPSILON_BOOK_LIST and guid) then
 		return
 	end
-	
+
 	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. guid, loadCallbacks.duplicate)
 end
 
@@ -495,7 +495,7 @@ end
 
 local option_callback = function(self, button, down, originalText)
 	local bookID = originalText:match("<BOOK:(.-)>");
-	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text) 
+	EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text)
 		loadCallbacks.book(text, bookID, true, true);
 	end)
 end
@@ -521,7 +521,7 @@ function EpsilonBook_OnEvent(self, event, ...)
 					GossipFrame:SetAlpha(0);
 					GossipFrame:EnableMouse(false);
 					bookID = gossipText:match("<BOOK:(.-)>");
-					EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text) 
+					EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text)
 						loadCallbacks.book(text, bookID, true, true);
 					end)
 				end
@@ -542,6 +542,11 @@ end
 --
 local function CreateMinimapIcon()
 	LibStub("EpsiLauncher-1.0").API.new("Epsilon Book", function()
+		if EpsilonBookFrame:IsShown() then
+			EpsilonBookFrame_Hide()
+			return
+		end
+
 		if IsPhaseOfficer() or IsPhaseOwner() then
 			EpsilonBookLibrary_Show()
 		else

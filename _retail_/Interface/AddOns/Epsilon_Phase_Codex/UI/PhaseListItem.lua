@@ -61,6 +61,8 @@ local function CreatePhaseListItem(index, phase)
     EpsilonPhasesPhaseListPhaseName:SetPoint("LEFT", EpsilonPhasesPhaseListPhaseItem, "LEFT", 80, 18)
     EpsilonPhasesPhaseListPhaseName:SetText(phase:GetPhaseName())
     EpsilonPhasesPhaseListPhaseName:SetTextScale(0.9)
+    EpsilonPhasesPhaseListPhaseName:SetWidth(160)
+    EpsilonPhasesPhaseListPhaseName:SetMaxLines(1)
 
     local EpsilonPhasesPhaseListPhaseID = EpsilonPhasesPhaseListPhaseItem:CreateFontString(nil, "OVERLAY", "GameTooltipText")
     EpsilonPhasesPhaseListPhaseID :SetJustifyH("LEFT")

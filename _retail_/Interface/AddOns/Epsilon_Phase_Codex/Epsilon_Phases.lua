@@ -2,7 +2,7 @@ local EpsilonPhases = LibStub("AceAddon-3.0"):NewAddon("EpsilonPhases", "AceCons
 local PhaseClass = EpsilonLib.Classes.Phase
 BINDING_HEADER_PHASE_CODEX = "Phase Codex"
 BINDING_NAME_PHASE_CODEX_QUICK_ACCESS = "Quick Access"
-PHASE_CODEX_OPEN = "Open Codex"
+BINDING_NAME_PHASE_CODEX_OPEN = "Open Codex"
 
 EpsilonPhases.previousTempPhase = nil
 
@@ -188,11 +188,19 @@ local function CreateMinimapIcon()
     end, EpsilonPhases.ASSETS_PATH .. "/EpsilonTrayIconCodex", { "Click to open the Phase Codex." })
 end
 
-local function phaseOverviewCallback()
-    EpsilonPhases:SetupPhaseList()
+local function phaseOverviewCallback(phases, store)
+    if #phases > 0 then
+        EpsilonPhases:SetupPhaseList(phases)
+    else
+        local emptyOverviewList = {
+            [1] = store[169]
+        }
+        EpsilonPhases:SetupPhaseList(emptyOverviewList)
+    end
 end
 
 local function GetPublicPhases()
+    EpsilonLib.Classes.Phase:Get(169)
     EpsilonLib.Classes.Phase:RequestOverview(phaseOverviewCallback)
 end
 EpsilonPhases.GetPublicPhases = GetPublicPhases
@@ -219,6 +227,14 @@ local function GetPrivatePhases()
 end
 
 local function SlashCommandProcessor(input)
+    local helpMessage = {
+        [1] = "|cff33f3ff[C|r|cff48ddffo|r|cff72c7ffd|r|cff96adffe|r|cffc489fax]|r Epsilon Phase Codex commands:",
+        [2] = "|cff33f3ff[C|r|cff48ddffo|r|cff72c7ffd|r|cff96adffe|r|cffc489fax]|r |cff00ff00/codex open|r - opens the codex",
+        [3] = "|cff33f3ff[C|r|cff48ddffo|r|cff72c7ffd|r|cff96adffe|r|cffc489fax]|r |cff00ff00/codex public|r- opens the codex on public tab",
+        [4] = "|cff33f3ff[C|r|cff48ddffo|r|cff72c7ffd|r|cff96adffe|r|cffc489fax]|r |cff00ff00/codex malls|r - opens the codex on malls tab",
+        [5] = "|cff33f3ff[C|r|cff48ddffo|r|cff72c7ffd|r|cff96adffe|r|cffc489fax]|r |cff00ff00/codex personal|r - opens the codex on personal tab",
+    }
+
     if string.match(input, 'open') then
         EpsilonPhases:Show()
     elseif string.find(input, 'addphase') then
@@ -233,10 +249,18 @@ local function SlashCommandProcessor(input)
         EpsilonPhases:Show(nil, 1)
     elseif string.find(input, 'personal') then
         EpsilonPhases:Show(nil, 3)
+    else
+        for _, line in ipairs(helpMessage) do
+            print(line)
+        end
     end
 end
 
 EpsilonPhases:RegisterChatCommand("codex", SlashCommandProcessor)
+EpsilonPhases:RegisterChatCommand("epsiloncodex", SlashCommandProcessor)
+EpsilonPhases:RegisterChatCommand("phasecodex", SlashCommandProcessor)
+EpsilonPhases:RegisterChatCommand("pc", SlashCommandProcessor)
+
 
 function EpsilonPhases:OnInitialize()
     self:RegisterChatCommand("phases", "Show")
@@ -442,10 +466,13 @@ EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isRelo
     end
 end)
 
+local SetHyperlink = ItemRefTooltip.SetHyperlink
 function ItemRefTooltip:SetHyperlink(link)
     if strsub(link, 1, 6) == "phase:" then
         local id = tonumber(link:match(":(%d+)$"))
         PhaseClass:Get(id, phaseShareCallback)
+    else
+        SetHyperlink(self, link)
     end
 end
 
@@ -468,12 +495,6 @@ function EpsilonPhases:OnEnable()
         EpsilonPhases.SetPhaseListToPublic()
         GetPrivatePhases()
         self:GetMallsFromMPDirectory()
-
-        local phaseID = tonumber(C_Epsilon:GetPhaseId())
-
-        if EpsilonPhases.Utils.isPhaseTemp(phaseID) and phaseID ~= 0 then
-            addPrivatePhase(phaseID, false)
-        end
     end)
     EpsilonPhases.Utils.ChatLinks_Init()
 end
