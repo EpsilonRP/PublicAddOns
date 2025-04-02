@@ -1814,6 +1814,11 @@ local function OMChatFilter(Self, Event, Message)
 	local clearmsg = gsub(Message, "|cff%x%x%x%x%x%x", "");
 	local clearmsg = clearmsg:gsub("|r", "");
 
+	-- ignore announce messages:
+	if clearmsg:find("^Epsilon") or Message:find("|cff00a2d7Epsilon|r") then
+		return
+	end
+
 	---------- Group Selection Detection ----------
 
 	if clearmsg:find("Selected gameobject group") or clearmsg:find("Spawned gameobject group") or clearmsg:find("Spawned blueprint") or clearmsg:find("added %d+ objects to gameobject group") or clearmsg:find("added the gameobject .* to gameobject group") then
