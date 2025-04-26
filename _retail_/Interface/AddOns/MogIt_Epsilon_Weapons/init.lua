@@ -252,6 +252,7 @@ function s.AddSlot(slot, addon)
 		-- 	mog.data["item"]["display"][123456] = nil;
 
 		mog:AddData("item", id, "display", display);
+		mog:AddData("item", id, "bonusID", bonusID);
 		mog:AddData("item", id, "quality", quality);
 		mog:AddData("item", id, "level", lvl);
 		mog:AddData("item", id, "faction", faction);

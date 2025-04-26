@@ -2,6 +2,7 @@
 ## Title: MogIt
 ## Author: Aelobin (The Maelstrom EU) & Lombra (Defias Brotherhood EU)
 ## Version: v3.9.7e
+## Epsilon-Credit: Gardener, MindScape, Mortemraptor
 ## SavedVariables: MogItDB, MogItWishlist
 ## OptionalDeps: DataStore_Containers
 ## Notes: Transmogrification Assistant, edited for Epsilon
