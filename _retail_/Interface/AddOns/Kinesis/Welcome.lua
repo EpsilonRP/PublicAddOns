@@ -120,7 +120,7 @@ local welcomeMenu = {
 				},
 				discordButton = {
 					type = "execute",
-					name = "Copy Dicsord Invite",
+					name = "Copy Discord Invite",
 					order = autoOrder(true),
 					width = 1,
 					arg = "https://discord.gg/6PawD2e",
@@ -137,7 +137,7 @@ local welcomeMenu = {
 			order = autoOrder(true),
 			args = ns.Changes.genChangeLogArgs(), -- generated in Changelog.lua! Edit there!
 		},
-    },
+	},
 }
 AC:RegisterOptionsTable(addonName .. "-Welcome", welcomeMenu)
 ACD:SetDefaultSize(addonName .. "-Welcome", 600, 620)
@@ -178,5 +178,3 @@ ns.Welcome = {
 	showWelcomeScreen = showWelcomeScreen,
 	hideWelcomeScreen = hideWelcomeScreen,
 }
-
-
