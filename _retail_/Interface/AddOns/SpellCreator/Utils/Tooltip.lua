@@ -1,7 +1,10 @@
 ---@class ns
 local ns = select(2, ...)
 
+local Constants = ns.Constants
 local ADDON_COLORS = ns.Constants.ADDON_COLORS
+
+local ASSETS_PATH = Constants.ASSETS_PATH .. "/"
 
 local timer
 
@@ -19,34 +22,7 @@ GameTooltip:HookScript("OnShow", function()
 	tooltipIcon:Hide()
 end)
 
-
--- Back to your regularly scheduled program
-
----@param title string
-local function setTitle(title)
-	GameTooltip:SetText(title, nil, nil, nil, nil, true)
-end
-
-local function setIcon(icon)
-	if not icon then return end
-	tooltipIcon.tex:SetTexture(icon)
-	tooltipIcon:Show()
-end
-
-local function clearLines()
-	GameTooltip:ClearLines()
-end
-
----@param line string
-local function addLine(line)
-	if line:match(strchar(31)) then
-		--GameTooltip:AddLine(line, 1, 1, 1, true)
-		local line1, line2 = strsplit(strchar(31), line, 2)
-		GameTooltip:AddDoubleLine(line1, line2, 1, 1, 1, 1, 1, 1)
-	else
-		GameTooltip:AddLine(line, 1, 1, 1, true)
-	end
-end
+-- Util Stuff
 
 ---Concat the two texts together with a strchar(31) as a delimiter to create a double line.
 ---@param text1 string
@@ -84,6 +60,9 @@ local tooltipTextStyles = {
 			return text
 		end
 	},
+	grey = {
+		color = ADDON_COLORS.TOOLTIP_NOREVERT:GenerateHexColor(),
+	},
 	norevert = {
 		color = ADDON_COLORS.TOOLTIP_NOREVERT:GenerateHexColor(),
 	},
@@ -105,7 +84,8 @@ local tooltipTextStyles = {
 
 ---@param style TooltipStyle
 ---@param text string
-local function genTooltipText(style, text)
+---@return string
+local function stylizeTooltipText(style, text)
 	local styledata = tooltipTextStyles[style]
 
 	if styledata.additionalParsing then
@@ -129,7 +109,7 @@ local function genTooltipText(style, text)
 	end
 
 	if styledata.color then
-		text = text:gsub("|r", "|r" .. color) -- until SL makes it so colors pop in order instead of all, this will always add our color back, including after the tag!
+		text = text:gsub("|r", "|r" .. color) -- until SL makes it so colors pop in order instead of all, this will always add our color back, including after the tag! // TODO: Fix this cuz we're SL now
 	end
 
 	text = (icon and icon or "") .. (color and color or "") .. (tag and tag or "") .. text .. (color and "|r" or "")
@@ -144,14 +124,108 @@ local function genContrastText(text)
 		for i = 1, #text do
 			local string = text[i]
 			if finalText then
-				finalText = finalText .. ", " .. genTooltipText("contrast", string)
+				finalText = finalText .. ", " .. stylizeTooltipText("contrast", string)
 			else
-				finalText = genTooltipText("contrast", string)
+				finalText = stylizeTooltipText("contrast", string)
 			end
 		end
 		return finalText
 	else
-		return genTooltipText("contrast", text)
+		return stylizeTooltipText("contrast", text)
+	end
+end
+
+local raw_atlas_tags = {
+	["left-click"] = CreateAtlasMarkup("NPE_LeftClick"),
+	["right-click"] = CreateAtlasMarkup("NPE_RightClick"),
+	["mouse-wheel"] = CreateAtlasMarkup("newplayertutorial-icon-mouse-middlebutton"),
+	["shift"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0, 0.5, 0, 0.5),
+	["ctrl"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0, 0.5, 0.5, 1),
+	["alt"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0.5, 1, 0, 0.5),
+	["esc"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0.5, 1, 0.5, 1),
+}
+local text_replacement_tags = {
+	["{left-click}"] = raw_atlas_tags["left-click"],
+	["{right-click}"] = raw_atlas_tags["right-click"],
+	["{mouse-wheel}"] = raw_atlas_tags["mouse-wheel"],
+	["{middle-click}"] = raw_atlas_tags["mouse-wheel"],
+
+	["{left-click-text}"] = stylizeTooltipText("contrast", "Left-Click"),
+	["{right-click-text}"] = stylizeTooltipText("contrast", "Right-Click"),
+	["{mouse-wheel-text}"] = stylizeTooltipText("contrast", "Mouse Wheel"),
+	["{middle-click-text}"] = stylizeTooltipText("contrast", "Middle-Click"),
+
+	["{shift-text}"] = stylizeTooltipText("contrast", "Shift"),
+	["{ctrl-text}"] = stylizeTooltipText("contrast", "Ctrl"),
+	["{alt-text}"] = stylizeTooltipText("contrast", "Alt"),
+	["{esc-text}"] = stylizeTooltipText("contrast", "Esc"),
+
+	["{shift}"] = raw_atlas_tags["shift"],
+	["{ctrl}"] = raw_atlas_tags["ctrl"],
+	["{alt}"] = raw_atlas_tags["alt"],
+	["{esc}"] = raw_atlas_tags["esc"],
+
+	["{shift-left-click-text}"] = stylizeTooltipText("contrast", "Shift + Left-Click"),
+	["{shift-right-click-text}"] = stylizeTooltipText("contrast", "Shift + Right-Click"),
+	["{alt-right-click-text}"] = stylizeTooltipText("contrast", "Alt + Right-Click"),
+	["{alt-left-click-text}"] = stylizeTooltipText("contrast", "Alt + Left-Click"),
+	["{ctrl-left-click-text}"] = stylizeTooltipText("contrast", "Ctrl + Left-Click"),
+	["{ctrl-right-click-text}"] = stylizeTooltipText("contrast", "Ctrl + Right-Click"),
+
+	["{shift-left-click}"] = raw_atlas_tags["shift"] .. "+" .. raw_atlas_tags["left-click"],
+	["{shift-right-click}"] = raw_atlas_tags["shift"] .. "+" .. raw_atlas_tags["right-click"],
+	["{alt-right-click}"] = raw_atlas_tags["alt"] .. "+" .. raw_atlas_tags["right-click"],
+	["{alt-left-click}"] = raw_atlas_tags["alt"] .. "+" .. raw_atlas_tags["left-click"],
+	["{ctrl-left-click}"] = raw_atlas_tags["ctrl"] .. "+" .. raw_atlas_tags["left-click"],
+	["{ctrl-right-click}"] = raw_atlas_tags["ctrl"] .. "+" .. raw_atlas_tags["right-click"],
+
+	["{right-click-text-icon}"] = stylizeTooltipText("contrast", "Right-Click ") .. raw_atlas_tags["right-click"],
+	["{left-click-text-icon}"] = stylizeTooltipText("contrast", "Left-Click ") .. raw_atlas_tags["left-click"],
+}
+local function replace_text_tags(text)
+	return text:gsub("(%b{})", text_replacement_tags)
+end
+
+local function getTooltipTag(text)
+	if not text:find("{") then text = "{" .. text .. "}" end
+	return text_replacement_tags[text] or text
+end
+
+---@param style TooltipStyle
+---@param text string
+---@return string
+local function genTooltipText(style, text)
+	if not text then return "" end
+	return stylizeTooltipText(style, replace_text_tags(text))
+end
+
+-- Back to your regularly scheduled program
+
+---@param title string
+local function setTitle(title)
+	GameTooltip:SetText(title, nil, nil, nil, nil, true)
+end
+
+local function setIcon(icon)
+	if not icon then return end
+	tooltipIcon.tex:SetTexture(icon)
+	tooltipIcon:Show()
+end
+
+local function clearLines()
+	GameTooltip:ClearLines()
+end
+
+---@param line string
+local function addLine(line)
+	line = replace_text_tags(line)
+
+	if line:match(strchar(31)) then
+		--GameTooltip:AddLine(line, 1, 1, 1, true)
+		local line1, line2 = strsplit(strchar(31), line, 2)
+		GameTooltip:AddDoubleLine(line1, line2, 1, 1, 1, 1, 1, 1)
+	else
+		GameTooltip:AddLine(line, 1, 1, 1, true)
 	end
 end
 
@@ -297,9 +371,15 @@ end
 ---@class Utils_Tooltip
 ns.Utils.Tooltip = {
 	set = set,
+
 	genTooltipText = genTooltipText,
 	genContrastText = genContrastText,
 	createDoubleLine = createDoubleLine,
+
+	applyStyle = stylizeTooltipText,
+	replaceTags = replace_text_tags,
+
+	tag = getTooltipTag,
 
 	setAceTT = setAceTT,
 

@@ -319,7 +319,7 @@ function SC_ExtraActionButtonMixin:OnLoad()
 				if strings[#strings] ~= " " then
 					tinsert(strings, " ")
 				end
-				tinsert(strings, "Right-Click to Open " .. Tooltip.genContrastText("Sparks Manager"))
+				tinsert(strings, "{right-click-text-icon} to Open " .. Tooltip.genContrastText("Sparks Manager"))
 			end
 
 			return strings

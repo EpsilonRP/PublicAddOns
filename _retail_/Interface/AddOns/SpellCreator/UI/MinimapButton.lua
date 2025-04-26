@@ -279,11 +279,13 @@ minimapButton:SetScript("OnLeave", function(self)
 	--GameTooltip:Hide()
 end)
 
+local rightClickIcon = ns.Utils.Tooltip.tag("{right-click}") -- This tooltip is EXPENSIVE. Localizing the icons for efficiency
+local leftClickIcon = ns.Utils.Tooltip.tag("{left-click}")
 ns.Utils.Tooltip.set(minimapButton, ADDON_TITLE, function(self)
 	return {
 		" ",
-		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Left-Click|r to toggle the main UI!",
-		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Right-Click|r for Options.",
+		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Left-Click|r" .. leftClickIcon .. " to toggle the main UI!",
+		ADDON_COLORS.GAME_GOLD:GenerateHexColorMarkup() .. "Right-Click|r" .. rightClickIcon .. " for Options.",
 		" ",
 		ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("Mouse over most UI Elements to see tooltips for help! (Like this one!)"),
 		ns.Utils.Tooltip.createDoubleLine(" ", ADDON_COLORS.GAME_GREY:WrapTextInColorCode(ADDON_TITLE .. " v" .. addonVersion)),

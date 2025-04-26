@@ -39,7 +39,7 @@ frame.title:SetShadowColor(0.2, 0.2, 0.2, 1)
 frame.title:SetShadowOffset(1, -1)
 
 frame.noStratagemsText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalMed2")
-frame.noStratagemsText:SetText("No Spells Connected\nRight-Click a Spell in your Vault to connect")
+frame.noStratagemsText:SetText("No Spells Connected\n" .. Tooltip.tag("right-click-text-icon") .. " a Spell in your Vault to connect")
 frame.noStratagemsText:Hide()
 frame.noStratagemsText:SetAllPoints()
 

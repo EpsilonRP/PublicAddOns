@@ -212,7 +212,7 @@ help.Hilight:SetSize(36, 36)
 help.Hilight:SetPoint("CENTER", 0, -1)
 help:HookScript("OnEnter", function(self)
 	if HelpPlateTooltip:IsShown() then
-		HelpPlateTooltip.Text:SetText(MAIN_HELP_BUTTON_TOOLTIP .. "\nRight-Click to Open the Basic Spell Creation Tutorial!")
+		HelpPlateTooltip.Text:SetText(MAIN_HELP_BUTTON_TOOLTIP .. "\n" .. ns.Utils.Tooltip.tag("{right-click-text-icon}") .. " to Open the Basic Spell Creation Tutorial!")
 		HelpPlateTooltip:SetHeight(HelpPlateTooltip.Text:GetHeight() + 30)
 	end
 end)

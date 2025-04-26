@@ -425,18 +425,19 @@ local function createBook(index, name, indexFromStorage)
 		function(self)
 			if bookTooltipPredicate(self) then -- no pages or spells, let's show the bigger tooltip text for more info
 				return "Welcome to Arcanum's Quickcast system! This is a Quickcast Book! You can add spells to pages in the book by " ..
-					Tooltip.genContrastText("right-clicking") ..
+					Tooltip.genContrastText("right-clicking") .. Tooltip.tag("right-click") ..
 					" a spell in your Personal Vault.\n\rYou can add multiple pages to your Quickcast Book as well, to fit more spells or organize them. Use your " ..
-					Tooltip.genContrastText("mousewheel") .. " to switch between pages!\n\rYou can manage your books & pages, as well as change their looks, by "
+					Tooltip.genContrastText("mousewheel") .. Tooltip.tag("mouse-wheel") .. " to switch between pages!\n\rYou can manage your books & pages, as well as change their looks, by "
 					..
-					Tooltip.genContrastText("right-clicking") ..
+					Tooltip.genContrastText("right-clicking") .. Tooltip.tag("right-click") ..
 					" them.\n\rYou can also " ..
-					Tooltip.genContrastText("left-click") ..
+					Tooltip.genContrastText("left-click") .. Tooltip.tag("left-click") ..
 					" a Quickcast Book to open the full Arcanum menu.\n\r" .. Tooltip.genTooltipText("lpurple", "Click & Drag to move this book anywhere on your screen!")
 			else -- they have pages and spells
 				return "Add Arcanum Spells to your Quickcast Books by " ..
-					Tooltip.genContrastText("right-clicking") ..
-					" them in your vault!\n\r" .. Tooltip.genTooltipText("lpurple", "Click & Drag to move the book anywhere, " .. Tooltip.genContrastText("right-click") .. " to configure.")
+					Tooltip.genContrastText("right-clicking") .. Tooltip.tag("right-click") ..
+					" them in your vault!\n\r" ..
+					Tooltip.genTooltipText("lpurple", "Click & Drag to move the book anywhere, " .. Tooltip.genContrastText("right-click") .. Tooltip.tag("right-click") .. " to configure.")
 			end
 		end,
 		{

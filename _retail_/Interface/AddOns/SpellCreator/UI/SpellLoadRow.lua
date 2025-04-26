@@ -163,8 +163,8 @@ local function setTooltip(frame, isIcon)
 			--local strings = genSpellTooltipLines(spell, isIcon)
 			local strings = ns.UI.SpellTooltip.getLines("vault", spell, (ns.UI.LoadSpellFrame.getCurrentVault() == Constants.VAULT_TYPE.PHASE), true)
 			tinsert(strings, " ")
-			tinsert(strings, Tooltip.genContrastText("Right-Click") .. " for more options!")
-			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. " to link in chat.")
+			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. Tooltip.tag("left-click") .. " to link in chat.")
+			tinsert(strings, Tooltip.genContrastText("Right-Click") .. Tooltip.tag("right-click") .. " for more options!")
 			return strings
 		end,
 		{
@@ -233,8 +233,8 @@ local function createHotkeyIcon(row)
 		end,
 		{
 			" ",
-			"Left-Click to Edit Binding",
-			"Shift+Right-Click to Unbind",
+			"{left-click-text-icon} to Edit Binding",
+			"{shift-right-click-text} {right-click} to Unbind",
 		}
 	)
 
@@ -275,7 +275,7 @@ local function createItemConnectedIcon(row)
 		end,
 		{
 			" ",
-			"Left-Click to Edit Item Connections",
+			"{left-click-text-icon} to Edit Item Connections",
 		}
 	)
 
@@ -342,7 +342,7 @@ local function createLoadButton(row)
 		end,
 		{
 			"Load the spell into the Forge UI so you can edit it.",
-			"\nRight-click to load the ArcSpell, and re-sort it's actions into chronological order by delay.",
+			"\n{right-click-text-icon} to load the ArcSpell, and re-sort it's actions into chronological order by delay.",
 		}
 	)
 

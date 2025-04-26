@@ -75,7 +75,7 @@ local function createSaveButton(mainFrame, saveSpell)
 				else
 					tinsert(strs, "Finish your spell & save it to your Personal Vault.")
 					tinsert(strs, castHelp)
-					tinsert(strs, "\rRight-click to over-write a previous spell with the same ArcSpell ID without confirmation.")
+					tinsert(strs, "\r{right-click-text-icon} to over-write a previous spell with the same ArcSpell ID without confirmation.")
 				end
 			else
 				local saveOrCreateText = isSaving() and "Save" or "Create"
@@ -176,7 +176,7 @@ local function createExecuteSpellButton(mainFrame, getForgeActions)
 		"Cast the above Actions!",
 		function(self)
 			if self:IsEnabled() then
-				return { "Useful to test your spell before saving.", "Right-Click to ignore spell-level conditions, for testing." }
+				return { "Useful to test your spell before saving.", "{right-click-text-icon} to ignore spell-level conditions, for testing." }
 			end
 			return "You cannot cast spells in main-phase " .. START_ZONE_NAME .. "."
 		end
