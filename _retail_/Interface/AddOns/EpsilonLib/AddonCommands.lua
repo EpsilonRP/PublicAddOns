@@ -23,7 +23,12 @@ local function sprint(...)
 	print(systemChatColor:GenerateHexColorMarkup(), ...)
 end
 
----@class CommandLogData
+local function timeToDate(time)
+	local dateString = date("%Y-%m-%d %H:%M:%S", time)
+	return dateString
+end
+
+---@class CommandBufferData
 ---@field name string
 ---@field command string
 ---@field callback? function
@@ -31,24 +36,62 @@ end
 ---@field returnMessages? string[]
 ---@field status? string
 
----@type CommandLogData[] NOTE: WE DO NOT USE THIS AS A REAL ARRAY, IT'S USED AS A STATIC ID LOG / DICTIONARY, NEVER POP OR REORDER, ALWAYS DIRECT SET BASED ON ITER ID
+---@type CommandBufferData[] --// NOTE: WE DO NOT USE THIS AS A REAL ARRAY, IT'S USED AS A STATIC ID LOOKUP / DICTIONARY, NEVER POP OR REORDER, ALWAYS DIRECT SET BASED ON COUNTER STRING ID
+local commandBuffer = {}
+
+---@type CommandBufferData[] --// This is a log of all commands sent, for debugging & tracking purposes. It will be cleared on a reload, but you can use it to track what commands are being sent & when.
 local commandLog = {}
 
--- public access as needed for debug.
--- Likely need to open it first, then watch with update live, otherwise the auto-cleanup will clear it.
--- Or just watch etrace.
+-- public access as needed for debug or API access, or other UI elements
+_commands._CommandBuffer = commandBuffer
 _commands._CommandLog = commandLog
 
 -------------------------------------------
 --#region Helper Funcs
 -------------------------------------------
 
-local iter = 9 -- We start with and only use 10-99 because too lazy to use single digit numbers in double digit format (i.e., 01, 02, etc - since that would require a string formatting... and we should not ever need 99 vs 89 logs..)
-local function iterate()
-	iter = iter + 1
-	if iter > 99 then iter = 10 end -- loop back
-	return iter
+local commandCounter = 0
+local counterChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' }
+local numCounterChars = #counterChars
+local function CommandCounterToString(counter)
+	local char4, char3, char2, char1
+	char4 = counter % numCounterChars
+	counter = floor(counter / numCounterChars)
+	char3 = counter % numCounterChars
+	counter = floor(counter / numCounterChars)
+	char2 = counter % numCounterChars
+	counter = floor(counter / numCounterChars)
+	char1 = counter % numCounterChars
+	return ("%s%s%s%s"):format(counterChars[char1 + 1], counterChars[char2 + 1], counterChars[char3 + 1], counterChars[char4 + 1])
 end
+
+local function iterCommandCounter()
+	commandCounter = commandCounter + 1
+end
+
+local charToIndex = {}
+for i, char in ipairs(counterChars) do
+	charToIndex[char] = i - 1
+end
+
+local function StringToCommandCounter(str)
+	if #str ~= 4 then
+		error("Encoded string must be exactly 4 characters.")
+	end
+
+	local value = 0
+	for i = 1, 4 do
+		local char = str:sub(i, i)
+		local index = charToIndex[char]
+		if not index then
+			error("Invalid character in encoded string: " .. char)
+		end
+		value = value * numCounterChars + index
+	end
+
+	return value
+end
+
 
 ---@generic V
 ---@param value (V | fun(): V)
@@ -67,7 +110,7 @@ end
 -------------------------------------------
 
 ---@param success boolean
----@param data CommandLogData
+---@param data CommandBufferData
 ---@param addon RegistryData
 local function handleCallbackAndMessages(success, data, addon)
 	if data.callback then
@@ -86,8 +129,41 @@ local function handleCallbackAndMessages(success, data, addon)
 	end
 end
 
+local function recordCommandBufferAndLog(commandID, commandData)
+	local data = {
+		id = commandID,
+		realID = commandData.realID,
+		name = commandData.name,
+		command = commandData.command,
+		callback = commandData.callback,
+		overrideMessages = commandData.overrideMessages,
+		status = "s",  -- // s = sent, o = okay, f = failure, m = message (message received), a = ack (acknowledged)
+		returnMessages = {}, -- pre-making this so it can be referenced in the log before we get a reply
+		time = time(), -- // Time of command sent
+	}
+	commandBuffer[commandID] = data
+	tinsert(commandLog, data) -- // Log the command in order of sending
+	return data
+end
+
+local function recordCommandLogOnly(commandID, commandData)
+	local data = {
+		id = commandID,
+		realID = commandData.realID,
+		name = commandData.name,
+		command = commandData.command,
+		--callback = commandData.callback,
+		--overrideMessages = commandData.overrideMessages,
+		status = "MANUAL", -- MANUAL LOG // Cannot track status of this, so we just set it to manual
+		--returnMessages = {}, -- Cannot track replies
+		time = time(),     -- // Time of command sent
+	}
+	tinsert(commandLog, data) -- // Log the command in order of sending
+	return data
+end
+
 ---Safely adding data to the returnMessages (creating if non existent)
----@param data CommandLogData
+---@param data CommandBufferData
 ---@param msg string
 local function addMessageToReturns(data, msg)
 	if not data.returnMessages then data.returnMessages = {} end
@@ -143,28 +219,30 @@ f:RegisterEvent("CHAT_MSG_ADDON")
 f:SetScript("OnEvent",
 	function(self, event, prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID)
 		if prefix == EPSI_ADDON_PREFIX and channel == "WHISPER" and sender == target then -- Sender == Target is the easiest way to check its ourself, as that's the only time it's possible. Nice.
-			local resultOpcode, cmdID, rest = strsplit(":", text, 3)
-			if not cmdID or #cmdID ~= 2 then return end                             -- // early exit if ID doesn't exist or not in our format, some other addon using addon commands???
-
+			local resultOpcode, counter, rest = text:match("^([afom])([0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z][0-9a-zA-Z])(.*)$")
+			if not counter or #counter ~= 4 then return end                         -- // early exit if ID doesn't exist or not in our format, some other addon using addon commands???
 			if not commandStatusOpcodes[resultOpcode] then return end               -- ensure it's a result status we can handle
 
-			local commandLogData = commandLog[tonumber(cmdID)]
+			local commandBufferData = commandBuffer[counter]
 
-			if not commandLogData then -- // Command is not logged.. who the f?
-				rest = ("<!! AddonCommand #%s not Logged !! How? Report this!>: "):format(cmdID) .. tostring(rest)
+			if not commandBufferData then -- // Command is not logged.. who the f?
+				rest = ("<!! AddonCommand #%s not Logged !! How? Report this!>: "):format(counter) .. tostring(rest)
 				SendSystemMessage(rest)
+				if _commands._CommandLogUpdate then _commands._CommandLogUpdate() end
 				return
 			end
 
-			local addon = registry[commandLogData.name]
-			commandLogData.status = resultOpcode                                                                        -- Log our current status. This should? follow a -> m -> o/f; hopefully..
+			local addon = registry[commandBufferData.name]
+			commandBufferData.status = resultOpcode                                                                        -- Log our current status. This should? follow a -> m -> o/f; hopefully..
 
-			if commandStatusOpcodes[resultOpcode].fn then commandStatusOpcodes[resultOpcode].fn(commandLogData, addon, rest) end -- handle that opcode
+			if commandStatusOpcodes[resultOpcode].fn then commandStatusOpcodes[resultOpcode].fn(commandBufferData, addon, rest) end -- handle that opcode
 
 			if resultOpcode == "o" or resultOpcode == "f" then
 				-- in theory we're done, let's clean up..
-				commandLog[tonumber(cmdID)] = nil
+				commandBuffer[counter] = nil
 			end
+
+			if _commands._CommandLogUpdate then _commands._CommandLogUpdate() end
 		end
 	end
 )
@@ -197,9 +275,10 @@ _commands.Register = function(name, showMessages)
 	---@param callbackFn function The callback function called when the replies are complete
 	---@param overrideMessages? boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
 	local function SendAddonCommand(text, callbackFn, overrideMessages)
-		iterate()
-		ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
-		commandLog[iter] = { name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages }
+		iterCommandCounter()
+		local commandID = CommandCounterToString(commandCounter)
+		recordCommandBufferAndLog(commandID, { realID = commandCounter, name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages })
+		ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i%s%s"):format(commandID, text), "GUILD")
 	end
 	return SendAddonCommand
 end
@@ -211,9 +290,10 @@ end
 ---@param overrideMessages? boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
 _commands.Send = function(name, text, callbackFn, overrideMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
-	iterate()
-	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i:%s:"):format(iter) .. text, "GUILD")
-	commandLog[iter] = { name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages }
+	iterCommandCounter()
+	local commandID = CommandCounterToString(commandCounter)
+	recordCommandBufferAndLog(commandID, { realID = commandCounter, name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages })
+	ChatThrottleLib:SendAddonMessage("ALERT", EPSI_ADDON_PREFIX, ("i%s%s"):format(commandID, text), "GUILD")
 end
 
 ---Sends a command by the standard chat message instead of the addon command system, allowing it to split into chunks like UCM if too long for one.
@@ -237,3 +317,30 @@ end
 _commands.SendByChat = sendMessageInChunks
 
 EpsiLib.AddonCommands = _commands
+
+
+
+
+
+-- -- -- -- -- -- -- -- --
+-- -- Manual Command Logging
+-- -- -- -- -- -- -- -- --
+
+-- Save original function
+local Original_SendChatMessage = SendChatMessage
+local cmdPrefixChars = { ["."] = true, ["!"] = true }
+
+-- Override SendChatMessage
+SendChatMessage = function(msg, chatType, language, channel, ...)
+	local first = msg:sub(1, 1)
+	local second = msg:sub(2, 2)
+	if cmdPrefixChars[first] and first ~= second then
+		iterCommandCounter()
+		local commandID = CommandCounterToString(commandCounter)
+		recordCommandLogOnly(commandID, { realID = commandCounter, name = "Manual Command", command = msg:sub(2) })
+		if _commands._CommandLogUpdate then _commands._CommandLogUpdate() end
+	end
+
+	-- Call the original function
+	return Original_SendChatMessage(msg, chatType, language, channel, ...)
+end

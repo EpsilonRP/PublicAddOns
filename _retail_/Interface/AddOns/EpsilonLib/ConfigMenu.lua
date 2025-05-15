@@ -12,6 +12,12 @@ local AceConfigRegistry = LibStub:GetLibrary("AceConfigRegistry-3.0")
 
 local addonVersion, addonAuthor = GetAddOnMetadata(EpsilonLib, "Version"), "Epsilon Addons Team"
 
+---@param table table The table we want to inspect in WoW's table inspector
+function tinspect(table)
+	UIParentLoadAddOn("Blizzard_DebugTools");
+	DisplayTableInspectorWindow(table);
+end
+
 -------------------------------------------------------------------------------
 -- Interface Options - Addon section
 -------------------------------------------------------------------------------
@@ -94,6 +100,115 @@ StaticPopupDialogs["EPSILONLIB_CONFIG_RELOAD_REQUIRED"] = {
 	whileDead = 1,
 };
 
+--
+-- Addon Command Log Tab Stuff
+--
+
+local GAME_GOLD = CreateColorFromHexString("FFFFD700")
+
+local addonLogSTObject
+local addonLogSTColumns = {
+	{ name = "Time",    width = 70,  defaultsort = "dsc", sortnext = 2,      hcolor = GAME_GOLD },
+	{ name = "ID",      width = 40,  defaultsort = "dsc", hcolor = GAME_GOLD },
+	{ name = "Command", width = 360, hcolor = GAME_GOLD },
+	{ name = "Status",  width = 80,  hcolor = GAME_GOLD },
+}
+
+addonLogSTObject = LibStub("ScrollingTable"):CreateST(addonLogSTColumns, 20, 16, nil, UIParent)
+addonLogSTObject:Hide()
+local addonLogSTFrame = addonLogSTObject.frame
+
+addonLogSTObject:RegisterEvents({
+	OnEnter = function(rowFrame, cellFrame, data, cols, row, realrow, column, stSelf)
+		if data[realrow] and data[realrow].tooltip then
+			GameTooltip:SetOwner(cellFrame, "ANCHOR_TOPLEFT")
+			GameTooltip:SetText(data[realrow].tooltip, nil, nil, nil, nil, true)
+			GameTooltip:Show()
+		end
+	end,
+	OnLeave = function() GameTooltip:Hide() end,
+	OnClick = function(rowFrame, cellFrame, data, cols, row, realrow, column, stSelf)
+		if IsShiftKeyDown() then
+			local link = data[realrow].cols[3].value
+
+			if not ChatEdit_InsertLink("." .. link) then
+				ChatFrame_OpenChat("." .. link);
+			end
+		end
+	end,
+})
+
+local commandStatusOpcodes = {
+	o = "Success",
+	f = "Failed",
+	a = "Received...",
+	m = "Processing...",
+	s = "Sent...",
+	MANUAL = "Manual",
+}
+
+local tooltipTextFormat = [[
+Source: %s
+ID: %s / %s
+
+Results:
+%s
+]]
+
+local addonLogUpdateData
+addonLogUpdateData = function()
+	if addonLogSTObject and addonLogSTFrame:IsShown() then
+		if not EpsiLib.AddonCommands._CommandLogUpdate then EpsiLib.AddonCommands._CommandLogUpdate = addonLogUpdateData end
+		local commandLog = EpsiLib.AddonCommands._CommandLog
+		-- Refresh table data
+		local data = {}
+		for i = #commandLog, 1, -1 do
+			local entry = commandLog[i]
+			tinsert(data, {
+				cols = {
+					{ value = date("%H:%M:%S", entry.time) },
+					{ value = entry.realID or entry.id },
+					{ value = entry.command },
+					{ value = commandStatusOpcodes[entry.status] or "Unknown" },
+				},
+				tooltip = tooltipTextFormat:format(entry.name, entry.realID, entry.id, ((entry.status == "MANUAL") and "Cannot Track Manual Results") or table.concat(entry.returnMessages or {}, "\n")),
+			})
+		end
+		addonLogSTObject:SetData(data)
+	end
+end
+
+
+-- Recursively search the children for a userdata key match
+local function FindAceGUIWidgetByUserdataKey(root, targetKey)
+	if type(root) ~= "table" or not root.children then return nil end
+
+	for _, child in ipairs(root.children) do
+		if type(child) == "table" and child.userdata then
+			local udata = child.userdata
+			if udata and udata[#udata] == targetKey then
+				return child
+			end
+		end
+
+		-- Recurse deeper
+		local result = FindAceGUIWidgetByUserdataKey(child, targetKey)
+		if result then return result end
+	end
+
+	return nil
+end
+
+-- Usage: pass in your app name and field name
+local function GetAnchorWidget(appName, fieldName)
+	local blizOpts = AceConfigDialog.BlizOptions
+	local appGroup = blizOpts and blizOpts[appName] and blizOpts[appName][appName]
+	if not appGroup then return nil end
+
+	return FindAceGUIWidgetByUserdataKey(appGroup, fieldName)
+end
+
+
 local myOptionsTable = {
 	name = "Epsilon AddOns - General Settings" .. " (v" .. addonVersion .. ")",
 	type = "group",
@@ -169,6 +284,53 @@ local myOptionsTable = {
 						end,
 						arg = "SpellBookUI",
 						order = autoOrder(),
+					},
+				},
+			},
+			addonCommandsLogTab = {
+				name = "Addon Commands Log",
+				type = "group",
+				order = autoOrder(true),
+				args = {
+					logHeader = {
+						type = "description",
+						fontSize = "large",
+						order = autoOrder(),
+						name = function(info)
+							--tinspect(info)
+							local appName = info.appName
+							local pathKey = info[#info]
+
+							C_Timer.After(0, function()
+								-- LibStub:GetLibrary("AceConfigDialog-3.0").BlizOptions["EpsilonLib-dev"]["EpsilonLib-dev"].children[1].children[1].frame
+								-- LibStub:GetLibrary("AceConfigDialog-3.0").BlizOptions["EpsilonLib-dev"]["EpsilonLib-dev"].children[1].children[1].children[1].userdata[2] == "LogHeader"
+
+								--local anchorFrame = GetAnchorWidget(appName, pathKey).parent.frame
+								local anchorWidget = GetAnchorWidget(appName, pathKey)
+								local anchorWidgetFrame = anchorWidget.frame
+								local anchorParent = anchorWidget.parent
+								local anchorParentFrame = anchorParent.frame
+
+								if not anchorWidget or not addonLogSTObject then return end
+
+								if addonLogSTObject then
+									addonLogSTFrame:SetParent(anchorWidgetFrame)
+									addonLogSTFrame:SetPoint("CENTER", anchorParentFrame, "CENTER", 0, -60)
+									addonLogSTObject:Show()
+
+									-- Refresh table data
+									addonLogUpdateData()
+								end
+							end)
+
+							return inlineHeader("Addon Commands Log:")
+						end,
+					},
+					logHints = {
+						type = "description",
+						fontSize = "medium",
+						order = autoOrder(),
+						name = "\nThis only tracks commands sent via the internal AddOn Commands system, and is for debug & transparency of commands taken place.\n\rClick a Column Header to sort by that column (default: Sorted by newest (ID) on top).\n\rShift + Click a Command to insert it to your chatbox.",
 					},
 				},
 			}
