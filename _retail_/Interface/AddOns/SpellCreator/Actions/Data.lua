@@ -258,6 +258,11 @@ local ACTION_TYPE = {
 	QCBookAddSpell = "QCBookAddSpell",
 
 	-- Kinesis Integration
+	Kinesis_TempDisableAll = "Kinesis_TempDisableAll",
+	Kinesis_TempDisableFlight = "Kinesis_TempDisableFlight",
+	Kinesis_TempDisableSprint = "Kinesis_TempDisableSprint",
+	Kinesis_TempDisableAllRst = "Kinesis_TempDisableAllRst",
+
 	Kinesis_FlyEnable = "Kinesis_FlyEnable",
 	Kinesis_EFDEnable = "Kinesis_EFDEnable",
 	Kinesis_FlyShift = "Kinesis_FlyShift",
@@ -2220,6 +2225,58 @@ local actionTypeData = {
 	}),
 
 	-- Kinesis Integrations
+	[ACTION_TYPE.Kinesis_TempDisableAll] = scriptAction("Temp Disable All", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableAll()
+		end,
+		description = "Temporarily Disable Kinesis (Sprint, Flight, and EFD).",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+	[ACTION_TYPE.Kinesis_TempDisableFlight] = scriptAction("Temp Disable Flight", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableFlight()
+		end,
+		description = "Temporarily Disable Kinesis' Flight Controls & EFD Modules.",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableFlightReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+	[ACTION_TYPE.Kinesis_TempDisableSprint] = scriptAction("Temp Disable Sprint", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableSprint()
+		end,
+		description = "Temporarily Disable Kinesis' Shift-Sprint Module.",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableSprintReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+
+	[ACTION_TYPE.Kinesis_TempDisableAllRst] = scriptAction("Reset Temp Disable (All)", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableReset()
+		end,
+		description = "Remove all Temporary Disables, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+
 	[ACTION_TYPE.Kinesis_FlyEnable] = scriptAction("Toggle Flight Controls", {
 		command = function(vars)
 			if not Kinesis then return end
