@@ -82,6 +82,43 @@ addonToggleFuncs[TRIGGER_TYPES[3]] = { -- Both Control
 	end,
 }
 
+local tempDisable = { sprint = false, flight = false }
+local function setTempDisable(type, value)
+	if value == nil then
+		tempDisable[type] = not tempDisable[type]
+	else
+		tempDisable[type] = value
+	end
+end
+local function getTempDisable(type)
+	if type then
+		return tempDisable[type]
+	else
+		return tempDisable
+	end
+end
+
+local function tempDisableFlight()
+	tempDisable.flight = true
+end
+local function tempDisableSprint()
+	tempDisable.sprint = true
+end
+local function tempDisableBoth()
+	tempDisable.flight = true
+	tempDisable.sprint = true
+end
+local function removeTempDisableFlight()
+	tempDisable.flight = false
+end
+local function removeTempDisableSprint()
+	tempDisable.sprint = false
+end
+local function removeTempDisableBoth()
+	tempDisable.flight = false
+	tempDisable.sprint = false
+end
+
 ---comment
 ---@param triggerType TRIGGER_TYPES
 local function enableAddon(triggerType)
@@ -261,4 +298,13 @@ ns.Main = {
 	resetProfile = resetProfile,
 	updateEnabledModules = updateEnabledModules,
 	clearShiftSpaceBinds = clearShiftSpaceBinds,
+
+	setTempDisable = setTempDisable,
+	getTempDisable = getTempDisable,
+	tempDisableFlight = tempDisableFlight,
+	tempDisableSprint = tempDisableSprint,
+	tempDisableBoth = tempDisableBoth,
+	removeTempDisableFlight = removeTempDisableFlight,
+	removeTempDisableSprint = removeTempDisableSprint,
+	removeTempDisableBoth = removeTempDisableBoth,
 }
