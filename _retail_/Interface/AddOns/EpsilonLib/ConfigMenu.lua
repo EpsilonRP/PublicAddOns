@@ -140,7 +140,7 @@ addonLogSTObject:RegisterEvents({
 
 local commandStatusOpcodes = {
 	o = "Success",
-	f = "Failed",
+	f = "Error",
 	a = "Received...",
 	m = "Processing...",
 	s = "Sent...",
