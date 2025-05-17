@@ -288,7 +288,7 @@ local myOptionsTable = {
 				},
 			},
 			addonCommandsLogTab = {
-				name = "Addon Commands Log",
+				name = "Command Log",
 				type = "group",
 				order = autoOrder(true),
 				args = {
@@ -302,10 +302,6 @@ local myOptionsTable = {
 							local pathKey = info[#info]
 
 							C_Timer.After(0, function()
-								-- LibStub:GetLibrary("AceConfigDialog-3.0").BlizOptions["EpsilonLib-dev"]["EpsilonLib-dev"].children[1].children[1].frame
-								-- LibStub:GetLibrary("AceConfigDialog-3.0").BlizOptions["EpsilonLib-dev"]["EpsilonLib-dev"].children[1].children[1].children[1].userdata[2] == "LogHeader"
-
-								--local anchorFrame = GetAnchorWidget(appName, pathKey).parent.frame
 								local anchorWidget = GetAnchorWidget(appName, pathKey)
 								local anchorWidgetFrame = anchorWidget.frame
 								local anchorParent = anchorWidget.parent
@@ -313,9 +309,16 @@ local myOptionsTable = {
 
 								if not anchorWidget or not addonLogSTObject then return end
 
+								local origOnRelease = anchorWidget.events["OnRelease"]
+								anchorWidget:SetCallback("OnRelease", function(...)
+									origOnRelease(...)
+									addonLogSTObject:Hide()
+									addonLogSTFrame:SetParent(nil)
+								end)
+
 								if addonLogSTObject then
 									addonLogSTFrame:SetParent(anchorWidgetFrame)
-									addonLogSTFrame:SetPoint("CENTER", anchorParentFrame, "CENTER", 0, -60)
+									addonLogSTFrame:SetPoint("CENTER", anchorParentFrame, "CENTER", 0, -40)
 									addonLogSTObject:Show()
 
 									-- Refresh table data
@@ -323,14 +326,34 @@ local myOptionsTable = {
 								end
 							end)
 
-							return inlineHeader("Addon Commands Log:")
+							return inlineHeader("Command Log")
 						end,
 					},
 					logHints = {
 						type = "description",
 						fontSize = "medium",
 						order = autoOrder(),
-						name = "\nThis only tracks commands sent via the internal AddOn Commands system, and is for debug & transparency of commands taken place.\n\rClick a Column Header to sort by that column (default: Sorted by newest (ID) on top).\n\rShift + Click a Command to insert it to your chatbox.",
+						name = "This log tracks all commands (including AddOn Commands) for debug & transparency.\n\rClick a Column Header to sort by that column (default: Sorted by newest (ID) on top).\n\rShift + Click a Command to insert it to your chatbox.",
+					},
+					logPlaceholder = {
+						type = "description",
+						order = autoOrder(),
+						name = " ",
+						image = "interface/containerframe/cosmeticiconborder",
+						imageWidth = 1,
+						imageHeight = 360,
+						imageCoords = { 0, 0.01, 0, 0.01 },
+					},
+					UseACSForManualCommands = {
+						name = "Use AddOn Commands for Manual Commands (READ DESCRIPTION)",
+						desc =
+						"Use the AddOn Commands system for manual commands.\n\rThis allows the Command Log to track Manual Command replies, but may cause issues with some commands that are not designed to be used this way.\n\rWARNING: This is not compatible with the '.Command Channel' system; all command replies will be returned in the System Messages channel.",
+						type = "toggle",
+						width = "full",
+						get = genericGet,
+						set = genericSet,
+						arg = "UseACSForManualCommands",
+						order = autoOrder(),
 					},
 				},
 			}
@@ -386,3 +409,17 @@ function registerForAddonDataLoaded(_, event, addonName, containsBindings)
 end
 
 EpsiLib.EventManager:Register("ADDON_LOADED", registerForAddonDataLoaded)
+
+
+SLASH_EPSILONLIB_ACL1 = "/acl"
+SlashCmdList["EPSILONLIB_ACL"] = function()
+	-- Open the Blizzard options to our addon
+	InterfaceOptionsFrame_OpenToCategory(EpsiLib.ConfigMenuFrame)
+	InterfaceOptionsFrame_OpenToCategory(EpsiLib.ConfigMenuFrame) -- Called twice due to Blizzard bug
+
+	-- Try to select the Addon Commands Log tab
+	local appName = EpsilonLib
+	local tabKey = "addonCommandsLogTab"
+
+	AceConfigDialog:SelectGroup(appName, tabKey)
+end

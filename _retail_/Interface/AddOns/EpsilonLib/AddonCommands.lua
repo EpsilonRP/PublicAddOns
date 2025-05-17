@@ -183,7 +183,7 @@ local commandStatusOpcodes = {
 			local addonName = (addon and addon.name) or data.name or "<UNKNOWN ADDON>"
 
 			-- Report the failure to chat, and report the failure to the callback. Result messages are handled in the callback & messages handler
-			if data.overrideMessages ~= false then
+			if data.overrideMessages ~= false and addon.showMessages ~= true then
 				local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))
 				SendSystemMessage(output)
 			end
@@ -326,6 +326,8 @@ EpsiLib.AddonCommands = _commands
 -- -- Manual Command Logging
 -- -- -- -- -- -- -- -- --
 
+local sendManualCommand = _commands.Register("EL: Manual Command", true)
+
 -- Save original function
 local Original_SendChatMessage = SendChatMessage
 local cmdPrefixChars = { ["."] = true, ["!"] = true }
@@ -334,11 +336,21 @@ local cmdPrefixChars = { ["."] = true, ["!"] = true }
 SendChatMessage = function(msg, chatType, language, channel, ...)
 	local first = msg:sub(1, 1)
 	local second = msg:sub(2, 2)
+
 	if cmdPrefixChars[first] and first ~= second then
-		iterCommandCounter()
-		local commandID = CommandCounterToString(commandCounter)
-		recordCommandLogOnly(commandID, { realID = commandCounter, name = "Manual Command", command = msg:sub(2) })
-		if _commands._CommandLogUpdate then _commands._CommandLogUpdate() end
+		local cmdNoDot = msg:sub(2)
+
+		if EpsiLib_DB.options.UseACSForManualCommands then
+			--// Send commands using the EpsilonLib AddonCommand system so that they are fully tracked & logged for results also
+			sendManualCommand(cmdNoDot)
+			return --// Don't send the command the normal way, we already sent it
+		else
+			--// Send commands the normal way and just log them
+			iterCommandCounter()
+			local commandID = CommandCounterToString(commandCounter)
+			recordCommandLogOnly(commandID, { realID = commandCounter, name = "Manual Command", command = cmdNoDot })
+			if _commands._CommandLogUpdate then _commands._CommandLogUpdate() end
+		end
 	end
 
 	-- Call the original function
