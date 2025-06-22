@@ -11,6 +11,7 @@ local Constants = ns.Constants
 local AceConsole = ns.Libs.AceConsole
 
 local cmd, cmdWithDotCheck = Cmd.cmd, Cmd.cmdWithDotCheck
+local sendAddonCmd, sendAddonCmdChain = Cmd.sendAddonCmd, Cmd.sendAddonCmdChain
 local runMacroText = Cmd.runMacroText
 local cprint = Logging.cprint
 local eprint = Logging.eprint
@@ -551,6 +552,24 @@ end
 --------------------
 
 --------------------
+--#region Items
+--------------------
+local items = {}
+
+function items.addRemoveItemWithNegativeCheck(vars)
+	-- If vars ends with a negative number (e.g. "12345 -1"), remove item verbose, else add item
+	local trimmed = strtrim(vars)
+	local negativeNumber = trimmed:match("%s%-[%d]+$") -- matches space, negative sign, digits at end
+	if negativeNumber then
+		-- Remove item(s)
+		cmd("additem " .. trimmed)
+	else
+		-- Add item(s)
+		sendAddonCmd("additem " .. trimmed)
+	end
+end
+
+--------------------
 --#endregion
 --------------------
 
@@ -568,6 +587,8 @@ ns.Actions.Data_Scripts = {
 	sounds = sounds,
 	TRP3e_sound = TRP3e.sound,
 	TRP3e_items = TRP3e.items,
+
+	items = items,
 
 	runScriptPriv = runScriptPriv
 }

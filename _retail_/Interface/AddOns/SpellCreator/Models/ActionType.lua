@@ -30,3 +30,4 @@
 ---@field revertDesc? string
 ---@field revertAlternative? string
 ---@field revertValidation? function Function to parse the input before sending it to the final output, in order to run validation / cleanup on it, if needed.
+---@field hideReply? boolean If true, runs the command via AddonCommands and hide the reply

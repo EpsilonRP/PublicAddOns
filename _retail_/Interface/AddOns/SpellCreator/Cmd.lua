@@ -6,6 +6,32 @@ local dprint = ns.Logging.dprint
 
 local MacroEditBox = MacroEditBox
 
+
+
+--#region AddonCommands
+
+---@type fun(command:string, callbackFn?:fun(success:boolean, messages:string[]), overrideMessages?:boolean)
+local sendAddonCmd
+
+---@type fun(commands:string[], callbackFn?:fun(success:boolean, messages:string[]), overrideMessages?:boolean)
+local sendAddonCmdChain
+
+if EpsilonLib and EpsilonLib.AddonCommands then
+	sendAddonCmd, sendAddonCmdChain = EpsilonLib.AddonCommands.Register("Arcanum")
+else
+	function sendAddonCmd(text)
+		local cmdPref = "i:sc:"
+		local fullCmd = cmdPref .. text
+
+		C_ChatInfo.SendAddonMessage("Command", fullCmd, "GUILD")
+	end
+end
+
+--#endregion
+
+
+
+
 local function cmd(text)
 	SendChatMessage("." .. text, "GUILD");
 end
@@ -69,4 +95,6 @@ ns.Cmd = {
 	cmdNoDot = cmdNoDot,
 	cmdWithDotCheck = cmdWithDotCheck,
 	runMacroText = runMacroText,
+	sendAddonCmd = sendAddonCmd,
+	sendAddonCmdChain = sendAddonCmdChain,
 }

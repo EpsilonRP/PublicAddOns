@@ -26,7 +26,8 @@ for i = 1, 12 do
 	mainActionButtons["ActionButton" .. i] = true
 end
 
-local ActionBarActionButtonMixin = ActionButton1 -- Hack
+--local fakeActionButton1 = CreateFrame("CheckButton", "ARC_ActionButton1_Hack", UIParent, "ActionBarButtonTemplate")
+--local ActionBarActionButtonMixin = fakeActionButton1 -- Hack
 
 local function retargetSavedActionButtons(target)
 	savedActionButtons = target
