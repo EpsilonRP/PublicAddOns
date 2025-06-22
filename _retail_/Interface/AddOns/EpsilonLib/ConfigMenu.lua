@@ -122,7 +122,7 @@ addonLogSTObject:RegisterEvents({
 	OnEnter = function(rowFrame, cellFrame, data, cols, row, realrow, column, stSelf)
 		if data[realrow] and data[realrow].tooltip then
 			GameTooltip:SetOwner(cellFrame, "ANCHOR_TOPLEFT")
-			GameTooltip:SetText(data[realrow].tooltip, nil, nil, nil, nil, true)
+			GameTooltip:SetText(data[realrow].tooltip, nil, nil, nil, nil, false)
 			GameTooltip:Show()
 		end
 	end,
@@ -164,6 +164,8 @@ addonLogUpdateData = function()
 		local data = {}
 		for i = #commandLog, 1, -1 do
 			local entry = commandLog[i]
+			local returnMessages = entry.returnMessages
+			if #returnMessages == 0 then returnMessages = { "n/a" } end
 			tinsert(data, {
 				cols = {
 					{ value = date("%H:%M:%S", entry.time) },
@@ -171,7 +173,7 @@ addonLogUpdateData = function()
 					{ value = entry.command },
 					{ value = commandStatusOpcodes[entry.status] or "Unknown" },
 				},
-				tooltip = tooltipTextFormat:format(entry.name, entry.realID, entry.id, ((entry.status == "MANUAL") and "Cannot Track Manual Results") or table.concat(entry.returnMessages or {}, "\n")),
+				tooltip = tooltipTextFormat:format(entry.name, entry.realID, entry.id, ((entry.status == "MANUAL") and "Cannot Track Manual Results") or table.concat(returnMessages or { "n/a" }, "\n")),
 			})
 		end
 		addonLogSTObject:SetData(data)
