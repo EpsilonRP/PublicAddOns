@@ -189,10 +189,10 @@ local function eprint(text, ...)
 	end
 end
 
-local sendAddonCmd
+local sendAddonCmd, sendAddonChain
 
 if EpsilonLib and EpsilonLib.AddonCommands then
-	sendAddonCmd = EpsilonLib.AddonCommands.Register("ObjectMover")
+	sendAddonCmd, sendAddonChain = EpsilonLib.AddonCommands.Register("ObjectMover")
 else
 	function sendAddonCmd(text)
 		local cmdPref = "i:om:"
@@ -227,6 +227,10 @@ function OPManagerCMD(mainCom, text, groupCheck)
 		comm = (mainCom)
 	end
 	cmd(comm)
+end
+
+local function noop(...)
+	return ... -- No Operation function, returns the arguments passed to it.
 end
 
 -------------------------------------------------------------------------------
@@ -722,6 +726,10 @@ function updateGroupSelected(status)
 		OPRotationSliderYTitle:SetTextColor(1, 0.82, 0)
 		OPRotationSliderZTitle:SetTextColor(1, 0.82, 0)
 	end
+end
+
+function OP_GetGroupSelected()
+	return isGroupSelected
 end
 
 --Check to make sure entry is valid
@@ -1979,11 +1987,13 @@ local events = {
 					dprint("Shortname: " .. shortname)
 					OPPanel2.SelectedObjName:SetText(shortname)
 					OPPanel4Manager.SelectedObjName:SetText(shortname)
+					OPPanel5Shapes.SelectedObjName:SetText(shortname)
 					local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
 					OPPanel4Manager.SelectedObjName:SetFont(fontName, 10, fontFlags)
 					while OPPanel4Manager.SelectedObjName:GetStringWidth() > OPPanel4Manager:GetWidth() - 5 do
 						local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
 						OPPanel4Manager.SelectedObjName:SetFont(fontName, fontHeight - 1, fontFlags)
+						OPPanel5Shapes.SelectedObjName:SetFont(fontName, fontHeight - 1, fontFlags)
 						dprint("Setting Manager Object Text Font Size: " .. fontHeight - 1)
 					end
 					--OPPanel4Manager.GroupLeaderIndicator.Entry:SetText(groupLeader)
@@ -2200,3 +2210,153 @@ function SlashCmdList.OPDELROT(msg, editbox) -- 4.
 	end
 	deleted = nil
 end
+
+---#region New Stuff
+---
+
+local function getLastSelectedObjectGroupLeaderOrGuid()
+	if not OPLastSelectedObjectData then
+		eprint("No last selected object data available.")
+		return nil
+	end
+	if OPLastSelectedObjectData[19] and OPLastSelectedObjectData[19] ~= "0" and OPLastSelectedObjectData[19] ~= "" then
+		return OPLastSelectedObjectData[19] -- Group Leader ID
+	else
+		return OPLastSelectedObjectData[1] -- Fallback to guid if no groupLeaderID is available
+	end
+end
+
+local function calculate_apothem(side_length, num_sides)
+	local pi = math.pi
+	return side_length / (2 * math.tan(pi / num_sides))
+end
+
+function OP_CalcApothem(side_length, num_sides)
+	if not side_length or not num_sides or num_sides < 3 then
+		OPPanel5Shapes.ApothemText:SetText("Apothem: Invalid Input")
+		return nil
+	end
+	local apothem = calculate_apothem(side_length, num_sides)
+	OPPanel5Shapes.ApothemText:SetText(string.format("Apothem: %.6f", apothem))
+	return apothem
+end
+
+function OP_apply_next_polygon_step(side, sides, reverseDirection, addToGroup, actOnGroup)
+	if not side or not sides or sides < 3 then
+		cprint("Polygon Generation must have 3 or more sides.")
+		return
+	end
+
+	local apothem = calculate_apothem(side, sides)
+	local turnrad = 360 / sides
+
+	-- Adjustments based on direction
+	local copyDir = reverseDirection and "b" or "f"
+	local moveDir = reverseDirection and "f" or "b"
+	local turn = reverseDirection and ("-" .. turnrad) or turnrad
+	local copyDist = reverseDirection and (apothem - 0.25) or apothem
+	local groupPrefix = actOnGroup and " group" or ""
+
+	-- Check if we should be adding to a group and save the last selected object groupLeaderID or guid as needed
+	local groupLeaderID = nil
+	if addToGroup and OPLastSelectedObjectData then
+		groupLeaderID = getLastSelectedObjectGroupLeaderOrGuid()
+	end
+
+	-- Command sequence
+	local commands = {}
+	tinsert(commands, "gob" .. groupPrefix .. " copy " .. copyDir .. " " .. copyDist)
+	tinsert(commands, "gob" .. groupPrefix .. " turn " .. turn)
+	tinsert(commands, "gob" .. groupPrefix .. " move " .. moveDir .. " " .. copyDist)
+	if groupLeaderID then
+		if actOnGroup then
+			tinsert(commands, "gob group merge " .. groupLeaderID)
+		else
+			tinsert(commands, "gob group add " .. groupLeaderID)
+		end
+	end
+	sendAddonChain(commands, function(_, returns)
+		sendAddonCmd("gob" .. groupPrefix .. " select " .. OPLastSelectedObjectData[1], function()
+			print("Next Cylinder Step Done - Ready for Next")
+		end)
+	end)
+end
+
+function OP_gen_full_polygon_from_target(side, sides, reverseDirection, addToGroup, actOnGroup)
+	if not side or not sides or sides < 3 then
+		print("Object Mover Error: Polygon Generation must have 3 or more sides.")
+		return
+	end
+
+	local apothem = calculate_apothem(side, sides)
+	local turnrad = 360 / sides
+
+	-- Adjustments based on direction
+	local copyDir = reverseDirection and "b" or "f"
+	local moveDir = reverseDirection and "f" or "b"
+	local turn = reverseDirection and ("-" .. turnrad) or turnrad
+	local copyDist = reverseDirection and (apothem - 0.25) or apothem
+	local groupPrefix = actOnGroup and " group" or ""
+
+	-- Check if we should be adding to a group and save the last selected object groupLeaderID or guid as needed
+	local groupLeaderID = nil
+	if addToGroup and OPLastSelectedObjectData then
+		groupLeaderID = getLastSelectedObjectGroupLeaderOrGuid()
+	end
+
+	if groupLeaderID then
+		-- Special Case Handling for how we process a grouping
+		local batchCommands = {}
+		local batchIndex = 0
+		for i = 1, sides - 1 do
+			batchCommands[i] = {}
+			tinsert(batchCommands[i], "gob" .. groupPrefix .. " copy " .. copyDir .. " " .. copyDist)
+			tinsert(batchCommands[i], "gob" .. groupPrefix .. " turn " .. turn)
+			tinsert(batchCommands[i], "gob" .. groupPrefix .. " move " .. moveDir .. " " .. copyDist)
+		end
+
+		local function sendNextBatchCommand()
+			batchIndex = batchIndex + 1
+			if not batchCommands[batchIndex] then
+				print("All Cylinder Steps Completed - Ready for Next")
+				return
+			end
+			sendAddonChain(batchCommands[batchIndex], function(_, returns)
+				-- After object processed, handle group addition
+				if actOnGroup then
+					sendAddonCmd("gob group merge " .. groupLeaderID, function()
+						-- reselect the last spawned object
+						sendAddonCmd("gob group select " .. OPLastSelectedObjectData[1], function()
+							-- check if we have more commands to send
+							sendNextBatchCommand()
+						end)
+					end)
+				else
+					sendAddonCmd("gob group add " .. groupLeaderID, function()
+						-- reselect the last spawned object
+						sendAddonCmd("gob select " .. OPLastSelectedObjectData[1], function()
+							-- check if we have more commands to send
+							sendNextBatchCommand()
+						end)
+					end)
+				end
+			end)
+		end
+
+		-- Start sending the batch commands
+		sendNextBatchCommand()
+	else
+		-- Non-Group simple command sequence
+		local commands = {}
+
+		for i = 1, sides - 1 do
+			tinsert(commands, "gob" .. groupPrefix .. " copy " .. copyDir .. " " .. copyDist)
+			tinsert(commands, "gob" .. groupPrefix .. " turn " .. turn)
+			tinsert(commands, "gob" .. groupPrefix .. " move " .. moveDir .. " " .. copyDist)
+		end
+
+		sendAddonChain(commands, function(_, returns) print("Next Cylinder Step Done - Ready for Next") end)
+	end
+end
+
+---#endregion New Stuff

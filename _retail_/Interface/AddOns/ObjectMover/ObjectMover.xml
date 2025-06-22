@@ -3898,20 +3898,6 @@
 						<Offset x="10" y="10" />
 					</Anchor>
 				</Anchors>
-				<!--<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-					<BackgroundInsets>
-						<AbsInset left="5" right="5" top="5" bottom="5" />
-					</BackgroundInsets>
-					<TileSize>
-						<AbsValue val="16" />
-					</TileSize>
-					<EdgeSize>
-						<AbsValue val="16" />
-					</EdgeSize>
-					<Color r="0.5" g="0.5" b="0.5" a="0"/>
-					<BorderColor r="0.75" g="0.75" b="0.75"/>
-				</Backdrop>
-				-->
 				<Layers>
 					<Layer>
 						<FontString parentKey="SelectedObjName" text="No Object Selected" font="Fonts\FRIZQT__.TTF">
@@ -4424,6 +4410,489 @@
 					</OnLoad>
 				</Scripts>
 			</Frame>
+			<Frame name="OPPanel5Shapes" hidden="true" inherits="BackdropTemplate">
+				<Size x="335" y="132" />
+				<Anchors>
+					<Anchor point="BOTTOMLEFT">
+						<Offset x="10" y="10" />
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer>
+						<FontString parentKey="SelectedObjName" text="No Object Selected" font="Fonts\FRIZQT__.TTF">
+							<Size y="12" />
+							<Anchors>
+								<Anchor point="TOP">
+									<Offset y="-6" />
+								</Anchor>
+							</Anchors>
+							<FontHeight val="12" />
+							<Color r="1" g="1" b="1" />
+							<Shadow>
+								<Offset>
+									<AbsDimension x="1" y="-1" />
+								</Offset>
+								<Color r="0" g="0" b="0" />
+							</Shadow>
+						</FontString>
+						<FontString parentKey="ApothemText" text="Apothem: N/A" font="Fonts\FRIZQT__.TTF">
+							<Size y="8" />
+							<Anchors>
+								<Anchor point="BOTTOMLEFT">
+									<Offset x="4" y="4" />
+								</Anchor>
+							</Anchors>
+							<FontHeight val="8" />
+							<Color r="1" g="1" b="1" />
+							<Shadow>
+								<Offset>
+									<AbsDimension x="1" y="-1" />
+								</Offset>
+								<Color r="0" g="0" b="0" />
+							</Shadow>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<EditBox name="OPShapesEdit_Polygon_SideLen" autoFocus="false" inherits="BackdropTemplate">
+						<HighlightColor r="0.5" g="0.5" b="0.5" a="0.75"/>
+						<TextInsets>
+							<AbsInset left="5" right="0" top="0" bottom="0" />
+						</TextInsets>
+						<Size x="64" y="23" />
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="80" y="-25" />
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer>
+								<FontString parentKey="Title" font="Fonts\FRIZQT__.TTF" text="Side Length:">
+									<Anchors>
+										<Anchor point="RIGHT" relativePoint="LEFT">
+											<Offset x="-1" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+									<Shadow>
+										<Offset>
+											<AbsDimension x="1" y="-1" />
+										</Offset>
+										<Color r="0" g="0" b="0" />
+									</Shadow>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnLoad>
+								local backdropInfo = {
+									bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+									edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+									tile = true,
+									tileEdge = true,
+									tileSize = 16,
+									edgeSize = 16,
+									insets = { left = 5, right = 5, top = 5, bottom = 5 },
+								}
+								self:SetBackdrop(backdropInfo)
+								self:SetBackdropColor(0.1, 0.1, 0.1, 0.75)
+								self:SetBackdropBorderColor(0.5, 0.5, 0.5)
+							</OnLoad>
+							<OnEnter>
+							if OPMasterTable.Options["showTooltips"] == true then
+								GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+								self.Timer = C_Timer.NewTimer(0.5,function()
+									GameTooltip:SetText("The length of each side of the polygon. This would usually be the 'width' of the object you're using.", nil, nil, nil, nil, true)
+									GameTooltip:Show()
+								end)
+							end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+							<OnEscapePressed>
+								self:ClearFocus()
+							</OnEscapePressed>
+							<OnEnterPressed>
+								self:ClearFocus()
+							</OnEnterPressed>
+							<OnTextChanged>
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
+									self:SetTextColor(255,255,255,1)
+								elseif text == "" then
+									self:SetTextColor(255,255,255,1)
+								else
+									self:SetTextColor(1,0,0,1)
+								end
+
+								OP_CalcApothem(tonumber(self:GetText()), tonumber(OPShapesEdit_Polygon_NumSides:GetText()))
+							</OnTextChanged>
+							<OnShow></OnShow>
+						</Scripts>
+						<FontString font="Fonts\ARIALN.TTF" text="" indented="true">
+							<FontHeight val="10" />
+							<Color r="1" g="1" b="1" />
+							<Shadow>
+								<Offset>
+									<AbsDimension x="1" y="-1" />
+								</Offset>
+								<Color r="0" g="0" b="0" />
+							</Shadow>
+						</FontString>
+					</EditBox>
+					<Button name="OPShapesButton_Polygon_SideLen_Get" inherits="UIPanelButtonTemplate" text="Get">
+						<Size x="24" y="22" />
+						<Anchors>
+							<Anchor point="left" relativeTo="OPShapesEdit_Polygon_SideLen" relativePoint="right">
+								<Offset x="-2" y="1" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad inherit="prepend">
+								self:RegisterForClicks("LeftButtonUp","RightButtonUp")
+							</OnLoad>
+							<OnEnter>
+							if OPMasterTable.Options["showTooltips"] == true then
+								GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+								self.Timer = C_Timer.NewTimer(0.5,function()
+									GameTooltip:SetText("Gets the width of the currently, or last, selected object to use as your side length.", nil, nil, nil, nil, true)
+									GameTooltip:AddLine(" ")
+									GameTooltip:AddLine("Cannot get a group's width, only a single object.\n\rWant one of the other dimensions? Too bad for now.",1,1,1,true)
+									GameTooltip:Show()
+								end)
+							end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+							<OnClick>
+								if OPSelectedObjectDimX then OPShapesEdit_Polygon_SideLen:SetText(("%.6f"):format(OPSelectedObjectDimX)) end
+								--OPGetObject(button)
+							</OnClick>
+						</Scripts>
+						<ButtonText name="$parentText">
+							<FontHeight val="8" />
+						</ButtonText>
+						<NormalFont style="GameFontNormalTiny2" />
+						<HighlightFont style="GameFontWhiteTiny2" />
+						<DisabledFont style="GameFontDisableTiny2" />
+					</Button>
+					<EditBox name="OPShapesEdit_Polygon_NumSides" autoFocus="false" inherits="BackdropTemplate">
+						<HighlightColor r="0.5" g="0.5" b="0.5" a="0.75"/>
+						<TextInsets>
+							<AbsInset left="5" right="0" top="0" bottom="0" />
+						</TextInsets>
+						<Size x="64" y="23" />
+						<Anchors>
+							<Anchor point="TOPLEFT">
+								<Offset x="80" y="-50" />
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer>
+								<FontString parentKey="Title" font="Fonts\FRIZQT__.TTF" text="# of Sides:">
+									<Anchors>
+										<Anchor point="RIGHT" relativePoint="LEFT">
+											<Offset x="-1" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+									<Shadow>
+										<Offset>
+											<AbsDimension x="1" y="-1" />
+										</Offset>
+										<Color r="0" g="0" b="0" />
+									</Shadow>
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnLoad>
+								local backdropInfo = {
+									bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+									edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+									tile = true,
+									tileEdge = true,
+									tileSize = 16,
+									edgeSize = 16,
+									insets = { left = 5, right = 5, top = 5, bottom = 5 },
+								}
+								self:SetBackdrop(backdropInfo)
+								self:SetBackdropColor(0.1, 0.1, 0.1, 0.75)
+								self:SetBackdropBorderColor(0.5, 0.5, 0.5)
+							</OnLoad>
+							<OnEnter>
+							if OPMasterTable.Options["showTooltips"] == true then
+								GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+								self.Timer = C_Timer.NewTimer(0.5,function()
+									GameTooltip:SetText("The number of sides for this polygon. For example, 4 would make a square; 24 makes a rather good almost-circle.", nil, nil, nil, nil, true)
+									GameTooltip:Show()
+								end)
+							end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+							<OnEscapePressed>
+								self:ClearFocus()
+							</OnEscapePressed>
+							<OnEnterPressed>
+								self:ClearFocus()
+							</OnEnterPressed>
+							<OnTextChanged>
+								local text = self:GetText()
+
+								if text:find("%a") then -- remove alpha characters
+									text = text:gsub("%a", "")
+									self:SetText(text)
+								end
+
+								if tonumber(text) then
+									self:SetTextColor(255,255,255,1)
+								elseif text == "" then
+									self:SetTextColor(255,255,255,1)
+								else
+									self:SetTextColor(1,0,0,1)
+								end
+
+								OP_CalcApothem(tonumber(OPShapesEdit_Polygon_SideLen:GetText()), tonumber(self:GetText()))
+							</OnTextChanged>
+							<OnShow></OnShow>
+						</Scripts>
+						<FontString font="Fonts\ARIALN.TTF" text="" indented="true">
+							<FontHeight val="10" />
+							<Color r="1" g="1" b="1" />
+							<Shadow>
+								<Offset>
+									<AbsDimension x="1" y="-1" />
+								</Offset>
+								<Color r="0" g="0" b="0" />
+							</Shadow>
+						</FontString>
+					</EditBox>
+
+					<CheckButton name="OPShapesPolygonModeRadioFull" inherits="UIRadioButtonTemplate">
+						<Size x="16" y="16" />
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT">
+								<Offset x="-75" y="35" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								self:SetChecked(true)
+								OPShapesPolygonModeRadioStep:SetChecked(false)
+							</OnClick>
+							<OnLoad>
+								self:SetChecked(true)
+							</OnLoad>
+						</Scripts>
+						<Layers>
+							<Layer>
+								<FontString name="$parentText" font="Fonts\FRIZQT__.TTF" text="Full">
+									<Anchors>
+										<Anchor point="LEFT" relativePoint="RIGHT">
+											<Offset x="1" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+								</FontString>
+							</Layer>
+						</Layers>
+					</CheckButton>
+					<CheckButton name="OPShapesPolygonModeRadioStep" inherits="UIRadioButtonTemplate">
+						<Size x="16" y="16" />
+						<Anchors>
+							<Anchor point="LEFT" relativeTo="OPShapesPolygonModeRadioFull" relativePoint="RIGHT">
+								<Offset x="20" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								self:SetChecked(true)
+								OPShapesPolygonModeRadioFull:SetChecked(false)
+							</OnClick>
+						</Scripts>
+						<Layers>
+							<Layer>
+								<FontString name="$parentText" font="Fonts\FRIZQT__.TTF" text="Step">
+									<Anchors>
+										<Anchor point="LEFT" relativePoint="RIGHT">
+											<Offset x="2" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+								</FontString>
+							</Layer>
+						</Layers>
+					</CheckButton>
+					<Button parentKey="ShapeGenButton" inherits="UIPanelButtonTemplate" text="Generate!">
+						<Size x="80" y="24" />
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT">
+								<Offset x="-10" y="10" />
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>
+								local sideLen = tonumber(OPShapesEdit_Polygon_SideLen:GetText())
+								local numSides = tonumber(OPShapesEdit_Polygon_NumSides:GetText())
+								local reverse = OPShapesReverseCheckButton:GetChecked()
+								local groupOnSpawn = OPShapesGroupOnSpawnCheckButton:GetChecked()
+								local actOnGroup = OP_GetGroupSelected()
+								local func = OPShapesPolygonModeRadioFull:GetChecked() and OP_gen_full_polygon_from_target or OP_apply_next_polygon_step
+								-- side, sides, reverseDirection, addToGroup, actOnGroup
+								func(sideLen, numSides, reverse, groupOnSpawn, actOnGroup)
+							</OnClick>
+							<OnEnter>
+							if OPMasterTable.Options["showTooltips"] == true then
+								GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+								self.Timer = C_Timer.NewTimer(0.5,function()
+									GameTooltip:SetText("Begin Generation of the currently selected shape with provided parameters.", nil, nil, nil, nil, true)
+									GameTooltip:AddLine(" ")
+									GameTooltip:AddLine("Automatically acts on a group if a group is selected.",1,1,1,true)
+									GameTooltip:AddLine(" ")
+									GameTooltip:AddLine("May take a bit to finish generating. Please wait until you get an alert that it's complete.",1,1,1,true)
+									GameTooltip:Show()
+								end)
+							end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+						</Scripts>
+						<ButtonText parentKey="Text">
+							<FontHeight val="10" />
+						</ButtonText>
+						<NormalFont style="GameFontNormalSmall" />
+						<HighlightFont style="GameFontHighlightSmall" />
+						<DisabledFont style="GameFontDisableSmall" />
+					</Button>
+					<CheckButton name="OPShapesGroupOnSpawnCheckButton">
+						<Size x="24" y="24" />
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT">
+								<Offset x="-90" y="8" />
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer>
+								<FontString parentKey="Text" font="Fonts\FRIZQT__.TTF" text="Group On Spawn">
+									<Anchors>
+										<Anchor point="RIGHT" relativePoint="LEFT">
+											<Offset x="0" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnClick>
+								if self:GetChecked() == true then
+									OPMasterTable.Options["ShapesGroupOnSpawn"] = true
+								else
+									OPMasterTable.Options["ShapesGroupOnSpawn"] = false
+								end
+							</OnClick>
+							<OnShow>
+								if OPMasterTable.Options["ShapesGroupOnSpawn"] then self:SetChecked(true) end
+							</OnShow>
+							<OnEnter>
+								if OPMasterTable.Options["showTooltips"] == true then
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+									self.Timer = C_Timer.NewTimer(0.5,function()
+										GameTooltip:SetText("If enabled, all objects spawned by the shape generator will be grouped together, with the original selected object as the group leader.", nil, nil, nil, nil, true)
+										GameTooltip:Show()
+									end)
+								end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+						</Scripts>
+						<NormalTexture file="Interface\Buttons\UI-CheckBox-Up" />
+						<PushedTexture file="Interface\Buttons\UI-CheckBox-Down" />
+						<HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD" />
+						<CheckedTexture file="Interface\Buttons\UI-CheckBox-Check" />
+						<DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled" />
+					</CheckButton>
+					<CheckButton name="OPShapesReverseCheckButton">
+						<Size x="24" y="24" />
+						<Anchors>
+							<Anchor point="BOTTOMRIGHT">
+								<Offset x="-90" y="30" />
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer>
+								<FontString parentKey="Text" font="Fonts\FRIZQT__.TTF" text="Reverse">
+									<Anchors>
+										<Anchor point="RIGHT" relativePoint="LEFT">
+											<Offset x="0" />
+										</Anchor>
+									</Anchors>
+									<FontHeight val="10" />
+									<Color r="1" g="1" b="1" />
+								</FontString>
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnEnter>
+								if OPMasterTable.Options["showTooltips"] == true then
+									GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+									self.Timer = C_Timer.NewTimer(0.5,function()
+										GameTooltip:SetText("If enabled, treats the center point as behind the object instead of infront. You can use this in alterating steps to create unique patterns.", nil, nil, nil, nil, true)
+										GameTooltip:Show()
+									end)
+								end
+							</OnEnter>
+							<OnLeave>
+								GameTooltip_Hide()
+								if self.Timer then self.Timer:Cancel() end
+							</OnLeave>
+						</Scripts>
+						<NormalTexture file="Interface\Buttons\UI-CheckBox-Up" />
+						<PushedTexture file="Interface\Buttons\UI-CheckBox-Down" />
+						<HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD" />
+						<CheckedTexture file="Interface\Buttons\UI-CheckBox-Check" />
+						<DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled" />
+					</CheckButton>
+				</Frames>
+				<Scripts>
+					<OnLoad>
+						local backdropInfo = {
+							bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+							edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+							tile = true,
+							tileEdge = true,
+							tileSize = 16,
+							edgeSize = 16,
+							insets = { left = 5, right = 5, top = 5, bottom = 5 },
+						}
+						self:SetBackdrop(backdropInfo)
+						self:SetBackdropColor(0.5, 0.5, 0.5, 0)
+						self:SetBackdropBorderColor(0.75, 0.75, 0.75)
+					</OnLoad>
+				</Scripts>
+			</Frame>
 			<Button name="$parentTab1" inherits="CharacterFrameTabButtonTemplate" id="1" text="Rotation">
 				<Anchors>
 					<Anchor point="CENTER" relativePoint="BOTTOMLEFT">
@@ -4438,28 +4907,10 @@
 						OPPanel4Rotation:Show();
 						OPPanel4Overlay:Hide();
 						OPPanel4Manager:Hide();
+						OPPanel5Shapes:Hide();
 					</OnClick>
 				</Scripts>
 			</Button>
-<!--
-			<Button name="$parentTab3" inherits="CharacterFrameTabButtonTemplate" id="3" text="Tint">
-				<Anchors>
-					<Anchor point="LEFT" relativeTo="$parentTab2" relativePoint="RIGHT">
-						<Offset>
-							<AbsDimension x="-16" y="0"/>
-						</Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnClick>
-						PanelTemplates_SetTab(OPMainFrame, 2);
-						OPPanel4Rotation:Hide();
-						OPPanel4Tint:Show();
-						OPPanel4Overlay:Hide();
-					</OnClick>
-				</Scripts>
-			</Button>
--->
 			<Button name="$parentTab2" inherits="CharacterFrameTabButtonTemplate" id="2" text="Tint &amp; Overlay">
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentTab1" relativePoint="RIGHT">
@@ -4474,6 +4925,7 @@
 						OPPanel4Rotation:Hide();
 						OPPanel4Overlay:Show();
 						OPPanel4Manager:Hide();
+						OPPanel5Shapes:Hide();
 					</OnClick>
 				</Scripts>
 			</Button>
@@ -4491,6 +4943,7 @@
 						OPPanel4Rotation:Hide();
 						OPPanel4Overlay:Hide();
 						OPPanel4Manager:Show();
+						OPPanel5Shapes:Hide();
 					</OnClick>
 					<OnEnter>
 					if OPMasterTable.Options["showTooltips"] == true then
@@ -4509,7 +4962,39 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-
+			<Button name="$parentTab4" inherits="CharacterFrameTabButtonTemplate" id="4" text="Shapes">
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentTab3" relativePoint="RIGHT">
+						<Offset>
+							<AbsDimension x="-16" y="0"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						PanelTemplates_SetTab(OPMainFrame, 4);
+						OPPanel4Rotation:Hide();
+						OPPanel4Overlay:Hide();
+						OPPanel4Manager:Hide();
+						OPPanel5Shapes:Show();
+					</OnClick>
+					<OnEnter>
+					if OPMasterTable.Options["showTooltips"] == true then
+						GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+						self.Timer = C_Timer.NewTimer(0.5,function()
+							GameTooltip:SetText("Shapes Generator", nil, nil, nil, nil, true)
+							GameTooltip:AddLine(" ")
+							GameTooltip:AddLine("Utilities to quickly generate a shape from your selected object.",1,1,1,true)
+							GameTooltip:Show()
+						end)
+					end
+					</OnEnter>
+					<OnLeave>
+						GameTooltip_Hide()
+						if self.Timer then self.Timer:Cancel() end
+					</OnLeave>
+				</Scripts>
+			</Button>
 
 			<Button name="$parentCloseButton" inherits="UIPanelCloseButton" text="Button1">
 				<Size x="25" y="25" />
@@ -4661,7 +5146,7 @@
 			<OnLoad inherit="prepend">
 				self:RegisterForDrag("LeftButton");
 				OPCreateLoadDropDownMenus()
-				PanelTemplates_SetNumTabs(OPMainFrame, 3);
+				PanelTemplates_SetNumTabs(OPMainFrame, 4);
 				PanelTemplates_SetTab(OPMainFrame, 1);
 				OPPanel4Rotation:Show()
 				OPPanel4Overlay:Hide()
