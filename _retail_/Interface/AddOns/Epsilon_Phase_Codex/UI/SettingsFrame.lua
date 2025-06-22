@@ -7,6 +7,7 @@ local settingsFrame = CreateFrame("Frame", "EpsilonPhasesSettingsFrame", UIParen
 
 local currentTagColor = nil
 
+local sendAddonCmd = EpsilonPhases.SendAddonCommand
 local function selectBackground(key)
 	local backgroundID = key.value
 	sendAddonCmd("phase set adbgicon " .. backgroundID)

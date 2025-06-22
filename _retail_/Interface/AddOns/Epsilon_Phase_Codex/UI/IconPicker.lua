@@ -26,66 +26,65 @@ selectorFrame:EnableMouseWheel(true)
 local selectorFrameSlider = CreateFrame("Slider", "EpsilonPhasesIconPickerSelectorFrameSlider", selectorFrame, "UIPanelScrollBarTrimTemplate")
 selectorFrameSlider:SetMinMaxValues(0, 1)
 selectorFrameSlider:SetValueStep(3)
-selectorFrameSlider:SetPoint("TOPRIGHT", iconPicker.Inset, "TOPRIGHT",2, -16)
+selectorFrameSlider:SetPoint("TOPRIGHT", iconPicker.Inset, "TOPRIGHT", 2, -16)
 selectorFrameSlider:SetPoint("BOTTOMRIGHT", iconPicker.Inset, "BOTTOMRIGHT", 2, 14)
 selectorFrameSlider:SetValueStep(1)
 selectorFrameSlider.scrollStep = 4
 
 local backgroundTexture = selectorFrameSlider:CreateTexture(nil, "BACKGROUND")
-backgroundTexture:SetColorTexture(0,0,0,0.25)
+backgroundTexture:SetColorTexture(0, 0, 0, 0.25)
 
-local function GetIconPath( button )
+local function GetIconPath(button)
 	if not button or not button.pickerIndex then
 		return ""
 	end
-	
+
 	local list = filteredList or EPSILON_PHASES_ICONS
-	local texture = list[ button.pickerIndex + startOffset ]
-	
+	local texture = list[button.pickerIndex + startOffset]
+
 	texture = texture
 	return texture
 end
 
-local function OnIconClick( self )
-    local icon = GetIconPath(self)
-    local settingsFrameIconButton = _G["EpsilonPhasesSettingsIconChangeButton"]
-    sendAddonCmd("phase set icon " .. icon)
-    EpsilonPhases.currentActivePhase.data.icon = icon
-    EpsilonPhases.DrawPhases(EpsilonPhases.PrivatePhases)
-    EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
-    settingsFrameIconButton:SetNormalTexture(EpsilonPhases.ICON_PATH .. EpsilonPhases.currentActivePhase.data.icon)
+local function OnIconClick(self)
+	local icon = GetIconPath(self)
+	local settingsFrameIconButton = _G["EpsilonPhasesSettingsIconChangeButton"]
+	EpsilonPhases.SendAddonCommand("phase set icon " .. icon)
+	EpsilonPhases.currentActivePhase.data.icon = icon
+	EpsilonPhases.DrawPhases(EpsilonPhases.PrivatePhases)
+	EpsilonPhases.WritePhaseDetailData(EpsilonPhases.currentActivePhase)
+	settingsFrameIconButton:SetNormalTexture(EpsilonPhases.ICON_PATH .. EpsilonPhases.currentActivePhase.data.icon)
 	iconPicker:Hide()
 end
 
 iconPicker.icons = {}
 for y = 0, 6 do
-    for x = 0, 6 do
-        local btn = CreateFrame("Button", nil, selectorFrame)
-        btn:SetSize(28,28)
-        btn:SetHighlightTexture("Interface/BUTTONS/ButtonHilight-Square", "ADD")
-        btn:SetPoint("TOPLEFT", "EpsilonPhasesIconPickerInset", 32 * x + 5, -32 * y - 5)
-        btn:SetSize(32, 32)
-        btn:SetScript("OnClick", OnIconClick)
+	for x = 0, 6 do
+		local btn = CreateFrame("Button", nil, selectorFrame)
+		btn:SetSize(28, 28)
+		btn:SetHighlightTexture("Interface/BUTTONS/ButtonHilight-Square", "ADD")
+		btn:SetPoint("TOPLEFT", "EpsilonPhasesIconPickerInset", 32 * x + 5, -32 * y - 5)
+		btn:SetSize(32, 32)
+		btn:SetScript("OnClick", OnIconClick)
 
-        table.insert(iconPicker.icons, btn)
-        btn.pickerIndex = #iconPicker.icons
-    end
+		table.insert(iconPicker.icons, btn)
+		btn.pickerIndex = #iconPicker.icons
+	end
 end
 
 local function RefreshGrid()
 	local list = filteredList or EPSILON_PHASES_ICONS
-	for k,v in ipairs( iconPicker.icons ) do
+	for k, v in ipairs(iconPicker.icons) do
 		local tex = list[startOffset + k]
 		if tex then
 			v:Show()
-			if tex:find( "AddOns/" ) then
+			if tex:find("AddOns/") then
 				tex = "Interface/" .. tex
 			else
 				tex = "Interface/Icons/" .. tex
 			end
-			
-			v:SetNormalTexture( tex )
-				
+
+			v:SetNormalTexture(tex)
 		else
 			v:Hide()
 		end
@@ -94,31 +93,29 @@ end
 
 
 
-local function ScrollChanged( value )
-	
+local function ScrollChanged(value)
 	-- Our "step" is 6 icons, which is one line.
 	startOffset = math.floor(value) * 7
 	RefreshGrid()
 end
 
-local function MouseScroll( delta )
-
+local function MouseScroll(delta)
 	local a = selectorFrameSlider:GetValue() - delta
-    selectorFrameSlider:SetValue( a )
+	selectorFrameSlider:SetValue(a)
 end
 
-local function RefreshScroll( reset )
+local function RefreshScroll(reset)
 	local list = filteredList or EPSILON_PHASES_ICONS
 	local max = math.floor((#list - 42) / 7)
 	if max < 0 then max = 0 end
-	selectorFrameSlider:SetMinMaxValues( 0, max )
-	
+	selectorFrameSlider:SetMinMaxValues(0, max)
+
 	if reset then
-		selectorFrameSlider:SetValue( 0 )
+		selectorFrameSlider:SetValue(0)
 	end
 	-- todo: does scroller auto clamp value?
-	
-	ScrollChanged( selectorFrameSlider:GetValue() )
+
+	ScrollChanged(selectorFrameSlider:GetValue())
 end
 iconPicker.RefreshScroll = RefreshScroll
 
@@ -134,27 +131,27 @@ local function FilterChanged()
 	else
 		-- build new list
 		filteredList = {}
-		for k,v in ipairs( EPSILON_PHASES_ICONS ) do
-			if v:lower():find( filter ) then
-				table.insert( filteredList, v )
-			end	
+		for k, v in ipairs(EPSILON_PHASES_ICONS) do
+			if v:lower():find(filter) then
+				table.insert(filteredList, v)
+			end
 		end
 		RefreshScroll()
 	end
 end
 
 
-selectorFrame:SetScript("OnMouseWheel", function(self, delta) 
-    MouseScroll(delta)
+selectorFrame:SetScript("OnMouseWheel", function(self, delta)
+	MouseScroll(delta)
 end)
 
 selectorFrameSlider:SetScript("OnValueChanged", function(self, value)
-    ScrollChanged(value)
+	ScrollChanged(value)
 end)
 
 searchBox:SetScript("OnTextChanged", function(self)
-    SearchBoxTemplate_OnTextChanged(self)
-    FilterChanged()
+	SearchBoxTemplate_OnTextChanged(self)
+	FilterChanged()
 end)
 
 iconPicker:Hide()
