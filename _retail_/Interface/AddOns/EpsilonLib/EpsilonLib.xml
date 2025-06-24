@@ -2,6 +2,9 @@
 <Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.blizzard.com/wow/ui/" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
+	<Include file="Utils\Utils.xml"/>
+	<Script file="Utils.lua"/>
+
 	<Include file="API\API.xml"/>
 
 	<Script file="GameObject.lua"/>
@@ -10,14 +13,11 @@
 	<Script file="Cheat.lua"/>
 	<Script file="AddonCommands.lua"/>
 	<Script file="CommandDefinitions\init.lua"/>
-	<Script file="Utils.lua"/>
 	<Script file="SystemMessages.lua"/>
 	<Script file="ServerMessages.lua"/>
 
 	<Script file="RunScript.lua"/>
 	<Script file="PhaseAddOnData.lua"/>
-
-	<Include file="Utils\Utils.xml"/>
 
 	<Script file="ConfigMenu.lua"/>
 

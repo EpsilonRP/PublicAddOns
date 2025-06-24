@@ -69,8 +69,16 @@ EpsiLib.Classes = {}
 ---@field Tint function
 ---@field Overlay function
 ---@field Copy function
+---@field SpawnDuplicate function
+---@field Restore function
+---@field Delete function
+---@field GetGUID function
+---@field GetEntry function
+---@field GetName function
+---@field GetFileDataID function
+---@field IsWMO function
 
----@class GameObjectClass
+---@class GameObjectClass: GameObjectMeta
 ---@field guid number
 ---@field entry number
 ---@field name string
@@ -89,3 +97,5 @@ EpsiLib.Classes = {}
 ---@field canEdit boolean
 ---@field map number
 ---@field time integer
+---@field isDeleted boolean
+---@field isRestored boolean

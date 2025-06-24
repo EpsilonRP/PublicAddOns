@@ -1,5 +1,16 @@
 local EpsilonLib, EpsiLib = ...;
 
+
+EpsiLib.GameObject._log = {}
+EpsiLib.GameObject._log._last = nil
+EpsiLib.GameObject._log._selected = nil
+EpsiLib.GameObject._gobs = {}
+local group_holder = {}
+
+-- Utils
+local toboolean = EpsiLib.Utils.ToBoolean
+local tonumberOrFalse = EpsiLib.Utils.ToNumberOrFalse
+
 --[[
 GameObject = {}
 
@@ -72,21 +83,18 @@ local ObjectTypes = {
 	[9] = "TEXT",
 	[10] = "GOOBER",
 	[11] = "TRANSPORT",
-	[12] =
-	"AREADAMAGE",
+	[12] = "AREADAMAGE",
 	[13] = "CAMERA",
 	[14] = "MAP_OBJECT (WMO)",
 	[15] = "MAP_OBJ_TRANSPORT (WMO)",
 	[16] = "DUEL_ARBITER",
-	[17] =
-	"FISHINGNODE",
+	[17] = "FISHINGNODE",
 	[18] = "RITUAL",
 	[19] = "MAILBOX",
 	[20] = "DO_NOT_USE",
 	[21] = "GUARDPOST",
 	[22] = "SPELLCASTER",
-	[23] =
-	"MEETINGSTONE",
+	[23] = "MEETINGSTONE",
 	[24] = "FLAGSTAND",
 	[25] = "FISHINGHOLE",
 	[26] = "FLAGDROP",
@@ -96,24 +104,20 @@ local ObjectTypes = {
 	[30] = "AURA_GENERATOR",
 	[31] = "DUNGEON_DIFFICULTY",
 	[32] = "BARBER_CHAIR",
-	[33] =
-	"DESTRUCTIBLE_BUILDING (WMO)",
+	[33] = "DESTRUCTIBLE_BUILDING (WMO)",
 	[34] = "GUILD_BANK",
 	[35] = "TRAPDOOR",
 	[36] = "NEW_FLAG",
 	[37] = "NEW_FLAG_DROP",
-	[38] =
-	"GARRISON_BUILDING (WMO)",
+	[38] = "GARRISON_BUILDING (WMO)",
 	[39] = "GARRISON_PLOT",
 	[40] = "CLIENT_CREATURE",
 	[41] = "CLIENT_ITEM",
-	[42] =
-	"CAPTURE_POINT (WMO)",
+	[42] = "CAPTURE_POINT (WMO)",
 	[43] = "PHASEABLE_MO",
 	[44] = "GARRISON_MONUMENT",
 	[45] = "GARRISON_SHIPMENT",
-	[46] =
-	"GARRISON_MONUMENT_PLAQUE",
+	[46] = "GARRISON_MONUMENT_PLAQUE",
 	[47] = "ITEM_FORGE",
 	[48] = "UI_LINK",
 	[49] = "KEYSTONE_RECEPTACLE",
@@ -122,27 +126,82 @@ local ObjectTypes = {
 	[52] = "MULTI",
 	[53] = "SIEGEABLE_MULTI",
 	[54] = "SIEGEABLE_MO (WMO)",
-	[55] =
-	"PVP_REWARD",
+	[55] = "PVP_REWARD",
 	[56] = "PLAYER_CHOICE_CHEST",
 	[57] = "LEGENDARY_FORGE",
 	[58] = "GARR_TALENT_TREE",
-	[59] =
-	"WEEKLY_REWARD_CHEST",
+	[59] = "WEEKLY_REWARD_CHEST",
 	[60] = "CLIENT_MODEL"
 }
 
 local function shortenFileName(path)
 	-- Extract the file name from the full path
 	local fileName = path:match("([^\\/]+)$")
-	-- Remove the extension from the file name
+	fileName = fileName:gsub("%[.*%]", "") -- Remove any brackets and their contents
 	return fileName and fileName:match("(.+)%..+$") or fileName
 end
 
 local GameObjectMeta = {}
 
+function GameObjectMeta:Select()
+	EpsiLib.AddonCommands._SendAddonCommand("gobject select " .. self.guid)
+end
+
 function GameObjectMeta:IsSelected()
 	return EpsiLib.GameObject._log._selected == self
+end
+
+function GameObjectMeta:IsWMO()
+	local id = tonumber(self.objType)
+	return WMO_TYPES[id] or false
+end
+
+function GameObjectMeta:GetGUID()
+	return self.guid
+end
+
+function GameObjectMeta:GetEntry()
+	return self.entry
+end
+
+function GameObjectMeta:GetType()
+	local typeName = ObjectTypes[self.objType]
+	return self.objType, typeName or "UNKNOWN"
+end
+
+function GameObjectMeta:GetScale()
+	return self.scale or 1
+end
+
+function GameObjectMeta:GetName(short)
+	return short and self.sname or self.name
+end
+
+function GameObjectMeta:SetScale(val)
+	if not self:IsSelected() then
+		print("You must select the GameObject before changing its scale.");
+		return;
+	end
+	if not val or tonumber(val) <= 0 then
+		print("Invalid scale value. Must be a positive number.");
+		return;
+	end
+
+	EpsiLib.AddonCommands._SendAddonCommand(("gobject scale %s"):format(val), function(success, messages)
+		if not success then
+			print("Failed to set scale for GameObject: " .. self.guid .. " with message: " .. messages[1])
+		else
+			--print("Set scale for GameObject: " .. self.guid .. " to " .. self.scale)
+		end
+	end, false)
+end
+
+function GameObjectMeta:GoTo()
+	if self.isDeleted or not self:IsSelected() then
+		EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(self.transform.position.x, self.transform.position.y, self.transform.position.z, self.map, self.transform.rotation.z))
+	else
+		EpsiLib.AddonCommands._SendAddonCommand(("gobject go %s"):format(self.guid))
+	end
 end
 
 ---Move GameObject to a given vector position
@@ -293,10 +352,6 @@ function GameObjectMeta:Rotate(vector)
 	end)
 end
 
-function GameObjectMeta:Select()
-	SendChatMessage(".gobject select " .. self.guid, "GUILD");
-end
-
 function GameObjectMeta:GetPosString()
 	return self.transform.position:ToString();
 end
@@ -311,7 +366,7 @@ function GameObjectMeta:Tint(r, g, b, a, s)
 		if not success then
 			print("Failed to tint GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			print("Tinted GameObject: " .. self.guid)
+			--print("Tinted GameObject: " .. self.guid)
 		end
 	end, false)
 end
@@ -326,17 +381,33 @@ function GameObjectMeta:Overlay(r, g, b, a, s)
 		if not success then
 			print("Failed to apply overlay to GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			print("Applied overlay to GameObject: " .. self.guid)
+			--print("Applied overlay to GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
-function GameObjectMeta:Copy()
-	EpsiLib.AddonCommands._SendAddonCommand("gobject copy " .. self.guid, function(success, messages)
+function GameObjectMeta:Copy(dir, val, count, entry)
+	local command
+	if not dir or val then
+		command = "gobject copy"
+	else
+		command = ("gobject copy %s %s %s %s"):format(dir, val, count or 1, entry or "")
+	end
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
 			print("Failed to copy GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			print("Copied GameObject: " .. self.guid)
+			--print("Copied GameObject: " .. self.guid)
+		end
+	end, false)
+end
+
+function GameObjectMeta:SpawnDuplicate()
+	EpsiLib.AddonCommands._SendAddonCommand("gobject spawn " .. self.entry, function(success, messages)
+		if not success then
+			print("Failed to spawn duplicate GameObject: " .. self.guid .. " with message: " .. messages[1])
+		else
+			--print("Spawned duplicate GameObject: " .. self.guid)
 		end
 	end, false)
 end
@@ -352,34 +423,58 @@ function GameObjectMeta:Delete()
 	end, false)
 end
 
-local trueVal = {
-	-- False
-	[0] = false,
-	["0"] = false,
-	["false"] = false,
+function GameObjectMeta:Restore()
+	local gobData = self
+	if not self.isDeleted then
+		print("GameObject: " .. self.guid .. " is not deleted, cannot restore.");
+		return;
+	end
+	if select(4, C_Epsilon.GetPosition()) ~= gobData.map then
+		local text = ("You need to be on the same map the object was deleted from to restore it (map id %s).\n\rYou can teleport there now & then attempt to restore again after."):format(gobData.map)
+		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
+			text = text,
+			acceptText = "Teleport",
+			showAlert = true,
+			callback = function()
+				EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map, gobData.transform.rotation.z))
+			end
+		})
+		return;
+	end
 
-	--True
-	[1] = true,
-	["1"] = true,
-	["true"] = true
-}
-local function toboolean(val)
-	return trueVal[val]
+	local mainSpawnCommand = ("gobject spawn %s scale %s posx %s posy %s posz %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
+	if gobData.HasTint then
+		local tintCommand
+		if gobData.HasTint == 1 then
+			tintCommand = (" tint %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.alpha)
+		else
+			tintCommand = (" overlay %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.saturation, gobData.color.alpha)
+		end
+		mainSpawnCommand = mainSpawnCommand .. tintCommand
+	elseif gobData.spell and gobData.spell ~= 0 then
+		mainSpawnCommand = mainSpawnCommand .. " spell " .. gobData.spell
+	end
+
+	local commands = { mainSpawnCommand }
+
+	if gobData.groupLeader and gobData.groupLeader ~= 0 then
+		table.insert(commands, ("gobject group add %s"):format(gobData.groupLeader))
+	end
+
+	EpsiLib.AddonCommands._SendAddonChain(commands, function(success, messages)
+		if not success then
+			print("Failed to restore GameObject: " .. gobData.guid .. " with message: " .. messages[1])
+		else
+			gobData.isRestored = true
+			print("Restored GameObject: " .. gobData.guid)
+		end
+	end, false)
 end
-
-local function tonumberOrFalse(val)
-	val = tonumber(val)
-	if val == 0 then val = false end
-	return val
-end
-
-EpsiLib.GameObject._log = {}
-EpsiLib.GameObject._log._last = nil
-EpsiLib.GameObject._log._selected = nil
-EpsiLib.GameObject._gobs = {}
-local group_holder = {}
 
 function EpsiLib.GameObject:GetSelected()
+	if self._log._selected == group_holder then
+		return nil -- If the selected object is the group holder, return nil
+	end
 	return self._log._selected
 end
 
@@ -507,15 +602,115 @@ for k, v in pairs(events) do
 	EpsiLib.EventManager:Register(k, v, k == "PLAYER_LOGIN")
 end
 
+local function CropNineSliceCorners(slice, cropFactor)
+	-- cropFactor: number between 0 and 1 (e.g., 0.5 keeps top half)
+
+	local function SafeSetTexCoordAndSize(region, fromTop)
+		if region and region.SetTexCoord then
+			local UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY = region:GetTexCoord()
+
+			-- Store original tex coords and size for reset
+			if not region._orig then
+				region._orig = {
+					tex = { UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY },
+					height = region:GetHeight(),
+					width = region:GetWidth()
+				}
+			end
+
+			-- Vertically crop texcoords
+			if fromTop then
+				-- crop from top
+				local croppedY = (LowerLeftY - UpperLeftY) * (1 - cropFactor)
+				region:SetTexCoord(UpperLeftX, croppedY, LowerLeftX, LowerLeftY, UpperRightX, croppedY, LowerRightX, LowerRightY)
+			else
+				-- crop from bottom
+				local croppedY = UpperRightY + (LowerRightY - UpperRightY) * cropFactor
+				region:SetTexCoord(UpperLeftX, UpperLeftY, LowerLeftX, croppedY, UpperRightX, UpperRightY, LowerRightX, croppedY)
+			end
+
+			-- Physically crop height
+			region:SetHeight(region._orig.height * cropFactor)
+		end
+	end
+
+	SafeSetTexCoordAndSize(slice.TopLeftCorner)
+	SafeSetTexCoordAndSize(slice.TopRightCorner)
+	SafeSetTexCoordAndSize(slice.BottomLeftCorner, true)
+	SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
+end
+
+local function ResetNineSliceCorners(slice)
+	local function SafeReset(region)
+		if region and region._orig then
+			local t = region._orig.tex
+			region:SetTexCoord(unpack(t))
+			region:SetHeight(region._orig.height)
+			region:SetWidth(region._orig.width)
+		end
+	end
+
+	SafeReset(slice.TopLeftCorner)
+	SafeReset(slice.TopRightCorner)
+	SafeReset(slice.BottomLeftCorner)
+	SafeReset(slice.BottomRightCorner)
+end
 
 --#region GameObject History Frame
 local frame = CreateFrame("Frame", "EpsilonLibGobHistoryFrame", UIParent, "ButtonFrameTemplateMinimizable")
 frame:SetSize(380, 416)
-frame:Show()
 frame:SetPoint("CENTER")
+frame:SetMovable(true)
+frame:SetClampedToScreen(true)
+frame:EnableMouse(true)
 frame.TitleText:SetText("GameObject History")
 ButtonFrameTemplateMinimizable_HidePortrait(frame)
 EpsiLib.GameObject.GobLogFrame = frame
+
+frame.BottomButtons = CreateFrame("Frame", nil, frame)
+frame.BottomButtons:SetSize(380, 32)
+frame.BottomButtons:SetPoint("BOTTOM")
+
+local minimizeButton = CreateFrame("Button", nil, frame, "UIPanelHideButtonNoScripts")
+minimizeButton:SetSize(32, 32)
+minimizeButton:SetPoint("RIGHT", frame.CloseButton, "LEFT", 10, 0) -- Position it beside the close button
+
+minimizeButton:SetNormalTexture("Interface\\Buttons\\UI-Panel-HideButton-Up")
+minimizeButton:SetPushedTexture("Interface\\Buttons\\UI-Panel-HideButton-Down")
+minimizeButton:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight")
+
+frame.isMinizmized = false
+
+minimizeButton:SetScript("OnClick", function(self)
+	self.isMinimized = not self.isMinimized
+	if self.isMinimized then
+		frame.Inset:Hide()
+		local top = frame:GetTop()
+		local left = frame:GetLeft()
+		frame:SetHeight(60) -- Adjust this to show just the title bar
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+		CropNineSliceCorners(frame.NineSlice, 0.4) -- Crop the corners to show only the top half
+		frame.BottomButtons:Hide()           -- Hide the bottom buttons
+	else
+		frame.Inset:Show()
+		local top = frame:GetTop()
+		local left = frame:GetLeft()
+		frame:SetHeight(416) -- Restore full height
+		frame:ClearAllPoints()
+		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+		ResetNineSliceCorners(frame.NineSlice) -- Reset the corners to full size
+		frame.BottomButtons:Show()       -- Show the bottom buttons
+	end
+end)
+
+
+local dragBar = CreateFrame("Frame", nil, frame, "PanelDragBarTemplate")
+dragBar:SetPoint("TOPLEFT")
+dragBar:SetSize(20, 20)
+dragBar:SetPoint("RIGHT", frame.CloseButton, "LEFT", -20, 0)
+dragBar:EnableMouse(true)
+dragBar:Init(frame)
 
 local GAME_GOLD = CreateColorFromHexString("FFFFD700")
 
@@ -529,7 +724,7 @@ local gobLogSTColumns = {
 }
 
 --CreateST(cols, numRows, rowHeight, highlight, parent, multiselection)
-gobLogSTObject = LibStub("ScrollingTable"):CreateST(gobLogSTColumns, 20, 16, nil, frame)
+gobLogSTObject = LibStub("ScrollingTable"):CreateST(gobLogSTColumns, 20, 16, nil, frame.Inset)
 gobLogSTObject:EnableSelection(true)
 
 local gobLogSTFrame = gobLogSTObject.frame
@@ -593,8 +788,14 @@ EpsiLib.GameObject.GobLogFrame.Update = function()
 		local data = {}
 		for i = #gobLog, 1, -1 do
 			local object = gobLog[i]
-			local status = object.isDeleted and 'Deleted' or 'Spawned'
-			if object == EpsiLib.GameObject._log._selected then status = "Selected" end
+			local status = "Spawned"
+			if object == EpsiLib.GameObject._log._selected then
+				status = "Selected"
+			elseif object.isRestored then
+				status = "Restored"
+			elseif object.isDeleted then
+				status = "Deleted"
+			end
 			tinsert(data, {
 				gob = object,
 				cols = {
@@ -610,7 +811,7 @@ EpsiLib.GameObject.GobLogFrame.Update = function()
 		gobLogSTObject:SetData(data)
 	end
 
-	EpsiLib.GameObject.GobLogFrame.bottomButtons:UpdateEnabled(gobLogSTObject:GetSelectedObject())
+	EpsiLib.GameObject.GobLogFrame.BottomButtons:UpdateEnabled(gobLogSTObject:GetSelectedObject())
 end
 EpsiLib.GameObject.GobLogFrame:HookScript("OnShow", EpsiLib.GameObject.GobLogFrame.Update)
 EpsiLib.GameObject.GobLogFrame:Hide()
@@ -628,14 +829,14 @@ end
 -- gobLogSTObject:GetSelection() --> Returns the id, to use in..
 -- gobLogSTObject.data[id].gob
 
-local bottomButtons = {}
-EpsiLib.GameObject.GobLogFrame.bottomButtons = bottomButtons
+local bottomButtons = frame.BottomButtons
+--EpsiLib.GameObject.GobLogFrame._bottomButtons = bottomButtons
 local bottomButtonsMap = {}
 gobLogSTFrame.bottomButtons = bottomButtons
 
 local lastBtn
 local function nextBottomButton(name, onClickFn)
-	local btn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	local btn = CreateFrame("Button", nil, frame.BottomButtons, "UIPanelButtonTemplate")
 	if lastBtn then
 		btn:SetPoint("RIGHT", lastBtn, "LEFT", -4, 0)
 	else
@@ -660,72 +861,37 @@ end
 local restoreButton = nextBottomButton("Restore", function(self)
 	local gobData = gobLogSTObject:GetSelectedObject() --[[@as GameObjectClass]]
 	if not gobData then return end
-
-	if select(4, C_Epsilon.GetPosition()) ~= gobData.map then
-		local text = ("You need to be on the same map the object was deleted from to restore it (map id %s).\n\rYou can teleport there now & then attempt to restore again after."):format(gobData.map)
-
-		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
-			text = text,
-			acceptText = "Teleport",
-			showAlert = true,
-			callback = function()
-				EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map, gobData.transform.rotation.z))
-			end
-		})
-
-		return
-	end
-
-	local mainSpawnCommand = ("gobject spawn %s scale %s posx %s posy %s posz %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
-	if gobData.HasTint then
-		local tintCommand
-		if gobData.HasTint == 1 then
-			tintCommand = (" tint %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.alpha)
-		else
-			tintCommand = (" overlay %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.saturation, gobData.color.alpha)
-		end
-		mainSpawnCommand = mainSpawnCommand .. tintCommand
-	elseif gobData.spell and gobData.spell ~= 0 then
-		mainSpawnCommand = mainSpawnCommand .. " spell " .. gobData.spell
-	end
-
-	local commands = { mainSpawnCommand }
-
-	if gobData.groupLeader and gobData.groupLeader ~= 0 then
-		table.insert(commands, ("gobject group add %s"):format(gobData.groupLeader))
-	end
-
-	EpsiLib.AddonCommands._SendAddonChain(commands)
+	gobData:Restore()
 end)
 function restoreButton:Condition(gobData)
-	return gobData.isDeleted
+	return gobData.isDeleted and not gobData.isRestored
 end
 
 local gotoButton = nextBottomButton("Go To", function(self)
 	local selectedRow = gobLogSTObject:GetSelection()
 	local gobData = gobLogSTObject.data[selectedRow].gob
-	if gobData.isDeleted then
-		EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map, gobData.transform.rotation.z))
-	else
-		EpsiLib.AddonCommands._SendAddonCommand(("gobject go %s"):format(gobData.guid))
-	end
+	if not gobData then return end
+	gobData:GoTo()
 end)
 
 local selectButton = nextBottomButton("Select", function(self)
 	local selectedRow = gobLogSTObject:GetSelection()
 	local gobData = gobLogSTObject.data[selectedRow].gob
-	EpsiLib.AddonCommands._SendAddonCommand("gobject select " .. gobData.guid)
+	if not gobData then return end
+	gobData:Select()
 end)
 function selectButton:Condition(gobData)
 	local selected = EpsiLib.GameObject._log._selected == gobData
 	return not (gobData.isDeleted or selected)
 end
 
-local copyButton = nextBottomButton("Copy", function(self)
+local copyButton = nextBottomButton("Spawn", function(self)
 	local selectedRow = gobLogSTObject:GetSelection()
 	local gobData = gobLogSTObject.data[selectedRow].gob
-	gobData:Copy()
+	if not gobData then return end
+	gobData:SpawnDuplicate()
 end)
+copyButton.tooltipText = "Spawns a new object with the same entry as the chosen object."
 
 ---Updates the Bottom Buttons enabled status based on GobData conditions or false to just disable them all if not selected
 ---@param gobData GameObjectClass|false
@@ -739,7 +905,6 @@ function bottomButtons:UpdateEnabled(gobData)
 			end
 		end
 	else
-		-- disable buttons here
 		for k, v in ipairs(bottomButtonsMap) do
 			v:Disable()
 		end
