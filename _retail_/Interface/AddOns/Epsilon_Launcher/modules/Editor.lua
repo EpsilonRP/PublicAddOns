@@ -12,16 +12,18 @@ local icon = ns.Launcher.CONSTANTS.assetsPath .. "EpsilonTrayIconEditor"
 
 local graphicsAPIs
 local target_gxApi_avail
+local backup_gxApi_avail
 
 -------------------------------------------------------------------------------
 -- Editor UI
 -------------------------------------------------------------------------------
 
-local editor_target_gxApi = "D3D11_LEGACY"
+local editor_target_gxApi = "D3D11"
+local editor_backup_gxAPI = "D3D11_LEGACY"
 local target_gxApi_name = _G["GXAPI_" .. editor_target_gxApi]
 local function EpsilonOverlayUI_MinimapButton_OnClick(self)
-	--if C_CVar.GetCVar("gxApi"):find("D3D11_LEGACY") then
-	if C_CVar.GetCVar("gxApi") == editor_target_gxApi then
+	local curAPI = C_CVar.GetCVar("gxApi")
+	if curAPI == editor_target_gxApi then
 		C_Epsilon.ShowMenu()
 	else
 		if not graphicsAPIs then
@@ -31,15 +33,20 @@ local function EpsilonOverlayUI_MinimapButton_OnClick(self)
 		if target_gxApi_avail == nil then
 			target_gxApi_avail = false -- fallback
 			for k, v in ipairs(graphicsAPIs) do
-				--if v:find("D3D11_LEGACY") then
 				if v == editor_target_gxApi then
 					target_gxApi_avail = true
-					break
+				elseif v == editor_backup_gxAPI then
+					backup_gxApi_avail = true
 				end
 			end
 		end
 
 		if not target_gxApi_avail then
+			-- Target not available, and we are using backup, allow menu without warnings.
+			if curAPI == editor_backup_gxAPI then
+				C_Epsilon.ShowMenu()
+				return
+			end
 			print(
 				"|cffFF0000Epsilon Editor Alert: Your settings are incompatible with the Epsilon Editor, and " ..
 				target_gxApi_name .. " is not available. If you are on Windows, please see the #tech-faq channel in Discord for links to install DirectX 11.")
