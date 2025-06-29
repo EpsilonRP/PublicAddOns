@@ -603,7 +603,7 @@ local function addRow(rowToAdd, copy)
 
 		newRow.AddSpellRowButton:SetMotionScriptsWhileDisabled(true)
 
-		Tooltip.set(newRow.AddSpellRowButton, "Add a new, blank row above this one.\n\rShift-Click to copy this row instead of making a blank row.")
+		Tooltip.set(newRow.AddSpellRowButton, "Add New Row", "{left-click} Add Blank Row Above\n{shift-left-click} to copy / duplicate this row.")
 
 		newRow.AddSpellRowButton:SetScript("OnClick", function(self)
 			addRow(self.rowNum, IsShiftKeyDown())

@@ -330,8 +330,8 @@ local function createIconButton(mainFrame, IconPicker)
 	iconButton:RegisterForClicks("RightButtonUp", "LeftButtonUp")
 
 	Tooltip.set(iconButton, "Select an Icon",
-		"Select an icon for your ArcSpell.\n\rThis will be shown across the addon to represent the spell (i.e., in the vault, castbar, Quickcast, chatlinks).\n\r" ..
-		Tooltip.genContrastText("Right-Click") .. " to remove the icon. You should probably have an icon tho..")
+		"Select an icon for your ArcSpell.\n\r" ..
+		"{right-click-text-icon} to remove the icon. You should probably have an icon tho..")
 
 	return iconButton
 end

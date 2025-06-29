@@ -115,7 +115,7 @@ local function createSparkButton(frame)
 
 	Tooltip.set(sparkButton,
 		"Open Spark Manager",
-		{ "Manage your phase's Spark Triggers\n", string.format("%s an ArcSpell above to create a new Spark!", Tooltip.genContrastText("Right-Click")) }
+		{ "Manage your phase's Spark Triggers\n", string.format("%s an ArcSpell above to create a new Spark!", Tooltip.tag("right-click-text-icon")) }
 	)
 
 	return sparkButton
@@ -154,7 +154,7 @@ local function createUploadToPhaseButton(frame, upload)
 		"Copy to Phase Vault",
 		function(self)
 			if self:IsEnabled() then
-				return "Copy the spell to the Phase Vault.\n\rShift-Click to automatically over-write any spell with the same command ID in the Phase Vault."
+				return "Copy the spell to the Phase Vault.\n\r{shift-left-click-text} {left-click} to automatically over-write any spell with the same command ID in the Phase Vault."
 			elseif (not Permissions.isOfficerPlus()) then
 				return "You do not currently have permissions to upload to this phase's vault.\n\rIf you were just given officer, rejoin the phase."
 			end
@@ -311,7 +311,7 @@ local function createProfileButton(frame)
 		"Change Profile",
 		{
 			"Switch to another profile to view that profiles vault.",
-			"Right-Click to change your default selected profile.",
+			"{right-click-text-icon} to change your default selected profile.",
 		},
 		{ delay = 0.3 }
 	)

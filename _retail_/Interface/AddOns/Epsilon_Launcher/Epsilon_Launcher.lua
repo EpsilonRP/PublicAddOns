@@ -56,6 +56,8 @@ local _defaultDB = {
 			maxCols = 4,
 			minimapPos = 244.8523982880371
 		},
+		ignoreGXPrompt = nil,
+		restartGxOnReload = nil,
 	},
 }
 addon.db = LibStub("AceDB-3.0"):New("Epsilon_Launcher_DB", _defaultDB, true)
@@ -439,6 +441,8 @@ ns.Launcher = {
 	new = registerTrayIcon,
 
 	CONSTANTS = CONSTANTS,
+
+	addon = addon,
 }
 
 local lib = LibStub:NewLibrary("EpsiLauncher-1.0", 1)

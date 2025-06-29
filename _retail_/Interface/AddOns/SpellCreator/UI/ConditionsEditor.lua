@@ -107,7 +107,7 @@ local function statusLines(display)
 	end
 	tinsert(lines, " ")
 	local disabledStatus = display:GetUserData("disabled")
-	local refreshLine = (disabledStatus and "Right-Click to Enable" or "Left-Click to Refresh, Right-Click to Disable")
+	local refreshLine = (disabledStatus and "Right-Click " .. Tooltip.tag("right-click") .. " to Enable" or "Left-Click " .. Tooltip.tag("left-click") .. " to Refresh, Right-Click " .. Tooltip.tag("right-click") .. " to Disable")
 	tinsert(lines, Constants.ADDON_COLORS.TOOLTIP_NOREVERT:WrapTextInColorCode(refreshLine))
 	return lines
 end

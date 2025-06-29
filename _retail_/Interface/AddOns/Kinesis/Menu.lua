@@ -199,6 +199,44 @@ local options = {
 					inline = true,
 					order = autoOrder(true),
 					args = {
+						tempDisableNotice = {
+							type = "header",
+							name = function()
+								local tempDisable = ns.Main.getTempDisable()
+								if not tempDisable then return "Nothing to see here, move along" end
+								if tempDisable.sprint and tempDisable.flight then
+									return contrastText:WrapTextInColorCode "Flight & Sprint are temporarily disabled by another AddOn or script."
+								elseif tempDisable.sprint then
+									return contrastText:WrapTextInColorCode "Sprint is temporarily disabled by another AddOn or script."
+								elseif tempDisable.flight then
+									return contrastText:WrapTextInColorCode "Flight is temporarily disabled by another AddOn or script."
+								end
+							end,
+							hidden = function() return not (ns.Main.getTempDisable("sprint") or ns.Main.getTempDisable("flight")) end,
+							order = autoOrder(),
+						},
+						restoreTempDisable = {
+							type = "execute",
+							name = function()
+								local tempDisable = ns.Main.getTempDisable()
+								if not tempDisable then return "Restore" end
+								if tempDisable.sprint and tempDisable.flight then
+									return "Restore Flight & Sprint."
+								elseif tempDisable.sprint then
+									return "Restore Sprint"
+								elseif tempDisable.flight then
+									return "Restore Flight"
+								end
+							end,
+							desc = "Click to remove the Temporary Disable Override.",
+							order = autoOrder(),
+							func = function()
+								ns.Main.removeTempDisableBoth()
+								menuFrame:RefreshMenuForUpdates()
+							end,
+							hidden = function() return not (ns.Main.getTempDisable("sprint") or ns.Main.getTempDisable("flight")) end,
+							width = "full",
+						},
 						flightToggle = {
 							type = "toggle",
 							name = "Enable Flight Controls ('Creative Mode')",

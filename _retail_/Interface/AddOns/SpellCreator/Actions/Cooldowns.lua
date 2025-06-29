@@ -49,6 +49,10 @@ local cooldownFrameFuncs = {
 ---@param cooldownTime number
 ---@param phase integer?
 local function triggerCooldownVisuals(commID, cooldownTime, phase)
+	if phase == true then
+		phase = C_Epsilon.GetPhaseId()
+	end
+	phase = tostring(phase)
 	for k, v in pairs(cooldownFrameFuncs) do v(commID, cooldownTime, phase) end
 end
 
@@ -60,6 +64,10 @@ end
 local function addSpellCooldown(commID, cooldownTime, phase, noVisual)
 	local currentTime = GetTime()
 	if phase then
+		if phase == true then
+			phase = C_Epsilon.GetPhaseId()
+		end
+		phase = tostring(phase)
 		if not spellCooldowns.phase[phase] then spellCooldowns.phase[phase] = {} end
 		spellCooldowns.phase[phase][commID] = { endTime = cooldownTime + currentTime, length = tonumber(cooldownTime) }
 
@@ -78,6 +86,10 @@ end
 ---@param phase integer? Phase ID if the spell is from the Phase Vault, leave off if personal vault.
 local function removeSpellCooldown(commID, phase)
 	if phase then
+		if phase == true then
+			phase = C_Epsilon.GetPhaseId()
+		end
+		phase = tostring(phase)
 		if spellCooldowns.phase[phase] then spellCooldowns.phase[phase][commID] = nil end
 	else
 		spellCooldowns.personal[commID] = nil
@@ -127,7 +139,7 @@ local function addSparkCooldown(commID, cooldownTime, origCommID, phaseOverride)
 	local phase
 
 	local curPhase = C_Epsilon.GetPhaseId()
-	if phaseOverride then phase = phaseOverride else phase = curPhase end
+	if phaseOverride then phase = tostring(phaseOverride) else phase = curPhase end
 
 	if not spellCooldowns.sparks[phase] then spellCooldowns.sparks[phase] = {} end
 	spellCooldowns.sparks[phase][commID] = { endTime = cooldownTime + currentTime, length = tonumber(cooldownTime) }

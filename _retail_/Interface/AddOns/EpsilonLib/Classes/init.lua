@@ -34,3 +34,68 @@ EpsiLib.Classes = {}
 ---@field tags string[]
 ---@field color string
 ---@field bg string
+
+---@class SelectedObjectData
+---@field [1] guid
+---@field [2] entryID
+---@field [3] fileName
+---@field [4] fileDataID
+---@field [5] x
+---@field [6] y
+---@field [7] z
+---@field [8] orientation
+---@field [9] rx
+---@field [10] ry
+---@field [11] rz
+---@field [12] hasTint
+---@field [13] red
+---@field [14] green
+---@field [15] blue
+---@field [16] alpha
+---@field [17] spell
+---@field [18] scale
+---@field [19] groupLeaderID
+---@field [20] objType
+---@field [21] saturation
+---@field [22] rGUIDLow
+---@field [23] rGUIDHigh
+---@field [24] isEditable
+
+---@class GameObjectMeta
+---@field Move function
+---@field Rotate function
+---@field Select function
+---@field Goto function
+---@field Tint function
+---@field Overlay function
+---@field Copy function
+---@field SpawnDuplicate function
+---@field Restore function
+---@field Delete function
+---@field GetGUID function
+---@field GetEntry function
+---@field GetName function
+---@field GetFileDataID function
+---@field IsWMO function
+
+---@class GameObjectClass: GameObjectMeta
+---@field guid number
+---@field entry number
+---@field name string
+---@field filedataid number
+---@field transform { position: table, rotation: table } WARNING: position & rotation are regenerated Vector3 each time an object is updated; they are NOT stable references. Always use the object or transform table as your base reference instead.
+---@field orientation number
+---@field HasTint boolean|number 1 = Tint, 2 = Overlay, false = None
+---@field color { red: number, green: number, blue: number, alpha: number }
+---@field spell number
+---@field scale number
+---@field groupLeader number
+---@field objType number
+---@field saturation number
+---@field rGUIDLow string
+---@field rGUIDHigh string
+---@field canEdit boolean
+---@field map number
+---@field time integer
+---@field isDeleted boolean
+---@field isRestored boolean

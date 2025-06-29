@@ -11,6 +11,7 @@ local Constants = ns.Constants
 local AceConsole = ns.Libs.AceConsole
 
 local cmd, cmdWithDotCheck = Cmd.cmd, Cmd.cmdWithDotCheck
+local sendAddonCmd = Cmd.sendAddonCmd
 local runMacroText = Cmd.runMacroText
 local cprint = Logging.cprint
 local eprint = Logging.eprint
@@ -258,6 +259,11 @@ local ACTION_TYPE = {
 	QCBookAddSpell = "QCBookAddSpell",
 
 	-- Kinesis Integration
+	Kinesis_TempDisableAll = "Kinesis_TempDisableAll",
+	Kinesis_TempDisableFlight = "Kinesis_TempDisableFlight",
+	Kinesis_TempDisableSprint = "Kinesis_TempDisableSprint",
+	Kinesis_TempDisableAllRst = "Kinesis_TempDisableAllRst",
+
 	Kinesis_FlyEnable = "Kinesis_FlyEnable",
 	Kinesis_EFDEnable = "Kinesis_EFDEnable",
 	Kinesis_FlyShift = "Kinesis_FlyShift",
@@ -364,7 +370,6 @@ local actionTypeData = {
 		inputDescription = "Accepts multiple IDs, separated by commas, to apply multiple auras at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = "phase unaura @N@",
 		revertDesc = "phase unaura",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.PhaseUnaura] = serverAction("Phase Unaura", {
@@ -374,7 +379,6 @@ local actionTypeData = {
 		inputDescription = "Accepts multiple IDs, separated by commas, to remove multiple auras at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = "phase aura @N@",
 		revertDesc = "phase aura",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.GroupAura] = serverAction("Group Aura", {
@@ -384,7 +388,6 @@ local actionTypeData = {
 		inputDescription = "Accepts multiple IDs, separated by commas, to apply multiple auras at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = "group unaura @N@",
 		revertDesc = "group unaura",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.GroupUnaura] = serverAction("Group Unaura", {
@@ -394,7 +397,6 @@ local actionTypeData = {
 		inputDescription = "Accepts multiple IDs, separated by commas, to remove multiple auras at once.\n\rUse " .. Tooltip.genContrastText('.look spell') .. " to find IDs.",
 		revert = "group aura @N@",
 		revertDesc = "group aura",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.ToggleAura] = scriptAction("Toggle Aura", {
@@ -431,7 +433,6 @@ local actionTypeData = {
 			Tooltip.genContrastText('.look emote') .. " to find IDs.",
 		revert = "mod stand 30",
 		revertDesc = "Reset to Standstate 30 (none)",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.AnimKit] = serverAction("Anim Kit", {
@@ -464,7 +465,6 @@ local actionTypeData = {
 		inputDescription = "No, you can't put multiple to become a hybrid monster..\n\rUse " .. Tooltip.genContrastText('.look displayid') .. " to find IDs.",
 		revert = "demorph",
 		revertDesc = "demorph",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.Native] = serverAction("Native", {
@@ -474,7 +474,6 @@ local actionTypeData = {
 		inputDescription = "Use " .. Tooltip.genContrastText('.look displayid') .. " to find IDs.",
 		revert = "demorph",
 		revertDesc = "demorph",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.Standstate] = serverAction("Standstate", {
@@ -485,7 +484,6 @@ local actionTypeData = {
 			Tooltip.genContrastText('.look emote') .. " to find IDs.",
 		revert = "mod stand 0",
 		revertDesc = "Set Standstate to 0 (none)",
-		selfAble = false,
 		convertLinks = true,
 	}),
 	[ACTION_TYPE.ToggleSheath] = scriptAction("Sheath/Unsheath Weapon", {
@@ -502,10 +500,11 @@ local actionTypeData = {
 		"You want to equip 'Violet Guardian's Helm', ID: 141357, but have 'Guardian's Leather Belt', ID: 35156 in your inventory also, using 'Guardian' as the text will equip the belt, so you'll want to use the full name, or better off just use the actual item ID.",
 		revert = nil,
 		revertAlternative = "a separate unequip item action",
-		selfAble = false,
 	}),
-	[ACTION_TYPE.AddItem] = serverAction("Add Item", {
-		command = "additem @N@",
+	--[ACTION_TYPE.AddItem] = serverAction("Add Item", {
+	[ACTION_TYPE.AddItem] = scriptAction("Add Item", {
+		--command = "additem @N@",
+		command = Scripts.items.addRemoveItemWithNegativeCheck,
 		description = "Add an item to your inventory.\n\rYou may specify multiple items separated by commas, and may specify item count & bonusID per item as well.",
 		dataName = "Item ID/Links(s)",
 		inputDescription = "Accepts multiple IDs/Links, separated by commas, to add multiple items at once.\n\rUse " ..
@@ -513,7 +512,6 @@ local actionTypeData = {
 		example = Tooltip.genContrastText("125775 1 449, 125192 1 449") .. " will add 1 of each item with Heroic (449) tier",
 		revert = nil,
 		revertAlternative = "a separate remove item action",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.RemoveItem] = serverAction("Remove Item", {
 		command = "additem @N@ -1",
@@ -525,7 +523,6 @@ local actionTypeData = {
 		example = Tooltip.genContrastText("125775 -10") .. " to remove 10 of that item.",
 		revert = nil,
 		revertAlternative = "a separate add item action",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.AddRandomItem] = scriptAction("Add Random Item", {
 		command = function(vars)
@@ -539,7 +536,8 @@ local actionTypeData = {
 				table.insert(finalItems, { tonumber(strtrim(weight)), strtrim(item) })
 			end
 			local randomItem = ns.Utils.Data.getRandomWeightedArg(finalItems)
-			cmd("additem " .. randomItem)
+			--cmd("additem " .. randomItem)
+			Scripts.items.addRemoveItemWithNegativeCheck(randomItem)
 		end,
 		description = "Add a random item to your inventory from the given list.\n\rItems may be weighted to modify their chance at being chosen.",
 		dataName = "Item Pool",
@@ -554,7 +552,6 @@ local actionTypeData = {
 		example = Tooltip.genContrastText("125775 1 449+99, 125192 2+1") .. " will randomly choose between a 99% chance to add 1 copy of 125775 (Heroic), or 1% chance for 2 copies of 125192 (Normal)",
 		revert = nil,
 		revertAlternative = "a separate remove item action",
-		selfAble = false,
 		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.RemoveAura] = serverAction("Remove Aura", {
@@ -600,7 +597,6 @@ local actionTypeData = {
 		dataName = "Profile name",
 		inputDescription = "The name of the profile as it appears in Total RP's profile list.",
 		revert = nil,
-		selfAble = false,
 		dependency = "totalRP3",
 	}),
 	[ACTION_TYPE.TRP3StatusToggle] = scriptAction("TRP3: IC/OOC", {
@@ -608,7 +604,6 @@ local actionTypeData = {
 		description = "Switch your Total RP 3 status to the opposite state.",
 		dataName = nil,
 		revert = nil,
-		selfAble = false,
 		dependency = "totalRP3",
 	}),
 	[ACTION_TYPE.TRP3StatusIC] = scriptAction("TRP3: IC", {
@@ -616,7 +611,6 @@ local actionTypeData = {
 		description = "Set your Total RP 3 status to IC.",
 		dataName = nil,
 		revert = nil,
-		selfAble = false,
 		dependency = "totalRP3",
 	}),
 	[ACTION_TYPE.TRP3StatusOOC] = scriptAction("TRP3: OOC", {
@@ -624,7 +618,6 @@ local actionTypeData = {
 		description = "Set your Total RP 3 status to OOC.",
 		dataName = nil,
 		revert = nil,
-		selfAble = false,
 		dependency = "totalRP3",
 	}),
 	[ACTION_TYPE.Scale] = serverAction("Scale", {
@@ -634,7 +627,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 10.",
 		revert = "mod scale 1",
 		revertDesc = "Reset to scale 1",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.Speed] = serverAction("Speed", {
 		command = "mod speed @N@",
@@ -643,7 +635,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 50.",
 		revert = "mod speed 1",
 		revertDesc = "Reset to speed 1",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.SpeedBackwalk] = serverAction("Walk Speed (Back)", {
 		command = "mod speed backwalk @N@",
@@ -652,7 +643,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 50.",
 		revert = "mod speed backwalk 1",
 		revertDesc = "Reset to backwalk speed 1",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.SpeedFly] = serverAction("Fly Speed", {
 		command = "mod speed fly @N@",
@@ -661,7 +651,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 50.",
 		revert = "mod speed fly 1",
 		revertDesc = "Reset to fly speed 1",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.SpeedWalk] = serverAction("Walk Speed", {
 		command = "mod speed walk @N@",
@@ -670,7 +659,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 50.",
 		revert = "mod speed walk 1",
 		revertDesc = "Reset to walk speed 1",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.SpeedSwim] = serverAction("Swim Speed", {
 		command = "mod speed swim @N@",
@@ -679,7 +667,6 @@ local actionTypeData = {
 		inputDescription = "Value may range from 0.1 to 50.",
 		revert = "mod speed swim 1",
 		revertDesc = "Reset to swim speed 1",
-		selfAble = false,
 	}),
 	-- [ACTION_TYPE.DefaultEmote] = scriptAction("Default Emote", {
 	-- 	["command"] = function(emoteID) DoEmote(string.upper(emoteID)); end,
@@ -698,7 +685,6 @@ local actionTypeData = {
 		example = "\r" .. Tooltip.genContrastText("cast") .. " will enable instant cast cheat\r" .. Tooltip.genContrastText("cool") .. " will enable no cooldowns cheat",
 		revert = "cheat @N@ off",
 		revertDesc = "Disable the cheat",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.CheatOff] = serverAction("Disable Cheat", {
 		command = "cheat @N@ off",
@@ -708,7 +694,6 @@ local actionTypeData = {
 		example = "\r" .. Tooltip.genContrastText("cast") .. " will disable instant cast cheat\r" .. Tooltip.genContrastText("cool") .. " will disable no cooldowns cheat",
 		revert = "cheat @N@ on",
 		revertDesc = "Enable the cheat",
-		selfAble = false,
 	}),
 
 	-- -- -- -- -- -- -- -- --
@@ -744,7 +729,6 @@ local actionTypeData = {
 
 			Scripts.sounds.stopSoundID(soundID, 0.5)
 		end,
-		selfAble = false,
 	}),
 	[ACTION_TYPE.PlayLocalSoundFile] = scriptAction("Play Sound (Self - File)", {
 		command = function(vars)
@@ -761,7 +745,6 @@ local actionTypeData = {
 			if not vars or vars == "" then return end
 			Scripts.sounds.stopSoundFile(vars, 0.5)
 		end,
-		selfAble = false,
 	}),
 	[ACTION_TYPE.StopLocalSoundKit] = scriptAction("Stop Sound (Self - Kit)", {
 		command = function(vars)
@@ -792,7 +775,6 @@ local actionTypeData = {
 
 			Scripts.sounds.playSoundID(soundID)
 		end,
-		selfAble = false,
 	}),
 	[ACTION_TYPE.StopLocalSoundFile] = scriptAction("Stop Sound (Self - File)", {
 		command = function(vars)
@@ -809,7 +791,6 @@ local actionTypeData = {
 			if not vars or vars == "" then return end
 			Scripts.sounds.playSoundFile(vars)
 		end,
-		selfAble = false,
 	}),
 
 
@@ -822,7 +803,6 @@ local actionTypeData = {
 			Tooltip.genContrastText("11466") ..
 			" to play Illidan's 'You are Not Prepared!' voice line to the entire phase.\n\rUse " .. Tooltip.genContrastText('wowhead.com/sounds') .. " to find Sound IDs to use.",
 		revert = nil,
-		selfAble = false,
 	}),
 
 	[ACTION_TYPE.PlayMusic] = scriptAction("Play Music (Self)", {
@@ -836,7 +816,6 @@ local actionTypeData = {
 		revert = Scripts.sounds.stopMusic,
 		revertDesc =
 		"Stops this specific music, if it's still playing. If another Play Music (Self) action was used after this action but before the revert, this will fail. Use another Stop Music (Self) action instead if needed.",
-		selfAble = false,
 	}),
 	[ACTION_TYPE.StopMusic] = scriptAction("Stop Music (Self)", {
 		command = Scripts.sounds.stopMusic,
@@ -847,7 +826,6 @@ local actionTypeData = {
 			Tooltip.genContrastText("53184") .. " to only stop the music if the last played music is the Darnassus music (53184).",
 		revert = Scripts.sounds.playMusic,
 		revertDesc = "If given a File ID, a revert will then start playing that music again. Does not work if input is blank however, as it cannot remember what that last music ID was.",
-		selfAble = false,
 	}),
 
 	--TRP3e Nearby (Local..) Sound Actions
@@ -1289,7 +1267,7 @@ local actionTypeData = {
 				callback = function(input)
 					command = command:gsub("@input", input)
 					command = command:gsub("@", input) -- legacy support
-
+					command = command:gsub("||", "|")
 					cmdWithDotCheck(command)
 				end,
 				text = description,
@@ -1332,6 +1310,7 @@ local actionTypeData = {
 							end
 						]])
 						if script and not errorMessage then
+							userInput = userInput:gsub("||", "|")
 							script()(userInput)
 						else
 							ns.Logging.eprint("Error with Input while loading Script (Script Input Prompt), please check your input or script. Error:")
@@ -2220,6 +2199,58 @@ local actionTypeData = {
 	}),
 
 	-- Kinesis Integrations
+	[ACTION_TYPE.Kinesis_TempDisableAll] = scriptAction("Temp Disable All", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableAll()
+		end,
+		description = "Temporarily Disable Kinesis (Sprint, Flight, and EFD).",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+	[ACTION_TYPE.Kinesis_TempDisableFlight] = scriptAction("Temp Disable Flight", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableFlight()
+		end,
+		description = "Temporarily Disable Kinesis' Flight Controls & EFD Modules.",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableFlightReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+	[ACTION_TYPE.Kinesis_TempDisableSprint] = scriptAction("Temp Disable Sprint", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableSprint()
+		end,
+		description = "Temporarily Disable Kinesis' Shift-Sprint Module.",
+		revert = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableSprintReset()
+		end,
+		revertDesc =
+		"Removes this Temporary Disable, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+
+	[ACTION_TYPE.Kinesis_TempDisableAllRst] = scriptAction("Reset Temp Disable (All)", {
+		command = function(vars)
+			if not Kinesis then return end
+			Kinesis.TempDisableReset()
+		end,
+		description = "Remove all Temporary Disables, allowing Kinesis to function as per the user's original settings.",
+		dependency = "Kinesis",
+	}),
+
 	[ACTION_TYPE.Kinesis_FlyEnable] = scriptAction("Toggle Flight Controls", {
 		command = function(vars)
 			if not Kinesis then return end
@@ -2660,7 +2691,6 @@ local actionTypeData = {
 		revert = nil,
 		revertAlternative = "a separate unaura or stop spell action.",
 		doNotDelimit = true,
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2681,7 +2711,6 @@ local actionTypeData = {
 		end,
 		doNotDelimit = true,
 		revertDesc = "Stops any currently casting spells (yes, any, even if it's not the one cast by this action).",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2693,7 +2722,6 @@ local actionTypeData = {
 		description =
 		"Stops the current spellcast.",
 		revertAlternative = "another cast spell action",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2714,7 +2742,6 @@ local actionTypeData = {
 		end,
 		doNotDelimit = true,
 		revertDesc = "Stops any currently casting spells (because most item uses are just casting spells - and yes, stops any casting spell, even if it's not the one cast by this item).",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2736,7 +2763,6 @@ local actionTypeData = {
 		end,
 		revertDesc = "Clears your current target.",
 		doNotDelimit = true,
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2757,7 +2783,6 @@ local actionTypeData = {
 		end,
 		revertDesc = "Clears your current target.",
 		doNotDelimit = true,
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2771,7 +2796,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = nil,
 		revertAlternative = "another Target action",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2788,7 +2812,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2804,7 +2827,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2820,7 +2842,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2837,7 +2858,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2854,7 +2874,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2871,7 +2890,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2888,7 +2906,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2905,7 +2922,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2922,7 +2938,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2939,7 +2954,6 @@ local actionTypeData = {
 			RunPrivileged("ClearTarget()")
 		end,
 		revertDesc = "Clears your current target.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2958,7 +2972,6 @@ local actionTypeData = {
 			RunPrivileged("ClearFocus()")
 		end,
 		revertDesc = "Clears your current focus.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2972,7 +2985,6 @@ local actionTypeData = {
 		"Clears the focus target.",
 		dataName = nil,
 		revertAlternative = "another Set Focus action",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -2988,7 +3000,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = function() RunPrivileged("MoveForwardStart(0); MoveForwardStop(0)") end,
 		revertDesc = "Stops following the unit.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3000,7 +3011,6 @@ local actionTypeData = {
 		"Stops Following anything, if you are.",
 		dataName = nil,
 		revertAlternative = "another Follow Unit action",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3014,7 +3024,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = function() RunPrivileged("ToggleRun()") end,
 		revertDesc = "Toggles between running & walking again.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3028,7 +3037,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = function() RunPrivileged("ToggleAutoRun()") end,
 		revertDesc = "Toggles Auto Run again.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3042,7 +3050,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = function() RunPrivileged("StopAutoRun()") end,
 		revertDesc = "Stops Auto Running.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3056,7 +3063,6 @@ local actionTypeData = {
 		dataName = nil,
 		revert = function() RunPrivileged("StartAutoRun()") end,
 		revertDesc = "Starts Auto Running.",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),
@@ -3072,7 +3078,6 @@ local actionTypeData = {
 		dataName = 'Message to Say',
 		doNotDelimit = true,
 		revertAlternative = "You can't unsay things..",
-		selfAble = false,
 		requirement = "C_Epsilon.RunPrivileged",
 		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
 	}),

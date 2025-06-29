@@ -9,68 +9,108 @@ local EpsilonLib, EpsiLib = ...;
 
 local eventFrame = CreateFrame("Frame")
 
+local EventManager = {}
 local _events = {}
-local _table = {}
 
-local addonLoadedAlreadyRan = false
+local addonLoadedAlreadyRan
 eventFrame:RegisterEvent("ADDON_LOADED")
 
----@param event FrameEvent
+local function safeRegEvent(event)
+	return pcall(eventFrame.RegisterEvent, eventFrame, event)
+end
+
+local function safeUnregEvent(event)
+	return pcall(eventFrame.UnregisterEvent, eventFrame, event)
+end
+
+---@param event FrameEvent|string
 ---@param callback function
+---@param runOnce? boolean If true, the given script is unregistered after it's first ran
 ---@return function?
-function _events:Register(event, callback)
+function EventManager:Register(event, callback, runOnce)
 	if type(event) ~= "string" or type(callback) ~= "function" then error("Register requires an event & callback function.") end
 
-	-- Case handler:
+	-- Case handler - We replicate AddOn Loaded for EpsiLib always. Anyone who wants to watch for their own ADDON_LOADED should double check that the addon name is there's and that EpsilonLib is a dep so it loads first and then doesn't miss their ADDON_LOADED. Or.. just do it themself.
 	if event == "ADDON_LOADED" and addonLoadedAlreadyRan then
-		callback(nil, "ADDON_LOADED", EpsilonLib)
-		return
+		callback(nil, "ADDON_LOADED", unpack(addonLoadedAlreadyRan))
 	end
 
+	if not _events[event] then _events[event] = {} end
 
-	if not _table[event] then _table[event] = {} end
+	table.insert(_events[event], { callback = callback, runOnce = runOnce })
 
-	table.insert(_table[event], callback)
-
-	eventFrame:RegisterEvent(event)
+	safeRegEvent(event)
 
 	return callback
 end
 
 ---@param reference function
----@param event FrameEvent
-function _events:Remove(reference, event)
+---@param event? FrameEvent|string
+function EventManager:Remove(reference, event)
 	if event then
-		tDeleteItem(_table[event], reference)
-		return
+		if _events[event] then
+			tDeleteItem(_events[event], reference)
+
+			-- Cleanup if there's no callbacks on this left
+			if #_events[event] == 0 then
+				_events[event] = nil
+				safeUnregEvent(event)
+			end
+
+			return
+		else
+			error(("Event %s had no registered callbacks. Did you already unregister?"):format(event))
+		end
 	end
 
-	for k, v in pairs(_table) do
+	-- Unknown event, or done on purpose if removing from all events
+	for k, v in pairs(_events) do
 		-- expensive, always try and call with your known event!
-		tDeleteItem(v, reference)
+		local event = k
+		local numDeleted = tDeleteItem(v, reference)
+
+		if numDeleted > 0 then -- something was removed, check if we need to unregister the event
+			if #v == 0 then
+				_events[event] = nil
+				safeUnregEvent(event)
+			end
+			-- we don't return here, as technically this allows you to unregister it from every event, if you registered to multiple events
+		end
 	end
 end
 
----@param event? FrameEvent
+---@param event? FrameEvent|string
 ---@return table
-function _events:GetCallbackTable(event)
-	if event then return _table[event] end
-	return _table
+function EventManager:GetCallbackTable(event)
+	if event then return _events[event] end
+	return _events
+end
+
+---Fires an event manually, using custom given args. This can be a totally custom event as well.
+---@param event FrameEvent|string
+---@param ... unknown
+function EventManager:Fire(event, ...)
+	if not _events[event] then return end -- No events registered for this, just exit out
+	local _callbacks = CopyTable(_events[event])
+	if _callbacks then
+		if #_callbacks == 0 then return end -- no callbacks registered (all unregistered or runOnce completed)
+		for i = 1, #_callbacks do
+			local callbackData = _callbacks[i]
+			local callback = _callbacks[i].callback
+			callback(nil, event, ...) -- self is passed back as nil; we do not provide access to our event frame itself.
+			if callbackData.runOnce then
+				EventManager:Remove(callback, event)
+			end
+		end
+	end
 end
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" and select(1, ...) == EpsilonLib then
-		addonLoadedAlreadyRan = true
+		addonLoadedAlreadyRan = { ... }
 	end
 
-	local _callbacks = CopyTable(_table[event])
-	if _callbacks then
-		for i = 1, #_callbacks do
-			local callback = _callbacks[i]
-			self = nil -- don't pass back our eventFrame, keep it protected
-			callback(self, event, ...)
-		end
-	end
+	EventManager:Fire(event, ...)
 end)
 
 --#endregion
@@ -101,7 +141,7 @@ local filter_events = {
 ---Helper Util to quickly create a command reply filter through all the possible command reply channels, with proper handling of AddOn Commands
 ---@param callback function The callback function to run on reply. You should pattern match first to make sure it's the reply you want.
 ---@return function reference The callback provided in the input is wrapped, so is no longer valid for using in removal - This reference is the new, wrapped callback
-function _events:AddCommandFilter(callback)
+function EventManager:AddCommandFilter(callback)
 	if not callback then error("AddCommandFilter Syntax Error: No Callback given. Are you calling with a : ?") end
 	local function wrapper(self, event, message)
 		if event == "CHAT_MSG_ADDON" then
@@ -118,7 +158,7 @@ end
 
 ---Removes a command filter by function reference from the return on AddCommandFilter
 ---@param reference function
-function _events:RemoveCommandFilter(reference)
+function EventManager:RemoveCommandFilter(reference)
 	for i = 1, #filter_events do
 		ChatFrame_RemoveMessageEventFilter(filter_events[i], reference)
 	end
@@ -131,7 +171,7 @@ local commandWatchers = {}
 ---@param pattern string The pattern that must be matched in order to run this callback
 ---@param callback fun(self, event, message) The callback function, with the same args as a standard MessageEventFilter, except self is always nil
 ---@return table reference The table reference for this new entry, which is a table housing the pattern & callback, which can then technically be modified live as well.
-function _events:RegisterSimpleCommandWatcher(pattern, callback)
+function EventManager:RegisterSimpleCommandWatcher(pattern, callback)
 	local new_table = { pattern = pattern, callback = callback }
 	tinsert(commandWatchers, new_table)
 	return new_table
@@ -139,7 +179,7 @@ end
 
 ---Removes a simple command watcher by reference from the return on RegisterSimpleCommandWatcher
 ---@param reference table
-function _events:DeleteSimpleCommandWatcher(reference)
+function EventManager:DeleteSimpleCommandWatcher(reference)
 	tDeleteItem(commandWatchers, reference)
 end
 
@@ -152,8 +192,8 @@ local function simpleCommandReplyListener(_, event, message)
 	end
 end
 
-_events:AddCommandFilter(simpleCommandReplyListener)
+EventManager:AddCommandFilter(simpleCommandReplyListener)
 
 --#endregion
 
-EpsiLib.EventManager = _events
+EpsiLib.EventManager = EventManager

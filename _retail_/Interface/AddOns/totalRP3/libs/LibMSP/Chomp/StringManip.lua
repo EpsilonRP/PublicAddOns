@@ -96,8 +96,9 @@ local CodecsByVersion = {
 
 -- Realm part matching is greedy, as realm names will rarely have dashes, but
 -- player names will never.
-local FULL_PLAYER_SPLIT = FULL_PLAYER_NAME:gsub("-", "%%%%-"):format("^(.-)", "(.+)$")
-local FULL_PLAYER_FIND = FULL_PLAYER_NAME:gsub("-", "%%%%-"):format("^.-", ".+$")
+-- // EPSI EDIT: Realm name will never have -, but player names might in our case, so flip that concept, player name is now greedy!
+local FULL_PLAYER_SPLIT = FULL_PLAYER_NAME:gsub("-", "%%%%-"):format("^(.+)", "(.-)$")
+local FULL_PLAYER_FIND = FULL_PLAYER_NAME:gsub("-", "%%%%-"):format("^.+", ".-$")
 
 function Chomp.NameMergedRealm(name, realm)
 	if type(name) ~= "string" then
@@ -164,11 +165,11 @@ function Serialize.table(input)
 	local strfind   = string.find
 	local type      = type
 
-	local output = {}
+	local output    = {}
 
 	-- Handle array parts of tables first from `t[1] .. t[n]` where `n` is
 	-- the last index before the first nil value.
-	local numArray = 0
+	local numArray  = 0
 	for i, v in ipairs(input) do
 		output[i] = Serialize[type(v)](v)
 		numArray = i
@@ -212,7 +213,7 @@ end
 
 local IsTableSafe
 function IsTableSafe(t)
-	for k,v in pairs(t) do
+	for k, v in pairs(t) do
 		local typeK, typeV = type(k), type(v)
 		if not Serialize[typeK] or not Serialize[typeV] then
 			return false

@@ -319,8 +319,8 @@ for i = 1, SPELLS_PER_PAGE do
 			--local strings = genSpellTooltipLines(spell, true)
 			local strings = ns.UI.SpellTooltip.getLines("vault", spell, false, true)
 			tinsert(strings, " ")
-			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. " to link in chat.")
-			tinsert(strings, Tooltip.genContrastText("Right-Click") .. " for more options.")
+			tinsert(strings, Tooltip.genContrastText("Shift-Click") .. Tooltip.tag("left-click") .. " to link in chat.")
+			tinsert(strings, Tooltip.genContrastText("Right-Click") .. Tooltip.tag("right-click") .. " for more options.")
 			return strings
 		end,
 		{

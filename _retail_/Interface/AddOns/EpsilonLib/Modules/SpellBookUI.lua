@@ -8,7 +8,7 @@ EpsiLib.SpellBookUI = {}
 local Addon = EpsiLib.SpellBookUI
 
 local runOnce = false
-EpsiLib.EventManager:Register("ADDON_LOADED", function()
+EpsiLib.EventManager:Register("ADDON_LOADED", function(_, event, addon)
 	if runOnce then return end
 	if EpsiLib_DB.Modules.SpellBookUI then
 		Addon:initialize()

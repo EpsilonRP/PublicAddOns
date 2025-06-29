@@ -273,12 +273,17 @@ local SPRINT_KEY = "LSHIFT"
 sprintFrame:EnableKeyboard(true); sprintFrame:SetPropagateKeyboardInput(true);
 sprintFrame.isSprinting = false
 sprintFrame:SetScript("OnKeyDown", function(self, key)
-	self:SetPropagateKeyboardInput(key ~= SPRINT_KEY)
-	if key ~= SPRINT_KEY then return end
+	local isWrongKey = (key ~= SPRINT_KEY)
+	local earlyExit = false
+
+	if isWrongKey then earlyExit = true end
 
 	-- exit if sprinting is globally disabled.
 	local sprintSettings = KinesisOptions.profiles[KinesisCharOptions.activeProfile].sprint
-	if not sprintSettings.enabled then return end
+	if not sprintSettings.enabled then earlyExit = true end
+	if Main.getTempDisable("sprint") then earlyExit = true end -- temp override
+	self:SetPropagateKeyboardInput(isWrongKey or earlyExit)
+	if earlyExit then return end
 
 	if self.isSprinting then
 		if self.isSprintingToggle then

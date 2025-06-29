@@ -15,6 +15,7 @@ local parseStringToArgs = ns.Utils.Data.parseStringToArgs
 
 local actionTypeData = ns.Actions.Data.actionTypeData
 local cmd = ns.Cmd.cmd
+local sendAddonCmd = ns.Cmd.sendAddonCmd
 local cprint = ns.Logging.cprint
 local eprint = ns.Logging.eprint
 local dprint = ns.Logging.dprint
@@ -225,12 +226,20 @@ local function executeAction(varTable, actionData, selfOnly, isRevert, condition
 					finalCommand = actionData.revertValidation(finalCommand)
 				end
 				if selfOnly then finalCommand = finalCommand .. " self" end
-				cmd(finalCommand)
+				if actionData.hideReply then
+					sendAddonCmd(finalCommand)
+				else
+					cmd(finalCommand)
+				end
 			else
 				local finalCommand = tostring(actionData.command)
 				finalCommand = finalCommand:gsub(sfCmd_ReplacerChar, v)
 				if selfOnly then finalCommand = finalCommand .. " self" end
-				cmd(finalCommand)
+				if actionData.hideReply then
+					sendAddonCmd(finalCommand)
+				else
+					cmd(finalCommand)
+				end
 			end
 		end
 	end

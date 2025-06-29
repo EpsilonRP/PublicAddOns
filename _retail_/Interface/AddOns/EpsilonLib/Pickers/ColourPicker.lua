@@ -5,61 +5,61 @@
 
 local PRESET_COLOUR_OPTIONS = {
 	["Default"] = {
-		{ "Red", "FF0000" },
+		{ "Red",    "FF0000" },
 		{ "Orange", "FFA500" },
 		{ "Yellow", "FFFF00" },
-		{ "Green", "00FF00" },
-		{ "Blue", "0000FF" },
+		{ "Green",  "00FF00" },
+		{ "Blue",   "0000FF" },
 		{ "Purple", "FF00FF" },
-		{ "White", "FFFFFF" },
-		{ "Black", "000000" },
+		{ "White",  "FFFFFF" },
+		{ "Black",  "000000" },
 	},
 	["Class"] = {
 		{ "Death Knight", "C41F3B" },
 		{ "Demon Hunter", "A330C9" },
-		{ "Druid", "FF7D0A" },
-		{ "Evoker", "33937F" },
-		{ "Hunter", "ABD473" },
-		{ "Mage", "40C7EB" },
-		{ "Monk", "00FF96" },
-		{ "Paladin", "F58CBA" },
-		{ "Priest", "FFFFFF" },
-		{ "Rogue", "FFF569" },
-		{ "Shaman", "0070DE" },
-		{ "Warlock", "8787ED" },
-		{ "Warrior", "C79C6E" },
+		{ "Druid",        "FF7D0A" },
+		{ "Evoker",       "33937F" },
+		{ "Hunter",       "ABD473" },
+		{ "Mage",         "40C7EB" },
+		{ "Monk",         "00FF96" },
+		{ "Paladin",      "F58CBA" },
+		{ "Priest",       "FFFFFF" },
+		{ "Rogue",        "FFF569" },
+		{ "Shaman",       "0070DE" },
+		{ "Warlock",      "8787ED" },
+		{ "Warrior",      "C79C6E" },
 	},
 	["Quality"] = {
-		{ "Poor", "9D9D9D" },
-		{ "Common", "FFFFFF" },
-		{ "Uncommon", "1EFF00" },
-		{ "Rare", "0070DD" },
-		{ "Epic", "A335EE" },
+		{ "Poor",      "9D9D9D" },
+		{ "Common",    "FFFFFF" },
+		{ "Uncommon",  "1EFF00" },
+		{ "Rare",      "0070DD" },
+		{ "Epic",      "A335EE" },
 		{ "Legendary", "FF8000" },
-		{ "Artifact", "E6CC80" },
-		{ "Heirloom", "00CCFF" },
+		{ "Artifact",  "E6CC80" },
+		{ "Heirloom",  "00CCFF" },
 	},
 	["Chat"] = {
-		{ "System", "FFFF00" },
-		{ "Guild", "3CE13F" },
-		{ "Officer", "40BC40" },
-		{ "Party", "AAABFE" },
-		{ "Party Leader", "77C8FF" },
-		{ "Spell Link", "67BCFF" },
-		{ "Say", "FFFFFF" },
-		{ "Whisper", "FF7EFF" },
-		{ "Yell", "FF3F40" },
-		{ "Emote", "FF7E40" },
-		{ "Raid", "FF7D01" },
-		{ "Raid Leader", "FF4709" },
-		{ "Raid Warning", "FF4700" },
-		{ "Achievement", "FFFC01" },
-		{ "Battle.net Whisper", "00FAF6" },
+		{ "System",                  "FFFF00" },
+		{ "Guild",                   "3CE13F" },
+		{ "Officer",                 "40BC40" },
+		{ "Party",                   "AAABFE" },
+		{ "Party Leader",            "77C8FF" },
+		{ "Spell Link",              "67BCFF" },
+		{ "Say",                     "FFFFFF" },
+		{ "Whisper",                 "FF7EFF" },
+		{ "Yell",                    "FF3F40" },
+		{ "Emote",                   "FF7E40" },
+		{ "Raid",                    "FF7D01" },
+		{ "Raid Leader",             "FF4709" },
+		{ "Raid Warning",            "FF4700" },
+		{ "Achievement",             "FFFC01" },
+		{ "Battle.net Whisper",      "00FAF6" },
 		{ "Battle.net Conversation", "00ADEF" },
 	},
 }
 
-local function RGBToHex( r, g, b )
+local function RGBToHex(r, g, b)
 	-- default to white
 	if not r or not g or not b then return "ffffff" end
 	r = r * 255
@@ -71,31 +71,31 @@ local function RGBToHex( r, g, b )
 	return string.format("%02x%02x%02x", r, g, b)
 end
 
-local function HexToRGBPerc( hex )
+local function HexToRGBPerc(hex)
 	local rhex, ghex, bhex, base
-    if strlen(hex) == 6 then
-        rhex, ghex, bhex = strmatch(hex, "(%x%x)(%x%x)(%x%x)")
-        base = 255
-    end
-    if not (rhex and ghex and bhex) then
-        return 1, 1, 1
-    else
-        return tonumber(rhex, 16)/base, tonumber(ghex, 16)/base, tonumber(bhex, 16)/base
-    end
+	if strlen(hex) == 6 then
+		rhex, ghex, bhex = strmatch(hex, "(%x%x)(%x%x)(%x%x)")
+		base = 255
+	end
+	if not (rhex and ghex and bhex) then
+		return 1, 1, 1
+	else
+		return tonumber(rhex, 16) / base, tonumber(ghex, 16) / base, tonumber(bhex, 16) / base
+	end
 end
 
 function EpsilonLibColourPickerDropDown_OnClick(self, arg1, arg2)
-	local r, g, b = HexToRGBPerc( arg2 );
-	EpsilonLibColourPicker.colourSelect:SetColorRGB( r, g, b )
-	
-	UIDropDownMenu_SetText(EpsilonLibColourPicker.selectPreset, "|cFF"..arg2..arg1.."|r")
+	local r, g, b = HexToRGBPerc(arg2);
+	EpsilonLibColourPicker.colourSelect:SetColorRGB(r, g, b)
+
+	UIDropDownMenu_SetText(EpsilonLibColourPicker.selectPreset, "|cFF" .. arg2 .. arg1 .. "|r")
 end
 
 function EpsilonLibColourPickerDropDown_OnLoad(frame, level, menuList)
 	local info = UIDropDownMenu_CreateInfo()
-	
+
 	if level == 1 then
-		for k,v in pairs( PRESET_COLOUR_OPTIONS ) do
+		for k, v in pairs(PRESET_COLOUR_OPTIONS) do
 			info.text = k
 			info.disabled = false;
 			info.notClickable = false;
@@ -106,34 +106,33 @@ function EpsilonLibColourPickerDropDown_OnLoad(frame, level, menuList)
 		end
 	elseif menuList then
 		for i = 1, #PRESET_COLOUR_OPTIONS[menuList] do
-		   info.text = "|cFF"..PRESET_COLOUR_OPTIONS[menuList][i][2]..PRESET_COLOUR_OPTIONS[menuList][i][1].."|r";
-		   info.arg1 = PRESET_COLOUR_OPTIONS[menuList][i][1];
-		   info.arg2 = PRESET_COLOUR_OPTIONS[menuList][i][2]
-		   info.hasArrow = false;
-		   info.notCheckable = false;
-		   info.checked = strmatch(EpsilonLibColourPicker.value:GetText(), info.arg2);
-		   info.func = EpsilonLibColourPickerDropDown_OnClick;
-		   UIDropDownMenu_AddButton(info, level)
+			info.text = "|cFF" .. PRESET_COLOUR_OPTIONS[menuList][i][2] .. PRESET_COLOUR_OPTIONS[menuList][i][1] .. "|r";
+			info.arg1 = PRESET_COLOUR_OPTIONS[menuList][i][1];
+			info.arg2 = PRESET_COLOUR_OPTIONS[menuList][i][2]
+			info.hasArrow = false;
+			info.notCheckable = false;
+			info.checked = strmatch(EpsilonLibColourPicker.value:GetText(), info.arg2);
+			info.func = EpsilonLibColourPickerDropDown_OnClick;
+			UIDropDownMenu_AddButton(info, level)
 		end
 	end
-	
 end
 
 -------------------------------------------------------------------------------
 -- When a colour is selected.
 --
-function EpsilonLibColourPicker_OnColourSelect( r, g, b )
-	local hex = RGBToHex( r, g, b )
-	EpsilonLibColourPicker.value:SetText( CreateColor( r, g, b, 1 ):WrapTextInColorCode( strupper( hex ) ) )
+function EpsilonLibColourPicker_OnColourSelect(r, g, b)
+	local hex = RGBToHex(r, g, b)
+	EpsilonLibColourPicker.value:SetText(CreateColor(r, g, b, 1):WrapTextInColorCode(strupper(hex)))
 	UIDropDownMenu_SetText(EpsilonLibColourPicker.selectPreset, "Select a Preset Colour")
 end
 
 -------------------------------------------------------------------------------
 -- When a hexadecimal value is entered.
 --
-function EpsilonLibColourPicker_OnTextChanged( self )
-	local r, g, b = HexToRGBPerc( self:GetText() or "" )
-	EpsilonLibColourPicker.colourSelect:SetColorRGB( r, g, b )
+function EpsilonLibColourPicker_OnTextChanged(self)
+	local r, g, b = HexToRGBPerc(self:GetText() or "")
+	EpsilonLibColourPicker.colourSelect:SetColorRGB(r, g, b)
 	UIDropDownMenu_SetText(EpsilonLibColourPicker.selectPreset, "Select a Preset Colour")
 end
 
@@ -141,9 +140,9 @@ end
 -- When the Select Colour button is clicked.
 --
 function EpsilonLibColourPicker_OnColourPick()
-	local hex = RGBToHex( EpsilonLibColourPicker.colourSelect:GetColorRGB() )
+	local hex = RGBToHex(EpsilonLibColourPicker.colourSelect:GetColorRGB())
 	local r, g, b = EpsilonLibColourPicker.colourSelect:GetColorRGB();
-	
+
 	if EpsilonLibColourPicker.returnFunc then
 		EpsilonLibColourPicker.returnFunc(hex, r, g, b);
 	end
@@ -154,7 +153,7 @@ function EpsilonLibColourPicker_OnColourPick()
 		EpsilonLibColourPicker_Close();
 	end
 end
-    
+
 -------------------------------------------------------------------------------
 -- Close the colour picker window. Use this instead of a direct Hide()
 --
@@ -164,7 +163,7 @@ function EpsilonLibColourPicker_Close()
 	EpsilonLibColourPicker.playSound = nil;
 	EpsilonLibColourPicker:Hide()
 end
-    
+
 -------------------------------------------------------------------------------
 -- Open the colour picker window.
 --
@@ -181,7 +180,7 @@ end
 --							b		number		The blue value
 --								of the selected colour. (Example: 1.0)
 --
---						If none provided, selecting a colour will instead set the 
+--						If none provided, selecting a colour will instead set the
 --						following global variables you can call instead:
 --
 --						EpsilonLibColourPicker.SelectedHex	string	The hex value
@@ -194,9 +193,67 @@ end
 -- @param playSound		If true, the picker will play a sound when a colour is
 --							selected.
 --
-function EpsilonLibColourPicker_Open( returnFunc, closeOnClick, playSound )
+function EpsilonLibColourPicker_Open(returnFunc, closeOnClick, playSound)
 	EpsilonLibColourPicker.returnFunc = returnFunc or nil;
 	EpsilonLibColourPicker.playSound = playSound or nil;
 	EpsilonLibColourPicker.closeOnClick = closeOnClick or nil;
 	EpsilonLibColourPicker:Show()
 end
+
+-------------------------------------------------------------------------------
+----- Extension to the default ColorPickerFrame to add Hex Input
+----------------------------------------------------------------------------------
+
+local colorPickerFrame = _G["ColorPickerFrame"]
+local hexInput = CreateFrame("EditBox", nil, colorPickerFrame, 'InputBoxInstructionsTemplate')
+hexInput.Instructions:SetText("RRGGBB")
+hexInput:SetSize(60, 22)
+hexInput:SetPoint("TOP", colorPickerFrame, "TOPLEFT", 245, -120)
+hexInput:SetMaxBytes(7)
+hexInput:SetAutoFocus(false)
+hexInput:SetCursorPosition(0)
+
+local function _onHexInput(self)
+	local text = self:GetText();
+	local length = string.len(text);
+	if length == 0 then
+		self:SetText("ffffff");
+		length = 6;
+	end
+	if length == 6 then
+		local color = CreateColorFromHexString("ff" .. self:GetText());
+		_G["ColorPickerFrame"]:SetColorRGB(color:GetRGB());
+	end
+end
+
+hexInput:HookScript("OnEnterPressed", function(self)
+	self:ClearFocus();
+end)
+hexInput:HookScript("OnEditFocusLost", _onHexInput)
+hexInput:SetScript("OnEscapePressed", function(self)
+	-- revert to currently selected color
+	local r, g, b = colorPickerFrame:GetColorRGB()
+	local hex = RGBToHex(r, g, b)
+	self:SetText(hex)
+	self:ClearFocus()
+end)
+hexInput:HookScript("OnTextChanged", function(self, userInput)
+	if userInput then
+		-- only run if userInput and length is 6; don't want 0 handling to trigger when typing
+		local text = self:GetText()
+		if string.len(text) == 6 then
+			_onHexInput(self)
+		end
+	end
+end)
+
+colorPickerFrame:HookScript("OnColorSelect", function(self)
+	local r, g, b = self:GetColorRGB()
+	local hex = RGBToHex(r, g, b)
+	hexInput:SetText(hex)
+end)
+
+local hexLabel = hexInput:CreateFontString('Label', "OVERLAY", "GameFontNormal")
+hexLabel:SetText("Hex Code")
+hexLabel:SetPoint("CENTER", hexInput, "TOP", -2, 0)
+hexLabel:SetJustifyH("CENTER")

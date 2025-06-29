@@ -155,6 +155,7 @@ local efdFrame = CreateFrame("Frame")
 local function efdOnUpdate()
 	local flightSettings = KinesisOptions.profiles[KinesisCharOptions.activeProfile].flight
 	-- if not flightSettings.enabled then return end -- Nope, we want this to function even if they disable Flight Controls
+	if Main.getTempDisable("flight") then return; end
 
 	if IsFlying() then
 		if not spellsActive then castSpellList() end
@@ -185,6 +186,8 @@ end
 local function hookLandingOnUpdate(self, elapsed)
 	local flightSettings = KinesisOptions.profiles[KinesisCharOptions.activeProfile].flight
 	if not flightFrame.isFlying or not flightSettings.enabled or flightSettings.landDelay == 0 then return; end
+	if Main.getTempDisable("flight") then return; end
+
 	if not IsFlying() and not IsFalling() then
 		if self.landTimer > (tonumber(flightSettings.landDelay) or 1) then
 			flightFrame.ToggleFlight(false)
@@ -240,6 +243,7 @@ hooksecurefunc("JumpOrAscendStart", function()
 	--if not flightFrame.enabled then return end
 	local flightSettings = KinesisOptions.profiles[KinesisCharOptions.activeProfile].flight
 	if not flightSettings.enabled then return end
+	if Main.getTempDisable("flight") then return; end
 
 	local numJumpsRequired = 2
 	if flightSettings.tripleJump then numJumpsRequired = 3 end

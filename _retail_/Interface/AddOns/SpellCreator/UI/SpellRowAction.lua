@@ -360,6 +360,12 @@ local baseMenuList = {
 		action(ACTION.ArcTrigCooldown),
 	}),
 	withDependency("Kinesis", selectmenu("Kinesis", {
+		header("Temp Overrides"),
+		action(ACTION.Kinesis_TempDisableAll),
+		action(ACTION.Kinesis_TempDisableFlight),
+		action(ACTION.Kinesis_TempDisableSprint),
+		action(ACTION.Kinesis_TempDisableAllRst),
+		spacer(),
 		header("Flight Controls"),
 		action(ACTION.Kinesis_FlyEnable),
 		action(ACTION.Kinesis_EFDEnable),

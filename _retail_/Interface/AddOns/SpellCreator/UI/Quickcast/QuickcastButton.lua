@@ -312,11 +312,11 @@ local function createButton(page, index)
 		function(self)
 			local error_strings = {
 				("Spell %s does not exist in your vault."):format(Tooltip.genContrastText(self.commID)),
-				"\nRight-Click to remove this from your Quickcast.",
+				"\n" .. Tooltip.tag("right-click-text-icon") .. " to remove this from your Quickcast.",
 			}
 			local good_strings = ns.UI.SpellTooltip.getLines("vault", self.spell, false, true)
 			tinsert(good_strings, " ")
-			tinsert(good_strings, ADDON_COLORS.QC_DARKRED:GenerateHexColorMarkup() .. "Shift+Right-Click to remove.|r")
+			tinsert(good_strings, (ADDON_COLORS.QC_DARKRED:GenerateHexColorMarkup() .. "Shift+Right-Click %s to remove.|r"):format(Tooltip.tag("shift-right-click")))
 			return good_strings or error_strings
 		end,
 		{ delay = 0.5, updateOnUpdate = true }
