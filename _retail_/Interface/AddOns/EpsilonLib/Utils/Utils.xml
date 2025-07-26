@@ -9,6 +9,7 @@
 	<Script file="NineSliceTemplates.lua"/>
 	<Script file="FrameRotationUtil.lua"/>
 	<Script file="GossipUtil.lua"/>
+	<Script file="TooltipUtil.lua"/>
 
 	<Script file="MiscUtils.lua"/>
 	<Script file="GenericDialogs.lua"/>
