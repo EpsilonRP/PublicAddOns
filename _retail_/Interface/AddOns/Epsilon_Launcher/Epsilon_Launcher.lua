@@ -46,22 +46,39 @@ CONSTANTS.addon.name = addonName
 CONSTANTS.addon.author = addonAuthor
 
 local tray_MaxCol = 4
+local tray_iconSize = 32
+local mm_iconSize = 32
+local mm_insetDiff = 4
 
 Epsilon_Launcher_DB = {}
+
+local _defaultPreferredIconOrder = {
+	"Phase Codex",
+	"Epsilon Editor",
+	"Epsilon Viewer",
+	"Object Mover",
+	"Phase Toolkit",
+	"Epsilon Book",
+	"Kinesis",
+}
 
 local _defaultDB = {
 	profile = {
 		minimap = {
 			hide = false,
 			maxCols = 4,
-			minimapPos = 244.8523982880371
+			minimapPos = 244.8523982880371,
+			trayIconSize = tray_iconSize,
+			mmIconSize = mm_iconSize,
+			preferredOrder = {},
 		},
 		ignoreGXPrompt = nil,
 		restartGxOnReload = nil,
 	},
 }
 addon.db = LibStub("AceDB-3.0"):New("Epsilon_Launcher_DB", _defaultDB, true)
-
+local genOrderLines
+local function getPreferredIconOrder() return addon.db.profile.minimap.preferredOrder end
 -------------------------------------------------------------------------------
 -- Custom Prints & Utility
 -------------------------------------------------------------------------------
@@ -92,11 +109,47 @@ end
 
 local noop = function(...) return ... end
 
+local function SortFramesByPreferredOrder(frameArray, preferredOrder)
+	-- Create lookup table for preferred name order
+	local preferredIndex = {}
+	for i, name in ipairs(preferredOrder) do
+		preferredIndex[name] = i
+	end
+
+	-- Attach original index to preserve order for unlisted items
+	for index, frame in ipairs(frameArray) do
+		frame.__originalIndex = index
+	end
+
+	table.sort(frameArray, function(a, b)
+		local aIndex = preferredIndex[a.name]
+		local bIndex = preferredIndex[b.name]
+
+		if aIndex and bIndex then
+			return aIndex < bIndex
+		elseif aIndex then
+			return true -- a is in preferred list, b is not
+		elseif bIndex then
+			return false -- b is in preferred list, a is not
+		else
+			-- Neither in preferred list; preserve original order
+			return a.__originalIndex < b.__originalIndex
+		end
+	end)
+
+	-- Clean up metadata
+	for _, frame in ipairs(frameArray) do
+		frame.__originalIndex = nil
+	end
+end
 
 local initFuncs = {}
 local initAlreadyRan
 local function runOnInit(func)
-	if initAlreadyRan then return false end
+	if initAlreadyRan then
+		func()
+		return false
+	end
 	tinsert(initFuncs, func)
 	return true
 end
@@ -176,15 +229,19 @@ local function updateTraySizeLayout()
 	lastTrayCount = numIcons
 
 	local tray_MaxCol = addon.db.profile.minimap.maxCols or tray_MaxCol
+	local tray_iconSize = addon.db.profile.minimap.trayIconSize or tray_iconSize
+
+	local mm_iconSize = addon.db.profile.minimap.mmIconSize or mm_iconSize
+	minimapButton:SetSize(mm_iconSize + mm_insetDiff, mm_iconSize + mm_insetDiff)
+	minimapButton:UpdateHighlightSize()
 
 	local numRows = math.ceil(numIcons / tray_MaxCol)
-
-	tray:SetHeight(numRows * 26 + 12)
+	tray:SetHeight(numRows * (tray_iconSize + 2) + 12)
 
 	if numIcons < tray_MaxCol then
-		tray:SetWidth((26 * numIcons) + 12)
+		tray:SetWidth(((tray_iconSize + 2) * numIcons) + 12)
 	else
-		tray:SetWidth((26 * tray_MaxCol) + 12)
+		tray:SetWidth(((tray_iconSize + 2) * tray_MaxCol) + 12)
 	end
 
 	for i = 1, numIcons do
@@ -199,6 +256,8 @@ local function updateTraySizeLayout()
 				icon:SetPoint("TOPRIGHT", trayIcons[i - 1], "TOPLEFT", -2, 0)
 			end
 		end
+		icon:SetSize(tray_iconSize, tray_iconSize)
+		icon:UpdateHighlightSize()
 	end
 end
 
@@ -229,6 +288,8 @@ end
 local function openLauncherTray()
 	if #trayIcons ~= lastTrayCount then
 		updateTraySizeLayout()
+		SortFramesByPreferredOrder(trayIcons, getPreferredIconOrder())
+		genOrderLines()
 	end
 
 	--setTrayAnims(true)
@@ -253,45 +314,82 @@ end
 ---@param lines? string[] | string | fun(self): (string[] | string)
 ---@param ttOptions? TooltipOptions
 local function registerTrayIcon(name, func, icon, lines, ttOptions)
+	-- Delay calls here to wait until the addon is initialized first. This helps ensure all icons are loaded in, what should be, a stable load order
+	--[[
+	if not initAlreadyRan then
+		runOnInit(function() registerTrayIcon(name, func, icon, lines, ttOptions) end)
+		return
+	end
+	--]]
+
 	local f
 	if type(name) == "table" then -- icon can be an actual frame already made instead if you want to use a pre-made. I.e., registering Arcanum..
 		f = name
+		if (not f.name) or (type(f.name) ~= 'string') then error("Custom Frame must have field name") end
 		f:SetParent(tray --[[@as frame]])
 		f:SetScript("OnDragStart", noop)
 	else
 		if not name or not func or not icon then return error("registerTrayIcon usage invalid. Refer to annotations.") end
 		f = CreateFrame("Button", nil, tray)
-		f:SetSize(24, 24)
+		f.name = name
+
+		local tray_iconSize = addon.db.profile.minimap.trayIconSize or tray_iconSize
+
+		f:SetSize(tray_iconSize, tray_iconSize)
 		f:SetNormalTexture(icon --[[@as string]])
-		f:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight", "ADD")
+		--f:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight", "ADD")
+
+		f:SetHighlightAtlas("ChallengeMode-KeystoneSlotFrameGlow")
+		local highlight = f:GetHighlightTexture()
+		f.Highlight = highlight
+		highlight:ClearAllPoints()
+		highlight:SetPoint("CENTER")
+		highlight:SetAlpha(0.5)
+
+		function f:UpdateHighlightSize()
+			local x, y = f:GetSize()
+			self.Highlight:SetSize(x * 1.66, y * 1.66)
+		end
+
+		f:UpdateHighlightSize()
 
 		if func then f:SetScript("OnClick", func) end
 
 		ns.Utils.Tooltip.set(f, name, lines, ttOptions)
 	end
 
-	--[[
-	if #trayIcons > 0 then
-		local lastIcon = trayIcons[#trayIcons]
-		f:SetPoint("RIGHT", lastIcon, "LEFT", 0, 0)
-	else
-		f:SetPoint("TOPRIGHT", tray, "TOPRIGHT", -2, -2)
-	end
-	--]]
-	-- handled in updateTraySizeLayout
-
 	tinsert(trayIcons, f)
 
-
 	if not initAlreadyRan then -- Tray is not initialized yet, delay the call until it is
-		runOnInit(function() tray._Icons[name] = f end)
+		runOnInit(function()
+			tray._Icons[name] = f;
+
+			if not tContains(getPreferredIconOrder(), name) then
+				table.insert(getPreferredIconOrder(), name)
+			end
+
+			SortFramesByPreferredOrder(trayIcons, getPreferredIconOrder())
+			genOrderLines()
+		end)
 	else
 		tray._Icons[name] = f
+		if not tContains(getPreferredIconOrder(), name) then
+			table.insert(getPreferredIconOrder(), name)
+		end
+		SortFramesByPreferredOrder(trayIcons, getPreferredIconOrder())
+		updateTraySizeLayout()
+		genOrderLines()
 	end
 
-	updateTraySizeLayout()
-
 	return f
+end
+
+local function registerCustomTrayIcon(frame, name)
+	if not frame or not name then error("custom must be called with frame in arg1 and name in arg2") end
+	assert(type(frame) == "table", "Custom Frame must be .. a frame..")
+	assert(type(name) == 'string', 'Name must be string')
+	frame.name = name
+	registerTrayIcon(frame)
 end
 
 -------------------------------------------------------------------------------
@@ -317,7 +415,7 @@ local addonOptions = {
 	args = {
 		hide = {
 			type = "toggle",
-			name = "Disable Mini-Map Icon",
+			name = "Disable Minimap Icon",
 			desc = "Effectively disables this AddOn.\nBut why?",
 			order = autoOrder(),
 			arg = function() minimapButton:SetShown(not minimapButton:IsShown()) end,
@@ -338,12 +436,118 @@ local addonOptions = {
 			arg = updateTraySizeLayout,
 			step = 1,
 			min = 1,
-			max = 6,
+			max = 12,
+			softMax = 10,
 			get = "GenericGetter",
 			set = "GenericSetter",
 		},
+		mmIconSize = {
+			type = "range",
+			name = "Minimap Icon Size",
+			desc = "Size of the Minimap Icon. (Default: 32)",
+			order = autoOrder(),
+			arg = updateTraySizeLayout,
+			step = 1,
+			min = 24,
+			max = 48,
+			get = "GenericGetter",
+			set = "GenericSetter",
+		},
+		trayIconSize = {
+			type = "range",
+			name = "Tray Icon Size",
+			desc = "Size of the icons inside the tray. (Default: 32)",
+			width = 2,
+			order = autoOrder(),
+			arg = updateTraySizeLayout,
+			step = 1,
+			min = 24,
+			max = 128,
+			get = "GenericGetter",
+			set = "GenericSetter",
+		},
+		preferredOrderGroup = {
+			type = 'group',
+			inline = true,
+			name = 'Icon Order',
+			order = autoOrder(),
+			width = 'full',
+			args = {
+
+			}
+		}
 	},
 }
+
+local function moveSortIndex(info)
+	if not info then return end
+	if not info.arg then return end
+	local name = info[#info]
+	local index = info.arg
+	if name == 'upButton' then
+		local item = table.remove(trayIcons, index)
+		table.insert(trayIcons, index - 1, item)
+	elseif name == 'downButton' then
+		local item = table.remove(trayIcons, index)
+		table.insert(trayIcons, index + 1, item)
+	end
+	table.wipe(addon.db.profile.minimap.preferredOrder)
+	for k, v in ipairs(trayIcons) do
+		addon.db.profile.minimap.preferredOrder[k] = v.name
+	end
+
+	updateTraySizeLayout()
+end
+
+local lines = {}
+local function getLine(index)
+	if lines[index] then return lines[index] end
+	lines[index] = {
+		name = '',
+		type = 'group',
+		order = index,
+		inline = true,
+		args = {
+			label = {
+				type = 'description',
+				name = function() return trayIcons[index].name or 'Unknown' end,
+				order = 1,
+				width = 1,
+			},
+			upButton = {
+				type = 'execute',
+				name = CreateTextureMarkup("Interface/Azerite/Azerite", 62 * 4, 44 * 4, 1.4, 0, 0.51953125, 0.76171875, 0.416015625, 0.373046875),
+				order = 2,
+				arg = index,
+				width = 0.25,
+				disabled = (index == 1),
+				func = moveSortIndex
+			},
+			downButton = {
+				type = 'execute',
+				name = CreateAtlasMarkup("Azerite-PointingArrow"),
+				order = 3,
+				arg = index,
+				width = 0.25,
+				disabled = function() return index == #trayIcons end,
+				func = moveSortIndex
+			}
+		}
+	}
+	return lines[index]
+end
+
+function genOrderLines()
+	table.wipe(addonOptions.args.preferredOrderGroup.args)
+	for i = 1, #trayIcons do
+		local _icon = trayIcons[i]
+		local _name = _icon.name
+		addonOptions.args.preferredOrderGroup.args['line' .. i] = getLine(i)
+		if not tContains(getPreferredIconOrder(), _name) then
+			table.insert(getPreferredIconOrder(), _name)
+		end
+	end
+end
 
 function addon:GenericGetter(info)
 	return self.db.profile.minimap[info[#info]]
@@ -397,9 +601,34 @@ function addon:OnInitialize()
 			region:Hide()
 		end
 	end
+
+	local mm_iconSize = addon.db.profile.minimap.mmIconSize or mm_iconSize
+	mmButton:SetSize(mm_iconSize + mm_insetDiff, mm_iconSize + mm_insetDiff)
+
 	mmButton.icon:ClearAllPoints()
-	mmButton.icon:SetPoint("CENTER")
-	mmButton.icon:SetSize(24, 24)
+	mmButton.icon:SetPoint("TOPLEFT", mm_insetDiff, -mm_insetDiff)
+	mmButton.icon:SetPoint("BOTTOMRIGHT", -mm_insetDiff, mm_insetDiff)
+
+	--[[
+	local hilight = mmButton:GetHighlightTexture()
+	mmButton:SetHighlightAtlas("worldquest-questmarker-abilityhighlight")
+	hilight:ClearAllPoints()
+	hilight:SetAllPoints(mmButton.icon)
+	--]]
+
+	mmButton:SetHighlightAtlas("ChallengeMode-KeystoneSlotFrameGlow")
+	local highlight = mmButton:GetHighlightTexture()
+	mmButton.Highlight = highlight
+	highlight:ClearAllPoints()
+	highlight:SetPoint("CENTER")
+	highlight:SetAlpha(0.5)
+
+	function mmButton:UpdateHighlightSize()
+		local x, y = mmButton:GetSize()
+		self.Highlight:SetSize(x * 1.25, y * 1.25)
+	end
+
+	mmButton:UpdateHighlightSize()
 
 	mmButton.icon.UpdateCoord = function(self)
 		local coords = self:GetParent().dataObject.iconCoords or defaultCoords
@@ -421,6 +650,12 @@ function addon:OnInitialize()
 		}
 	)
 
+	if #getPreferredIconOrder() == 0 then
+		for k, v in ipairs(_defaultPreferredIconOrder) do
+			addon.db.profile.minimap.preferredOrder[k] = v
+		end
+	end
+
 	-- And.. Create our BlizzOptions
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("EpsilonLauncher", addonOptions)
@@ -439,6 +674,7 @@ ns.Launcher = {
 	registerForInit = runOnInit,
 
 	new = registerTrayIcon,
+	custom = registerCustomTrayIcon,
 
 	CONSTANTS = CONSTANTS,
 
