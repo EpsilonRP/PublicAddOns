@@ -257,6 +257,7 @@ local ACTION_TYPE = {
 	QCBookNewBook = "QCBookNewBook",
 	QCBookNewPage = "QCBookNewPage",
 	QCBookAddSpell = "QCBookAddSpell",
+	QCBookSetPosition = "QCBookSetPosition",
 
 	-- Kinesis Integration
 	Kinesis_TempDisableAll = "Kinesis_TempDisableAll",
@@ -1991,6 +1992,19 @@ local actionTypeData = {
 		example = '"Quickcast Book 1", 2, ArcSpellID1, ArcSpellID2',
 		revert = nil,
 		doNotDelimit = true,
+	}),
+	[ACTION_TYPE.QCBookSetPosition] = scriptAction("Set Book to Cursor", {
+		command = function(bookName)
+			local uiScale,cursorPositionX, cursorPositionY = UIParent:GetEffectiveScale(), GetCursorPosition()
+
+			local x, y = cursorPositionX / uiScale, cursorPositionY / uiScale
+
+			local previousX, previousY = ns.UI.Quickcast.Book.setBookToPosition(bookName, x, y)
+		end,
+		description = "Sets the position of a Quickcast Book to the current Cursors Position",
+		dataName = "Book Name",
+		inputDescription = "The name of the Quickcast Book",
+		revert = nil,
 	}),
 	[ACTION_TYPE.RotateCameraLeftStart] = scriptAction("Rotate Cam Left", {
 		command = function(speed)
