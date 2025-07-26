@@ -545,6 +545,19 @@ local function changeBookStyle(bookName, styleNameOrID)
 	end
 end
 
+---Sets position of a book to the cursor
+---@param bookName string
+local function setBookToPosition(bookName, x, y)
+
+	for index,book in ipairs(_booksDB) do
+		if book.savedData.name == bookName then
+			book:ClearAllPoints()
+			book:SetPoint("CENTER",nil, "BOTTOMLEFT", x , y)
+			return true
+		end
+	end
+end
+
 ---@class UI_Quickcast_Book
 ns.UI.Quickcast.Book = {
 	createBook = createBook,
@@ -566,4 +579,5 @@ ns.UI.Quickcast.Book = {
 	toggleBookByName = toggleBookByName,
 	setPageInBook = setPageInBook,
 	changeBookStyle = changeBookStyle,
+	setBookToPosition = setBookToPosition,
 }

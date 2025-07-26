@@ -352,6 +352,7 @@ local baseMenuList = {
 		action(ACTION.QCBookNewBook),
 		action(ACTION.QCBookNewPage),
 		action(ACTION.QCBookAddSpell),
+		action(ACTION.QCBookSetPosition),
 
 		header("Miscellaneous"),
 		action(ACTION.ArcSaveFromPhase),
