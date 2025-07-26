@@ -2,6 +2,8 @@ local EpsilonPhases = LibStub("AceAddon-3.0"):GetAddon("EpsilonPhases")
 local linkPhase = EpsilonPhases.Utils.linkPhase
 local calcBackground = EpsilonPhases.Utils.calcBackground
 
+EpsilonPhases.PhaseListItems = {}
+
 local function CreatePhaseListItem(index, phase)
 
     local EpsilonPhasesPhaseListPhaseItem = CreateFrame("Button", "EpsilonPhasesPhaseListPhaseItem" .. index, EpsilonPhasesPhaseListFrame, nil)
@@ -15,6 +17,8 @@ local function CreatePhaseListItem(index, phase)
     EpsilonPhasesPhaseListPhaseItem.ActiveTexture = EpsilonPhasesPhaseListPhaseItem:CreateTexture(nil, "OVERLAY", 7)
     EpsilonPhasesPhaseListPhaseItem.ActiveTexture:SetSize(272, EpsilonPhases.PHASELIST_ITEM_HEIGHT)
     EpsilonPhasesPhaseListPhaseItem.ActiveTexture:SetPoint("CENTER", EpsilonPhasesPhaseListPhaseItem, "CENTER") 
+    EpsilonPhasesPhaseListPhaseItem.ActiveTexture:SetTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiIndexObjectFrameHover")
+    EpsilonPhasesPhaseListPhaseItem.ActiveTexture:Hide()
 
     local backgroundX, backgroundX2, backgroundY, backgroundY2 = calcBackground(phase:GetPhaseBackground())
 
@@ -191,9 +195,11 @@ local function CreatePhaseListItem(index, phase)
         if IsShiftKeyDown() then 
             linkPhase(self.phase)
         else
-            EpsilonPhases.SetCurrentActivePhase(index)
+            EpsilonPhases.SetCurrentActivePhaseByPhaseID(self.phase:GetPhaseID())
         end
     end)
+
+    table.insert(EpsilonPhases.PhaseListItems, EpsilonPhasesPhaseListPhaseItem)
 end
 EpsilonPhases.CreatePhaseListItem = CreatePhaseListItem
 
