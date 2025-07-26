@@ -974,6 +974,18 @@ mog.menu.preview = mog.menu:CreateMenu(L["Preview"], function(self, tier)
 	info.isNotRadio = true;
 	UIDropDownMenu_AddButton(info, tier);
 
+	local info = UIDropDownMenu_CreateInfo();
+	info.text = L["|cff00ccffAuto-Save MogIt Sets from NPC Name to E.M.O.G.|r"];
+	info.tooltipTitle = L["|cff00ccffAuto-Save MogIt Sets from NPC Name to E.M.O.G.|r"];
+	info.tooltipText = L["When targeting an NPC with a MogIt Link / Set as it's name, automatically record this set into the Epsilon Mobile Outfit Gallery database, for viewing later on."];
+	info.tooltipOnButton = true
+	info.checked = mog.db.profile.autoSaveMogNPCNameToEMOG;
+	info.keepShownOnClick = true;
+	info.func = togOption;
+	info.arg1 = "autoSaveMogNPCNameToEMOG"
+	info.isNotRadio = true;
+	UIDropDownMenu_AddButton(info, tier);
+
 	--[[ -- Disabled, we're going to just enforce this always instead
 	local info = UIDropDownMenu_CreateInfo();
 	info.text = L["|cff00ccffUse Character for Auto-Preview|r"];

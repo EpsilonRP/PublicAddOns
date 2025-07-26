@@ -22,6 +22,12 @@ local itemSlots = {
 	["TABARD"] = 19,
 };
 
+local function getAppearanceBonusFromItemLinkContext(link)
+	local id, context = GetItemCreationContext(link)
+	if context:find("heroic") then return 449 end
+	if context:find("mythic") then return 450 end
+	if context:find("finder") then return 451 end
+end
 -- // EpsilonLib for AddOnCommands:
 local sendAddonCmd
 
@@ -209,10 +215,12 @@ local itemOptions = {
 		func = function(self)
 			local itemID = self.value:match("item:(%d*)");
 			local bonusID = self.value:match(":1:(%d*)")
-			if itemID:match(":1:%d*") then
-				--has bonus still
-			end
 			local showCommandReplies = mog.db.profile.showCommandReplies
+
+			local trueBonusFromContext = getAppearanceBonusFromItemLinkContext(self.value)
+			if trueBonusFromContext then
+				bonusID = bonusID and trueBonusFromContext .. " " .. bonusID or trueBonusFromContext
+			end
 
 			if bonusID ~= nil then
 				if not mog.db.profile.toggleMessages then
@@ -361,14 +369,23 @@ do -- item functions
 		if button == "LeftButton" then
 			if IsAltKeyDown() then
 				local itemLink = data.item
+				local trueLink = select(2, GetItemInfo(item))
+				if trueLink then itemLink = trueLink end
+
+				local trueBonusFromContext = getAppearanceBonusFromItemLinkContext(itemLink)
 				local bonusID = itemLink:match(":1:(%d*)")
+				if trueBonusFromContext then
+					bonusID = bonusID and trueBonusFromContext .. " " .. bonusID or trueBonusFromContext
+				end
+
 				local itemID = itemLink:match("item:(%d*)");
 				local showCommandReplies = mog.db.profile.showCommandReplies
 
 				if not mog.db.profile.toggleMessages then
-					print("|cff00ccff[MogIt]|r adding item: " .. (itemID or "invalid item id") .. " with bonus: " .. (bonusID and bonusID or "n/a"));
+					print("|cff00ccff[MogIt]|r adding item: " .. (itemID or "invalid item id") .. " with bonus: " .. (bonusID or "n/a"));
 				end
-				sendAddonCmd("additem " .. itemID .. " 1 " .. (bonusID and bonusID or ""), nil, showCommandReplies)
+				sendAddonCmd("additem " .. itemID .. " 1 " .. (bonusID or ""), nil, showCommandReplies)
+				return
 			end
 
 			if not HandleModifiedItemClick(select(2, GetItemInfo(item))) and data.items then

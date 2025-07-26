@@ -250,6 +250,7 @@ local defaults = {
 		showCommandReplies = false,
 		delItemsOnEquip = false,
 		autoShowMogNPCNamePreviews = true,
+		autoSaveMogNPCNameToEMOG = true,
 		--useCurrentCharForMogAutoPreviews = true,
 		toggleDebugMode = false,
 
