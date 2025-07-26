@@ -1,4 +1,4 @@
---[[ $Id$ ]]--
+--[[ $Id$ ]] --
 local AceGUI = LibStub("AceGUI-3.0")
 
 -- Lua APIs
@@ -15,11 +15,11 @@ local _G = _G
 -- List them here for Mikk's FindGlobals script
 -- GLOBALS: CLOSE
 
-local function fixlevels(parent,...)
+local function fixlevels(parent, ...)
 	local i = 1
 	local child = select(i, ...)
 	while child do
-		child:SetFrameLevel(parent:GetFrameLevel()+1)
+		child:SetFrameLevel(parent:GetFrameLevel() + 1)
 		fixlevels(child, child:GetChildren())
 		i = i + 1
 		child = select(i, ...)
@@ -39,11 +39,11 @@ end
 
 do
 	local widgetType = "Dropdown-Pullout"
-	local widgetVersion = 5
+	local widgetVersion = 6
 
-	--[[ Static data ]]--
+	--[[ Static data ]] --
 
-	local backdrop = {
+	local backdrop         = {
 		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 32,
@@ -51,17 +51,19 @@ do
 		tile = true,
 		insets = { left = 11, right = 12, top = 12, bottom = 11 },
 	}
-	local sliderBackdrop  = {
+	local sliderBackdrop   = {
 		bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
 		edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-		tile = true, tileSize = 8, edgeSize = 8,
+		tile = true,
+		tileSize = 8,
+		edgeSize = 8,
 		insets = { left = 3, right = 3, top = 3, bottom = 3 }
 	}
 
-	local defaultWidth = 200
+	local defaultWidth     = 200
 	local defaultMaxHeight = 600
 
-	--[[ UI Event Handlers ]]--
+	--[[ UI Event Handlers ]] --
 
 	-- HACK: This should be no part of the pullout, but there
 	--       is no other 'clean' way to response to any item-OnEnter
@@ -88,7 +90,7 @@ do
 		this.obj:FixScroll()
 	end
 
-	--[[ Exported methods ]]--
+	--[[ Exported methods ]] --
 
 	-- exported
 	local function SetScroll(self, value)
@@ -124,7 +126,7 @@ do
 			if value < 0 then
 				delta = -1
 			end
-			self.slider:SetValue(min(max(status.scrollvalue + delta*(1000/(diff/45)),0), 1000))
+			self.slider:SetValue(min(max(status.scrollvalue + delta * (1000 / (diff / 45)), 0), 1000))
 		end
 	end
 
@@ -249,42 +251,42 @@ do
 		return 6
 	end
 
-	--[[ Constructor ]]--
+	--[[ Constructor ]] --
 
 	local function Constructor()
-		local count = AceGUI:GetNextWidgetNum(widgetType)
-		local frame = CreateFrame("Frame", "AceGUI30Pullout"..count, UIParent, "BackdropTemplate")
-		local self = {}
-		self.count = count
-		self.type = widgetType
-		self.frame = frame
-		frame.obj = self
+		local count              = AceGUI:GetNextWidgetNum(widgetType)
+		local frame              = CreateFrame("Frame", "AceGUI30Pullout" .. count, UIParent, "BackdropTemplate")
+		local self               = {}
+		self.count               = count
+		self.type                = widgetType
+		self.frame               = frame
+		frame.obj                = self
 
-		self.OnAcquire = OnAcquire
-		self.OnRelease = OnRelease
+		self.OnAcquire           = OnAcquire
+		self.OnRelease           = OnRelease
 
-		self.AddItem = AddItem
-		self.Open    = Open
-		self.Close   = Close
-		self.Clear   = Clear
-		self.IterateItems = IterateItems
-		self.SetHideOnLeave = SetHideOnLeave
+		self.AddItem             = AddItem
+		self.Open                = Open
+		self.Close               = Close
+		self.Clear               = Clear
+		self.IterateItems        = IterateItems
+		self.SetHideOnLeave      = SetHideOnLeave
 
-		self.SetScroll  = SetScroll
-		self.MoveScroll = MoveScroll
-		self.FixScroll  = FixScroll
+		self.SetScroll           = SetScroll
+		self.MoveScroll          = MoveScroll
+		self.FixScroll           = FixScroll
 
-		self.SetMaxHeight = SetMaxHeight
+		self.SetMaxHeight        = SetMaxHeight
 		self.GetRightBorderWidth = GetRightBorderWidth
-		self.GetLeftBorderWidth = GetLeftBorderWidth
+		self.GetLeftBorderWidth  = GetLeftBorderWidth
 
-		self.items = {}
+		self.items               = {}
 
-		self.scrollStatus = {
+		self.scrollStatus        = {
 			scrollvalue = 0,
 		}
 
-		self.maxHeight = defaultMaxHeight
+		self.maxHeight           = defaultMaxHeight
 
 		frame:SetBackdrop(backdrop)
 		frame:SetBackdropColor(0, 0, 0)
@@ -304,7 +306,7 @@ do
 		scrollFrame.obj = self
 		itemFrame.obj = self
 
-		local slider = CreateFrame("Slider", "AceGUI30PulloutScrollbar"..count, scrollFrame, "BackdropTemplate")
+		local slider = CreateFrame("Slider", "AceGUI30PulloutScrollbar" .. count, scrollFrame, "BackdropTemplate")
 		slider:SetOrientation("VERTICAL")
 		slider:SetHitRectInsets(0, 0, -10, 0)
 		slider:SetBackdrop(sliderBackdrop)
@@ -353,9 +355,9 @@ do
 	local widgetType = "Dropdown"
 	local widgetVersion = 36
 
-	--[[ Static data ]]--
+	--[[ Static data ]]   --
 
-	--[[ UI event handler ]]--
+	--[[ UI event handler ]] --
 
 	local function Control_OnEnter(this)
 		this.obj.button:LockHighlight()
@@ -394,7 +396,10 @@ do
 
 		if not self.multiselect then
 			for i, item in this:IterateItems() do
-				item:SetValue(item.userdata.value == value)
+				if item.SetValue then
+					-- Fix for Item-Separator not having SetValue
+					item:SetValue(item.userdata.value == value)
+				end
 			end
 		end
 
@@ -414,7 +419,7 @@ do
 			if widget.type == "Dropdown-Item-Toggle" then
 				if widget:GetValue() then
 					if text then
-						text = text..", "..widget:GetText()
+						text = text .. ", " .. widget:GetText()
 					else
 						text = widget:GetText()
 					end
@@ -443,7 +448,7 @@ do
 		end
 	end
 
-	--[[ Exported methods ]]--
+	--[[ Exported methods ]] --
 
 	-- exported, AceGUI callback
 	local function OnAcquire(self)
@@ -487,15 +492,15 @@ do
 	local function SetDisabled(self, disabled)
 		self.disabled = disabled
 		if disabled then
-			self.text:SetTextColor(0.5,0.5,0.5)
+			self.text:SetTextColor(0.5, 0.5, 0.5)
 			self.button:Disable()
 			self.button_cover:Disable()
-			self.label:SetTextColor(0.5,0.5,0.5)
+			self.label:SetTextColor(0.5, 0.5, 0.5)
 		else
 			self.button:Enable()
 			self.button_cover:Enable()
-			self.label:SetTextColor(1,.82,0)
-			self.text:SetTextColor(1,1,1)
+			self.label:SetTextColor(1, .82, 0)
+			self.text:SetTextColor(1, 1, 1)
 		end
 	end
 
@@ -516,13 +521,13 @@ do
 		if text and text ~= "" then
 			self.label:SetText(text)
 			self.label:Show()
-			self.dropdown:SetPoint("TOPLEFT",self.frame,"TOPLEFT",-15,-14)
+			self.dropdown:SetPoint("TOPLEFT", self.frame, "TOPLEFT", -15, -14)
 			self:SetHeight(40)
 			self.alignoffset = 26
 		else
 			self.label:SetText("")
 			self.label:Hide()
-			self.dropdown:SetPoint("TOPLEFT",self.frame,"TOPLEFT",-15,0)
+			self.dropdown:SetPoint("TOPLEFT", self.frame, "TOPLEFT", -15, 0)
 			self:SetHeight(26)
 			self.alignoffset = 12
 		end
@@ -585,11 +590,11 @@ do
 
 	-- exported
 	local sortlist = {}
-	local function sortTbl(x,y)
+	local function sortTbl(x, y)
 		local num1, num2 = tonumber(x), tonumber(y)
 		if num1 and num2 then -- numeric comparison, either two numbers or numeric strings
 			return num1 < num2
-		else -- compare everything else tostring'ed
+		else            -- compare everything else tostring'ed
 			return tostring(x) < tostring(y)
 		end
 	end
@@ -644,46 +649,46 @@ do
 		self.pulloutWidth = width
 	end
 
-	--[[ Constructor ]]--
+	--[[ Constructor ]] --
 
 	local function Constructor()
-		local count = AceGUI:GetNextWidgetNum(widgetType)
-		local frame = CreateFrame("Frame", nil, UIParent)
-		local dropdown = CreateFrame("Frame", "AceGUI30DropDown"..count, frame, "UIDropDownMenuTemplate")
+		local count          = AceGUI:GetNextWidgetNum(widgetType)
+		local frame          = CreateFrame("Frame", nil, UIParent)
+		local dropdown       = CreateFrame("Frame", "AceGUI30DropDown" .. count, frame, "UIDropDownMenuTemplate")
 
-		local self = {}
-		self.type = widgetType
-		self.frame = frame
-		self.dropdown = dropdown
-		self.count = count
-		frame.obj = self
-		dropdown.obj = self
+		local self           = {}
+		self.type            = widgetType
+		self.frame           = frame
+		self.dropdown        = dropdown
+		self.count           = count
+		frame.obj            = self
+		dropdown.obj         = self
 
-		self.OnRelease   = OnRelease
-		self.OnAcquire   = OnAcquire
+		self.OnRelease       = OnRelease
+		self.OnAcquire       = OnAcquire
 
-		self.ClearFocus  = ClearFocus
+		self.ClearFocus      = ClearFocus
 
-		self.SetText     = SetText
-		self.SetValue    = SetValue
-		self.GetValue    = GetValue
-		self.SetList     = SetList
-		self.SetLabel    = SetLabel
-		self.SetDisabled = SetDisabled
-		self.AddItem     = AddItem
-		self.SetMultiselect = SetMultiselect
-		self.GetMultiselect = GetMultiselect
-		self.SetItemValue = SetItemValue
+		self.SetText         = SetText
+		self.SetValue        = SetValue
+		self.GetValue        = GetValue
+		self.SetList         = SetList
+		self.SetLabel        = SetLabel
+		self.SetDisabled     = SetDisabled
+		self.AddItem         = AddItem
+		self.SetMultiselect  = SetMultiselect
+		self.GetMultiselect  = GetMultiselect
+		self.SetItemValue    = SetItemValue
 		self.SetItemDisabled = SetItemDisabled
 		self.SetPulloutWidth = SetPulloutWidth
 
-		self.alignoffset = 26
+		self.alignoffset     = 26
 
-		frame:SetScript("OnHide",Dropdown_OnHide)
+		frame:SetScript("OnHide", Dropdown_OnHide)
 
 		dropdown:ClearAllPoints()
-		dropdown:SetPoint("TOPLEFT",frame,"TOPLEFT",-15,0)
-		dropdown:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",17,0)
+		dropdown:SetPoint("TOPLEFT", frame, "TOPLEFT", -15, 0)
+		dropdown:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 17, 0)
 		dropdown:SetScript("OnHide", nil)
 
 		local left = _G[dropdown:GetName() .. "Left"]
@@ -700,29 +705,29 @@ do
 		local button = _G[dropdown:GetName() .. "Button"]
 		self.button = button
 		button.obj = self
-		button:SetScript("OnEnter",Control_OnEnter)
-		button:SetScript("OnLeave",Control_OnLeave)
-		button:SetScript("OnClick",Dropdown_TogglePullout)
+		button:SetScript("OnEnter", Control_OnEnter)
+		button:SetScript("OnLeave", Control_OnLeave)
+		button:SetScript("OnClick", Dropdown_TogglePullout)
 
-		local button_cover = CreateFrame("BUTTON",nil,self.frame)
+		local button_cover = CreateFrame("BUTTON", nil, self.frame)
 		self.button_cover = button_cover
 		button_cover.obj = self
-		button_cover:SetPoint("TOPLEFT",self.frame,"BOTTOMLEFT",0,25)
-		button_cover:SetPoint("BOTTOMRIGHT",self.frame,"BOTTOMRIGHT")
-		button_cover:SetScript("OnEnter",Control_OnEnter)
-		button_cover:SetScript("OnLeave",Control_OnLeave)
-		button_cover:SetScript("OnClick",Dropdown_TogglePullout)
+		button_cover:SetPoint("TOPLEFT", self.frame, "BOTTOMLEFT", 0, 25)
+		button_cover:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT")
+		button_cover:SetScript("OnEnter", Control_OnEnter)
+		button_cover:SetScript("OnLeave", Control_OnLeave)
+		button_cover:SetScript("OnClick", Dropdown_TogglePullout)
 
 		local text = _G[dropdown:GetName() .. "Text"]
 		self.text = text
 		text.obj = self
 		text:ClearAllPoints()
-		text:SetPoint("RIGHT", right, "RIGHT" ,-43, 2)
+		text:SetPoint("RIGHT", right, "RIGHT", -43, 2)
 		text:SetPoint("LEFT", left, "LEFT", 25, 2)
 
-		local label = frame:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
-		label:SetPoint("TOPLEFT",frame,"TOPLEFT",0,0)
-		label:SetPoint("TOPRIGHT",frame,"TOPRIGHT",0,0)
+		local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		label:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+		label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
 		label:SetJustifyH("LEFT")
 		label:SetHeight(18)
 		label:Hide()

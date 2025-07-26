@@ -18,5 +18,8 @@
 	<Script file="CustomTutorials-2.1e.lua"/>
 
 	<Include file="LibRPMedia\LibRPMedia-1.0.xml"/>
+	<Include file="LibScrollableDropdown\LibScrollableDropdown.xml"/>
 	<Include file="lib-st\lib-st.xml"/>
+
+	<Include file="MAW-Widgets\MAW-Widgets.xml" />
 </Ui>
