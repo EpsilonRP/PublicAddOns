@@ -1,0 +1,13 @@
+## Interface: 90207
+## Title: MogIt_|cFF87CEFAEpsilon_Malls|r
+## Notes: A MogIt module that displays the transmog sets from transmog malls, on-the-go!
+## Title: E.M.O.G.: Epsilon Mobile Outfit Gallery
+## Author: MindScape
+## Version: 1.0
+## LoadOnDemand: 0
+## RequiredDeps: MogIt
+## X-MogItModuleVersion: 2
+## SavedVariables: EpsilonMOGMall_DB
+
+MogIt_MallArchive.lua
+CosmicCollection.lua
