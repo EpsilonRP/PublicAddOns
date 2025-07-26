@@ -93,7 +93,7 @@ local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, s
 		table.wipe(currentOverviewOrder)
 	end
 
-	wipeOverview = text == string.char( 28 )
+	wipeOverview = text == string.char(28)
 
 	-- parse text into data
 	local phases = { strsplit(strchar(30), text) }
@@ -105,10 +105,10 @@ local function OnPhaseOverviewDataReceived(self, event, prefix, text, channel, s
 	end
 
 	if wipeOverview then
-    	for _, callback in ipairs(phaseOverviewCallbacks) do
-    		callback(currentOverviewOrder, Phase.Store)
-    	end
-        table.wipe(phaseOverviewCallbacks)
+		for _, callback in ipairs(phaseOverviewCallbacks) do
+			callback(currentOverviewOrder, Phase.Store)
+		end
+		table.wipe(phaseOverviewCallbacks)
 	end
 end
 EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseOverviewDataReceived)
@@ -161,9 +161,14 @@ function Phase:_Create()
 end
 
 ---Create a new Phase in the Phase Store, if needed. If it already exists, it returns the existing object. If not, it handles creating the object and assigning the phase ID.
----@param id any
+---@param id integer|string
 ---@return PhaseClass _phase, boolean isNew
 function Phase:CreateFromID(id)
+	-- convert string to number
+	if not id then error("Must provide phase ID for CreateFromID") end
+	id = tonumber(id)
+	if not id then error("id invalid - Did you pass a valid number?") end
+
 	-- Check store first & return existing object if found
 	if Phase.Store[id] then return Phase.Store[id], false end
 
@@ -325,14 +330,14 @@ function PhaseMixin:GetPhaseTags()
 	-- no side effects in a getter. Bad Systemerror, bad!
 	local tags = {}
 	for i, tag in pairs(self.data.tags) do
-		local r,g,b = string.match(tag, '^.+-(%d+)-(%d+)-(%d+)$')
+		local r, g, b = string.match(tag, '^.+-(%d+)-(%d+)-(%d+)$')
 		local tagString = string.match(tag, '^(.+)-%d+-%d+-%d+$') or tag
 		if r == nil and g == nil and b == nil then
 			r = "255"
 			g = "255"
 			b = "255"
 		end
-		local color = CreateColorFromBytes(tonumber(r),tonumber(g),tonumber(b), 0)
+		local color = CreateColorFromBytes(tonumber(r), tonumber(g), tonumber(b), 0)
 		tags[i] = color:WrapTextInColorCode(tagString)
 	end
 	return tags -- Tags is an array of tags, may need this changed to a k,v but for now it is what it is
@@ -355,9 +360,9 @@ end
 ---@return ColorMixin? color
 function PhaseMixin:GetPhaseColor()
 	local color = self.data.color
-	local r = math.floor(color / 2^24) % 256
-	local g = math.floor(color / 2^16) % 256
-	local b = math.floor(color / 2^8) % 256
+	local r = math.floor(color / 2 ^ 24) % 256
+	local g = math.floor(color / 2 ^ 16) % 256
+	local b = math.floor(color / 2 ^ 8) % 256
 	local alpha = color % 256
 	return CreateColorFromBytes(r, g, b, alpha)
 end
@@ -382,3 +387,22 @@ end
 --#endregion
 
 EpsiLib.Classes.Phase = Phase
+
+-- More Public API
+
+EpsiLib.Phases = {
+	Get = function(self, id, callback)
+		if not id then id = tonumber(C_Epsilon.GetPhaseId()) end -- use current phase if not provided
+		return Phase:Get(id, callback)
+	end,
+}
+
+
+--#region Auto Record on Phase Entry // Don't know if this is needed, it seems this might be happening already
+local function OnPhaseChange(self, event)
+	local phaseID = C_Epsilon.GetPhaseId()
+	Phase:RequestPhaseInfo(phaseID)
+end
+EpsiLib.EventManager:Register("SCENARIO_UPDATE", OnPhaseChange)
+EpsiLib.EventManager:Register("PLAYER_LOGIN", OnPhaseChange)
+--#endregion

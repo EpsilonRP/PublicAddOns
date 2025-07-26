@@ -23,6 +23,13 @@ local function maskUp(tex, str)
 	tex:AddMaskTexture(mask)
 end
 
+local function _eval(t, ...)
+	if type(t) == "function" then
+		return t(...)
+	end
+	return t
+end
+
 -- Custom Attributes (customAttrs) are an array of tables, containing the following valid keys:
 -- key = 'string' -- The key that the found data is store in during calls, and really just for easier remembering what this stuff is.
 -- handler = 'string:methodName'|func(region, foundStr) -- Either a string, being a method name on the region object, passed the values of the found string split by commas (strsplit(",", match), OR a function that takes in the region, and the RAW string found as the value of that attribute)
@@ -197,4 +204,219 @@ end
 function MEASURE_FRAME(frame)
 	frame:HookScript("OnUpdate", measure_script)
 	MARK_POINT()
+end
+
+-- Button Texture Setup Functions
+
+local function setTextureOffset(frameTexture, x, y)
+	frameTexture:SetVertexOffset(UPPER_LEFT_VERTEX, x, y)
+	frameTexture:SetVertexOffset(UPPER_RIGHT_VERTEX, x, y)
+	frameTexture:SetVertexOffset(LOWER_LEFT_VERTEX, x, y)
+	frameTexture:SetVertexOffset(LOWER_RIGHT_VERTEX, x, y)
+end
+
+local function setHighlightToOffsetWithPushed(frame, x, y)
+	if not x then x = 1 end
+	if not y then y = -1 end
+	local highlight = frame:GetHighlightTexture()
+	frame:HookScript("OnMouseDown", function(self) setTextureOffset(highlight, x, y) end)
+	frame:HookScript("OnMouseUp", function(self) setTextureOffset(highlight, 0, 0) end)
+end
+
+---@param button BUTTON|Button
+---@param path string
+---@param useAtlas? boolean
+function _misc.SetupCoherentButtonTextures(button, path, useAtlas)
+	if useAtlas then
+		button:SetNormalAtlas(path)
+		button:SetHighlightAtlas(path, "ADD")
+		button:SetDisabledAtlas(path)
+		button:SetPushedAtlas(path)
+	else
+		button:SetNormalTexture(path)
+		button:SetHighlightTexture(path, "ADD")
+		button:SetDisabledTexture(path)
+		button:SetPushedTexture(path)
+	end
+	button.NormalTexture = button:GetNormalTexture()
+	button.HighlightTexture = button:GetHighlightTexture()
+	button.DisabledTexture = button:GetDisabledTexture()
+	button.PushedTexture = button:GetPushedTexture()
+
+	button.HighlightTexture:SetAlpha(0.33)
+
+	setHighlightToOffsetWithPushed(button)
+	button.DisabledTexture:SetDesaturated(true)
+	button.DisabledTexture:SetVertexColor(.6, .6, .6)
+	setTextureOffset(button.PushedTexture, 1, -1)
+end
+
+--#region AceGUI powered Context Menus
+
+local t = {}
+_misc.ContextMenu = t
+
+
+local AceGUI = LibStub("AceGUI-3.0")
+
+-- Dropdown widget (but we don't show it immediately)
+local dropdown = AceGUI:Create("Dropdown")
+dropdown:SetWidth(200)
+dropdown:SetCallback("OnValueChanged", function(widget, event, key, checked)
+	--print("You selected:", key)
+end)
+
+-- Hide it by default
+dropdown.frame:Hide()
+
+local pullout = dropdown.pullout
+pullout.frame:SetFrameStrata("TOOLTIP") -- so it floats over other frames
+pullout.frame:Hide()
+
+function t.SetValue(value)
+	dropdown:SetValue(value)
+	dropdown.lastVal = value
+end
+
+--ContextMenu.Open
+function t.Open(parent, list, callback, options)
+	assert(parent, "Must be called with parent"); assert(list, "Must be called with list"); assert(type(callback) == "function", "Must be called with callback function")
+
+	local order
+	list, order = _eval(list)
+	if not list or type(list) ~= "table" then error("List returned invalid") end
+
+	if options then
+		if options.width then pullout:SetWidth(math.max(100, options.width)) end
+	end
+
+	dropdown:SetList(list, order)
+	dropdown:SetCallback("OnValueChanged", function(widget, event, key, checked)
+		if key == "__close" then
+			widget.value = widget.lastVal
+			return
+		end
+		local cbVal = callback(key, checked, GetMouseButtonClicked())
+		if GetMouseButtonClicked() == "RightButton" then
+			-- Right-Click = Not a true select, revert to last selected in the UI
+			widget.value = widget.lastVal
+			return
+		end
+		if cbVal == false then
+			-- reuse the lastVal; resaves below reduntently but that's fine
+			widget.value = widget.lastVal
+		elseif cbVal then
+			-- cbVal was truthy, use it's value
+			widget.value = cbVal
+		end
+		-- Save the value as the lastValue
+		widget.lastVal = widget.value -- Record the last value for revert tracking if needed
+	end)
+
+	for k, item in pullout:IterateItems() do
+		if item.type == "Dropdown-Item-Toggle" then
+			if options.enableRightClick then
+				item.frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			end
+			local _origOnRelease = item.OnRelease -- Should this be item.events["OnRelease"] ?? Idk
+			local _origOnValueChanged = item.events["OnValueChanged"]
+
+			item.events["OnValueChanged"] = function(this, event, checked)
+				local self = this.userdata.obj
+
+				if self.multiselect then
+					self:Fire("OnValueChanged", this.userdata.value, checked)
+				else
+					if checked then
+						self:SetValue(this.userdata.value)
+						self:Fire("OnValueChanged", this.userdata.value)
+					else
+						this:SetValue(true)
+						self:Fire("OnValueChanged", this.userdata.value) -- CUSTOM EDIT: We still allow firing on re-select
+					end
+					if self.open then
+						self.pullout:Close()
+					end
+				end
+			end
+			item:SetCallback("OnRelease", function(self)
+				item.frame:RegisterForClicks("LeftButtonUp") -- fix our right-click hack
+				item.events["OnValueChanged"] = _origOnValueChanged
+				item:SetCallback("OnRelease", _origOnRelease)
+				_origOnRelease(self)
+			end)
+		end
+	end
+
+	--pullout.frame:SetParent(parent)
+	pullout.frame.virtualparent = parent
+
+	dropdown.open = true
+	AceGUI:SetFocus(dropdown)
+
+	if options.hasClose then
+		dropdown:AddItem("__closeLine", "-", "Dropdown-Item-Separator")
+		dropdown:AddItem("__close", "Close", "Dropdown-Item-Execute")
+	end
+
+	pullout:SetPoint("TOP", parent, "BOTTOM", 0, -2)
+	pullout:Open("TOP", parent, "BOTTOM", 0, -2)
+end
+
+function t.Close(parent)
+	if parent and (parent ~= pullout.frame:GetParent()) then return end -- Only close if parent matches parent if parent given
+
+	dropdown.open = nil
+	pullout:Close()
+	pullout:Clear()
+	AceGUI:ClearFocus()
+
+	return true
+end
+
+--ContextMenu.Toggle
+function t.Toggle(parent, list, callback, options)
+	if pullout.frame:IsShown() then
+		if t.Close(parent) then return end
+		t.Close()
+	end
+	t.Open(parent, list, callback, options)
+end
+
+if UIDropDownMenu_HandleGlobalMouseEvent then
+	hooksecurefunc("UIDropDownMenu_HandleGlobalMouseEvent", function(button, event)
+		if dropdown.open and event == "GLOBAL_MOUSE_DOWN" and (button == "LeftButton" or button == "RightButton") then
+			if pullout.frame:IsMouseOver() then return end
+			t.Close()
+		end
+	end)
+else
+	EventRegistry:RegisterFrameEventAndCallback("GLOBAL_MOUSE_DOWN", function(ownerID, button)
+		if dropdown.open and (button == "LeftButton" or button == "RightButton") then
+			if pullout.frame:IsMouseOver() then return end
+			t.Close()
+		end
+	end)
+end
+
+
+-- Unit Subname Util
+
+local subNameTTName = "MogitSubnameHiddenTooltipScanner"
+local subNameTT = CreateFrame("GameTooltip", subNameTTName, nil, "GameTooltipTemplate")
+subNameTT:SetOwner(UIParent, "ANCHOR_NONE")
+
+function UnitSubName(unit)
+	if UnitIsPlayer(unit) then return nil end
+	local tooltip = subNameTT
+	tooltip:SetUnit(unit)
+
+	-- The first line is the name, the second line is Friendly/Hostile, I think, and the third is subname
+	local line = 3
+	local subName = _G[subNameTTName .. "TextLeft" .. line]
+	if subName then
+		subName = subName:GetText()
+		if subName:find("Level") then return end
+		return subName
+	end
 end

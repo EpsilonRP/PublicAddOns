@@ -109,3 +109,64 @@ NineSliceUtil.AddLayout("EpsilonGoldBorderFrameDoubleButtonTemplateNoPortrait", 
 
 
 -- You can add more custom templates if you want
+
+--#endregion
+
+--#region [[ NineSlice Util Functions ]] --
+
+local function CropNineSliceCorners(slice, cropFactor, horizontal)
+	-- cropFactor: number between 0 and 1 (e.g., 0.5 keeps top half)
+
+	local function SafeSetTexCoordAndSize(region, fromTop)
+		if region and region.SetTexCoord then
+			local UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY = region:GetTexCoord()
+
+			-- Store original tex coords and size for reset
+			if not region._orig then
+				region._orig = {
+					tex = { UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY },
+					height = region:GetHeight(),
+					width = region:GetWidth()
+				}
+			end
+
+			-- Vertically crop texcoords
+			if fromTop then
+				-- crop from top
+				local croppedY = (LowerLeftY - UpperLeftY) * (1 - cropFactor)
+				region:SetTexCoord(UpperLeftX, croppedY, LowerLeftX, LowerLeftY, UpperRightX, croppedY, LowerRightX, LowerRightY)
+			else
+				-- crop from bottom
+				local croppedY = UpperRightY + (LowerRightY - UpperRightY) * cropFactor
+				region:SetTexCoord(UpperLeftX, UpperLeftY, LowerLeftX, croppedY, UpperRightX, UpperRightY, LowerRightX, croppedY)
+			end
+
+			-- Physically crop height
+			region:SetHeight(region._orig.height * cropFactor)
+		end
+	end
+
+	SafeSetTexCoordAndSize(slice.TopLeftCorner)
+	SafeSetTexCoordAndSize(slice.TopRightCorner)
+	SafeSetTexCoordAndSize(slice.BottomLeftCorner, true)
+	SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
+end
+
+local function ResetNineSliceCorners(slice)
+	local function SafeReset(region)
+		if region and region._orig then
+			local t = region._orig.tex
+			region:SetTexCoord(unpack(t))
+			region:SetHeight(region._orig.height)
+			region:SetWidth(region._orig.width)
+		end
+	end
+
+	SafeReset(slice.TopLeftCorner)
+	SafeReset(slice.TopRightCorner)
+	SafeReset(slice.BottomLeftCorner)
+	SafeReset(slice.BottomRightCorner)
+end
+
+NineSlice.CropNineSliceCorners = CropNineSliceCorners
+NineSlice.ResetNineSliceCorners = ResetNineSliceCorners

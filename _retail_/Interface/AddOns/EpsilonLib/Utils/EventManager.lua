@@ -26,7 +26,8 @@ end
 ---@param event FrameEvent|string
 ---@param callback function
 ---@param runOnce? boolean If true, the given script is unregistered after it's first ran
----@return function?
+---@return function? callback
+---@return table? reference
 function EventManager:Register(event, callback, runOnce)
 	if type(event) ~= "string" or type(callback) ~= "function" then error("Register requires an event & callback function.") end
 
@@ -37,16 +38,27 @@ function EventManager:Register(event, callback, runOnce)
 
 	if not _events[event] then _events[event] = {} end
 
-	table.insert(_events[event], { callback = callback, runOnce = runOnce })
+	local refTable = { callback = callback, runOnce = runOnce }
+	table.insert(_events[event], refTable)
 
 	safeRegEvent(event)
 
-	return callback
+	return callback, refTable
 end
 
----@param reference function
+---@param reference function|table
 ---@param event? FrameEvent|string
 function EventManager:Remove(reference, event)
+	-- Legacy? Need to find the reference object by callback function
+	if type(reference) == "function" then
+		for k, v in ipairs(_events[event]) do
+			if v.callback == reference then
+				reference = v
+				break
+			end
+		end
+	end
+
 	if event then
 		if _events[event] then
 			tDeleteItem(_events[event], reference)

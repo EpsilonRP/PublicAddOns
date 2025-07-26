@@ -5,17 +5,27 @@
 -- Use EpsilonLibIconPicker_Open( returnFunc, closeOnClick, playSound ) to open.
 --
 -- @param returnFunc	If provided, clicking an icon will return its file path
---						as a string to this function.
+--						file name, and file ID to the function.
 --						If none provided, clicking an icon will instead set the
 --						following global variables you can call instead:
 --
 --						EpsilonLibIconPicker.IconPath	string	The icon path.
+--						EpsilonLibIconPicker.IconName	string	The icon name.
+--						EpsilonLibIconPicker.IconID		number	The icon ID.
 --
 -- @param closeOnClick	If true, the picker will close when an icon is clicked.
+--
 -- @param playSound		If true, the picker will play a sound when an icon is
 --						clicked.
 --
-
+-- @param attachFrame	An optional frame to attach the icon picker to, default top-right attach point.
+--						Leave nil to define this yourself after, or false to explicitly ClearAllPoints
+--						first and then do your own attach after.
+--
+-- @param hidePortrait	If true, the frame portrait will be hidden.
+--
+-- @return EpsilonIconPicker	The icon picker frame; for quick use in SetPoint ect.
+--
 local LibRPMedia = LibStub:GetLibrary("LibRPMedia-1.0");
 
 EPSILONLIB_ICONS = {};
@@ -47,6 +57,21 @@ local function GetIconPath(button)
 	end
 
 	return texture
+end
+
+local function GetIconName(button)
+	if not button or not button.pickerIndex then
+		return ""
+	end
+
+	local list = filteredList or EPSILONLIB_ICONS;
+	local texture = list[button.pickerIndex + startOffset];
+
+	return texture
+end
+
+local function GetIconFileID(button)
+	return tonumber(LibRPMedia:GetIconFileByName(GetIconName(button)))
 end
 
 -------------------------------------------------------------------------------
@@ -82,9 +107,11 @@ end
 function EpsilonLibIconPickerButton_OnClick(self)
 	-- Return the icon path through the provided return function
 	if EpsilonLibIconPicker.returnFunc then
-		EpsilonLibIconPicker.returnFunc(GetIconPath(self));
+		EpsilonLibIconPicker.returnFunc(GetIconPath(self), GetIconName(self), GetIconFileID(self));
 	end
 	EpsilonLibIconPicker.IconPath = GetIconPath(self);
+	EpsilonLibIconPicker.IconName = GetIconName(self);
+	EpsilonLibIconPicker.IconID = GetIconFileID(self);
 	if EpsilonLibIconPicker.playSound then
 		PlaySound(54129);
 	end
@@ -99,9 +126,10 @@ end
 function EpsilonLibIconPickerButton_ShowTooltip(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 	local texture = GetIconPath(self);
+	local name = GetIconName(self);
 
 	GameTooltip:AddLine("|T" .. texture .. ":64|t", 1, 1, 1, true);
-	GameTooltip:AddLine(texture, 1, 0.81, 0, true);
+	GameTooltip:AddLine(name, 1, 0.81, 0, true);
 	GameTooltip:Show();
 end
 
@@ -196,11 +224,13 @@ end
 -- Open the icon picker window.
 --
 -- @param returnFunc	If provided, clicking an icon will return its file path
---						as a string to this function.
+--						file name, and file ID to the function.
 --						If none provided, clicking an icon will instead set the
 --						following global variables you can call instead:
 --
 --						EpsilonLibIconPicker.IconPath	string	The icon path.
+--						EpsilonLibIconPicker.IconName	string	The icon name.
+--						EpsilonLibIconPicker.IconID		number	The icon ID.
 --
 -- @param closeOnClick	If true, the picker will close when an icon is clicked.
 -- @param playSound		If true, the picker will play a sound when an icon is
