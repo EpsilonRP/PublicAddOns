@@ -285,12 +285,12 @@ local alignmentAttributes = {
 };
 
 -- Sanitise each individual texCoord supplied.
--- 
+--
 -- They can TECHNICALLY be negative values or exceed 1,
 -- but we're not offering that here...
 local function clampTexCoords(coord)
 	coord = tonumber(coord);
-    return max(min(coord, 1), 0)
+	return max(min(coord, 1), 0)
 end
 
 --- IMAGE_PATTERN is the string pattern used for performing image replacements
@@ -401,31 +401,31 @@ local toHTML = function(text, noColor, noBrackets)
 		line = line:gsub(IMAGE_PATTERN, function(img, width, height, align, left, right, top, bottom, red, green, blue)
 			-- If you've not given an alignment, or it's entirely invalid,
 			-- you'll get the old default of center.
-			align = alignmentAttributes[align] or "center";
+			align              = alignmentAttributes[align] or "center";
 
 			-- Similarly, if you don't provide left/right/top/bottom,
 			-- assume it's 0, 1, 0, 1.
-			left		= clampTexCoords(tonumber(left) or 0);
-			right		= clampTexCoords(tonumber(right) or 1);
-			top			= clampTexCoords(tonumber(top) or 0);
-			bottom		= clampTexCoords(tonumber(bottom) or 1);
+			left               = clampTexCoords(tonumber(left) or 0);
+			right              = clampTexCoords(tonumber(right) or 1);
+			top                = clampTexCoords(tonumber(top) or 0);
+			bottom             = clampTexCoords(tonumber(bottom) or 1);
 
 			-- texCoords must be converted into a single string,
 			-- delimited by commas, e.g. "0,1,0,1" for default.
-			local texCoords = tostring( left..","..right..","..top..","..bottom );
-			
-			red			= tonumber(red) or 1;
-			green		= tonumber(green) or 1;
-			blue		= tonumber(blue) or 1;
+			local texCoords    = tostring(left .. "," .. right .. "," .. top .. "," .. bottom);
+
+			red                = tonumber(red) or 1;
+			green              = tonumber(green) or 1;
+			blue               = tonumber(blue) or 1;
 
 			-- vertexColour must be converted into a single string,
 			-- delimited by commas, e.g. "1,1,1" for default.
-			local vertexColour = tostring( red..","..green..","..blue );
+			local vertexColour = tostring(red .. "," .. green .. "," .. blue);
 
 			-- Don't blow up on non-numeric inputs. They won't display properly
 			-- but that's a separate issue.
-			width = tonumber(width) or 128;
-			height = tonumber(height) or 128;
+			width              = tonumber(width) or 128;
+			height             = tonumber(height) or 128;
 
 			-- Width and height should be absolute.
 			-- The tag accepts negative value but people used that to fuck up their profiles
@@ -804,25 +804,25 @@ local BOOK_MATERIALS = {
 }
 
 local BOOK_TEXT_COLOURS = {
-	["Blue"]						= { 0.25, 0.78, 0.92 },
-	["Dark Blue"]					= { 0.00, 0.44,	0.87 },
-	["Green"]						= { 0.67, 0.83, 0.45 },
-	["Orange"]						= { 1, 0.49, 0.04 },
-	["Red"]							= { 0.77, 0.12, 0.23 },
-	["Yellow"]						= { 1.00, 0.96,	0.41 },
-	["Epsilon Metal"]				= { 1, 1, 1 },
-	["Epsilon Paper"]				= { 1, 1, 1 },
-	["Epsilon Paper (Engraved)"]	= { 1, 1, 1 },
-	["Epsilon Stone"]				= { 1, 1, 1 },
-	["Ascended"]					= { 1, 1, 1 },
-	["Fae-Touched"]					= { 1, 1, 1 },
-	["Maw"]							= { 1, 1, 1 },
-	["Risen"]						= { 1, 1, 1 },
-	["Tazavesh"]					= { 1, 1, 1 },
-	["Tithed"]						= { 1, 1, 1 },
-	["Zereth Mortis"]				= { 1, 1, 1 },
-	["Burning Legion"]				= { 0, 1, 0 },
-	["Eredar"]						= { 1, 0, 0 },
+	["Blue"]                     = { 0.25, 0.78, 0.92 },
+	["Dark Blue"]                = { 0.00, 0.44, 0.87 },
+	["Green"]                    = { 0.67, 0.83, 0.45 },
+	["Orange"]                   = { 1, 0.49, 0.04 },
+	["Red"]                      = { 0.77, 0.12, 0.23 },
+	["Yellow"]                   = { 1.00, 0.96, 0.41 },
+	["Epsilon Metal"]            = { 1, 1, 1 },
+	["Epsilon Paper"]            = { 1, 1, 1 },
+	["Epsilon Paper (Engraved)"] = { 1, 1, 1 },
+	["Epsilon Stone"]            = { 1, 1, 1 },
+	["Ascended"]                 = { 1, 1, 1 },
+	["Fae-Touched"]              = { 1, 1, 1 },
+	["Maw"]                      = { 1, 1, 1 },
+	["Risen"]                    = { 1, 1, 1 },
+	["Tazavesh"]                 = { 1, 1, 1 },
+	["Tithed"]                   = { 1, 1, 1 },
+	["Zereth Mortis"]            = { 1, 1, 1 },
+	["Burning Legion"]           = { 0, 1, 0 },
+	["Eredar"]                   = { 1, 0, 0 },
 }
 
 local BOOK_FONTS = {
@@ -877,8 +877,8 @@ local BOOK_FONTS = {
 	},
 }
 
-local function GetBookFont( fontFamily )
-	if not fontFamily then 
+local function GetBookFont(fontFamily)
+	if not fontFamily then
 		return "Fonts\\FRIZQT__.TTF"
 	end
 
@@ -931,10 +931,10 @@ local function SetBookMaterial(materialType)
 	end
 end
 
-local function GetBookTextColours( material )
+local function GetBookTextColours(material)
 	local colours = BOOK_TEXT_COLOURS[material] or nil;
 
-	if not( colours ) then
+	if not (colours) then
 		colours = GetMaterialTextColors(material)
 	end
 	return colours;
@@ -1051,7 +1051,7 @@ function EpsilonBookEditorFont_OnLoad(frame, level, menuList)
 			info.notCheckable = false;
 			info.disabled = false;
 			info.isTitle = false;
-			info.funcOnEnter = function( self )
+			info.funcOnEnter = function(self)
 				EpsilonBookFontTooltip:ClearAllPoints();
 				EpsilonBookFontTooltip:SetPoint("BOTTOMLEFT", self, "TOPRIGHT");
 				EpsilonBookFontTooltip.Title:SetText(font);
@@ -1059,7 +1059,7 @@ function EpsilonBookEditorFont_OnLoad(frame, level, menuList)
 				EpsilonBookFontTooltip.Preview:SetFont(BOOK_FONTS[menuList][font], 24, "");
 				EpsilonBookFontTooltip:Show();
 			end;
-			info.funcOnLeave = function( self )
+			info.funcOnLeave = function(self)
 				EpsilonBookFontTooltip:Hide();
 			end;
 			info.func = EpsilonBookEditorFont_OnClick;
@@ -1138,7 +1138,7 @@ function EpsilonBookEditor_InsertPage(before)
 	if before then
 		tinsert(EpsilonBookFrame.bookData.pages, EpsilonBookFrame.currentPage, "")
 	else
-		tinsert(EpsilonBookFrame.bookData.pages, EpsilonBookFrame.currentPage+1, "")
+		tinsert(EpsilonBookFrame.bookData.pages, EpsilonBookFrame.currentPage + 1, "")
 	end
 
 	EpsilonBookFrame_Update()
@@ -1233,8 +1233,8 @@ EpsilonBookTutorialMixin = {}
 
 function EpsilonBookTutorialMixin:OnLoad()
 	self.helpInfo = {
-		FramePos = { x = 0,	y = -20 },
-		FrameSize = { width = 336, height = 430	},
+		FramePos = { x = 0, y = -20 },
+		FrameSize = { width = 336, height = 430 },
 	};
 end
 
@@ -1268,17 +1268,17 @@ function EpsilonBookTutorialMixin:ToggleHelpInfo()
 	for i = 1, #self.helpInfo do
 		self.helpInfo[i] = nil;
 	end
-	if ( EpsilonBookLibraryFrame:IsShown() ) then
-		self.helpInfo[1] = { ButtonPos = { x = 145,	y = 2 }, HighLightBox = { x = 60, y = -2, width = 265, height = 39 },	ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[1] };
-		self.helpInfo[2] = { ButtonPos = { x = 145,	y = -50 }, HighLightBox = { x = 10, y = -47, width = 315, height = 315 },	ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[2] };
-		self.helpInfo[3] = { ButtonPos = { x = 145,	y = -356 }, HighLightBox = { x = 10, y = -365, width = 315, height = 30 },	ToolTipDir = "UP", ToolTipText = TUTORIAL_INFO[3] };
-	elseif ( EpsilonBookFrame:IsShown() ) then
-		self.helpInfo[1] = { ButtonPos = { x = 45,	y = 2 }, HighLightBox = { x = 30, y = -2, width = 70, height = 39 },	ToolTipDir = "RIGHT", ToolTipText = TUTORIAL_INFO[4] };
-		self.helpInfo[2] = { ButtonPos = { x = 145,	y = -50 }, HighLightBox = { x = 10, y = -47, width = 295, height = 345 },	ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[5] };
-		self.helpInfo[3] = { ButtonPos = { x = 325,	y = -160 }, HighLightBox = { x = 330, y = -115, width = 35, height = 155 },	ToolTipDir = "LEFT", ToolTipText = TUTORIAL_INFO[6] };
+	if (EpsilonBookLibraryFrame:IsShown()) then
+		self.helpInfo[1] = { ButtonPos = { x = 145, y = 2 }, HighLightBox = { x = 60, y = -2, width = 265, height = 39 }, ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[1] };
+		self.helpInfo[2] = { ButtonPos = { x = 145, y = -50 }, HighLightBox = { x = 10, y = -47, width = 315, height = 315 }, ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[2] };
+		self.helpInfo[3] = { ButtonPos = { x = 145, y = -356 }, HighLightBox = { x = 10, y = -365, width = 315, height = 30 }, ToolTipDir = "UP", ToolTipText = TUTORIAL_INFO[3] };
+	elseif (EpsilonBookFrame:IsShown()) then
+		self.helpInfo[1] = { ButtonPos = { x = 45, y = 2 }, HighLightBox = { x = 30, y = -2, width = 70, height = 39 }, ToolTipDir = "RIGHT", ToolTipText = TUTORIAL_INFO[4] };
+		self.helpInfo[2] = { ButtonPos = { x = 145, y = -50 }, HighLightBox = { x = 10, y = -47, width = 295, height = 345 }, ToolTipDir = "DOWN", ToolTipText = TUTORIAL_INFO[5] };
+		self.helpInfo[3] = { ButtonPos = { x = 325, y = -160 }, HighLightBox = { x = 330, y = -115, width = 35, height = 155 }, ToolTipDir = "LEFT", ToolTipText = TUTORIAL_INFO[6] };
 	end
 
-	if ( not HelpPlate:IsShown() and EpsilonBookFrame:IsShown()) then
+	if (not HelpPlate:IsShown() and EpsilonBookFrame:IsShown()) then
 		HelpPlate_Show(self.helpInfo, EpsilonBookFrame, self, true);
 	else
 		HelpPlate_Hide(true);
@@ -1287,29 +1287,29 @@ end
 
 local function NewItemDropdown(frame)
 	local menu = {
-		{ 
-			text = "Create Book",															
-			isTitle = true,											
+		{
+			text = "Create Book",
+			isTitle = true,
 			notCheckable = true,
 		},
-		{ 
-			text = "|TInterface/PaperDollInfoFrame/Character-Plus:16|t |cFF00FF00New",	
-			func = function() EpsilonBookEditor_CreateBook(); end,	
+		{
+			text = "|TInterface/PaperDollInfoFrame/Character-Plus:16|t |cFF00FF00New",
+			func = function() EpsilonBookEditor_CreateBook(); end,
 			notCheckable = true,
 		},
-		{ 
-			text = "Import",																
+		{
+			text = "Import",
 			func = function()
 				EpsilonBookExportDialog.Title:SetText("Import Book");
 				EpsilonBookExportDialog:Show();
 				EpsilonBookExportDialog.ImportButton:Show();
 				EpsilonBookExportDialog.CancelButton:Show();
-				EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetText( "" );
+				EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetText("");
 				EpsilonBookExportDialog.ImportControl.InputContainer:UpdateScrollChildRect();
 				EpsilonBookExportDialog.ImportControl.InputContainer:SetVerticalScroll(EpsilonBookExportDialog.ImportControl.InputContainer:GetVerticalScrollRange());
 				EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:HighlightText();
 				EpsilonBookExportDialog.ImportControl.InputContainer.EditBox:SetFocus();
-			end,	
+			end,
 			notCheckable = true,
 		},
 	};
@@ -1319,7 +1319,7 @@ local function NewItemDropdown(frame)
 		frame.menuFrame:SetPoint("BOTTOMRIGHT");
 		frame.menuFrame:Hide();
 	end
-	
+
 	frame:SetScript("OnClick", function(self, button)
 		EasyMenu(menu, self, self, 0, 0, "MENU");
 		self:SetSize(37, 37);
@@ -1328,53 +1328,53 @@ end
 
 function EpsilonBookLibraryItem_CreateDropdown(frame, guid)
 	local menu = {
-		{ 
+		{
 			text = frame:GetParent().Title:GetText(),
 			isTitle = true,
 			notCheckable = true,
 		},
-		{ 
+		{
 			text = "Edit",
-			func = function() 
-				EpsilonBook_LoadBook(guid); 
+			func = function()
+				EpsilonBook_LoadBook(guid);
 			end,
 			notCheckable = true,
 			tooltipTitle = "Edit",
 			tooltipText = "Edit this book.",
 		},
-		{ 
+		{
 			text = "Duplicate",
-			func = function() 
+			func = function()
 				EpsilonBook_DuplicateBook(guid)
 			end,
 			notCheckable = true,
 			tooltipTitle = "Duplicate",
 			tooltipText = "Create an exact copy of this book with a new GUID.",
 		},
-		{ 
+		{
 			text = "Export",
-			func = function() 
-				EpsilonBook_ExportBook(guid) 
+			func = function()
+				EpsilonBook_ExportBook(guid)
 			end,
 			notCheckable = true,
 			tooltipTitle = "Export",
 			tooltipText = "Generate an import code you can copy and share with other players.",
 		},
-		{ 
+		{
 			text = "Delete",
-			func = function() 
-				StaticPopup_Show("EPSILONBOOK_DELETEBOOK", nil, nil, guid) 
+			func = function()
+				StaticPopup_Show("EPSILONBOOK_DELETEBOOK", nil, nil, guid)
 			end,
 			notCheckable = true,
 			tooltipTitle = "Delete",
 			tooltipText = "Delete this book.",
 		},
-		{ 
+		{
 			text = "Add Gossip Option to NPC",
 			func = function()
 				if not UnitExists("target") then
 					UIErrorsFrame:AddMessage("Invalid target", 1.0, 0.0, 0.0, 53, 5);
-				elseif not ( C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() ) then
+				elseif not (C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()) then
 					UIErrorsFrame:AddMessage("You must be the phase owner or an officer to do that.", 1.0, 0.0, 0.0, 53, 5);
 				else
 					StaticPopup_Show("EPSILONBOOK_ADDGOSSIPOPTIONTONPC", nil, nil, guid);
@@ -1384,12 +1384,12 @@ function EpsilonBookLibraryItem_CreateDropdown(frame, guid)
 			tooltipTitle = "Add Gossip Option to NPC",
 			tooltipText = "Add a gossip option to your current target that opens this book.",
 		},
-		{ 
+		{
 			text = "Turn NPC Into Book",
-			func = function() 
+			func = function()
 				if not UnitExists("target") then
 					UIErrorsFrame:AddMessage("Invalid target", 1.0, 0.0, 0.0, 53, 5);
-				elseif not ( C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() ) then
+				elseif not (C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()) then
 					UIErrorsFrame:AddMessage("You must be the phase owner or an officer to do that.", 1.0, 0.0, 0.0, 53, 5);
 				else
 					StaticPopup_Show("EPSILONBOOK_TURNNPCINTOBOOK", nil, nil, guid);
@@ -1399,10 +1399,10 @@ function EpsilonBookLibraryItem_CreateDropdown(frame, guid)
 			tooltipTitle = "Turn NPC Into Book",
 			tooltipText = "Turn your current target into a book.|n|nWhen players interact with this NPC, it will open override the Gossip Frame with this book instead.",
 		},
-		{ 
+		{
 			text = "Link Item to Book",
-			func = function() 
-				if ( C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() ) then
+			func = function()
+				if (C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()) then
 					StaticPopup_Show("EPSILONBOOK_LINKITEMTOBOOK", nil, nil, guid);
 				else
 					UIErrorsFrame:AddMessage("You must be the phase owner or an officer to do that.", 1.0, 0.0, 0.0, 53, 5);
@@ -1452,7 +1452,7 @@ function EpsilonBookLibrary_Show()
 	EpsilonBookEditor_Hide()
 	EpsilonBookLibraryFrame.pageNum = 1;
 	EpsilonBook_GetBookList()
-	
+
 	EpsilonBookFrameCloseButton:SetScript("OnClick", EpsilonBookFrame_Hide)
 
 	EpsilonBookFrame.Tutorial:Show();
@@ -1492,21 +1492,20 @@ function EpsilonBookLibrary_FilterChanged()
 	else
 		-- build new list
 		filteredList = {};
-		for k,v in pairs( EPSILON_BOOK_LIST ) do
-			if v.title:lower():find( filter ) or k:lower():find( filter ) then
+		for k, v in pairs(EPSILON_BOOK_LIST) do
+			if v.title:lower():find(filter) or k:lower():find(filter) then
 				filteredList[k] = v;
-			end	
+			end
 		end
 		EpsilonBookLibrary_Update();
 	end
 end
 
-
 local function ConnectedItemsDropdown(self, guid)
 	local menu = {
-		{ 
-			text = "Connected Items",															
-			isTitle = true,											
+		{
+			text = "Connected Items",
+			isTitle = true,
 			notCheckable = true,
 		},
 	};
@@ -1519,10 +1518,10 @@ local function ConnectedItemsDropdown(self, guid)
 			notCheckable = true,
 			hasArrow = true,
 			menuList = {
-				{ text = "Remove", notCheckable = true, func = function() EpsilonBook_RemoveBookItemLink(itemID, guid); end };
+				{ text = "Remove", notCheckable = true, func = function() EpsilonBook_RemoveBookItemLink(itemID, guid); end },
 			}
 		};
-		tinsert( menu, item );
+		tinsert(menu, item);
 	end
 
 	if not (self.menuFrame) then
@@ -1530,7 +1529,7 @@ local function ConnectedItemsDropdown(self, guid)
 		self.menuFrame:SetPoint("BOTTOMRIGHT");
 		self.menuFrame:Hide();
 	end
-	
+
 	self:SetScript("OnClick", function(self, button)
 		EasyMenu(menu, self, self, 0, 0, "MENU");
 		self:SetSize(16, 16);
@@ -1546,7 +1545,7 @@ function EpsilonBookLibrary_Update()
 		return
 	end
 
-	if not( EPSILON_BOOK_ITEMS ) then
+	if not (EPSILON_BOOK_ITEMS) then
 		EpsilonBook_GetBookItemList();
 	end
 
@@ -1620,11 +1619,11 @@ function EpsilonBookLibrary_Update()
 				end);
 				connectedItemsIcon.connectedItems = {};
 				if EPSILON_BOOK_ITEMS then
-					for k, v in pairs( EPSILON_BOOK_ITEMS ) do
+					for k, v in pairs(EPSILON_BOOK_ITEMS) do
 						if v == guid then
 							connectedItemsIcon:Show();
-							local itemName, itemLink = GetItemInfo( k );
-							tinsert( connectedItemsIcon.connectedItems, itemLink );
+							local itemName, itemLink = GetItemInfo(k);
+							tinsert(connectedItemsIcon.connectedItems, itemLink);
 						end
 					end
 				end
@@ -1647,9 +1646,9 @@ function EpsilonBookLibrary_Update()
 		end
 		index = index + 1;
 	end
-	
+
 	local page = EpsilonBookLibraryFrame.pageNum or 1;
-	local numPages = math.ceil( numBooks / 7 );
+	local numPages = math.ceil(numBooks / 7);
 	EpsilonBookLibraryFrame.CurrentPage:SetText(page .. "/" .. numPages);
 
 	-- Handle page arrows
@@ -1672,7 +1671,7 @@ function EpsilonBookFrame_Show(bookID, data, canEdit, isAttached)
 
 	EpsilonBookFrame.isAttached = isAttached;
 
-	if canEdit and not( isAttached ) then
+	if canEdit and not (isAttached) then
 		EpsilonBookEditPageButton:Show();
 		EpsilonBookFrame.ReturnButton:Show();
 		EpsilonBookFrameCloseButton:SetScript("OnClick", function()
@@ -1684,13 +1683,13 @@ function EpsilonBookFrame_Show(bookID, data, canEdit, isAttached)
 		EpsilonBookFrame.ReturnButton:Hide();
 		EpsilonBookFrameCloseButton:SetScript("OnClick", EpsilonBookFrame_Hide)
 	end
-	
+
 	if (canEdit) then
 		EpsilonBookFrame.Tutorial:Show();
 	else
 		EpsilonBookFrame.Tutorial:Hide();
 	end
-	
+
 	EpsilonBookEditor_Hide()
 	EpsilonBookPageText:Show();
 	EpsilonBookScrollFrame:Show();
@@ -1749,7 +1748,7 @@ function EpsilonBookFrame_Update()
 	EpsilonBookPageText:SetFont("H2", GetBookFont(data.fontFamily.h2), data.fontSize.h2);
 	EpsilonBookPageText:SetFont("H3", GetBookFont(data.fontFamily.h3), data.fontSize.h3);
 
-	local textColor = GetBookTextColours( material );
+	local textColor = GetBookTextColours(material);
 
 	EpsilonBookPageText:SetTextColor(textColor[1] or 0, textColor[2] or 0, textColor[3] or 0);
 	EpsilonBookPageText:SetTextColor("H1", textColor[1] or 0, textColor[2] or 0, textColor[3] or 0);
@@ -1780,7 +1779,7 @@ function EpsilonBookFrame_Update()
 		if linkType:match("^item") or linkType:match("^spell") then
 			-- TODO ?
 		elseif linkType:match("^url") then
-			C_Epsilon.RunPrivileged("CopyToClipboard( '"..payload.."' )");
+			C_Epsilon.RunPrivileged("CopyToClipboard( '" .. payload .. "' )");
 			PlaySound(3081);
 			print("|cFFFFFF00Link copied to clipboard.")
 			--StaticPopup_Show("EPSILONBOOK_SHOWPAGELINK", nil, nil, payload)
@@ -1845,11 +1844,15 @@ function EpsilonBookFrame_PrevPage()
 end
 
 function EpsilonBookFrame_Hide()
-	if ( EpsilonBookFrame.isAttached ) then
+	if (EpsilonBookFrame.isAttached) then
 		C_GossipInfo.CloseGossip();
 	else
 		GossipFrame:SetAlpha(1);
 		GossipFrame:EnableMouse(true);
+		if ImmersionFrame then
+			ImmersionFrame:SetAlpha(1);
+			ImmersionFrame:EnableMouse(true);
+		end
 	end
 	EpsilonBookEditor_Hide()
 	EpsilonBookLibraryFrame:Hide();

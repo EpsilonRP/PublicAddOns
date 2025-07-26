@@ -518,8 +518,14 @@ function EpsilonBook_OnEvent(self, event, ...)
 				if (IsPhaseOfficer() or IsPhaseOwner()) and C_Epsilon.IsDM then
 					GossipGreetingText:SetText(gossipText:gsub("(<BOOK:.->)", "|cFFFF0000%1|r"))
 				else
-					GossipFrame:SetAlpha(0);
-					GossipFrame:EnableMouse(false);
+					if ImmersionFrame then
+						-- This doesn't work because of the whole 'fadeIn' it does I think.. but not sure the best way to solve it w/o modifying Immersion
+						ImmersionFrame:SetAlpha(0)
+						ImmersionFrame:EnableMouse(false);
+					else
+						GossipFrame:SetAlpha(0);
+						GossipFrame:EnableMouse(false);
+					end
 					bookID = gossipText:match("<BOOK:(.-)>");
 					EpsilonLib.PhaseAddonData.Get("BOOK_DATA_" .. bookID, function(text)
 						loadCallbacks.book(text, bookID, true, true);
@@ -541,6 +547,10 @@ end
 -- Add the Epsilon Book icon to the Epsilon Addon Tray.
 --
 local function CreateMinimapIcon()
+	if not LibStub.libs["EpsiLauncher-1.0"] then
+		C_Timer.After(0, CreateMinimapIcon)
+		return
+	end
 	LibStub("EpsiLauncher-1.0").API.new("Epsilon Book", function()
 		if EpsilonBookFrame:IsShown() then
 			EpsilonBookFrame_Hide()
@@ -562,24 +572,33 @@ loadCallbacks.book = function(text, guid, isAttached, isGossip)
 	local canEdit = IsPhaseOfficer() or IsPhaseOwner();
 	if isGossip then
 		if text == "" then
+			if ImmersionFrame then
+				ImmersionFrame:SetAlpha(1);
+				ImmersionFrame:EnableMouse(true);
+			end
 			GossipFrame:SetAlpha(1);
 			GossipFrame:EnableMouse(true);
 			if IsPhaseOfficer() or IsPhaseOwner() then
-				GossipGreetingText:SetText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nMake sure the book was not deleted by mistake!");
+				EpsilonLib.Utils.Gossip:SetGreetingText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nMake sure the book was not deleted by mistake!");
 			else
-				GossipGreetingText:SetText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nReport this issue to a phase officer!");
+				EpsilonLib.Utils.Gossip:SetGreetingText("|cFFFF0000Error: Book " .. bookID .. " was not found and could not be displayed.|n|nReport this issue to a phase officer!");
 			end
 			return
 		else
-			GossipFrame:SetAlpha(0);
-			GossipFrame:EnableMouse(false);
+			if ImmersionFrame then
+				ImmersionFrame:SetAlpha(0);
+				ImmersionFrame:EnableMouse(false);
+			else
+				GossipFrame:SetAlpha(0);
+				GossipFrame:EnableMouse(false);
+			end
 		end
 	end
 	if guid then
 		EpsilonBookFrame_Show(guid, text, canEdit, isAttached);
 	end
 	PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
-	if isAttached then
+	if isAttached and not ImmersionFrame then
 		EpsilonBookFrame:ClearAllPoints();
 		EpsilonBookFrame:SetPoint("TOPLEFT", GossipFrame);
 	end
@@ -773,13 +792,13 @@ function Epsilon_Book:OnInitialize()
 		self:SetAlpha(1);
 		self:EnableMouse(true)
 	end);
+	if ImmersionFrame then
+		hooksecurefunc(ImmersionFrame, "Hide", function(self)
+			self:SetAlpha(1);
+			self:EnableMouse(true);
+		end);
+	end
 
 	EpsilonBookFrame:SetScript("OnEvent", EpsilonBook_OnEvent);
-	if LibStub.libs["EpsiLauncher-1.0"] then
-		CreateMinimapIcon()
-	else
-		C_Timer.After(1, function()
-			CreateMinimapIcon()
-		end)
-	end
+	CreateMinimapIcon()
 end
