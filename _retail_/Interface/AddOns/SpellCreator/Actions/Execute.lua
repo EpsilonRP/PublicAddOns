@@ -471,9 +471,18 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 		if spellData.conditions and #spellData.conditions > 0 then
 			if not checkConditions(spellData.conditions) then
 				PlayVocalErrorSoundID(48);
-				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName or spellName)
-				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
+				local conditionsFailedMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName or spellName)
+				UIErrorsFrame:AddMessage(conditionsFailedMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 				dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
+				-- If the spell has a castOnFail, try to execute that instead.
+				if spellData.castOnFail and spellData.castOnFail ~= "" then
+					local onFailSpell = Vault.personal.findSpellByID(spellData.castOnFail)
+					if not onFailSpell then
+						eprint("Failed to find spell with ArcSpell ID " .. spellData.castOnFail .. " to cast on failed conditions.")
+						return false
+					end
+					ns.Actions.Execute.executeSpell(onFailSpell.actions, nil, onFailSpell.fullName, onFailSpell)
+				end
 				return false
 			end
 		end
@@ -504,9 +513,20 @@ local function executePhaseSpell(commID, bypassCD, ...)
 		if spell.conditions and #spell.conditions > 0 then
 			if not checkConditions(spell.conditions) then
 				PlayVocalErrorSoundID(48);
-				local cooldownMessage = ("You can't cast that ArcSpell (%s) right now."):format(spell.fullName)
-				UIErrorsFrame:AddMessage(cooldownMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
+				local conditionsFailedMessage = ("You can't cast that ArcSpell (%s) right now."):format(spell.fullName)
+				UIErrorsFrame:AddMessage(conditionsFailedMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
 				dprint(nil, "Execute Action Failed Conditions Check, Spell Skipped!")
+
+				-- If the spell has a castOnFail, try to execute that instead.
+				if spell.castOnFail and spell.castOnFail ~= "" then
+					local onFailSpell = Vault.phase.findSpellByID(spell.castOnFail)
+					if not onFailSpell then
+						eprint("Failed to find spell with ArcSpell ID " .. spell.castOnFail .. " to cast on failed conditions.")
+						return false
+					end
+					ns.Actions.Execute.executeSpell(onFailSpell.actions, nil, onFailSpell.fullName, onFailSpell)
+				end
+
 				return false
 			end
 		end

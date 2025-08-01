@@ -136,11 +136,7 @@ EPSILON_BH_MALLS_CACHE = {
 }
 
 -- quicker local access
-local _malls = {}
-local function setMallsCache(malls)
-    _malls = malls
-end
-EpsilonPhases.setMallsCache = setMallsCache
+local _malls = EPSILON_BH_MALLS_CACHE
 
 -- Updater for our EpsilonPhases.Malls horizontal cache
 local function mallInfoCallback(phase)

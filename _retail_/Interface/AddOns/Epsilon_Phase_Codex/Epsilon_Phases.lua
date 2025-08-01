@@ -272,7 +272,6 @@ function EpsilonPhases:OnInitialize()
 		global = {
 			PrivatePhases = {},
 			Favourites = {},
-			Malls = EPSILON_BH_MALLS_CACHE,
 			Options = {
 				PhaseJoinModKey = 1,
 				PhaseJoinMinimumRank = 2,
@@ -408,7 +407,6 @@ function EpsilonPhases:OnInitialize()
 	EpsilonPhases.HomePhase = self.db.char.HomePhase
 	EpsilonPhases.PublicPhases = {}
 	CreateMinimapIcon()
-	EpsilonPhases.setMallsCache(self.db.global.Malls)
 end
 
 function EpsilonPhases:IsPhaseInTable(phaseID, phaseTable)

@@ -1076,6 +1076,10 @@ local actionTypeData = {
 	[ACTION_TYPE.ARCSet] = scriptAction("Set My Variable", {
 		command = function(data)
 			local var, val = strsplit("|", data, 2);
+			if not var or not val then
+				cprint("Action Usage Error (Set My Variable): Requires a variable name & value, separated by a | character.");
+				return;
+			end
 			var = strtrim(var, " \t\r\n\124");
 			val = strtrim(val, " \t\r\n\124");
 			ARC:SET(var, val);
@@ -1102,6 +1106,10 @@ local actionTypeData = {
 	[ACTION_TYPE.ARCPhaseSet] = scriptAction("Set Phase Variable", {
 		command = function(data)
 			local var, val = strsplit("|", data, 2);
+			if not var or not val then
+				cprint("Action Usage Error (Set My Variable): Requires a variable name & value, separated by a | character.");
+				return;
+			end
 			var = strtrim(var, " \t\r\n\124");
 			val = strtrim(val, " \t\r\n\124");
 			ARC.PHASE:SET(var, val);
@@ -1995,7 +2003,7 @@ local actionTypeData = {
 	}),
 	[ACTION_TYPE.QCBookSetPosition] = scriptAction("Set Book to Cursor", {
 		command = function(bookName)
-			local uiScale,cursorPositionX, cursorPositionY = UIParent:GetEffectiveScale(), GetCursorPosition()
+			local uiScale, cursorPositionX, cursorPositionY = UIParent:GetEffectiveScale(), GetCursorPosition()
 
 			local x, y = cursorPositionX / uiScale, cursorPositionY / uiScale
 

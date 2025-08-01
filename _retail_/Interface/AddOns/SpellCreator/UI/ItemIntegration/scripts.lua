@@ -498,6 +498,11 @@ local itemUseHooks = {
 		end
 	end,
 	["ActionButton_UpdateCooldown"] = function(self)
+		--return if it's simply a flyout button
+		if self.GetPagedID == nil then
+			return
+		end
+		
 		--local actionID = ActionButton_GetPagedID(self)
 		local actionID = self:GetPagedID()
 		--local actionID = ActionButton_CalculateAction(self)

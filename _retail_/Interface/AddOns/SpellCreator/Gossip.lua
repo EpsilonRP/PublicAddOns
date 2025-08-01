@@ -185,7 +185,7 @@ local function init(callbacks)
 
 	-- NEW GOSSIP SECTION:
 
-	local arc_tag_predicate = function(text, ignoreConditions)
+	local arc_tag_predicate = function(text, optionInfo, ignoreConditions)
 		local found = text:match(gossipTags.capture)
 		if found then
 			if isDMEnabled() then return true end
@@ -207,7 +207,7 @@ local function init(callbacks)
 		return nil
 	end
 	local greeting_predicate = function(text)
-		return arc_tag_predicate(text, true)
+		return arc_tag_predicate(text, nil, true)
 	end
 
 	local arc_tag_filter = function(text)

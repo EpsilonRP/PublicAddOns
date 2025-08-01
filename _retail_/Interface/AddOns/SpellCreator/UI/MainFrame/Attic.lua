@@ -26,6 +26,30 @@ local condButton
 local editorsaved = true
 local itemsCached
 
+local castbarType = 1
+local function setCastbarType(type)
+	castbarType = type
+end
+local function getCastbarType()
+	return castbarType
+end
+
+local extraOptions = {}
+local function setExtraOption(name, value)
+	if not name then
+		error("setExtraOption requires a name")
+		return
+	end
+	extraOptions[name] = value
+end
+local function getExtraOption(name)
+	if not name then
+		error("getExtraOption requires a name")
+		return nil
+	end
+	return extraOptions[name]
+end
+
 local function markEditorSaved()
 	editorsaved = true
 	MainFrame.markTitleChanges(false)
@@ -172,14 +196,6 @@ local function createSpellCooldownBox(mainFrame)
 	Tooltip.set(cooldownBox, "Cooldown", "How long of a cooldown before you can cast the spell again, in seconds. May be left blank for no cooldown.")
 
 	return cooldownBox
-end
-
-local castbarType = 1
-local function setCastbarType(type)
-	castbarType = type
-end
-local function getCastbarType()
-	return castbarType
 end
 
 --[[ --// The Castbar CheckButton is deprecated and the functionality moved into the spell's Options menu
@@ -455,8 +471,14 @@ local function getInfo()
 	newSpellData.profile = AtticProfileDropdown.getSelectedProfile()
 	newSpellData.author = author or nil
 	newSpellData.items = itemsCached
-	newSpellData.breakOnMove = (AtticProfileDropdown.getBreakOnMove() and AtticProfileDropdown.getBreakOnMove()) or nil
+	--newSpellData.breakOnMove = getExtraOption("breakOnMove") or nil
 	newSpellData.conditions = (SCForgeMainFrame.conditionsData and #SCForgeMainFrame.conditionsData > 0) and CopyTable(SCForgeMainFrame.conditionsData) or nil
+
+	for k, v in pairs(extraOptions) do
+		if v ~= nil then
+			newSpellData[k] = v
+		end
+	end
 
 	ns.Actions.Migrations.applyDefaultSpellMigrationFlags(newSpellData)
 	return newSpellData
@@ -476,7 +498,8 @@ local function updateInfo(spell)
 	editCommID = spell.commID
 	author = spell.author or nil
 	itemsCached = spell.items or nil
-	AtticProfileDropdown.setBreakOnMove(spell.breakOnMove)
+	setExtraOption("breakOnMove", spell.breakOnMove)
+	setExtraOption("castOnFail", spell.castOnFail)
 	SCForgeMainFrame.conditionsData = spell.conditions or {}
 
 	condButton:update()
@@ -575,4 +598,7 @@ ns.UI.MainFrame.Attic = {
 
 	getCastbarType = getCastbarType,
 	setCastbarType = setCastbarType,
+
+	setExtraOption = setExtraOption,
+	getExtraOption = getExtraOption,
 }
