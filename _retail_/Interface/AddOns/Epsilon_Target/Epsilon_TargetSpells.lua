@@ -39,7 +39,12 @@ local function unauraClick(buffs, debuffs, targetType)
 			_G[buffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
 			_G[buffButtonName .. i]:SetScript("OnClick", function(self, event)
 				--print("BUFFCLICK", event)
-				local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i);
+				local name, spellId
+				if Epsilon_AuraManager_GetMappedAura then
+					name, _, _, _, _, _, _, _, _, spellId = Epsilon_AuraManager_GetMappedAura(targetType, i)
+				else
+					name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i);
+				end
 				--print("buff click",name,spellId,IsShiftKeyDown())
 				if IsShiftKeyDown() == true then
 					--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
@@ -68,7 +73,12 @@ local function unauraClick(buffs, debuffs, targetType)
 			_G[debuffButtonName .. i]:RegisterForClicks("RightButtonUp", "LeftButtonUp")
 			_G[debuffButtonName .. i]:SetScript("OnClick", function(self, event)
 				--print("BUFFCLICK")
-				local name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i, "HARMFUL");
+				local name, spellId
+				if Epsilon_AuraManager_GetMappedAura then
+					name, _, _, _, _, _, _, _, _, spellId = Epsilon_AuraManager_GetMappedAura(targetType, i, 'HARMFUL')
+				else
+					name, _, _, _, _, _, _, _, _, spellId = UnitAura(targetType:upper(), i, 'HARMFUL');
+				end
 				--print("buff click",name,spellId,IsShiftKeyDown())
 				if IsShiftKeyDown() == true then
 					--SendChatMessage("|cff71d5ff|Hspell:"..spellId..":0|h["..name.."]|h|r")
