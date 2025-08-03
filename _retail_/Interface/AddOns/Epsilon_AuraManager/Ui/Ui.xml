@@ -1,0 +1,6 @@
+﻿<Ui>
+	<!-- XML Embeds -->
+	<Include file="Ui\AuraList.xml"/>
+	<Include file="Ui\AuraEditor.xml"/>
+	<Include file="Ui\BuffFrame.xml"/>
+</Ui>

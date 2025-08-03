@@ -1,0 +1,15 @@
+## Interface: 90207
+## Title: Epsilon Aura Manager
+## Author: Skylar, Systemerror
+## Notes: Allows players and phase owners to manipulate how auras appear.
+## Version: 1.0
+## Dependencies: EpsilonLib
+## SavedVariables: Epsilon_AuraManager
+
+Libs\Embeds.xml
+
+Epsilon_AuraManager.lua
+AuraList.lua
+AuraEditor.lua
+Ui/Ui.xml
+SpellTooltips.lua
