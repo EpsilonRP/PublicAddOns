@@ -2,7 +2,7 @@ local a, t = ...
 local s, n = t.AddSetToMall, 1
 local mog = MogIt
 
-t.AddMall(1, "Epsilon (Cosmic)")
+--t.AddMall(1, "Epsilon (Cosmic)")
 
 -- mog:ToStringItem(id, bonus, diff)
 local m = function(id, bonus, diff) return mog:ToStringItem(id, bonus, diff) end

@@ -11,6 +11,7 @@ local module = mog:GetModule(ADDON_NAME) or mog:RegisterModule(ADDON_NAME, VERSI
 
 
 local database = {
+	--[[
 	[1] = {
 		name = "Epsilon (Cosmic)",
 		doNotShowID = true,
@@ -27,6 +28,7 @@ local database = {
 			items = {},
 		}
 	}
+	--]]
 }
 local DB_PhaseLookup = { 1, } -- this needs to be regenerated on reload
 
@@ -347,7 +349,7 @@ f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGOUT")
 f:SetScript("OnEvent", function(self, event, name)
 	if event == "ADDON_LOADED" and name == ADDON_NAME then
-		MergeTable(database, EpsilonMOGMall_DB)
+		if EpsilonMOGMall_DB then MergeTable(database, EpsilonMOGMall_DB) end
 		update_DB_Caches()
 
 		EpsilonMOGMall_DB = database
