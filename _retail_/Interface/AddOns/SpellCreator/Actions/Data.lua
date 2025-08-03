@@ -1877,16 +1877,24 @@ local actionTypeData = {
 
 	-- QC Actions
 	[ACTION_TYPE.QCBookToggle] = scriptAction("Toggle Book", {
-		command = function(bookName)
-			ns.UI.Quickcast.Book.toggleBookByName(bookName)
+		command = function(vars)
+			local success, bookName, tog = pcall(getArgs, vars)
+			tog = ns.Utils.Data.toBoolExtended(tog)
+			ns.UI.Quickcast.Book.toggleBookByName(bookName, tog)
 		end,
 		description = "Toggle a Quickcast Book from being displayed on this character.",
-		dataName = "Book Name",
-		inputDescription = "The name of the Quickcast Book",
-		revert = function(bookName)
-			ns.UI.Quickcast.Book.toggleBookByName(bookName)
+		dataName = "Book Name [, Toggle]",
+		inputDescription = "The name of the Quickcast Book, and optionally a direct toggle value (true/false, or 1/0).\n\r" .. commaDelimitedText,
+		revert = function(vars)
+			local success, bookName, tog = pcall(getArgs, vars)
+			tog = ns.Utils.Data.toBoolExtended(tog)
+			if tog ~= nil then
+				tog = not tog -- only invert if there was a true tog value given
+			end
+			ns.UI.Quickcast.Book.toggleBookByName(bookName, tog)
 		end,
 		revertDesc = "Re-Toggles the Quickcast Book on this character. Why tho?",
+		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.QCBookStyle] = scriptAction("Change Book Style", {
 		command = function(vars)
