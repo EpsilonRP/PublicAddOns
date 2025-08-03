@@ -6,8 +6,25 @@ local _, EpsiLib = ...
 
 EpsiLib.SpellBookUI = {}
 local Addon = EpsiLib.SpellBookUI
-
+local spellbook
 local runOnce = false
+
+StaticPopupDialogs["EPSILONLIB_RENAMESPELLBOOKTAB"] = {
+	text = "What should this Tab be named?",
+	button1 = "Accept",
+	button2 = "Cancel",
+	hasEditBox = true,
+	OnAccept = function(self, data)
+		spellbook.tabs[data].name = self.editBox:GetText()
+		_G["SpellBookSkillLineTab" .. data].tooltip = self.editBox:GetText()
+	end,
+	timeout = 0,
+	showAlert = true,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
 EpsiLib.EventManager:Register("ADDON_LOADED", function(_, event, addon)
 	if runOnce then return end
 	if EpsiLib_DB.Modules.SpellBookUI then
@@ -32,14 +49,20 @@ end
 function Addon:initialize()
 	EpsiLib_DB.options.spellBookUI = EpsiLib_DB.options.spellBookUI or {}
 	local options = EpsiLib_DB.options.spellBookUI
+	spellbook = EpsilLib_Current_Char_DB.spellbook
 
 	local function UpdateSearch()
 		SpellBookFrame_Update()
 	end
 
 	local function UpdateHideFutureSpellsToggle(self)
-		SpellBookFrame_Update()
 		options.hideFutureSpells = self:GetChecked()
+		SpellBookFrame_Update()
+	end
+
+	local function UpdateShowHiddenSpellsToggle(self)
+		options.showHiddenSpells = self:GetChecked()
+		SpellBookFrame_Update()
 	end
 
 	local function SearchBox_OnTextChanged(self, userInput)
@@ -63,7 +86,7 @@ function Addon:initialize()
 		Addon.SearchBox = CreateFrame("EditBox", "SearchBox", SpellBookFrame, "SearchBoxTemplate")
 		Addon.SearchBox:SetWidth(150) -- Set these to whatever height/width is needed
 		Addon.SearchBox:SetHeight(20) -- for your Texture
-		Addon.SearchBox:SetPoint("TOPRIGHT", SpellBookFrame, "TOPRIGHT", -25, -1)
+		Addon.SearchBox:SetPoint("TOPRIGHT", SpellBookFrame, "TOPRIGHT", -50, -1)
 		Addon.SearchBox:Show()
 		Addon.SearchBox.Left:SetAlpha(0.5)
 		Addon.SearchBox.Right:SetAlpha(0.5)
@@ -76,7 +99,7 @@ function Addon:initialize()
 		Addon.SearchBox_OldOnTextChanged = Addon.SearchBox:GetScript("OnTextChanged")
 		Addon.SearchBox:SetScript("OnTextChanged", SearchBox_OnTextChanged)
 
-		local offset = 35
+		local offset = 65
 		Addon.SearchBox:HookScript("OnEditFocusLost", function(self)
 			self.Left:Hide()
 			self.Right:Hide()
@@ -103,8 +126,8 @@ function Addon:initialize()
 			return Addon.ToggleFutureCheckbox
 		end
 
-		Addon.ToggleFutureCheckbox = CreateFrame("CheckButton", nil, SpellBookFrame, "UICheckButtonTemplate")
-		Addon.ToggleFutureCheckbox:SetPoint("TOPLEFT", SpellBookFrame, "TOPLEFT", 85, -2)
+		Addon.ToggleFutureCheckbox = CreateFrame("CheckButton", nil, Addon.SettingsFrame, "UICheckButtonTemplate")
+		Addon.ToggleFutureCheckbox:SetPoint("TOPLEFT", Addon.SettingsFrame.Inset, "TOPLEFT", 20, -5)
 		Addon.ToggleFutureCheckbox:SetSize(20, 20)
 		Addon.ToggleFutureCheckbox:SetChecked(false)
 		Addon.ToggleFutureCheckbox:SetScript("OnClick", UpdateHideFutureSpellsToggle)
@@ -116,6 +139,58 @@ function Addon:initialize()
 		return Addon.ToggleFutureCheckbox
 	end
 
+	function Addon:getOrCreateToggleHiddenCheckbox()
+		if (Addon.ToggleHiddenCheckbox ~= nil) then
+			return Addon.ToggleHiddenCheckbox
+		end
+
+		Addon.ToggleHiddenCheckbox = CreateFrame("CheckButton", nil, Addon.SettingsFrame, "UICheckButtonTemplate")
+		Addon.ToggleHiddenCheckbox:SetPoint("TOPLEFT", Addon.SettingsFrame.Inset, "TOPLEFT", 20, -35)
+		Addon.ToggleHiddenCheckbox:SetSize(20, 20)
+		Addon.ToggleHiddenCheckbox:SetChecked(false)
+		Addon.ToggleHiddenCheckbox:SetScript("OnClick", UpdateShowHiddenSpellsToggle)
+		Addon.ToggleHiddenCheckbox.text:SetText("Show Hidden Spells")
+		Addon.ToggleHiddenCheckbox:Show()
+		Addon.ToggleHiddenCheckbox:SetChecked(options.showHiddenSpells)
+		UpdateShowHiddenSpellsToggle(Addon.ToggleHiddenCheckbox)
+
+		return Addon.ToggleHiddenCheckbox
+	end
+
+	function Addon:getOrCreateSettingsButton()
+		if Addon.SettingsButton then
+			return Addon.SettingsButton
+		end
+
+		Addon.SettingsButton = CreateFrame("Button", nil, SpellBookFrame)
+		Addon.SettingsButton:SetPoint("CENTER", SpellBookFrame, "TOPRIGHT", -38, -11)
+		Addon.SettingsButton:SetSize(19, 19)
+		Addon.SettingsButton:SetScript("OnClick", function() if Addon.SettingsFrame:IsVisible() then Addon.SettingsFrame:Hide() else Addon.SettingsFrame:Show() end end)
+		Addon.SettingsButton:SetNormalTexture("Interface\\addons\\EpsilonLib\\Resources\\Settings_Icon")
+		Addon.SettingsButton:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+		Addon.SettingsButton:Show()
+
+		return Addon.SettingsButton
+	end
+
+	function Addon:getOrCreateSettingsFrame()
+		if Addon.SettingsFrame then
+			return Addon.SettingsFrame
+		end
+
+		Addon.SettingsFrame = CreateFrame("Frame", nil, SpellBookFrame, "ButtonFrameTemplate")
+
+		Addon.SettingsFrame:SetSize(250, 250)
+		Addon.SettingsFrame:SetPoint("TOPLEFT", SpellBookFrame, "TOPRIGHT", 35, 0)
+		Addon.SettingsFrame:SetTitle('Settings')
+		ButtonFrameTemplate_HidePortrait(Addon.SettingsFrame)
+		ButtonFrameTemplate_HideAttic(Addon.SettingsFrame)
+		ButtonFrameTemplate_HideButtonBar(Addon.SettingsFrame)
+		Addon.SettingsFrame:Hide()
+
+		return Addon.SettingsFrame
+	end
+
 	function Addon:updateSearchBox()
 		local box = Addon:getOrCreateSearchBox()
 		if (SpellBookFrame.bookType ~= BOOKTYPE_SPELL) then
@@ -124,11 +199,27 @@ function Addon:initialize()
 			box:Show()
 		end
 
+		local settingsFrame = Addon:getOrCreateSettingsFrame()
+
+		local settingsButton = Addon:getOrCreateSettingsButton()
+		if (SpellBookFrame.bookType ~= BOOKTYPE_SPELL) then
+			settingsButton:Hide()
+		else
+			settingsButton:Show()
+		end
+
 		local futureCheckbox = Addon:getOrCreateToggleFutureCheckbox()
 		if (SpellBookFrame.bookType ~= BOOKTYPE_SPELL) then
 			futureCheckbox:Hide()
 		else
 			futureCheckbox:Show()
+		end
+
+		local hiddenCheckbox = Addon:getOrCreateToggleHiddenCheckbox()
+		if (SpellBookFrame.bookType ~= BOOKTYPE_SPELL) then
+			hiddenCheckbox:Hide()
+		else
+			hiddenCheckbox:Show()
 		end
 	end
 
@@ -159,8 +250,6 @@ function Addon:initialize()
 
 	function Addon:findSpells()
 		if (SpellBookFrame.bookType ~= BOOKTYPE_SPELL) then
-			Addon.spells = {};
-			Addon.numSpells = j;
 			return
 		end
 
@@ -168,77 +257,128 @@ function Addon:initialize()
 			SpellBookFrame.selectedSkillLine = 2;
 		end
 
-		local _, _, offset, numSlots, _, _ = GetSpellTabInfo(SpellBookFrame.selectedSkillLine);
+		local searchText = Addon:getOrCreateSearchBox():GetText():gsub("%s+", "")
 
-		Addon.spells = {};
-		local j = 1
-		dbgprnt("Indexing from" .. offset .. "up to " .. (numSlots + offset)
-			.. " on " .. SpellBookFrame.bookType)
-		for i = 1, numSlots do
-			local slotType, spellID = GetSpellBookItemInfo(i + offset, SpellBookFrame.bookType);
-			local fullSpellName = GetFullSpellName(i + offset, SpellBookFrame.bookType);
-			local searchText = Addon:getOrCreateSearchBox():GetText():gsub("%s+", "")
-			local desc = GetSpellDescription(spellID)
+		if searchText == "" then
+			return
+		end
+		
 
-			dbgprnt(spellName)
-			if searchText == "" or
-				fullSpellName:lower():match(searchText:lower()) then
-				Addon.spells[offset + j] = i + offset;
-				j = j + 1
+		local spells = {};
+		spellbook.tabs[SpellBookFrame.selectedSkillLine].offset = 0
+		for k,v in pairs(spellbook.spells) do
+			local slotType, spellID = GetSpellBookItemInfo(v, SpellBookFrame.bookType);
+			local fullSpellName, desc
+			if slotType == "SPELL" or slotType == "FUTURESPELL" then	
+				fullSpellName = GetFullSpellName(v, SpellBookFrame.bookType);
+				desc = GetSpellDescription(spellID)
+			elseif slotType == "FLYOUT" then
+				name = GetFlyoutInfo(spellID)
+			end
+
+			if fullSpellName:lower():match(searchText:lower()) then
+				table.insert(spells, v)
 			end
 		end
-		Addon.numSpells = j
+		spellbook.tabs[SpellBookFrame.selectedSkillLine].numSlots = #spells
+		spellbook.spells = spells
 	end
 
-	--override
-	function SpellBookFrame_Update()
-		Addon:updateSearchBox()
-		Addon:findSpells()
-		OldSpellBookFrame_Update()
-	end
 
-	--override
-	function SpellBook_GetCurrentPage()
-		local currentPage, maxPages;
-		local numPetSpells = HasPetSpells() or 0;
-		if (SpellBookFrame.bookType == BOOKTYPE_PET) then
-			currentPage = SPELLBOOK_PAGENUMBERS[BOOKTYPE_PET];
-			maxPages = ceil(numPetSpells / SPELLS_PER_PAGE);
-		elseif (SpellBookFrame.bookType == BOOKTYPE_SPELL) then
-			currentPage = SPELLBOOK_PAGENUMBERS[SpellBookFrame.selectedSkillLine];
-			local _, _, _, numSlots = GetSpellTabInfo(SpellBookFrame.selectedSkillLine);
-			maxPages = ceil(Addon.numSpells / SPELLS_PER_PAGE);
+	local function GetMappedSlot(slot)
+		for mapped, orig in pairs(spellbook.spells) do
+			if orig == slot then
+				return mapped
+			end
 		end
-		return currentPage, maxPages;
 	end
-
 	--override
 	function SpellBook_GetSpellBookSlot(spellButton)
 		local id = spellButton:GetID()
-		if (SpellBookFrame.bookType == BOOKTYPE_PROFESSION) then
+		if ( SpellBookFrame.bookType == BOOKTYPE_PROFESSION) then
 			return id + spellButton:GetParent().spellOffset;
-		elseif (SpellBookFrame.bookType == BOOKTYPE_PET) then
+		elseif ( SpellBookFrame.bookType == BOOKTYPE_PET ) then
 			local slot = id + (SPELLS_PER_PAGE * (SPELLBOOK_PAGENUMBERS[BOOKTYPE_PET] - 1));
 			local slotType, slotID = GetSpellBookItemInfo(slot, SpellBookFrame.bookType);
 			return slot, slotType, slotID;
 		else
-			local relativeSlot = id + (SPELLS_PER_PAGE * (SPELLBOOK_PAGENUMBERS[SpellBookFrame.selectedSkillLine] - 1));
-			if (SpellBookFrame.selectedSkillLineNumSlots and relativeSlot <= SpellBookFrame.selectedSkillLineNumSlots) then
+			local relativeSlot = id + ( SPELLS_PER_PAGE * (SPELLBOOK_PAGENUMBERS[SpellBookFrame.selectedSkillLine] - 1));
+			if ( SpellBookFrame.selectedSkillLineNumSlots and relativeSlot <= SpellBookFrame.selectedSkillLineNumSlots) then
 				local slot = SpellBookFrame.selectedSkillLineOffset + relativeSlot;
-				dbgprnt("Slot" .. slot)
-				local filteredSlot = Addon.spells[slot];
-				if filteredSlot then
-					dbgprnt(" to " .. filteredSlot)
-					local slotType, slotID = GetSpellBookItemInfo(Addon.spells[slot], SpellBookFrame.bookType);
-					local spellName, subSpellName = GetSpellBookItemName(Addon.spells[slot], SpellBookFrame.bookType);
-					dbgprnt(spellName)
-					return filteredSlot, slotType, slotID;
-				end
-				return nil, nil
+				slot = spellbook.spells[slot] or slot
+				local slotType, slotID = GetSpellBookItemInfo(slot, SpellBookFrame.bookType);
+				return slot, slotType, slotID;
 			else
 				return nil, nil;
 			end
 		end
+	end
+
+	local function HideSpell(index)
+		local tab
+		local _ , spellID = GetSpellBookItemInfo(spellbook.spells[index], 'BOOKTYPE_SPELL')
+
+		if spellbook.hidden_spells[spellID] then
+			spellbook.hidden_spells[spellID] = nil
+			return
+		end
+
+		for i = 1, #spellbook.tabs do
+			if (spellbook.tabs[i].offset + spellbook.tabs[i].numSlots >= index) and (index > spellbook.tabs[i].offset)  then
+				tab = i
+			end
+		end
+
+		table.remove(spellbook.spells, index)
+
+		for i = tab+1, #spellbook.tabs do
+			spellbook.tabs[i].offset = spellbook.tabs[i].offset - 1
+		end
+
+		spellbook.tabs[tab].numSlots = spellbook.tabs[tab].numSlots - 1
+
+		table.insert(spellbook.hidden_spells, spellID, true)
+		table.remove(spellbook.swapped_spells, spellID)
+	end
+
+	local function MoveSpell(startPos, endTab)
+		local startTab
+		local _ , spellID = GetSpellBookItemInfo(spellbook.spells[startPos], 'BOOKTYPE_SPELL')
+
+		for i = 1, #spellbook.tabs do
+			if (spellbook.tabs[i].offset + spellbook.tabs[i].numSlots >= startPos) and (startPos > spellbook.tabs[i].offset)  then
+				startTab = i
+			end
+		end
+
+		if not startTab then
+			return
+		end
+
+		local spell = table.remove(spellbook.spells, startPos)
+
+		for i = startTab+1, #spellbook.tabs do
+			spellbook.tabs[i].offset = spellbook.tabs[i].offset - 1
+		end
+
+		spellbook.tabs[startTab].numSlots = spellbook.tabs[startTab].numSlots - 1
+		
+		local endPos = (spellbook.tabs[endTab].offset) + 1
+
+		if IsPassiveSpell(spellID) then
+			endPos = spellbook.tabs[endTab].offset + spellbook.tabs[endTab].numSlots + 1
+		end
+
+		table.insert(spellbook.spells, endPos, spell)
+
+		for i = endTab+1, #spellbook.tabs do
+			spellbook.tabs[i].offset = spellbook.tabs[i].offset + 1
+		end
+
+		spellbook.tabs[endTab].numSlots = spellbook.tabs[endTab].numSlots + 1
+
+		-- needs to be ID and tab cuz slots and tabs can change when you learn new spells or swap specs
+		table.insert(spellbook.swapped_spells, spellID, endTab)
 	end
 
 	local function genSeparator()
@@ -304,6 +444,12 @@ function Addon:initialize()
 			notCheckable = true,
 		}
 	end
+	local function quickNestedMenu(level, menuList, ...)
+		local menu = quickIndentedButton(level, ...)
+		menu.hasArrow = true
+		menu.menuList = menuList
+		return menu
+	end
 	-- Note that this frame must be named for the dropdowns to work.
 	local menuFrame = CreateFrame("Frame", "ExampleMenuFrame", UIParent, "UIDropDownMenuTemplate")
 
@@ -313,6 +459,8 @@ function Addon:initialize()
 	local blizzCastButton = quickIndentedButton(1, 'Retail', function() C_Epsilon.RunPrivileged("CastSpell(" .. menuFrame._slotID .. ", 'spell')"); end, "Standard Casting of the Spell",
 		"This is how spells normally cast in WoW. AoE spell cast this way can be placed with your cursor.")
 	local emptyButton = {}
+
+	local nestedMenu = {}
 
 	local menu = {
 		{
@@ -333,7 +481,11 @@ function Addon:initialize()
 		quickIndentedButton(1, 'Aura', function() cmd(("aura %s"):format(menuFrame._spellID)) end),
 		quickIndentedButton(1, 'Self', function() cmd(("aura %s %s"):format(menuFrame._spellID, "self")) end),
 		genSeparator(),
-		--14
+		quickTitle("Management ..."),
+		quickNestedMenu(1,nestedMenu, 'Move to...', function() end ),
+		quickIndentedButton(1, 'Hide', function() HideSpell(GetMappedSlot(menuFrame._slotID)); CloseDropDownMenus(); SpellBookFrame_Update();  end),
+		genSeparator(),
+		--18
 		unlearnButton,
 	}
 
@@ -342,22 +494,42 @@ function Addon:initialize()
 
 		if known then
 			menu[4] = blizzCastButton
-			menu[14] = unlearnButton
+			menu[18] = unlearnButton
 		else
 			menu[4] = emptyButton
-			menu[14] = learnButton
+			menu[18] = learnButton
+		end
+
+		if spellbook.hidden_spells[spellInfo.spellID] then
+			menu[16].text = 'Show'
 		end
 
 		menu[1].text = spellInfo.name and (CreateTextureMarkup(spellInfo.iconID, 24, 24, 24, 24, 0, 1, 0, 1) .. " " .. spellInfo.name) or "(Error Loading Spell Name)"
 		menuFrame._spellID = spellInfo.spellID
 		menuFrame._slotID = slot
+
+		for i = 1, GetNumSpellTabs() do
+			local name = GetSpellTabInfo(i)
+			nestedMenu[i] = quickIndentedButton(0,name, function() 
+				local startPos = GetMappedSlot(slot)
+				MoveSpell(startPos, i)
+				CloseDropDownMenus()
+				SpellBookFrame_Update()
+			end)
+		end
+
 		EasyMenu(menu, menuFrame, "cursor", 0, 0, "MENU");
 	end
+
+	--override to hide "not on actionbar" glow
+	hooksecurefunc('SpellButton_UpdateButton', function(self)
+		self.SpellHighlightTexture:Hide();
+	end)
 
 	--override
 	function SpellButton_OnClick(self, button)
 		local slot, slotType = SpellBook_GetSpellBookSlot(self);
-		local _, spell_ID = GetSpellBookItemInfo(slot, SpellBookFrame.bookType);
+		local spellType, spell_ID = GetSpellBookItemInfo(slot, SpellBookFrame.bookType);
 		local spellInfo = C_SpellBook.GetSpellInfo(spell_ID)
 
 		--[[ -- Old override handler, we don't like it, we can simulate the blizzlike!
@@ -379,9 +551,8 @@ function Addon:initialize()
 		--]]
 
 		-- New Custom Right-Click Handler:
-		if button == "RightButton" then
+		if button == "RightButton" and spellType ~= "FLYOUT" then
 			-- Open a custom context menu here!
-
 			spellContext(spellInfo, slot)
 
 			return
@@ -431,73 +602,107 @@ function Addon:initialize()
 				SpellFlyout:SetBorderColor(181 / 256, 162 / 256, 90 / 256);
 			else
 				if (SpellBookFrame.bookType ~= BOOKTYPE_SPELLBOOK or self.offSpecID == 0) then
-					C_Epsilon.RunPrivileged("CastSpell(" .. slot .. ", '" .. SpellBookFrame.bookType .. "')");
+					local spellType, id = GetSpellBookItemInfo(slot, SpellBookFrame.bookType)
+					if IsSpellKnown(id) then
+						C_Epsilon.RunPrivileged("CastSpell(" .. slot .. ", '" .. SpellBookFrame.bookType .. "')");
+					else
+						SendChatMessage(".cast " .. id)
+					end
 				end
 			end
 			SpellButton_UpdateSelection(self);
 		end
 	end
 
-	-- Force Override hide future spells
-	hooksecurefunc("SpellButton_UpdateButton", function(self)
-		local _, _, offset, numSlots, _, offSpecID, shouldHide, specID = GetSpellTabInfo(SpellBookFrame.selectedSkillLine);
-		SpellBookFrame.selectedSkillLineNumSlots = numSlots;
-		SpellBookFrame.selectedSkillLineOffset = offset;
-		local isOffSpec = (offSpecID ~= 0) and (SpellBookFrame.bookType == BOOKTYPE_SPELL);
-		self.offSpecID = offSpecID;
+	--override
+	local _origSpellTab = GetSpellTabInfo
 
-		local slot, slotType, slotID = SpellBook_GetSpellBookSlot(self);
-		local name = self:GetName();
-		local iconTexture = _G[name .. "IconTexture"];
-		local levelLinkLockTexture = _G[name .. "LevelLinkLockTexture"];
-		local levelLinkLockBg = _G[name .. "LevelLinkLockBg"];
-		local spellString = _G[name .. "SpellName"];
-		local subSpellString = _G[name .. "SubSpellName"];
-		local cooldown = _G[name .. "Cooldown"];
-		local autoCastableTexture = _G[name .. "AutoCastable"];
-		local slotFrame = _G[name .. "SlotFrame"];
+	function GetSpellTabInfo(index)
+		local name, texture, offset, numSlots, isGuild, offspecID = _origSpellTab(index)
+		if spellbook.tabs[index] then
+			offset = spellbook.tabs[index].offset or offset
+			numSlots = spellbook.tabs[index].numSlots or numSlots
+			texture = spellbook.tabs[index].icon or texture
+			name = spellbook.tabs[index].name or name
+		end
+		return name, texture, offset, numSlots, isGuild, 0
+	end
 
-		local highlightTexture = _G[name .. "Highlight"];
-		local texture;
-		if (slot) then
-			texture = GetSpellBookItemTexture(slot, SpellBookFrame.bookType);
+	local function SetupSpellTabRightClick()
+		local spellbookDropdown = CreateFrame("Frame", nil, UIParent, "UIDropDownMenuTemplate")
+
+		UIDropDownMenu_Initialize(spellbookDropdown, function(self) 
+			local info = UIDropDownMenu_CreateInfo()
+
+			info.text = "Change Icon"
+			info.notCheckable = true
+			info.func = function() EpsilonLibIconPicker_Open(function(texture)
+				spellbook.tabs[spellbookDropdown.index].icon = texture
+				_G["SpellBookSkillLineTab" .. spellbookDropdown.index]:SetNormalTexture(texture)
+			end, true, true) end
+			UIDropDownMenu_AddButton(info)
+			
+			info.text = "Rename"
+			info.notCheckable = true
+			info.func = function()
+				local dialog = StaticPopup_Show("EPSILONLIB_RENAMESPELLBOOKTAB")
+				dialog.data = self.index
+			end
+			UIDropDownMenu_AddButton(info)
+		end, "MENU")
+
+		for i = 1,8,1 do
+			-- OnClick already bound, so MouseDown instead
+			_G["SpellBookSkillLineTab" .. i]:SetScript("OnMouseDown", function(self, button)
+				if button == "RightButton" then
+					spellbookDropdown.index = i
+					ToggleDropDownMenu(1, nil, spellbookDropdown, "cursor", 3, -3)
+				end
+			end)
+		end
+	end
+
+	local function SetupSpellTabs()
+		local numSpellTabs = GetNumSpellTabs()
+		local totalSpells = 0
+		local swapped_spells = {}
+		spellbook.spells = {}
+		for i = 1,numSpellTabs do 
+			local name, texture, offset, numSlots, isGuild, offspecID = _origSpellTab(i)
+			local numSpells = 0
+			spellbook.tabs[i] = spellbook.tabs[i] or {}
+			spellbook.tabs[i].offset = totalSpells
+			for j = offset+1, (offset+numSlots)-1 do
+				local spellType, id = GetSpellBookItemInfo(j, "BOOKTYPE_SPELL")
+				if (not options.hideFutureSpells or (options.hideFutureSpells and spellType ~= "FUTURESPELL")) and (not spellbook.hidden_spells[id] or options.showHiddenSpells) then
+					numSpells = numSpells + 1
+					totalSpells = totalSpells + 1
+					spellbook.spells[totalSpells] = j
+				end
+			end
+			spellbook.tabs[i].numSlots = numSpells
 		end
 
-		-- If no spell, hide everything and return, or kiosk mode and future spell
-		if (not texture or (strlen(texture) == 0) or (slotType == "FUTURESPELL" and Addon.ToggleFutureCheckbox:GetChecked())) then
-			iconTexture:Hide();
-			levelLinkLockTexture:Hide();
-			levelLinkLockBg:Hide();
-			spellString:Hide();
-			subSpellString:Hide();
-			cooldown:Hide();
-			autoCastableTexture:Hide();
-			SpellBook_ReleaseAutoCastShine(self.shine);
-			self.shine = nil;
-			self.canClickBind = false;
-			highlightTexture:SetTexture("Interface\\Buttons\\ButtonHilight-Square");
-			self:SetChecked(false);
-			slotFrame:Hide();
-			self.IconTextureBg:Hide();
-			self.SeeTrainerString:Hide();
-			self.RequiredLevelString:Hide();
-			self.UnlearnedFrame:Hide();
-			self.TrainFrame:Hide();
-			self.TrainTextBackground:Hide();
-			self.TrainBook:Hide();
-			self.FlyoutArrow:Hide();
-			self.AbilityHighlightAnim:Stop();
-			self.AbilityHighlight:Hide();
-			self.GlyphIcon:Hide();
-			self:Disable();
-			self.TextBackground:SetDesaturated(isOffSpec);
-			self.TextBackground2:SetDesaturated(isOffSpec);
-			self.EmptySlot:SetDesaturated(isOffSpec);
-			self.ClickBindingIconCover:Hide();
-			self.ClickBindingHighlight:Hide();
-			if self.SpellHighlightTexture then
-				self.SpellHighlightTexture:Hide();
+		for spellID, tab in pairs(spellbook.swapped_spells) do
+			for  k,v in pairs(spellbook.spells) do
+				local spellType, id = GetSpellBookItemInfo(v, "BOOKTYPE_SPELL")
+				if spellID == id then 
+					MoveSpell(k, tab)
+				end
 			end
 		end
+	end
+
+	--override
+	function SpellBookFrame_Update()
+		SetupSpellTabs()
+		Addon:updateSearchBox()
+		Addon:findSpells()
+		OldSpellBookFrame_Update()
+	end
+
+	EpsiLib.EventManager:Register("FIRST_FRAME_RENDERED", function(_, event, addon)
+		SetupSpellTabs()
+		SetupSpellTabRightClick()
 	end)
 end
