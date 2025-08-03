@@ -24,6 +24,7 @@ local addonName, utils = ...
 local StdUi = LibStub('StdUi');
 StdUi.config = utils.config
 print("\124cFF4594C1[Epsilon_Viewer]\124r | /epsilonviewer - /viewer")
+local gobs = true
 
 
 local default = {
@@ -33,6 +34,7 @@ local default = {
    maxgobs = 5000,
    catalogNameList = { {text = 'Default', value = 1}, },
    userCatalogs = {},
+   userDisplayCatalogs = {},
    includeEpsilonTiles = true
 }
 
@@ -156,7 +158,14 @@ local currentCatalog = nil
 local function selectedCatalog(value)
    if value > 1 then
       local n = value - 1
-      currentCatalog = g.db.userCatalogs[n]
+      if gobs then
+         currentCatalog = g.db.userCatalogs[n]
+      else
+         if g.db.userDisplayCatalogs[n] == nil then
+            g.db.userDisplayCatalogs[n] = {}
+         end
+         currentCatalog = g.db.userDisplayCatalogs[n]
+      end
    else
       currentCatalog = nil
    end
@@ -227,6 +236,19 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
    end
 end
 
+local function getDisplayIDs(filter, maxgobs) 
+   currentCatalog = {}
+
+   for i, entry in ipairs (utils.displayIDs) do
+      if utils.displayIDs[i].name:find(filter) then
+         local result = utils.displayIDs[i]
+         currentCatalog[result.displayid] = result
+      end
+   end
+end
+
+local getList = getListFromEpsilon
+
 ---Get's the name of a gob by either fid or gobData if provided. FileID must be from a currentCatalog, cannot access the GODI results directly
 ---@param fid number
 ---@param gobData? table
@@ -271,30 +293,38 @@ local function getGobList(filter, catalogValue, maxgobs, epstiles)  --Filter to 
       return nil
    elseif catalogValue > 1 then --Will permit no filter to show every gob in a catalog if it's not the default one.
       for iFileData, gobData in pairs(usedList) do
+         local fid = iFileData
+         if not gobs then
+            fid = gobData.displayid
+         end
          local gobName = getGobName(iFileData)
          if (filter == nil or filter:len() < 2) or tokenizedSearch(gobName:lower(), filter) then --string.match(gobName:lower(), filter) then
             if not epstiles then --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
-                  tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
+                  tinsert(resultList, {fid = fid, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
                end
             else
-               tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
+               tinsert(resultList, {fid = fid, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
             end
          end
       end
    else
       --getListFromEpsilon(filter, filterArray, maxgobs)
-	  getListFromEpsilon(filter, maxgobs)
+      getList(filter, maxgobs)
       usedList = currentCatalog
       for iFileData, gobData in pairs (usedList) do
          local gobName = getGobName(iFileData)
+         local fid = iFileData
+         if not gobs then
+            fid = gobData.displayid
+         end
          if tokenizedSearch(gobName:lower(), filter) then
             if not epstiles then  --don't insert if includeEpsilonTiles is false
                if not string.match(gobName:lower(), 'buildingtile') and not string.match(gobName:lower(), 'buildingplane') then
-                  tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
+                  tinsert(resultList, {fid = fid, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
                end
             else
-               tinsert(resultList, {fid = iFileData, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
+               tinsert(resultList, {fid = fid, name = gobName, displayid = gobData.displayid--[[, entries = gobData.entries]]})
             end
          else --remove from Epsilon's results catalog the unwanted results
             currentCatalog[iFileData] = nil
@@ -345,12 +375,33 @@ local function setSpawnTooltip(self, gridObject, gobData)
    if not gobData then gobData = null end
    local gobName = (gobData and gobData.name) or (gridObject.gobData and gridObject.gobData.name) or getGobName(gridObject:GetModelFileID())
    local gobDisplay = (gobData and gobData.displayid) or (gridObject.gobData and gridObject.gobData.displayid) or 804602
+   local text = ''
+   if gobs then 
+      text = "Left Click to Spawn %s (%s).\nRight Click to lookup."
+   else
+      text = "Left Click to Morph into %s (%s).\nRight Click to lookup."
+   end
    --self:SetText(("Left Click to Spawn %s (%s)\nRight Click to select others versions"):format(getGobName(gridObject:GetModelFileID()), gobData.displayid or 804602))
-   self:SetText(("Left Click to Spawn %s (%s).\nRight Click to lookup."):format(gobName, gobDisplay))
+   self:SetText((text):format(gobName, gobDisplay))
 end
 
 local fakePaginationGODITableOffset = 1
 local numPerPage = 8
+
+local page_meta_displays = {
+	__index = function(tbl, key)
+		if type(key) ~= "number" then return tbl[key] end
+		local realEntry = (fakePaginationGODITableOffset + key)
+
+		if realEntry > (#utils.displayIDs-1) then
+			return { fid = false }
+		end
+
+		local GODI_Data = utils.displayIDs[realEntry]
+		GODI_Data.fid = GODI_Data.displayid
+		return GODI_Data
+	end,
+}
 
 local page_meta = {
 	__index = function(tbl, key)
@@ -377,9 +428,16 @@ local top_meta = {
 }
 
 local fakePaginationGODITable = setmetatable({}, top_meta)
-local function getGODIPageCount()
-	return math.ceil((C_Epsilon.GODI_Count()-1)/numPerPage)
+
+local function getGODIPageCountObjects()
+   return math.ceil((C_Epsilon.GODI_Count()-1)/numPerPage)
 end
+
+local function getGODIPageCountDisplays()
+   return math.ceil((#utils.displayIDs-1)/numPerPage)
+end
+
+local getGODIPageCount = getGODIPageCountObjects
 getGODIPageCount()
 
 local function ShowGobBrowser()
@@ -471,10 +529,21 @@ local function ShowGobBrowser()
 			self:SynchronizeCamera();
 		end
 
+      function _modelScene:SetButtons()
+         if gobs then
+            gameObjectsGrid[i][j].buttonSpawn:SetText("Spawn")
+         else
+            gameObjectsGrid[i][j].buttonSpawn:SetText("Morph")
+         end
+		 end
 
 		 -- Pass thru functions for the actor:
 		 function _modelScene:SetModel(id)
-			actor:SetModelByFileID(id)
+         if gobs then
+            actor:SetModelByFileID(id)
+         else
+            actor:SetModelByCreatureDisplayID(id)
+         end
 		 end
 		 function _modelScene:GetModelFileID()
 			return actor:GetModelFileID()
@@ -571,25 +640,39 @@ local function ShowGobBrowser()
 			local gobName = gobData.name or getGobName(gameObjectsGrid[i][j]:GetModelFileID())
 			local gobDisplayID
 
-			if arg1 == "LeftButton" then --Spawning
-               if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobDisplayID = -804602 else gobDisplayID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
-               print("\124cFF4594C1[Epsilon_Viewer]\124r - Spawning : "..gobName)
-               SendChatMessage(".gob spawn "..gobDisplayID, "GUILD")
-            else --Lookup
-               --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
-			   gobName = gobName:gsub("%.m2", ""):gsub("%.wmo", "")
-			   local command = ".lookup object "
-			   if gobName:find("buildingtile") then
-				  command = ".lookup tile "
-				  gobName = gobName:gsub("_[0-9]+$", "")
-			   elseif gobName:find("buildingplane") then
-				  command = ".lookup plane "
-				  gobName = gobName:gsub("_[0-9]+$", "")
-			   end
-			   print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
-               SendChatMessage(command..gobName, "GUILD")
+         if gobs then
+            if arg1 == "LeftButton" then --Spawning
+                  if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobDisplayID = -804602 else gobDisplayID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
+                  print("\124cFF4594C1[Epsilon_Viewer]\124r - Spawning : "..gobName)
+                  SendChatMessage(".gob spawn "..gobDisplayID, "GUILD")
+               else --Lookup
+                  --gameObjectsGrid[i][j].displayidDropdown:ToggleOptions()
+               gobName = gobName:gsub("%.m2", ""):gsub("%.wmo", "")
+               local command = ".lookup object "
+               if gobName:find("buildingtile") then
+               command = ".lookup tile "
+               gobName = gobName:gsub("_[0-9]+$", "")
+               elseif gobName:find("buildingplane") then
+               command = ".lookup plane "
+               gobName = gobName:gsub("_[0-9]+$", "")
+               end
+               print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
+                  SendChatMessage(command..gobName, "GUILD")
+               end
+            else 
+               if arg1 == "LeftButton" then
+                  if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobDisplayID = -804602 else gobDisplayID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
+                     if not IsShiftKeyDown() then   
+                        print("\124cFF4594C1[Epsilon_Viewer]\124r - Morphing into : "..gobName)
+                        SendChatMessage(".morph "..gobDisplayID, "GUILD")
+                     else
+                        SendChatMessage(".phase forge npc create " .. gobDisplayID, "GUILD")
+                  end
+               else 
+                  print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
+                  SendChatMessage(".lookup displayid creature "..gobName, "GUILD")
+               end
             end
-
          end)
          StdUi:GlueBottom(gameObjectsGrid[i][j].buttonSpawn, g, (-40 * (4/columns)), 0, "RIGHT");
          gameObjectsGrid[i][j].buttonSpawn:SetFrameLevel(10) --Force SpawnButton to be on top of displayidDropdown
@@ -680,8 +763,13 @@ local function ShowGobBrowser()
 			local gobName = resultData.name or getGobName(resultData.fid)
 			if gobName == "" then gobName = ("<INVALID DISPLAY-%s>"):format(resultData.fid) end
 			if not gobName:find("%.m2") then
-				gameObjectsGrid[i][j]:SetModel(130738)
+            if gobs then
+               gameObjectsGrid[i][j]:SetModel(130738)
+            else
+               gameObjectsGrid[i][j]:SetModel(75065)
+            end
 			else
+            gameObjectsGrid[i][j]:SetButtons()
 				gameObjectsGrid[i][j]:SetModel(resultData.fid)
 			end
             --gameObjectsGrid[i][j].camdistance = 3
@@ -728,7 +816,7 @@ local function ShowGobBrowser()
       else --if default, show all objects using the fakePaginationGODITable system
 
          selectedCatalog(value)
-		 currentGobList = fakePaginationGODITable
+		   currentGobList = fakePaginationGODITable
          updateGobGrid(currentGobList, 1)
 
       end
@@ -793,116 +881,122 @@ local function ShowGobBrowser()
 
 
    local catalogNewOrDelete = StdUi:Button(gobFrame, 120, 30, 'Catalog Manager'); --Catalog Manager, to create and remove catalogs.
+   local catalogManager, catalogManagerList, deleteCatalogLabel, deleteCatalogButton, newCatalogName, newCatalogLabel, newCatalogButton, renameCatalogLabel, renameCatalogList, renameCatalogName, renameCatalogButton 
    catalogNewOrDelete:SetScript("OnClick", function()
 
-      local catalogManager = utils.Window(UIParent, 300, 500, "Catalog Manager")
-      catalogManager:SetFrameLevel(20)
-      catalogManager.closeBtn:SetFrameLevel(21)
-      catalogManager:Show()
+      if not catalogManager then
+         catalogManager = utils.Window(UIParent, 300, 500, "Catalog Manager")
+         catalogManager:SetFrameLevel(20)
+         catalogManager.closeBtn:SetFrameLevel(21)
+         catalogManager:Show()
 
 
 
-      --Delete a catalog
+         --Delete a catalog
 
-      local catalogManagerList = StdUi:Dropdown(catalogManager, 225, 30, g.db.catalogNameList, 1)
-      catalogManagerList:SetFrameLevel(21)
-      local deleteCatalogLabel = StdUi:Label(catalogManager, "-- Delete a Catalog --")
-      --deleteCatalogLabel:SetFrameLevel(21)
-      local deleteCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
-      deleteCatalogButton:SetScript('OnClick', function()
+         catalogManagerList = StdUi:Dropdown(catalogManager, 225, 30, g.db.catalogNameList, 1)
+         catalogManagerList:SetFrameLevel(21)
+         deleteCatalogLabel = StdUi:Label(catalogManager, "-- Delete a Catalog --")
+         --deleteCatalogLabel:SetFrameLevel(21)
+         deleteCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
+         deleteCatalogButton:SetScript('OnClick', function()
 
-         local deleteValue = catalogManagerList:GetValue()
+            local deleteValue = catalogManagerList:GetValue()
 
-         local buttons = {
-            confirm = {
-               text = "Confirm",
-               onClick = function(b)
-                  deleteCatalog(deleteValue)
-                  catalogManagerList:SetOptions(g.db.catalogNameList)
-                  catalogManagerList:SetValue(1)
-                  b.window:Hide();
-                  catalogManager.closeBtn:Click()
-               end
-            },
+            local buttons = {
+               confirm = {
+                  text = "Confirm",
+                  onClick = function(b)
+                     deleteCatalog(deleteValue)
+                     catalogManagerList:SetOptions(g.db.catalogNameList)
+                     catalogManagerList:SetValue(1)
+                     b.window:Hide();
+                     catalogManager.closeBtn:Click()
+                  end
+               },
 
-            cancel = {
-               text = "Cancel",
-               onClick = function(b)
-                  b.window:Hide();
-               end
+               cancel = {
+                  text = "Cancel",
+                  onClick = function(b)
+                     b.window:Hide();
+                  end
+               }
             }
-         }
 
-         StdUi:Confirm("Delete "..g.db.catalogNameList[deleteValue].text.."?", "Are you sure you want to delete this catalog ?", buttons, g.db.catalogNameList[deleteValue].text) --random id, just in case.
-
-
-      end);
-      deleteCatalogButton:SetFrameLevel(21)
+            StdUi:Confirm("Delete "..g.db.catalogNameList[deleteValue].text.."?", "Are you sure you want to delete this catalog ?", buttons, g.db.catalogNameList[deleteValue].text) --random id, just in case.
 
 
-      --Add a catalog
-      local newCatalogName = StdUi:SimpleEditBox(catalogManager, 225, 30, "Name");
-      newCatalogName:SetFrameLevel(21)
-      local newCatalogLabel = StdUi:Label(catalogManager, "-- Create a Catalog --")
-      --newCatalogLabel:SetFrameLevel(21)
-      local newCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
-      newCatalogButton:SetScript('OnClick', function()
+         end);
+         deleteCatalogButton:SetFrameLevel(21)
 
-         local catalogTitle = newCatalogName:GetText()
-         addCatalog(catalogTitle)
-         catalogManagerList:SetOptions(g.db.catalogNameList)
-         catalogManager.closeBtn:Click()
 
-      end);
-      newCatalogButton:SetFrameLevel(21)
+         --Add a catalog
+         newCatalogName = StdUi:SimpleEditBox(catalogManager, 225, 30, "Name");
+         newCatalogName:SetFrameLevel(21)
+         newCatalogLabel = StdUi:Label(catalogManager, "-- Create a Catalog --")
+         --newCatalogLabel:SetFrameLevel(21)
+         newCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
+         newCatalogButton:SetScript('OnClick', function()
 
-      --Rename a Catalog
-      local renameCatalogLabel = StdUi:Label(catalogManager, "-- Rename a Catalog --")
-      local renameCatalogList = StdUi:Dropdown(catalogManager, 225, 30, g.db.catalogNameList, 1)
-      renameCatalogList:SetFrameLevel(21)
-      local renameCatalogName = StdUi:SimpleEditBox(catalogManager, 225, 30, "New Catalog's name");
-      renameCatalogName:SetFrameLevel(21)
-      local renameCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
-      renameCatalogButton:SetScript('OnClick', function()
-
-         local renameValue =  renameCatalogList:GetValue()
-         if renameValue > 1 then
-            local oldName = g.db.catalogNameList[renameValue].text
-            local newName = renameCatalogName:GetText()
-            g.db.catalogNameList[renameValue].text = newName
-            print("\124cFF4594C1[Epsilon_Viewer]\124r - Changed name of "..oldName.." to "..newName..". ")
+            local catalogTitle = newCatalogName:GetText()
+            addCatalog(catalogTitle)
             catalogManagerList:SetOptions(g.db.catalogNameList)
-            if renameValue == catalogListScrollDown:GetValue() then catalogListScrollDown:SetValue(renameValue, newName) end
-            catalogListScrollDown:SetOptions(g.db.catalogNameList)
             catalogManager.closeBtn:Click()
-         else
-            print("\124cFF4594C1[Epsilon_Viewer]\124r - You can't rename the default catalog. ")
-         end
 
-      end);
-      renameCatalogButton:SetFrameLevel(21)
+         end);
+         newCatalogButton:SetFrameLevel(21)
 
-      --Positionning
-      StdUi:GlueTop(catalogManagerList, catalogManager, 0, -80);
-      StdUi:GlueAbove(deleteCatalogLabel, catalogManagerList, 0, 20);
-      StdUi:GlueBelow(deleteCatalogButton, catalogManagerList, 0, -20);
-      StdUi:GlueBelow(newCatalogName, deleteCatalogButton, 0, -50);
-      StdUi:GlueAbove(newCatalogLabel, newCatalogName, 0, 20);
-      StdUi:GlueBelow(newCatalogButton, newCatalogName, 0, -20);
-      StdUi:GlueAbove(renameCatalogLabel, renameCatalogList, 0, 20);
-      StdUi:GlueBelow(renameCatalogList, newCatalogButton, 0, -50);
-      StdUi:GlueBelow(renameCatalogName, renameCatalogList, 0, -20);
-      StdUi:GlueBelow(renameCatalogButton, renameCatalogName, 0, -20);
+         --Rename a Catalog
+         renameCatalogLabel = StdUi:Label(catalogManager, "-- Rename a Catalog --")
+         renameCatalogList = StdUi:Dropdown(catalogManager, 225, 30, g.db.catalogNameList, 1)
+         renameCatalogList:SetFrameLevel(21)
+         renameCatalogName = StdUi:SimpleEditBox(catalogManager, 225, 30, "New Catalog's name");
+         renameCatalogName:SetFrameLevel(21)
+         renameCatalogButton = StdUi:Button(catalogManager, 80, 30, "Confirm")
+         renameCatalogButton:SetScript('OnClick', function()
 
+            local renameValue =  renameCatalogList:GetValue()
+            if renameValue > 1 then
+               local oldName = g.db.catalogNameList[renameValue].text
+               local newName = renameCatalogName:GetText()
+               g.db.catalogNameList[renameValue].text = newName
+               print("\124cFF4594C1[Epsilon_Viewer]\124r - Changed name of "..oldName.." to "..newName..". ")
+               catalogManagerList:SetOptions(g.db.catalogNameList)
+               if renameValue == catalogListScrollDown:GetValue() then catalogListScrollDown:SetValue(renameValue, newName) end
+               catalogListScrollDown:SetOptions(g.db.catalogNameList)
+               catalogManager.closeBtn:Click()
+            else
+               print("\124cFF4594C1[Epsilon_Viewer]\124r - You can't rename the default catalog. ")
+            end
 
+         end);
+         renameCatalogButton:SetFrameLevel(21)
 
-
-
+         --Positionning
+         StdUi:GlueTop(catalogManagerList, catalogManager, 0, -80);
+         StdUi:GlueAbove(deleteCatalogLabel, catalogManagerList, 0, 20);
+         StdUi:GlueBelow(deleteCatalogButton, catalogManagerList, 0, -20);
+         StdUi:GlueBelow(newCatalogName, deleteCatalogButton, 0, -50);
+         StdUi:GlueAbove(newCatalogLabel, newCatalogName, 0, 20);
+         StdUi:GlueBelow(newCatalogButton, newCatalogName, 0, -20);
+         StdUi:GlueAbove(renameCatalogLabel, renameCatalogList, 0, 20);
+         StdUi:GlueBelow(renameCatalogList, newCatalogButton, 0, -50);
+         StdUi:GlueBelow(renameCatalogName, renameCatalogList, 0, -20);
+         StdUi:GlueBelow(renameCatalogButton, renameCatalogName, 0, -20);
+      else
+         catalogManagerList:SetOptions(g.db.catalogNameList)
+         renameCatalogList:SetOptions(g.db.catalogNameList)
+         catalogManager:Show()
+      end
    end)
 
 
    local function isGobInUserCatalog(value, fid) --Verify if a gob is already in the catalog
-      for iFileData, path in pairs(g.db.userCatalogs[value]) do
+   local catalog = g.db.userCatalogs[value]
+   if not gobs then
+      catalog = g.db.userDisplayCatalogs[value]
+   end
+      for iFileData, path in pairs(catalog) do
          if iFileData == fid then return true end
       end
       return false
@@ -912,131 +1006,151 @@ local function ShowGobBrowser()
    local addOrRemoveFromCatalog = StdUi:Button(gobFrame, 70, 30, 'Add/Rmv'); -- Add or Remove Gob(s) from a catalog
    addOrRemoveFromCatalog:RegisterForClicks("RightButtonUp", "LeftButtonUp")
    StdUi:FrameTooltip(addOrRemoveFromCatalog, "Left Click to Add or Remove selected gobs from a catalog.\nRight Click to convert current result to a new catalog.", "gobvwr_button_addrmv", "TOPRIGHT", true)
+   local listLabel, catalogGOBWindow, addOrRemoveLabel, catalogGOBlist, optionDropDown, confirmButton
    addOrRemoveFromCatalog:SetScript("OnClick", function(self, arg1)
       if arg1 == 'LeftButton' then
          if #selectedGobs > 0 then
+            listLabel = "You selected "..#selectedGobs.." gobs."
+            if not catalogGOBWindow then
+               --[[ I never found a way to implement this properly, so i prefer not to. - Warli
+               local listLabel = "list of selected Gobs:"
+               local countOfDot = 0
+               local status = 2
+               for i, j in pairs(selectedGobs) do
+                  listLabel = listLabel.." "..(j.name or getGobName(j.id))..";"
+                  countOfDot = countOfDot + 1 --Window adapt
+               end
 
-            local listLabel = "list of selected Gobs:"
-            local countOfDot = 0
-            local status = 2
-            for i, j in pairs(selectedGobs) do
-               listLabel = listLabel.." "..(j.name or getGobName(j.id))..";"
-               countOfDot = countOfDot + 1 --Window adapt
-            end
+               if countOfDot > 2 then status = countOfDot end --Yes, it is dumb
+               ]]
+               
+               catalogGOBWindow = utils.Window(UIParent, 320, (200), "Add or Remove")
+               catalogGOBWindow:SetFrameLevel(20)
+               catalogGOBWindow.closeBtn:SetFrameLevel(21)
+               catalogGOBWindow:Show()
 
-            if countOfDot > 2 then status = countOfDot end --Yes, it is dumb
-            local catalogGOBWindow = utils.Window(UIParent, 320, (200+(status*10)), "Add or Remove")
-            catalogGOBWindow:SetFrameLevel(20)
-            catalogGOBWindow.closeBtn:SetFrameLevel(21)
-            catalogGOBWindow:Show()
+               --
 
-            --
+               addOrRemoveLabel = StdUi:Label(catalogGOBWindow, listLabel, 11, nil, 260);
+               addOrRemoveLabel:SetJustifyH('MIDDLE');
 
-            local addOrRemoveLabel = StdUi:Label(catalogGOBWindow, listLabel, 11, nil, 260);
-            addOrRemoveLabel:SetJustifyH('MIDDLE');
+               catalogGOBlist = StdUi:Dropdown(catalogGOBWindow, 180, 30, g.db.catalogNameList, 1)
+               catalogGOBlist:SetFrameLevel(21)
 
-            local catalogGOBlist = StdUi:Dropdown(catalogGOBWindow, 180, 30, g.db.catalogNameList, 1)
-            catalogGOBlist:SetFrameLevel(21)
+               local options = {
+                  {text = "Add", value = 1},
+                  {text = "Remove", value = 2}
+               }
 
-            local options = {
-               {text = "Add", value = 1},
-               {text = "Remove", value = 2}
-            }
+               optionDropDown = StdUi:Dropdown(catalogGOBWindow, 180, 30, options, 1)
+               optionDropDown:SetFrameLevel(21)
 
-            local optionDropDown = StdUi:Dropdown(catalogGOBWindow, 180, 30, options, 1)
-            optionDropDown:SetFrameLevel(21)
+               confirmButton = StdUi:Button(catalogGOBWindow, 180, 20, 'Confirm');
+               confirmButton:SetFrameLevel(21)
+               confirmButton:SetScript('OnClick', function()
 
-            local confirmButton = StdUi:Button(catalogGOBWindow, 180, 20, 'Confirm');
-            confirmButton:SetFrameLevel(21)
-            confirmButton:SetScript('OnClick', function()
+                  local value = catalogGOBlist:GetValue() - 1
 
-               local value = catalogGOBlist:GetValue() - 1
+                  if catalogGOBlist:GetValue() ~= 1 then
 
-               if catalogGOBlist:GetValue() ~= 1 then
+                     if optionDropDown:GetValue() == 1 then --Add
 
-                  if optionDropDown:GetValue() == 1 then --Add
+                        local addedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were successfully added to the catalog : "
+                        local notAddedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs already are in the catalog : "
+                        local DoesAnyGobWereAdded = false
+                        local WasThereAnyGobInHereAlready = false
 
-                     local addedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were successfully added to the catalog : "
-                     local notAddedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs already are in the catalog : "
-                     local DoesAnyGobWereAdded = false
-                     local WasThereAnyGobInHereAlready = false
-
-                     for i, j in pairs(selectedGobs) do
-                        if isGobInUserCatalog(value, j.id) then --Already in there
-                           notAddedGobs = notAddedGobs..""..(j.name or getGobName(j.id)).."; "
-                           WasThereAnyGobInHereAlready = true
-                        else
-                           DoesAnyGobWereAdded = true
-                           addedGobs = addedGobs..""..(j.name or getGobName(j.id)).."; "
-                           g.db.userCatalogs[value][j.id] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
-                        end
-                     end
-
-                     if catalogListScrollDown:GetValue() == (value + 1) then --refresh if same catalog
-                        selectedCatalog(catalogListScrollDown:GetValue())
-                        currentGobList = divideGobList(getGobList(" ", catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
-                        updateGobGrid(currentGobList, 1)
-                     end
-
-                     if DoesAnyGobWereAdded then print(addedGobs) else print(addedGobs.." None.") end
-                     if  WasThereAnyGobInHereAlready then print(notAddedGobs) end
-                     catalogGOBWindow.closeBtn:Click()
-
-                  else --Remove
-
-                     local removedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were successfully removed from the catalog : "
-                     local gobNotInUserCatalog = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were not in the catalog : "
-                     local WasThereAnyRemovedGob = false
-                     local WasThereAnyMissingGob = false
-
-                     local confirmOptions = {
-
-                        confirm = {
-                           text = 'Confirm',
-                           onClick = function(b)
-                              for i, j in pairs(selectedGobs) do
-                                 if isGobInUserCatalog(value, j.id) then --In there, as expected.
-                                    WasThereAnyRemovedGob = true
-                                    removedGobs = removedGobs..""..(j.name or getGobName(j.id)).."; "
-                                    g.db.userCatalogs[value][j.id] = nil
-                                 else
-                                    WasThereAnyMissingGob = true
-                                    gobNotInUserCatalog = gobNotInUserCatalog..""..(j.name or getGobName(j.id)).."; "
+                        for i, j in pairs(selectedGobs) do
+                           if isGobInUserCatalog(value, j.id) then --Already in there
+                              notAddedGobs = notAddedGobs..""..(j.name or getGobName(j.id)).."; "
+                              WasThereAnyGobInHereAlready = true
+                           else
+                              DoesAnyGobWereAdded = true
+                              addedGobs = addedGobs..""..(j.name or getGobName(j.id)).."; "
+                              if gobs then
+                                 g.db.userCatalogs[value][j.id] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
+                              else
+                                 if g.db.userDisplayCatalogs[value] == nil then
+                                    g.db.userDisplayCatalogs[value] = {}
                                  end
+                                 g.db.userDisplayCatalogs[value][j.id] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
                               end
-                              if catalogListScrollDown:GetValue() == (value + 1) then --refresh if same catalog
-                                 selectedCatalog(catalogListScrollDown:GetValue())
-                                 currentGobList = divideGobList(getGobList(" ", catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
-                                 updateGobGrid(currentGobList, 1)
-                              end
-                              if WasThereAnyRemovedGob then print(removedGobs) else print(removedGobs.." None.") end
-                              if WasThereAnyMissingGob then print(gobNotInUserCatalog) end
-                              b.window:Hide();
-                              catalogGOBWindow.closeBtn:Click()
                            end
-                        },
+                        end
 
-                        cancel = {
-                           text = "Cancel",
-                           onClick = function(b)
-                              b.window:Hide();
-                           end
+                        if catalogListScrollDown:GetValue() == (value + 1) then --refresh if same catalog
+                           selectedCatalog(catalogListScrollDown:GetValue())
+                           currentGobList = divideGobList(getGobList(" ", catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
+                           updateGobGrid(currentGobList, 1)
+                        end
+
+                        if DoesAnyGobWereAdded then print(addedGobs) else print(addedGobs.." None.") end
+                        if  WasThereAnyGobInHereAlready then print(notAddedGobs) end
+                        catalogGOBWindow.closeBtn:Click()
+
+                     else --Remove
+
+                        local removedGobs = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were successfully removed from the catalog : "
+                        local gobNotInUserCatalog = "\124cFF4594C1[Epsilon_Viewer]\124r - Those gobs were not in the catalog : "
+                        local WasThereAnyRemovedGob = false
+                        local WasThereAnyMissingGob = false
+
+                        local confirmOptions = {
+
+                           confirm = {
+                              text = 'Confirm',
+                              onClick = function(b)
+                                 for i, j in pairs(selectedGobs) do
+                                    if isGobInUserCatalog(value, j.id) then --In there, as expected.
+                                       WasThereAnyRemovedGob = true
+                                       removedGobs = removedGobs..""..(j.name or getGobName(j.id)).."; "
+                                       if gobs then
+                                          g.db.userCatalogs[value][j.id] = nil
+                                       else
+                                          g.db.userDisplayCatalogs[value][j.id] = nil
+                                       end
+                                    else
+                                       WasThereAnyMissingGob = true
+                                       gobNotInUserCatalog = gobNotInUserCatalog..""..(j.name or getGobName(j.id)).."; "
+                                    end
+                                 end
+                                 if catalogListScrollDown:GetValue() == (value + 1) then --refresh if same catalog
+                                    selectedCatalog(catalogListScrollDown:GetValue())
+                                    currentGobList = divideGobList(getGobList(" ", catalogListScrollDown:GetValue(), maxgobs, includeEpsilonTiles), columns, rows)
+                                    updateGobGrid(currentGobList, 1)
+                                 end
+                                 if WasThereAnyRemovedGob then print(removedGobs) else print(removedGobs.." None.") end
+                                 if WasThereAnyMissingGob then print(gobNotInUserCatalog) end
+                                 b.window:Hide();
+                                 catalogGOBWindow.closeBtn:Click()
+                              end
+                           },
+
+                           cancel = {
+                              text = "Cancel",
+                              onClick = function(b)
+                                 b.window:Hide();
+                              end
+                           }
                         }
-                     }
 
-                     StdUi:Confirm("Delete all "..countOfDot.." gobs ?", "Are you sure ?", confirmOptions, nil)
-                  end
+                        StdUi:Confirm("Delete all "..#selectedGobs.." gobs ?", "Are you sure ?", confirmOptions, nil)
+                     end
 
-               else print("\124cFF4594C1[Epsilon_Viewer]\124r - You can't add or remove gobs from the Default list.") end
+                  else print("\124cFF4594C1[Epsilon_Viewer]\124r - You can't add or remove gobs from the Default list.") end
 
-            end)
+               end)
 
 
-            StdUi:GlueTop(addOrRemoveLabel, catalogGOBWindow, 0, -40);
-            StdUi:GlueAbove(catalogGOBlist, optionDropDown, 0, 10);
-            StdUi:GlueAbove(optionDropDown, confirmButton, 0, 10);
-            StdUi:GlueBottom(confirmButton, catalogGOBWindow, 0, 20);
-
+               StdUi:GlueTop(addOrRemoveLabel, catalogGOBWindow, 0, -40);
+               StdUi:GlueAbove(catalogGOBlist, optionDropDown, 0, 10);
+               StdUi:GlueAbove(optionDropDown, confirmButton, 0, 10);
+               StdUi:GlueBottom(confirmButton, catalogGOBWindow, 0, 20);
+            else
+               addOrRemoveLabel:SetText(listLabel)
+               catalogGOBlist:SetOptions(g.db.catalogNameList)
+               catalogGOBWindow:Show()
+            end
 
          else
             print("\124cFF4594C1[Epsilon_Viewer]\124r - No GOB has been selected.")
@@ -1072,54 +1186,65 @@ local function ShowGobBrowser()
 
 
    local importButton = StdUi:Button(gobFrame, 50, 30, 'Import'); --Import a catalog (not is JSON)
+   local importWindow, importName, importString
    importButton:SetScript("OnClick", function()
+      if not importWindow then
+         importWindow = utils.Window(UIParent, 250, 180, "Catalog Import")
+         importWindow:SetFrameLevel(20)
+         importWindow.closeBtn:SetFrameLevel(21)
+         importWindow:Show()
 
-      local importWindow = utils.Window(UIParent, 250, 180, "Catalog Import")
-      importWindow:SetFrameLevel(20)
-      importWindow.closeBtn:SetFrameLevel(21)
-      importWindow:Show()
+         importName = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's name");
+         importName:SetFrameLevel(21)
 
-      local importName = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's name");
-      importName:SetFrameLevel(21)
+         importString = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's table");
+         importString:SetFrameLevel(21)
 
-      local importString = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's table");
-      importString:SetFrameLevel(21)
+         local confirmButton = StdUi:Button(importWindow, 80, 30, "Import")
+         confirmButton:SetScript('OnClick', function()
 
-      local confirmButton = StdUi:Button(importWindow, 80, 30, "Import")
-      confirmButton:SetScript('OnClick', function()
+            local catalogTitle = importName:GetText()
+            local catalogString = importString:GetText()
+            importCatalog(catalogTitle, catalogString)
+            importWindow.closeBtn:Click()
 
-         local catalogTitle = importName:GetText()
-         local catalogString = importString:GetText()
-         importCatalog(catalogTitle, catalogString)
-         importWindow.closeBtn:Click()
+         end);
+         confirmButton:SetFrameLevel(21)
 
-      end);
-      confirmButton:SetFrameLevel(21)
-
-      StdUi:GlueTop(importName, importWindow, 0, -50);
-      StdUi:GlueBelow(importString, importName, 0, -20);
-      StdUi:GlueBelow(confirmButton, importString, 0, -20);
-
+         StdUi:GlueTop(importName, importWindow, 0, -50);
+         StdUi:GlueBelow(importString, importName, 0, -20);
+         StdUi:GlueBelow(confirmButton, importString, 0, -20);
+      else
+         importName:SetText("Catalog's name")
+         importString:SetText("Catalog's table")
+         importWindow:Show()
+      end
    end)
 
 
 
    local exportButton = StdUi:Button(gobFrame, 50, 30, 'Export'); --Export a catalog (not is JSON)
+   local exportCatalogValue, exportCatalogName, exportWindow, exportEditBox
    exportButton:SetScript("OnClick", function()
 
-      local catalogValue = catalogListScrollDown:GetValue()
+      exportCatalogValue = catalogListScrollDown:GetValue()
 
-      if catalogValue > 1 then
-         local catalogName = g.db.catalogNameList[catalogValue].text
-         local exportWindow = utils.Window(UIParent, 250, 125, "Export "..catalogName)
-         exportWindow:SetFrameLevel(20)
-         exportWindow.closeBtn:SetFrameLevel(21)
-         exportWindow:Show()
-         local catalogValue = catalogValue - 1
-         local editBox = StdUi:SimpleEditBox(exportWindow, 225, 25, utils.serialize(g.db.userCatalogs[catalogValue])); --Well, json is a shitty option for that case, glad I fund something else.
-         editBox:SetFrameLevel(21)
-         StdUi:GlueBottom(editBox, exportWindow, 0, 40)
-
+      if exportCatalogValue > 1 then
+         if not exportWindow then
+            exportCatalogName = g.db.catalogNameList[exportCatalogValue].text
+            exportWindow = utils.Window(UIParent, 250, 125, "Export "..exportCatalogName)
+            exportWindow:SetFrameLevel(20)
+            exportWindow.closeBtn:SetFrameLevel(21)
+            exportWindow:Show()
+            exportEditBox = StdUi:SimpleEditBox(exportWindow, 225, 25, utils.serialize(g.db.userCatalogs[exportCatalogValue-1])); --Well, json is a shitty option for that case, glad I fund something else.
+            exportEditBox:SetFrameLevel(21)
+            StdUi:GlueBottom(exportEditBox, exportWindow, 0, 40)
+         else
+            exportCatalogName = g.db.catalogNameList[exportCatalogValue].text
+            exportWindow:SetWindowTitle("Export "..exportCatalogName)
+            exportEditBox:SetText(utils.serialize(g.db.userCatalogs[exportCatalogValue-1]))
+            exportWindow:Show()
+         end
       else
          print("\124cFF4594C1[Epsilon_Viewer]\124r - You can't export the default catalog ! Trust me, you don't want to do that.")
       end
@@ -1248,7 +1373,56 @@ local function ShowGobBrowser()
       startSearch()
    end)
 
+   --Gobs and Display Ids Tabs
+   local tabs = {
+      {
+         name = "GameObjects",
+         title = "Game Objects"
+      },
+      {
+         name = "DisplayIDs",
+         title = "Display IDs"
+      }
+   }
 
+   local tabs = StdUi:TabPanel(gobFrame ,1, 1, tabs, false)
+
+   tabs:EnumerateTabs(function(tab)
+      if tab.name == "GameObjects" then
+         local _origOnClick = tab.button:GetScript("OnClick")
+         tab.button:SetScript("OnClick", function(self)
+            genericPageTable = setmetatable({}, page_meta)
+            getGODIPageCount = getGODIPageCountObjects
+            getList = getListFromEpsilon
+            gobs = true
+            currentGobList = fakePaginationGODITable
+            local currentCatalog = catalogListScrollDown:GetValue()
+            if currentCatalog > 1 then
+               selectedCatalog(currentCatalog)
+               currentGobList = divideGobList(getGobList(" ", currentCatalog, maxgobs, includeEpsilonTiles), columns, rows)
+            end
+            updateGobGrid(currentGobList, 1)
+            _origOnClick(self)
+         end)
+      elseif tab.name == "DisplayIDs" then
+         local _origOnClick = tab.button:GetScript("OnClick")
+         tab.button:SetScript("OnClick", function(self)
+            genericPageTable = setmetatable({}, page_meta_displays)
+            getGODIPageCount = getGODIPageCountDisplays
+            getList = getDisplayIDs
+            gobs = false
+            currentGobList = fakePaginationGODITable
+            local currentCatalog = catalogListScrollDown:GetValue()
+            if currentCatalog > 1 then
+               selectedCatalog(currentCatalog)
+               currentGobList = divideGobList(getGobList(" ", currentCatalog, maxgobs, includeEpsilonTiles), columns, rows)
+            end
+            updateGobGrid(currentGobList, 1)
+            _origOnClick(self)
+         end)
+      end
+   end)
+   
    --Layout
    StdUi:GlueBottom(currentPageLabel, gobFrame, 0, 10, "CENTER");
    StdUi:GlueTop(searchBox, gobFrame, 35, -40, 'LEFT');
@@ -1261,6 +1435,7 @@ local function ShowGobBrowser()
    StdUi:GlueRight(importButton, addOrRemoveFromCatalog, 5, 0);
    StdUi:GlueRight(exportButton, importButton, 5, 0);
    StdUi:GlueRight(gobFrameSlider, gobFrame, -10, -20, true)
+   StdUi:GlueTop(tabs, gobFrame, 35, -75, 'LEFT')
    StdUi:GlueBottom(previousButton, gobFrame, 25, 10, "LEFT");
    StdUi:GlueBottom(nextButton, gobFrame, -25, 10, "RIGHT");
 
