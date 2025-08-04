@@ -6,8 +6,6 @@
 ## RequiredDeps: EpsilonLib
 ## Version: 1.0
 
-Libs\Embeds.xml
-
 Epsilon_Phases.xml
 
 
