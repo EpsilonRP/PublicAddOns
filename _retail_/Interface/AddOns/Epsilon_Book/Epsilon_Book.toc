@@ -6,7 +6,6 @@
 ## Dependencies: EpsilonLib
 ## SavedVariables: Epsilon_Book
 
-Libs\Embeds.xml
 Lists\TextureList.lua
 Lists\AtlasInfo.lua
 
