@@ -396,6 +396,11 @@ local function executeSpellFinal(actionsToCommit, bypassCheck, spellName, spellD
 	spellCastID = spellCastID + 1
 	for index, action in pairs(actionsToCommit) do
 		local vars = action.vars
+		if not action.actionType then
+			local errorMessage = ("Action Error (Action #%s): No Action Type selected."):format(index)
+			ns.Logging.arcWarning(errorMessage)
+			return
+		end
 		local _actionTypeData = actionTypeData[action.actionType]
 
 		if _actionTypeData then
