@@ -101,6 +101,10 @@
 				EpsilonAuraManagerButton_OnClick(self, button);
 				PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
 			</OnClick>
+			<OnDoubleClick>
+				PlaySound(83);
+				EpsilonAuraManagerButton_Edit(self, button)
+			</OnDoubleClick>
 			<OnEnter>
 				EpsilonAuraManagerButton_OnEnter(self);
 			</OnEnter>

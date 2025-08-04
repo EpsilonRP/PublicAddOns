@@ -10,13 +10,13 @@ local filteredList;
 local FPSThrottle = 30;
 local MinFPS = 5;
 local maxSpellID = 403865 + 100000; --	Last known spell (This is the internal limit for this build)
-local extraRangeStart = 100001;		-- For skybox spells
+local extraRangeStart = 100001;     -- For skybox spells
 local extraRangeEnd = 1003865;
 
 local searchCache = {};
 local Scanner = CreateFrame("Frame");
 
-local function SetSearch( text )
+local function SetSearch(text)
 	text = text:lower();
 	local tokens = {};
 	for word in text:gmatch("%S+") do
@@ -33,7 +33,7 @@ local function SetSearch( text )
 	-- build new list
 	filteredList = {};
 	local ScanPos = 0;
-    local inExtraRange = false;
+	local inExtraRange = false;
 	local FirstPass = false;
 	local RunTime = 0;
 	local resultList = {}
@@ -60,27 +60,27 @@ local function SetSearch( text )
 				end
 
 				if match then
-					local tbl = { 
-						spellID = ScanPos, 
-						name = name, 
+					local tbl = {
+						spellID = ScanPos,
+						name = name,
 						icon = icon or "Interface\\Icons\\INV_Misc_QuestionMark",
 						desc = desc
 					};
 					C_Spell.RequestLoadSpellData(ScanPos)
-					table.insert( resultList, tbl );
+					table.insert(resultList, tbl);
 				end
 
 				-- increment scan position
-                ScanPos = ScanPos + 1
+				ScanPos = ScanPos + 1
 
 				-- move to extra range if normal range is done
-                if not inExtraRange and ScanPos > maxSpellID then
-                    ScanPos = extraRangeStart
-                    inExtraRange = true
-                elseif inExtraRange and ScanPos > extraRangeEnd then
-                    ScanPos = nil
-                    break
-                end
+				if not inExtraRange and ScanPos > maxSpellID then
+					ScanPos = extraRangeStart
+					inExtraRange = true
+				elseif inExtraRange and ScanPos > extraRangeEnd then
+					ScanPos = nil
+					break
+				end
 			end
 			FirstPass = true;
 		end
@@ -105,12 +105,12 @@ local function GetNumSearchResults()
 	return 0;
 end
 
-local function GetSearchDisplay( index )
-	if not( filteredList ) then
+local function GetSearchDisplay(index)
+	if not (filteredList) then
 		return
 	end
 	local spellDesc = GetSpellDescription(filteredList[index].spellID, true) or "";
-	
+
 	return filteredList[index].name, filteredList[index].icon, filteredList[index].spellID, desc;
 end
 
@@ -121,29 +121,29 @@ end
 
 function EpsilonAuraManagerAuraEditor_SelectSearch(index)
 	local buff = filteredList[index];
-	
-	if not( buff ) then
+
+	if not (buff) then
 		return
 	end
 
-	local name 	  = buff.name
-	local icon 	  = buff.icon
-	local desc 	  = buff.desc
-	local spellDesc = GetSpellDescription(buff.spellID, true);
-	local spellID = buff.spellID
-	local visible = true
+	local name          = buff.name
+	local icon          = buff.icon
+	local desc          = buff.desc
+	local spellDesc     = GetSpellDescription(buff.spellID, true);
+	local spellID       = buff.spellID
+	local visible       = true
 	local allowOverride = false
 
-	if Epsilon_AuraManager_IsAlreadyInAuraList( spellID ) then
+	if Epsilon_AuraManager_IsAlreadyInAuraList(spellID) then
 		local popup = StaticPopup_Show("EpsilonAuraManager_SPELLALREADYINLIST", nil, nil, spellID)
-	else 
+	else
 		EpsilonAuraManagerAuraEditor.buffIcon:Enable()
 		EpsilonAuraManagerAuraEditor.buffDesc.EditBox:Enable()
 		EpsilonAuraManagerAuraEditor.spellDesc.EditBox:Enable()
 		EpsilonAuraManagerAuraEditor.buffName:Enable()
 		--EpsilonAuraManagerAuraEditor.Search:SetText(spellID .. ' - ' .. name)
-		EpsilonAuraManagerAuraEditor.originalBuffIcon:SetTexture( icon )
-		EpsilonAuraManagerAuraEditor.originalBuffName:SetText( "|cFFFFFFFF" .. spellID .. " -|r " .. name )
+		EpsilonAuraManagerAuraEditor.originalBuffIcon:SetTexture(icon)
+		EpsilonAuraManagerAuraEditor.originalBuffName:SetText("|cFFFFFFFF" .. spellID .. " -|r " .. name)
 		EpsilonAuraManagerAuraEditor.buffVisibility:Enable()
 		EpsilonAuraManagerAuraEditor.buffOverride:Enable()
 		EpsilonAuraManagerAuraEditor.buffName.Label:SetTextColor(1.0, 0.82, 0)
@@ -151,10 +151,10 @@ function EpsilonAuraManagerAuraEditor_SelectSearch(index)
 		EpsilonAuraManagerAuraEditor.spellDesc.Label:SetTextColor(1.0, 0.82, 0)
 		EpsilonAuraManagerAuraEditor.buffOverride.Text:SetTextColor(1.0, 0.82, 0)
 		EpsilonAuraManagerAuraEditor.buffID = spellID
-		EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture( icon )
-		EpsilonAuraManagerAuraEditor.buffName:SetText( name )
-		EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText( desc )
-		EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText( spellDesc )
+		EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture(icon)
+		EpsilonAuraManagerAuraEditor.buffName:SetText(name)
+		EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(desc)
+		EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(spellDesc)
 		EpsilonAuraManagerAuraEditor.buffVisibility:SetChecked(visible)
 		EpsilonAuraManagerAuraEditor.buffVisibility.Text:SetTextColor(1.0, 0.82, 0)
 		EpsilonAuraManagerAuraEditor.buffOverride:SetChecked(allowOverride);
@@ -195,7 +195,7 @@ function EpsilonAuraManagerAuraEditor_UpdateSearchPreview(isSearchDone)
 
 	EpsilonAuraManagerAuraEditor.Search.searchIndicator:SetPoint("TOP", EpsilonAuraManagerAuraEditor.Search.searchPreview[lastShownEntry], "BOTTOM")
 	EpsilonAuraManagerAuraEditor.Search.showAllResults:SetPoint("TOP", EpsilonAuraManagerAuraEditor.Search.searchPreview[lastShownEntry], "BOTTOM")
-	
+
 	EpsilonAuraManagerAuraEditor.Search.showAllResults:Hide();
 	if isSearchDone then
 		EpsilonAuraManagerAuraEditor.Search.showAllResults.text:SetText(string.format("Show All %d Results", numResults));
@@ -316,42 +316,42 @@ function EpsilonAuraManagerAuraEditor_OnFocusGained(self)
 end
 
 function EpsilonAuraManagerAuraEditor_SearchUpdate()
-  local scrollFrame = EpsilonAuraManagerSearchResults.scrollFrame;
-  local offset = HybridScrollFrame_GetOffset(scrollFrame);
-  local results = scrollFrame.buttons;
-  local result, index;
- 
-  local numResults = GetNumSearchResults();
- 
-  for i = 1,#results do
-    result = results[i];
-    index = offset + i;
-    if index <= numResults then
-      local name, icon, spellID, desc = GetSearchDisplay(index);
- 
-      result.spellID = spellID;
-      result.SpellName:SetText(name);
-      result.SpellDesc:SetText(desc);
-      result.SpellID:SetText(spellID);
-      result.SpellIcon:SetTexture(icon);
-      result:SetID(index);
-      result:Show();
- 
-      if result.showingTooltip then
-        if spellID then
-          GameTooltip:SetOwner(result, "ANCHOR_RIGHT");
-		  GameTooltip:SetSpellByID(spellID)
-        else
-          GameTooltip:Hide();
-        end
-      end
-    else
-      result:Hide();
-    end
-  end
- 
-  local totalHeight = numResults * 49;
-  HybridScrollFrame_Update(scrollFrame, totalHeight, 370);
+	local scrollFrame = EpsilonAuraManagerSearchResults.scrollFrame;
+	local offset = HybridScrollFrame_GetOffset(scrollFrame);
+	local results = scrollFrame.buttons;
+	local result, index;
+
+	local numResults = GetNumSearchResults();
+
+	for i = 1, #results do
+		result = results[i];
+		index = offset + i;
+		if index <= numResults then
+			local name, icon, spellID, desc = GetSearchDisplay(index);
+
+			result.spellID = spellID;
+			result.SpellName:SetText(name);
+			result.SpellDesc:SetText(desc);
+			result.SpellID:SetText(spellID);
+			result.SpellIcon:SetTexture(icon);
+			result:SetID(index);
+			result:Show();
+
+			if result.showingTooltip then
+				if spellID then
+					GameTooltip:SetOwner(result, "ANCHOR_RIGHT");
+					GameTooltip:SetSpellByID(spellID)
+				else
+					GameTooltip:Hide();
+				end
+			end
+		else
+			result:Hide();
+		end
+	end
+
+	local totalHeight = numResults * 49;
+	HybridScrollFrame_Update(scrollFrame, totalHeight, 370);
 end
 
 function EpsilonAuraManagerAuraEditor_SetSearchPreviewSelection(selectedIndex)
@@ -402,29 +402,29 @@ function EpsilonAuraManagerAuraEditor_ShowFullSearch()
 end
 
 function EpsilonAuraManagerSearchResults_OnLoad(self)
-	self:SetClampedToScreen( true );
+	self:SetClampedToScreen(true);
 	self:SetMovable(true);
 	self:EnableMouse(true);
-	self:RegisterForDrag( "LeftButton" );
-	self:SetScript( "OnDragStart", self.StartMoving );
-	self:SetScript( "OnDragStop", self.StopMovingOrSizing );
-	self:SetUserPlaced( true );
+	self:RegisterForDrag("LeftButton");
+	self:SetScript("OnDragStart", self.StartMoving);
+	self:SetScript("OnDragStop", self.StopMovingOrSizing);
+	self:SetUserPlaced(true);
 
 	self.scrollFrame.update = EpsilonAuraManagerAuraEditor_SearchUpdate;
 	self.scrollFrame.scrollBar.doNotHide = true;
 	HybridScrollFrame_CreateButtons(self.scrollFrame, "EpsilonAuraManagerSearchEntryTemplate", 0, 0);
 end
 
-function EpsilonAuraManagerAuraEditor_BuffButton_FormatTime( seconds )
-	local timeRemaining = math.floor( seconds ) .. " seconds"
+function EpsilonAuraManagerAuraEditor_BuffButton_FormatTime(seconds)
+	local timeRemaining = math.floor(seconds) .. " seconds"
 	if seconds > 86400 then
-		seconds = math.ceil( seconds / 86400 )
+		seconds = math.ceil(seconds / 86400)
 		timeRemaining = seconds .. " days"
 	elseif seconds > 3600 then
-		seconds = math.ceil( seconds / 3600 )
+		seconds = math.ceil(seconds / 3600)
 		timeRemaining = seconds .. " hours"
 	elseif seconds > 60 then
-		seconds = math.ceil( seconds / 60 )
+		seconds = math.ceil(seconds / 60)
 		timeRemaining = seconds .. " minutes"
 	end
 	return timeRemaining
@@ -481,61 +481,62 @@ function EpsilonAuraManagerAuraEditor_Refresh()
 		EpsilonAuraManagerAuraEditor.buffOverride:Show()
 		EpsilonAuraManagerAuraEditor:SetHeight(470)
 	end
-	
-	EpsilonAuraManagerAuraEditor.originalBuffIcon:SetTexture( buff.icon )
+
+	local originalName, _, originalIcon = GetSpellInfo(spellID, nil, true)
+
+	EpsilonAuraManagerAuraEditor.originalBuffIcon:SetTexture(originalIcon)
 	if spellID then
 		EpsilonAuraManagerAuraEditor.originalBuffIcon:SetDesaturated(false)
-		EpsilonAuraManagerAuraEditor.originalBuffName:SetText( "|cFFFFFFFF" .. spellID .. " -|r " .. buff.name )
+		EpsilonAuraManagerAuraEditor.originalBuffName:SetText("|cFFFFFFFF" .. spellID .. " -|r " .. originalName)
 	else
 		EpsilonAuraManagerAuraEditor.originalBuffIcon:SetDesaturated(true)
-		EpsilonAuraManagerAuraEditor.originalBuffName:SetText( "|cFF999999(No Aura Selected)" )
+		EpsilonAuraManagerAuraEditor.originalBuffName:SetText("|cFF999999(No Aura Selected)")
 	end
-	EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture( buff.icon )
-	EpsilonAuraManagerAuraEditor.buffName:SetText( buff.name )
-	EpsilonAuraManagerAuraEditor.buffVisibility:SetChecked( buff.visible )
-	EpsilonAuraManagerAuraEditor.buffOverride:SetChecked( buff.allowOverride)
-	EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText (buff.desc)
-	EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText (buff.spellDesc)
+	EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture(buff.icon)
+	EpsilonAuraManagerAuraEditor.buffName:SetText(buff.name)
+	EpsilonAuraManagerAuraEditor.buffVisibility:SetChecked(buff.visible)
+	EpsilonAuraManagerAuraEditor.buffOverride:SetChecked(buff.allowOverride)
+	EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(buff.desc)
+	EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(buff.spellDesc)
 	EpsilonAuraManagerAuraEditor.selected = nil
 
 	isDirty = false;
 end
 
-
 function EpsilonAuraManagerAuraEditor_Save()
-	if  not EpsilonAuraManagerAuraEditor.buffID then
+	if not EpsilonAuraManagerAuraEditor.buffID then
 		return
 	end
 
 	if EpsilonAuraManagerAuraEditor.buffName:GetText() == "" then
-		UIErrorsFrame:AddMessage( "Invalid name: too short.", 1.0, 0.0, 0.0, 53, 5 );
+		UIErrorsFrame:AddMessage("Invalid name: too short.", 1.0, 0.0, 0.0, 53, 5);
 		return
 	end
 
 	local spellID = EpsilonAuraManagerAuraEditor.buffID;
 
 	spell = {
-		name	 = EpsilonAuraManagerAuraEditor.buffName:GetText();
-		icon	 = EpsilonAuraManagerAuraEditor.buffIcon.icon:GetTexture();
-		desc 	 = EpsilonAuraManagerAuraEditor.buffDesc.EditBox:GetText();
-		spellDesc = EpsilonAuraManagerAuraEditor.spellDesc.EditBox:GetText();
-		visible  = EpsilonAuraManagerAuraEditor.buffVisibility:GetChecked();
-		allowOverride = EpsilonAuraManagerAuraEditor.buffOverride:GetChecked();
+		name          = EpsilonAuraManagerAuraEditor.buffName:GetText(),
+		icon          = EpsilonAuraManagerAuraEditor.buffIcon.icon:GetTexture(),
+		desc          = EpsilonAuraManagerAuraEditor.buffDesc.EditBox:GetText(),
+		spellDesc     = EpsilonAuraManagerAuraEditor.spellDesc.EditBox:GetText(),
+		visible       = EpsilonAuraManagerAuraEditor.buffVisibility:GetChecked(),
+		allowOverride = EpsilonAuraManagerAuraEditor.buffOverride:GetChecked(),
 	};
 	Epsilon_AuraManager_Save(spell, spellID)
 	EpsilonAuraManagerAuraEditor_Close()
 	EpsilonAuraManagerFrame_Update()
 end
 
-function EpsilonAuraManagerAuraEditor_SelectIcon( texture )
-	EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture( texture )
+function EpsilonAuraManagerAuraEditor_SelectIcon(texture)
+	EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture(texture)
 end
 
 function EpsilonAuraManager_PickIcon()
-    EpsilonLibIconPicker_Open(EpsilonAuraManagerAuraEditor_SelectIcon, true, true)
+	EpsilonLibIconPicker_Open(EpsilonAuraManagerAuraEditor_SelectIcon, true, true)
 end
 
-function EpsilonAuraManagerAuraEditor_Close( checkForEdits )
+function EpsilonAuraManagerAuraEditor_Close(checkForEdits)
 	if checkForEdits and isDirty then
 		StaticPopup_Show("EpsilonAuraManager_CANCELCONFIRMATION")
 	else
