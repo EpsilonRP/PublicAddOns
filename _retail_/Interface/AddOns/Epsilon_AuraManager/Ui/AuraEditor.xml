@@ -601,14 +601,14 @@
 		</Scripts>
 	  </EditBox>
 
-	  <ScrollFrame parentKey="buffDesc" name="$parentbuffDesc" inherits="InputScrollFrameTemplate">
+	  <ScrollFrame parentKey="buffDesc" name="$parentBuffDesc" inherits="InputScrollFrameTemplate">
 		<Size x="250" y="64"/>
 		<Anchors>
 			<Anchor point="TOPLEFT" relativeKey="$parent.buffIcon" relativePoint="BOTTOMLEFT" x="4" y="-24"/>
 		</Anchors>
 		<Layers>
 			<Layer level="ARTWORK">
-				<FontString name="$parentbuffDescTitle" parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Aura Description">
+				<FontString name="$parentBuffDescTitle" parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Aura Description">
 				<Size x="150" y="12"/>
 				<Anchors>
 				  <Anchor point="TOPLEFT" x="0" y="20"/>
@@ -624,11 +624,14 @@
 			<OnLoad>
 				InputScrollFrame_OnLoad(self);
 				self.EditBox:HookScript("OnTextChanged", EpsilonAuraManagerAuraEditor_MarkDirty);
+				self.EditBox:HookScript("OnTabPressed", function()
+					EpsilonAuraManagerAuraEditorSpellDesc.EditBox:SetFocus();
+				end);
 			</OnLoad>
 		</Scripts>
 	  </ScrollFrame>
 
-	  <ScrollFrame parentKey="spellDesc" name="$parentspellDesc" inherits="InputScrollFrameTemplate">
+	  <ScrollFrame parentKey="spellDesc" name="$parentSpellDesc" inherits="InputScrollFrameTemplate">
 		<Size x="250" y="64"/>
 		<Anchors>
 			<Anchor point="TOP" relativeKey="$parent.buffDesc" relativePoint="BOTTOM" x="0" y="-30"/>
@@ -651,6 +654,9 @@
 			<OnLoad>
 				InputScrollFrame_OnLoad(self);
 				self.EditBox:HookScript("OnTextChanged", EpsilonAuraManagerAuraEditor_MarkDirty);
+				self.EditBox:HookScript("OnTabPressed", function()
+					EpsilonAuraManagerAuraEditorBuffName:SetFocus();
+				end);
 			</OnLoad>
 		</Scripts>
 	  </ScrollFrame>
