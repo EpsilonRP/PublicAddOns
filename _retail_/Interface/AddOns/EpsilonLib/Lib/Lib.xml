@@ -28,5 +28,6 @@
 	<Include file="LibScrollableDropdown\LibScrollableDropdown.xml"/>
 	<Include file="lib-st\lib-st.xml"/>
 
+	<Include file="AceGUI-3.0_SFX-Widgets\AceGUI-3.0_SFX-Widgets.xml" />
 	<Include file="MAW-Widgets\MAW-Widgets.xml" />
 </Ui>

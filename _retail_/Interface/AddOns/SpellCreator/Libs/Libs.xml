@@ -21,8 +21,8 @@
 	<Include file="Libs\LibBase64-1.0\LibBase64-1.0.xml" />
 	-->
 
-	<Include file="Libs\AceGUI-3.0_SFX-Widgets\AceGUI-3.0_SFX-Widgets.xml" />
 	<!--
+	<Include file="Libs\AceGUI-3.0_SFX-Widgets\AceGUI-3.0_SFX-Widgets.xml" />
 	<Include file="Libs\MAW-Widgets\MAW-Widgets.xml" />
 	-->
 
