@@ -1,0 +1,43 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+    <CheckButton name="EpsilonAuraManagerCollapseAndExpandButton" parent="BuffFrame">
+        <Size x="15" y="30"/>
+        <Anchors>
+            <Anchor point="RIGHT" relativePoint="RIGHT" x="17" y="7"/>
+        </Anchors>
+        <Scripts>
+            <OnClick>
+                Epsilon_AuraManager_ToggleShowHidden()
+                if Epsilon_AuraManager.showHidden then
+                    self:SetNormalTexture("interface/moneyframe/arrow-right-up.blp")
+                    self:SetPushedTexture("interface/moneyframe/arrow-right-down.blp")
+                else
+                    self:SetNormalTexture("interface/moneyframe/arrow-left-up.blp")
+                    self:SetPushedTexture("interface/moneyframe/arrow-left-down.blp")
+                end
+				self:GetScript("OnEnter")(self);
+            </OnClick>
+			<OnEnter>
+				self.status = "Show";
+				if Epsilon_AuraManager.showHidden then
+				    self.status = "Hide";
+				end
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				GameTooltip:AddLine( self.status .. " Hidden Auras", 1, 1, 1, 1)
+				GameTooltip:Show();
+			</OnEnter>
+			<OnLeave function="GameTooltip_Hide"/>
+        </Scripts>
+        <NormalTexture file="interface/moneyframe/arrow-left-up.blp">
+            <Size x="10" y="16"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </NormalTexture>
+        <PushedTexture file="interface/moneyframe/arrow-left-down.blp">
+            <Size x="10" y="16"/>
+            <Anchors>
+                <Anchor point="CENTER"/>
+            </Anchors>
+        </PushedTexture>
+    </CheckButton>
+</Ui>

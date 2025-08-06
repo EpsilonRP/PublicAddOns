@@ -926,7 +926,7 @@ end
 -------------------------------------------------------------------------------
 
 local option_predicate = function(text, button)
-	return text and (text == "I want to browse your goods.")
+	if text and text == "I want to browse your goods." then return true end
 end
 
 local option_callback = function(self, button, down, originalText)
@@ -940,6 +940,35 @@ local option_callback = function(self, button, down, originalText)
 end
 
 EpsilonLib.Utils.Gossip:RegisterButtonHook(option_predicate, option_callback)
+
+local function add_vendor_predicate(options)
+	if not C_Epsilon.IsDM then return false end
+	if not Me.IsPhaseOwner() then return false end
+	local hasMerchant = false
+	for k, v in ipairs(options) do
+		if v.name == "I want to browse your goods." then
+			hasMerchant = true
+			break
+		end
+	end
+	return not hasMerchant
+end
+
+local function add_vendor_callback()
+	local guid = UnitGUID("target")
+	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
+	Epsilon_MerchantFrame.merchantID = id;
+	Epsilon_MerchantFrame.addingVendor = true;
+	SendChatMessage( ".phase forge npc gossip option add I want to browse your goods.", "GUILD" );
+	SendChatMessage( ".phase forge npc gossip option icon "..C_GossipInfo.GetNumOptions(true).." 1", "GUILD" );
+end
+
+local semiTextColor = CreateColor(0.3,0.3,0.3,1)
+EpsilonLib.Utils.Gossip:RegisterCustomButton(add_vendor_predicate,
+	'vendor', semiTextColor:WrapTextInColorCode('[DM Option] Make this NPC a vendor'),
+	add_vendor_callback
+)
+
 
 function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 	if ( event == "UNIT_INVENTORY_CHANGED" or event == "BAG_UPDATE" ) then
@@ -1004,7 +1033,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 							GossipFrame:EnableMouse(false)
 						end)
 						--]]
-						GossipTitleButtonAddVendor:Hide()
+						--GossipTitleButtonAddVendor:Hide()
 						if Me.IsPhaseOwner() and C_Epsilon.IsDM then
 							GossipTitleButtonRemoveVendor:Show()
 						end
@@ -1015,7 +1044,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 					Epsilon_Merchant_GetOptions()
 					Epsilon_Merchant_LoadVendor()
 				elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
-					GossipTitleButtonAddVendor:Show()
+					--GossipTitleButtonAddVendor:Show()
 					GossipTitleButtonRemoveVendor:Hide()
 				end
 			end
@@ -1035,7 +1064,7 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 
 		GossipFrameEditSoundsButton:Hide()
 
-		GossipTitleButtonAddVendor:Hide()
+		--GossipTitleButtonAddVendor:Hide()
 		GossipTitleButtonRemoveVendor:Hide()
 
 		if ( Epsilon_MerchantFrame:IsShown() ) then
@@ -2041,7 +2070,7 @@ local tuples = {
 	{ "$r", UnitRace("player") },
 	{ "$n", UnitName("player") },
 	{ "$p", UnitName("player") },
-	{ "$G(.-)\:(.-)", function(a, b)
+	{ "$G(.-):(.-)", function(a, b)
 		if UnitSex("player") == 3 then
 			return b
 		else

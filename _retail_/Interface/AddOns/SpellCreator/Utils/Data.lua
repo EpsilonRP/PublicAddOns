@@ -54,6 +54,31 @@ end
 
 local function toBoolean(str) return strlower(str) == "true" end
 
+local trueVal = {
+	-- False
+	[0] = false,
+	["0"] = false,
+	["false"] = false,
+	["off"] = false,
+	["no"] = false,
+
+	--True
+	[1] = true,
+	["1"] = true,
+	["true"] = true,
+	["on"] = true,
+	["yes"] = true,
+}
+local function toBoolExtended(val)
+	if type(val) == "boolean" then
+		return val
+	end
+	if type(val) == "string" then
+		val = strtrim(strlower(val))
+	end
+	return trueVal[val]
+end
+
 local function firstToUpper(str)
 	return (str:gsub("^%l", string.upper))
 end
@@ -589,6 +614,7 @@ end
 ns.Utils.Data = {
 	isNotDefined = isNotDefined,
 	toBoolean = toBoolean,
+	toBoolExtended = toBoolExtended,
 	orderedPairs = orderedPairs,
 	caseInsensitiveCompare = caseInsensitiveCompare,
 	firstToUpper = firstToUpper,

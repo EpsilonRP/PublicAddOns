@@ -432,7 +432,7 @@ end
 -- EXTREMELY TEDIOUS FILTERING :sob:
 --
 local EPSILON_FILTER_PATTERNS = {
-	"Removed itemID \= %d+, amount \= %d+ from (.+)", -- remove item
+	"Removed itemID = %d+, amount = %d+ from (.+)", -- remove item
 	"You give %d+ copper to (.+)", -- gief monies
 	"You take %d+ copper from (.+)", -- take monies
 	"Added new option \".-\" to creature (%d+) on page %d+%.",	-- add new gossip option

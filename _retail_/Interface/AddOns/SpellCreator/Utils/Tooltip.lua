@@ -9,19 +9,22 @@ local ASSETS_PATH = Constants.ASSETS_PATH .. "/"
 local timer
 
 -- Adding a cool icon system...
-local tooltipIcon = CreateFrame("Frame", nil, GameTooltip)
-tooltipIcon:SetPoint("TOPRIGHT", GameTooltip, "TOPLEFT", 0, -2)
-tooltipIcon:SetSize(39, 39)
+if not GameTooltip.extraIcon then
+	local tooltipIcon = CreateFrame("Frame", nil, GameTooltip)
+	tooltipIcon:SetPoint("TOPRIGHT", GameTooltip, "TOPLEFT", 0, -2)
+	tooltipIcon:SetSize(39, 39)
 
-tooltipIcon.tex = tooltipIcon:CreateTexture()
-tooltipIcon.tex:SetAllPoints(tooltipIcon)
-tooltipIcon.tex:SetTexture("interface/icons/inv_mushroom_11")
-tooltipIcon:Hide() -- default hide
+	GameTooltip.extraIcon = tooltipIcon -- for easy access
 
-GameTooltip:HookScript("OnShow", function()
-	tooltipIcon:Hide()
-end)
+	tooltipIcon.tex = tooltipIcon:CreateTexture()
+	tooltipIcon.tex:SetAllPoints(tooltipIcon)
+	tooltipIcon.tex:SetTexture("interface/icons/inv_mushroom_11")
+	tooltipIcon:Hide() -- default hide
 
+	GameTooltip:HookScript("OnShow", function(self)
+		tooltipIcon:Hide()
+	end)
+end
 -- Util Stuff
 
 ---Concat the two texts together with a strchar(31) as a delimiter to create a double line.
@@ -208,8 +211,8 @@ end
 
 local function setIcon(icon)
 	if not icon then return end
-	tooltipIcon.tex:SetTexture(icon)
-	tooltipIcon:Show()
+	GameTooltip.extraIcon.tex:SetTexture(icon)
+	GameTooltip.extraIcon:Show()
 end
 
 local function clearLines()

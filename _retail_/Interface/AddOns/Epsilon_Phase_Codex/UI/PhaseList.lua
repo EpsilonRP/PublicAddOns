@@ -7,8 +7,6 @@ local PhaseClass = EpsilonLib.Classes.Phase
 local isQuickAccessed = false
 local currentTab = nil
 
-EpsilonPhases.allPhases = allPhases
-
 local function isMainPhase()
     return tonumber(C_Epsilon.GetPhaseId()) == 169
 end
@@ -142,8 +140,8 @@ searchbar:SetSize(260, 10)
 searchbar:SetPoint("CENTER", EpsilonPhasesPhaseListFrame.TopTileStreaks, "CENTER", -5, 7)
 searchbar:SetAutoFocus(false)
 searchbar:SetScript("OnTextChanged", function(self, userInput)
-    allPhases = searchPhases(self:GetText())
-    EpsilonPhases.RefreshPhases()
+    local filteredPhases = searchPhases(self:GetText())
+    EpsilonPhases.DrawPhases(filteredPhases)
     SearchBoxTemplate_OnTextChanged(self, userInput)
 end)
 
@@ -292,7 +290,6 @@ function EpsilonPhases:SetupPhaseList(list)
 
         EpsilonPhases.SortPhaseList()
     end
-    EpsilonPhases.DrawPhases(allPhases)
     EpsilonPhases.SetScrollbarValues(count)
     EpsilonPhases.SetCurrentActivePhase(currentActivePhase)
 end
@@ -328,27 +325,15 @@ end
 EpsilonPhases.SetScrollbarValue = SetScrollbarValue
 
 local function SetCurrentActivePhase(index)
-    if index ~= nil then
-        if index > #allPhases or index < 1 then return end
-    end
+    if EpsilonPhases.PhaseListItems[index] == nil then return end
+
     _G["EpsilonPhasesSettingsFrame"]:Hide()
-    for i = 1, math.min(7, #allPhases), 1 do
-        local phaseListItem = _G["EpsilonPhasesPhaseListPhaseItem" .. i]
-        if phaseListItem ~= nil then
-            phaseListItem.ActiveTexture:SetTexture(nil)
-        end
+    for i, phaseListItem in ipairs(EpsilonPhases.PhaseListItems) do
+        phaseListItem.ActiveTexture:Hide()
     end
-    currentActivePhase = index
-    if next(allPhases) ~= nil and currentActivePhase ~= nil then
-        EpsilonPhases.currentActivePhase = allPhases[index + EpsilonPhasesPhaseListScrollbar:GetValue()]
-        local phaseListItem = _G["EpsilonPhasesPhaseListPhaseItem" .. currentActivePhase]
-        if phaseListItem ~= nil then
-            _G["EpsilonPhasesPhaseListPhaseItem" .. currentActivePhase].ActiveTexture:SetTexture(EpsilonPhases
-                .ASSETS_PATH .. "/EpsiIndexObjectFrameHover")
-        end
-        local currentOffset = EpsilonPhasesPhaseListScrollbar:GetValue()
-        EpsilonPhases.WritePhaseDetailData(allPhases[index + currentOffset])
-    end
+    EpsilonPhases.PhaseListItems[index].ActiveTexture:Show()
+    EpsilonPhases.currentActivePhase = EpsilonPhases.PhaseListItems[index].phase
+    EpsilonPhases.WritePhaseDetailData(EpsilonPhases.PhaseListItems[index].phase)
     EpsilonPhases:SetSettingsButtonEnable()
 end
 EpsilonPhases.SetCurrentActivePhase = SetCurrentActivePhase
@@ -393,19 +378,14 @@ end
 EpsilonPhases.SetPreviousPhase = SetPreviousPhase
 
 local function SetCurrentActivePhaseByPhaseID(phaseID)
-    local phaseSet = false
-    for i = 1, #allPhases, 1 do
-        if allPhases[i]:GetPhaseID() == phaseID then
-            local phaselistPosition = i - EpsilonPhasesPhaseListScrollbar:GetValue()
-            if phaselistPosition > 0 and phaselistPosition <= 7 then
-                SetCurrentActivePhase(phaselistPosition)
-                phaseSet = true
-            end
+
+    for index, phaseListItem in ipairs(EpsilonPhases.PhaseListItems) do
+        if phaseListItem.phase:GetPhaseID() == phaseID then
+            SetCurrentActivePhase(index)
+            return
         end
     end
-    if not phaseSet then
-        SetCurrentActivePhase(nil)
-    end
+    SetCurrentActivePhase(nil)
 end
 
 EpsilonPhases.SetCurrentActivePhaseByPhaseID = SetCurrentActivePhaseByPhaseID
@@ -417,15 +397,14 @@ local forcedMallsOnTop = {
 }
 
 local function SortPhaseList()
-    local phaseList = allPhases
-    if #phaseList == 0 then return end
+    if #allPhases == 0 then return end
     local currentOrder = {}
-    for i, phase in ipairs(phaseList) do
+    for i, phase in ipairs(allPhases) do
         currentOrder[phase:GetPhaseID()] = i
     end
-    if currentActivePhase > #phaseList then currentActivePhase = 1 end
-    local currentActivePhaseId = phaseList[currentActivePhase]:GetPhaseID()
-    table.sort(phaseList, function(phase1, phase2)
+    if currentActivePhase > #allPhases then currentActivePhase = 1 end
+    local currentActivePhaseId = allPhases[currentActivePhase]:GetPhaseID()
+    table.sort(allPhases, function(phase1, phase2)
         local id1, id2 = phase1.data.id, phase2.data.id
         local name1, name2 = phase1.data.name, phase2.data.name
 
@@ -501,7 +480,6 @@ function SetPhaseListToPublic()
     EpsilonPhasesPhaseListPrivateTab:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiTabUnselected")
     EpsilonPhasesPhaseListMallTab:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiTabUnselected")
     EpsilonPhasesPhaseListPublicTab:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiTabSelected")
-    EpsilonPhases.SortPhaseList()
     currentTab = SetPhaseListToPublic
 
     EpsilonPhasesPhaseListMallAdminButton:Hide()

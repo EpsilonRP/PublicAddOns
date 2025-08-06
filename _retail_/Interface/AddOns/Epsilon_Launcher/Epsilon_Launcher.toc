@@ -5,7 +5,8 @@
 ## Notes: Mini-Map Button to open various Epsilon AddOns
 ## DefaultState: Enabled
 ## SavedVariables: Epsilon_Launcher_DB
-## OptionalDeps: ObjectMover, Epsilon_Viewer, EpsilonLib, PhaseToolkit
-## X-Changes: 
+## Dependencies: EpsilonLib
+## OptionalDeps: ObjectMover, Epsilon_Viewer, PhaseToolkit, Kinesis
+## X-Changes:
 
 Epsilon_Launcher.xml

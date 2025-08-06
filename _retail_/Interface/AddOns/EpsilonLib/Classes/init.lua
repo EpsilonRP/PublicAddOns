@@ -39,7 +39,7 @@ EpsiLib.Classes = {}
 ---@field [1] guid
 ---@field [2] entryID
 ---@field [3] fileName
----@field [4] fileDataID
+---@field [4] fileID
 ---@field [5] x
 ---@field [6] y
 ---@field [7] z
@@ -75,14 +75,14 @@ EpsiLib.Classes = {}
 ---@field GetGUID function
 ---@field GetEntry function
 ---@field GetName function
----@field GetFileDataID function
+---@field GetFileID function
 ---@field IsWMO function
 
 ---@class GameObjectClass: GameObjectMeta
 ---@field guid number
 ---@field entry number
 ---@field name string
----@field filedataid number
+---@field fileID number
 ---@field transform { position: table, rotation: table } WARNING: position & rotation are regenerated Vector3 each time an object is updated; they are NOT stable references. Always use the object or transform table as your base reference instead.
 ---@field orientation number
 ---@field HasTint boolean|number 1 = Tint, 2 = Overlay, false = None

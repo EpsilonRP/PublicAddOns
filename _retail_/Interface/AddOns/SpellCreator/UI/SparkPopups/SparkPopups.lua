@@ -524,6 +524,11 @@ end
 --#region || Coordinate / Location System
 -------------------------------
 
+local noNotificationPhases = { -- Epsi
+	[169] = true,
+	[201] = true,
+	[224] = true,
+}
 local autoSparksInRange = {}
 local CoordinateListener = CreateFrame("Frame")
 local throttle, counter = 0.5, 0
@@ -579,7 +584,12 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 						-- spark was not already in range, continue
 						autoSparksInRange[sparkCDNameOverride] = true -- track it
 						if commID ~= "" then        -- explicitly block calling if the commID is blank. This is a niche, but technically supported use.
-							SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") .. Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
+							if not noNotificationPhases[tonumber(C_Epsilon.GetPhaseId())] then
+								SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") ..
+									Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
+							else
+								print('test')
+							end
 							triggerSpark(sparkData) -- trigger spark
 						end
 					end

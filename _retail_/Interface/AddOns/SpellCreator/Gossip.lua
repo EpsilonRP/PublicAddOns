@@ -100,7 +100,11 @@ local function tele(comm, visualID)
 	if not visualID then visualID = 1 end
 
 	for _, v in ipairs(teleVisuals[visualID]) do
-		cast(v[1], v[2], v[3], v[4])
+		if v.delay then
+			C_Timer.After(v.delay, function() cast(v[1], v[2], v[3], v[4]) end)
+		else
+			cast(v[1], v[2], v[3], v[4])
+		end
 	end
 
 	local delay = teleVisuals[visualID].delay or 1
@@ -181,8 +185,29 @@ local function init(callbacks)
 
 	-- NEW GOSSIP SECTION:
 
-	local arc_tag_predicate = function(text)
-		return (text and text:find(gossipTags.default))
+	local arc_tag_predicate = function(text, optionInfo, ignoreConditions)
+		local found = text:match(gossipTags.capture)
+		if found then
+			if isDMEnabled() then return true end
+
+			local strTag, arcSpellID = strsplit(":", found, 2) -- split the tag from the data
+			local mainTag, extTags = strsplit("_", strTag, 2) -- split the main tag from the extension tags
+
+			if mainTag == "cast" and arcSpellID and arcSpellID ~= "" and not ignoreConditions then
+				-- we need to see if the spell is available & has a condition, then check the conditions here
+				local spell = Vault.phase.findSpellByID(arcSpellID)
+				if spell and spell.conditions then
+					local conditionsMet = ns.Actions.Execute.checkConditions(spell.conditions)
+					if not conditionsMet then return false end
+				end
+			end
+
+			return true
+		end
+		return nil
+	end
+	local greeting_predicate = function(text)
+		return arc_tag_predicate(text, nil, true)
 	end
 
 	local arc_tag_filter = function(text)
@@ -248,7 +273,7 @@ local function init(callbacks)
 		option_callback(nil, nil, nil, text)
 	end
 
-	EpsilonLib.Utils.Gossip:RegisterGreetingHook(arc_tag_predicate, greeting_callback, arc_tag_filter)
+	EpsilonLib.Utils.Gossip:RegisterGreetingHook(greeting_predicate, greeting_callback, arc_tag_filter)
 	EpsilonLib.Utils.Gossip:RegisterButtonHook(arc_tag_predicate, option_callback, arc_tag_filter)
 end
 

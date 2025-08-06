@@ -122,6 +122,12 @@ end
 
 -- Handle login
 local function OnPlayerLogin()
+	local current = C_CVar.GetCVar("gxapi")
+	if current == editor_target_gxApi or ((not target_gxApi_avail) and (current == editor_backup_gxApi)) then
+		getSavedVars().restartGxOnReload = nil
+		return
+	end
+
 	if getSavedVars().restartGxOnReload then
 		getSavedVars().restartGxOnReload = nil
 		SendSystemMessage(green:WrapTextInColorCode("Epsilon Editor: Restarting Graphics Engine to apply changes in 3..."))

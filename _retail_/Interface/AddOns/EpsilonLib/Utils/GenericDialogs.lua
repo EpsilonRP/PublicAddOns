@@ -7,9 +7,42 @@ local EpsilonLib, EpsiLib = ...;
 ---#region Generic Dialog Helpers
 -------------------------------
 
+local function editBoxNumberValidate(self)
+	local text = self:GetText()
+	local lastGoodText = self.lastGoodText or ""
+
+	-- Remove alphabetic characters
+	text = text:gsub("[^%d%-]", "") -- Allow digits and a leading negative sign
+	self:SetText(text)
+
+	if tonumber(text) or text == "-" then
+		self:SetTextColor(255, 255, 255, 1)
+		self.lastGoodText = text -- Store the last good text
+		return tonumber(text)
+	elseif text == "" then
+		self:SetTextColor(255, 255, 255, 1)
+		self.lastGoodText = "" -- Reset last good text if empty
+		return false
+	else
+		self:SetTextColor(1, 0, 0, 1)
+		self:SetText(lastGoodText) -- Revert to last good text
+		return #lastGoodText > 0
+	end
+end
+
 local function standardNonEmptyTextHandler(self)
 	local parent = self:GetParent();
-	parent.button1:SetEnabled(strtrim(parent.editBox:GetText()) ~= "");
+	local isValid = strtrim(parent.editBox:GetText()) ~= ""
+
+	if self.expandedNumeric then
+		isValid = editBoxNumberValidate(parent.editBox)
+	end
+
+	if self.customValidation then
+		isValid = isValid and self.customValidation(parent.editBox:GetText())
+	end
+
+	parent.button1:SetEnabled(isValid);
 end
 
 local function standardEditBoxOnEscapePressed(self)
@@ -28,19 +61,19 @@ end
 
 local hardOverrides = {
 	"editBoxWidth",
-    "subText",
-    "noCancelOnEscape",
-    "exclusive"
+	"subText",
+	"noCancelOnEscape",
+	"exclusive"
 }
 local function runOverrides(dialogTemplate, customData)
 	for i = 1, #hardOverrides do
 		local field = hardOverrides[i]
 		if customData[field] then
 			dialogTemplate[field] = customData[field]
-        else
-            -- always default to nil so that subsequent calls are clean
-            dialogTemplate[field] = nil
-        end
+		else
+			-- always default to nil so that subsequent calls are clean
+			dialogTemplate[field] = nil
+		end
 	end
 	hideCancelIfNeeded(dialogTemplate, customData)
 end
@@ -59,7 +92,7 @@ end
 
 StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 	text = "", -- supplied dynamically.
-    subText = "",
+	subText = "",
 	button1 = "", -- supplied dynamically.
 	button2 = "", -- supplied dynamically.
 	hasEditBox = 1,
@@ -69,6 +102,13 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 		self.button2:SetText(data.cancelText or CANCEL);
 		self.editBox:SetMaxLetters(data.maxLetters or 24);
 		self.editBox:SetCountInvisibleLetters(not not data.countInvisibleLetters);
+		self.editBox:SetNumeric(data.isNumeric)
+		self.editBox.expandedNumeric = data.expandedNumeric -- expanded numeric allows for decimal and negative numbers
+		if data.expandedNumeric then
+			self.editBox:SetNumeric(false)            -- expanded numeric does not use the default numeric input limitation
+		end
+
+		self.editBox.customValidation = data.customValidation or nil
 
 		if data.inputText then
 			self.editBox:SetText(data.inputText)
@@ -77,9 +117,9 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 
 		standardNonEmptyTextHandler(self.editBox)
 	end,
-    OnHide = function(self)
-        --resetOverrides(StaticPopupDialogs[self.which])
-    end,
+	OnHide = function(self)
+		--resetOverrides(StaticPopupDialogs[self.which])
+	end,
 	OnAccept = function(self, data)
 		if not data then return end
 		local text = self.editBox:GetText();
@@ -104,7 +144,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 	EditBoxOnTextChanged = standardNonEmptyTextHandler,
 	EditBoxOnEscapePressed = standardEditBoxOnEscapePressed,
 	hideOnEscape = 1,
-    cancels = "EPSILIB_GENERIC_INPUT_BOX",
+	cancels = "EPSILIB_GENERIC_INPUT_BOX",
 	timeout = 0,
 	exclusive = 1,
 	whileDead = 1,
@@ -123,6 +163,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field countInvisibleLetters? boolean used in tandem with maxLetters
 ---@field inputText? string default text for the input box
 ---@field editBoxWidth? number override width of input box
+---@field isNumeric? boolean force the editbox to be numeric only
 
 
 ---@param customData GenericInputCustomData
@@ -132,8 +173,8 @@ local function showCustomGenericInputBox(customData, insertedFrame)
 	runOverrides(StaticPopupDialogs[template], customData)
 	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
 	--resetOverrides(StaticPopupDialogs[template])
-    restoreCancelButton(StaticPopupDialogs[template])
-    
+	restoreCancelButton(StaticPopupDialogs[template])
+
 	return shownFrame
 end
 
@@ -179,9 +220,9 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 
 		multiLineNonEmptyTextHandler(self.insertedFrame.EditBox)
 	end,
-    OnHide = function(self)
-        --resetOverrides(StaticPopupDialogs[self.which])
-    end,
+	OnHide = function(self)
+		--resetOverrides(StaticPopupDialogs[self.which])
+	end,
 	OnAccept = function(self, data)
 		if not data then return end
 		local text = self.insertedFrame.EditBox:GetText();
@@ -210,7 +251,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 	hideOnEscape = 1,
 	timeout = 0,
 	exclusive = 1,
-    cancels = "EPSILIB_GENERIC_MULTILINE_INPUT_BOX",
+	cancels = "EPSILIB_GENERIC_MULTILINE_INPUT_BOX",
 	whileDead = 1,
 	editBoxWidth = 340
 };
@@ -235,7 +276,7 @@ local function showCustomMultiLineInputBox(customData)
 	runOverrides(StaticPopupDialogs[template], customData)
 	local shownFrame = StaticPopup_Show(template, nil, nil, customData, genMultiLineInputBoxOnDemand(customData.editBoxWidth));
 	--resetOverrides(StaticPopupDialogs[template])
-    restoreCancelButton(StaticPopupDialogs[template])
+	restoreCancelButton(StaticPopupDialogs[template])
 
 	return shownFrame
 end
@@ -270,9 +311,9 @@ StaticPopupDialogs["EPSILIB_GENERIC_CONFIRMATION"] = {
 			self.AlertIcon:Hide();
 		end
 	end,
-    OnHide = function(self)
-        --resetOverrides(StaticPopupDialogs[self.which])
-    end,
+	OnHide = function(self)
+		--resetOverrides(StaticPopupDialogs[self.which])
+	end,
 	OnAccept = function(self, data)
 		if not data then return end
 		if data.callback then
@@ -299,8 +340,8 @@ StaticPopupDialogs["EPSILIB_GENERIC_CONFIRMATION"] = {
 	OnHyperlinkClick = function(self, link, text, button)
 		GameTooltip:Hide();
 	end,
-    exclusive = 1,
-    cancels = "EPSILIB_GENERIC_CONFIRMATION",
+	exclusive = 1,
+	cancels = "EPSILIB_GENERIC_CONFIRMATION",
 	hideOnEscape = 1,
 	timeout = 0,
 	multiple = 1,
@@ -327,7 +368,7 @@ local function showCustomGenericConfirmation(customData, insertedFrame)
 	runOverrides(StaticPopupDialogs[template], customData)
 	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
 	--resetOverrides(StaticPopupDialogs[template])
-    restoreCancelButton(StaticPopupDialogs[template])
+	restoreCancelButton(StaticPopupDialogs[template])
 
 	return shownFrame
 end
@@ -390,12 +431,12 @@ StaticPopupDialogs["EPSILIB_GENERIC_DROP_DOWN"] = {
 		self.DropDownControl:SetOptionSelectedCallback(nil);
 		self.DropDownControl:ClearOptions();
 		self.DropDownControl:Hide()
-        --resetOverrides(StaticPopupDialogs[self.which])
+		--resetOverrides(StaticPopupDialogs[self.which])
 	end,
 	hideOnEscape = 1,
 	timeout = 0,
 	exclusive = 1,
-    cancels = "EPSILIB_GENERIC_DROP_DOWN",
+	cancels = "EPSILIB_GENERIC_DROP_DOWN",
 	whileDead = 1,
 };
 
@@ -405,7 +446,7 @@ local function showCustomGenericDropDown(customData, insertedFrame)
 	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
 	shownFrame:SetHeight(shownFrame:GetHeight() + 40) -- manual adjust for dropdown lol
 	--resetOverrides(StaticPopupDialogs[template])
-    restoreCancelButton(StaticPopupDialogs[template])
+	restoreCancelButton(StaticPopupDialogs[template])
 
 	return shownFrame
 end
@@ -419,12 +460,12 @@ end
 
 
 EpsiLib.Utils.GenericDialogs = {
-    CustomInput = showCustomGenericInputBox,
-    CustomMultiLineInput = showCustomMultiLineInputBox,
+	CustomInput = showCustomGenericInputBox,
+	CustomMultiLineInput = showCustomMultiLineInputBox,
 
-    CustomConfirmation = showCustomGenericConfirmation,
-    GenericConfirmation = showGenericConfirmation,
+	CustomConfirmation = showCustomGenericConfirmation,
+	GenericConfirmation = showGenericConfirmation,
 
-    CustomDropDown = showCustomGenericDropDown,
-    GenericDropDown = showGenericDropDown,
+	CustomDropDown = showCustomGenericDropDown,
+	GenericDropDown = showGenericDropDown,
 };

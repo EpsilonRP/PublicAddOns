@@ -120,13 +120,14 @@ local function handleCallbackAndMessages(success, data, addon)
 
 	local overrideMessages = evaluate(data.overrideMessages, success, data.returnMessages)
 
-	if overrideMessages == false then return end -- // Force block replies if this send had a force hide messages
+	if overrideMessages == false then return end -- // Force block replies if this send had a force hide messages; hides errors also
 
-	local showMessages = (overrideMessages or (addon and evaluate(addon.showMessages) and overrideMessages ~= false))
+	local showMessages = addon and evaluate(addon.showMessages, success, data.returnMessages)
+	if overrideMessages then showMessages = true end -- Override was enabled
 	if success == false then showMessages = true end -- Force Show Messages on Failure!
 
-	if showMessages and data.returnMessages then
-		if overrideMessages ~= false and (addon and addon.showMessages ~= true) then
+	if showMessages then
+		if not success and overrideMessages ~= true and (addon and addon.showMessages ~= true) then -- Command failed, not force shown, and showMessages not on - display the error message for WHY we are forcing the messages
 			local addonName = (addon and addon.name) or data.name or "<UNKNOWN ADDON>"
 
 			local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))

@@ -6,8 +6,6 @@
 ## SavedVariables: Epsilon_Merchant
 ## OptionalDeps: EpsilonLib, EpsilonLib-dev
 
-Libs\Embeds.xml
-
 Epsilon_Merchant.lua
 MerchantFrame.lua
 ItemEditor.lua

@@ -10,5 +10,6 @@ Libs\LibStub\LibStub.lua
 Libs\StdUi\StdUi.xml
 
 utils.lua
+Constants.lua
 main.lua
 

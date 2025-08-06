@@ -147,20 +147,43 @@ local SetHyperlink = ItemRefTooltip.SetHyperlink;
 -- f:SetScript("OnKeyDown", detectKey)
 -- f:SetPropagateKeyboardInput(true)
 
-local f            = CreateFrame("Frame", "mogtarget", UIParent)
+local f = CreateFrame("Frame", "mogtarget", UIParent)
 f:RegisterEvent("PLAYER_TARGET_CHANGED")
 f:SetScript("OnEvent", function(self, event, target)
-	if mog.db.profile.autoShowMogNPCNamePreviews then
+	if mog.db.profile.autoShowMogNPCNamePreviews or mog.db.profile.autoSaveMogNPCNameToEMOG then
 		local targetName = UnitName("target")
-		if targetName and targetName:match("MogIt") then
-			local preview = mog:GetPreview();
+		if not targetName then return end
+		local subName = UnitSubName('target')
+
+		local hasMogLink = false
+		if targetName:match("MogIt") then
+			hasMogLink = true
+		elseif subName and subName:match("MogIt") then
+			hasMogLink = true
+			-- Flip the names
+			local _targetName = targetName
+			local _subName = subName
+			subName = _targetName
+			targetName = _subName
+		end
+
+		local phaseName = EpsilonLib and EpsilonLib.Phases:Get():GetPhaseName() or 'Mall'
+		if hasMogLink then
 			local set, enchant = mog:LinkToSet(targetName);
-			preview.data.displayRace = mog.playerRace;
-			preview.data.displayGender = mog.playerGender;
-			preview.data.weaponEnchant = enchant;
-			preview.model:ResetModel();
-			preview.model:Undress();
-			mog:AddToPreview(set, preview);
+			if mog.db.profile.autoShowMogNPCNamePreviews then
+				local preview = mog:GetPreview();
+				preview.data.displayRace = mog.playerRace;
+				preview.data.displayGender = mog.playerGender;
+				preview.data.weaponEnchant = enchant;
+				preview.model:ResetModel();
+				preview.model:Undress();
+				if subName then preview.TitleText:SetText(phaseName .. ' - ' .. subName) end
+				mog:AddToPreview(set, preview);
+			end
+
+			if mog.db.profile.autoSaveMogNPCNameToEMOG and MogIt_EMOG then
+				MogIt_EMOG.AddSetToMall(nil, nil, subName or nil, set, true)
+			end
 		end
 	end
 end)

@@ -12,6 +12,7 @@ local SavedVariables = ns.SavedVariables
 local Tooltip = ns.Utils.Tooltip
 
 local Dropdown = ns.UI.Dropdown
+local MainFrame = ns.UI.MainFrame
 
 local ADDON_COLORS = Constants.ADDON_COLORS
 local DEFAULT_PROFILE_NAME = ProfileFilter.DEFAULT_PROFILE_NAME
@@ -34,7 +35,6 @@ local function setSelectedProfile(profileName)
 	end
 
 	selectedProfile = profileName
-	--optionsDropdown.Text:SetText(profileName)
 	markEditorUnsaved()
 end
 
@@ -85,49 +85,9 @@ local function getProfileNames()
 	return profileNames
 end
 
---[[ -- // This is the old profileDropdown creation function. TO-DO: Remove this on a future commit, keeping it for backup for now
----@param inject { mainFrame: SCForgeMainFrame, markEditorUnsaved: fun() }
-local function createDropdown(inject)
-	markEditorUnsaved = inject.markEditorUnsaved
-
-	profileDropdown = Dropdown.create(inject.mainFrame, "SCForgeAtticProfileButton"):WithAppearance(75)
-	profileDropdown:SetPoint("BOTTOMRIGHT", inject.mainFrame.Inset, "TOPRIGHT", 16, 0)
-	profileDropdown:SetText(DEFAULT_PROFILE_NAME)
-
-	profileDropdown.Button:SetScript("OnClick", function(self)
-		Dropdown.open(createProfileMenu(getProfileNames()), profileDropdown)
-	end)
-
-	-- Fixes error when opening, clicking outside, then opening again
-	profileDropdown.Button:SetScript("OnMouseDown", nil)
-
-
-	Tooltip.set(profileDropdown.Button,
-		"Assign Profile",
-		"Assign this spell to the selected profile when created or saved.",
-		{ delay = 0.3 }
-	)
-
-	return profileDropdown
-end
---]]
 
 ------ OPTIONS HIJACK
 ---
-
--- Break On Movement
-local breakOnMove
----@return boolean
-local function getBreakOnMove()
-	return breakOnMove or false
-end
-
----@param enabled? boolean
-local function setBreakOnMove(enabled)
-	breakOnMove = enabled
-	markEditorUnsaved()
-end
-
 
 ---@param inject { mainFrame: SCForgeMainFrame, markEditorUnsaved: fun() }
 ---@return DropdownItem[]
@@ -137,23 +97,23 @@ local function createOptionsMenu(inject)
 
 		Dropdown.submenu("Castbar Style", {
 			Dropdown.radio("Castbar", {
-				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 1 end,
+				get = function() return MainFrame.Attic.getInfo().castbar == 1 end,
 				set = function()
-					ns.UI.MainFrame.Attic.setCastbarType(1)
+					MainFrame.Attic.setCastbarType(1)
 					markEditorUnsaved()
 				end,
 			}),
 			Dropdown.radio("Channel", {
-				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 2 end,
+				get = function() return MainFrame.Attic.getInfo().castbar == 2 end,
 				set = function()
-					ns.UI.MainFrame.Attic.setCastbarType(2)
+					MainFrame.Attic.setCastbarType(2)
 					markEditorUnsaved()
 				end,
 			}),
 			Dropdown.radio("None", {
-				get = function() return ns.UI.MainFrame.Attic.getInfo().castbar == 0 end,
+				get = function() return MainFrame.Attic.getInfo().castbar == 0 end,
 				set = function()
-					ns.UI.MainFrame.Attic.setCastbarType(0)
+					MainFrame.Attic.setCastbarType(0)
 					markEditorUnsaved()
 				end,
 			}),
@@ -166,11 +126,26 @@ local function createOptionsMenu(inject)
 		Dropdown.submenu("Change Profile", createProfileMenu(getProfileNames())),
 
 		Dropdown.checkbox("Break on Movement", {
-			get = function() return breakOnMove end,
-			set = function(self, val) setBreakOnMove(val) end,
+			get = function() return MainFrame.Attic.getExtraOption("breakOnMove") end,
+			set = function(self, val)
+				MainFrame.Attic.setExtraOption("breakOnMove", val)
+				markEditorUnsaved()
+			end,
 			tooltipTitle = "Break on Movement",
 			tooltipText = "Cancels casting the spell if the character begins moving.",
-		})
+		}),
+
+		Dropdown.input("Cast on Failed Conditions", {
+			placeholder = "ArcSpell ID",
+			get = function() return MainFrame.Attic.getInfo().castOnFail or "" end,
+			set = function(self, text)
+				if text == "" then text = nil end
+				MainFrame.Attic.setExtraOption("castOnFail", text)
+				markEditorUnsaved()
+			end,
+			tooltipTitle = "Cast on Failed Conditions",
+			tooltipText = "If the spell fails to cast due to conditions, the given spell (ArcSpell ID) will be cast instead.",
+		}),
 	}
 
 	return dropdownItems
@@ -207,7 +182,4 @@ ns.UI.MainFrame.AtticProfileDropdown = {
 	createDropdown = createDropdown,
 	getSelectedProfile = getSelectedProfile,
 	setSelectedProfile = setSelectedProfile,
-
-	getBreakOnMove = getBreakOnMove,
-	setBreakOnMove = setBreakOnMove,
 }

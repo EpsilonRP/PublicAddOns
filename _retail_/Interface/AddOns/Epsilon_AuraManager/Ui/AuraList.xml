@@ -1,0 +1,346 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+  <Button name="EpsilonAuraManagerButtonTemplate" virtual="true">
+		<Size x="300" y="16"/>
+		<Layers>
+			<Layer level="BORDER">
+				<FontString name="$parentSpellID" inherits="GameFontNormalSmall" justifyH="LEFT">
+					<Size x="56" y="14"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="10" y="-3"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentName" inherits="GameFontHighlightSmall" justifyH="LEFT">
+					<Size x="101" y="14"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSpellID" relativePoint="RIGHT" x="-2" y="0"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentDetails" inherits="GameFontHighlightSmall" justifyH="LEFT">
+					<Size x="101" y="14"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentName" relativePoint="RIGHT" x="0" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="EditButton" name="$parentEditButton">
+				<Size x="14" y="14"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentDetails" relativePoint="RIGHT" x="2" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BORDER" textureSubLevel="5">
+						<Texture parentKey="Icon" file="Interface\Buttons\UI-OptionsButton">
+							<Size x="14" y="14"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnMouseDown>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -2, -1);
+					</OnMouseDown>
+					<OnMouseUp>
+						self.Icon:SetPoint("CENTER", self, "CENTER", -1, 0);
+					</OnMouseUp>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:AddLine("|TInterface/Buttons/UI-OptionsButton:12|t Edit", 1, 1, 1);
+						GameTooltip:AddLine("Edit this aura.", 1.0, 0.81, 0.0, true);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnClick>
+						PlaySound(83);
+						local parent = self:GetParent()
+						EpsilonAuraManagerButton_Edit(parent, button)
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Button parentKey="RemoveButton" name="$parentRemoveButton">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.EditButton" relativePoint="RIGHT" x="0" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine("|TInterface/Buttons/UI-GroupLoot-Pass-Up:12|t Delete", 1, 1, 1)
+						GameTooltip:AddLine("Delete your edits to this aura.", 1.0, 0.81, 0.0, true)
+						GameTooltip:Show()
+					</OnEnter>
+					<OnClick>
+						PlaySound(83)
+						local parent = self:GetParent()
+						local data = {
+							index = parent.index,
+							isLocal = Epsilon_AuraManager.isLocal,
+						}
+						StaticPopup_Show("EpsilonAuraManager_DELETEAURA", nil, nil, data)
+					</OnClick>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+				<NormalTexture file="Interface\Buttons\UI-GroupLoot-Pass-Up"/>
+				<HighlightTexture file="Interface\Buttons\UI-GroupLoot-Pass-Highlight" alphaMode="ADD"/>
+				<PushedTexture file="Interface\Buttons\UI-GroupLoot-Pass-Down"/>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+			</OnLoad>
+			<OnClick>
+				EpsilonAuraManagerButton_OnClick(self, button);
+				PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+			</OnClick>
+			<OnDoubleClick>
+				PlaySound(83);
+				EpsilonAuraManagerButton_Edit(self, button)
+			</OnDoubleClick>
+			<OnEnter>
+				EpsilonAuraManagerButton_OnEnter(self);
+			</OnEnter>
+			<OnLeave>
+				EpsilonAuraManagerButton_OnLeave(self);
+			</OnLeave>
+		</Scripts>
+		<HighlightTexture name="$parentHighlight" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD">
+			<Size x="300" y="16"/>
+			<Anchors>
+				<Anchor point="TOPLEFT" x="5" y="-2"/>
+			</Anchors>
+		</HighlightTexture>
+	</Button>
+
+  <Frame name="EpsilonAuraManagerFrame" parent="UIParent" inherits="PortraitFrameTemplate" hidden="true" framestrata="HIGH" enableMouse="true" movable="true" topLevel="true">
+    <Size x="338" y="384" />
+	<ResizeBounds>
+		<minResize x="338" y="384"/>
+		<maxResize x="1500" y="800"/>
+	</ResizeBounds>
+    <Anchors>
+      <Anchor point="LEFT" x="300" y="100" />
+    </Anchors>
+
+    <Scripts>
+      <OnLoad>
+		EpsilonAuraManagerFrame_OnLoad( self )
+	  </OnLoad>
+	  <OnShow>
+		EpsilonAuraManagerFrame_Update()
+		PlaySound(839)
+	  </OnShow>
+	  <OnHide>
+		PlaySound(840)
+	  </OnHide>
+    </Scripts>
+    <Frames>
+		<Frame name="EpsilonAuraManagerFrameInset" inherits="InsetFrameTemplate">
+			<Anchors>
+				<Anchor point="TOPLEFT" x="5" y="-80"/>
+				<Anchor point="BOTTOMRIGHT" x="-6" y="26"/>
+			</Anchors>
+			<Layers>
+				<Layer level="ARTWORK">
+					<FontString name="EpsilonAuraManagerFrameTotals" inherits="GameFontNormalSmall">
+						<Size x="298" y="16"/>
+						<Anchors>
+							<Anchor point="BOTTOM" x="0" y="5"/>
+						</Anchors>
+					</FontString>
+				</Layer>
+			</Layers>
+		</Frame>
+
+		<Frame name="EpsilonAuraManagerFrameLocalDropdown" inherits="UIDropDownMenuTemplate">
+			<Size x="120" y="24" />
+			<Anchors>
+				<Anchor point="TOPRIGHT" x="-35" y="-26"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					UIDropDownMenu_Initialize(self, function()
+						local info = UIDropDownMenu_CreateInfo()
+						info.text  = "Personal"
+						info.checked = Epsilon_AuraManager.isLocal
+						info.func = function()
+						  	Epsilon_AuraManager.isLocal = true
+							EpsilonAuraManagerFrame_Update();
+							UIDropDownMenu_SetSelectedID(self, 1)
+						end
+						UIDropDownMenu_AddButton(info)
+						info.text = "Phase"
+						info.checked =  not Epsilon_AuraManager.isLocal
+						info.disabled = not C_Epsilon.IsOfficer()
+						info.func = function()
+						  	Epsilon_AuraManager.isLocal = false
+							EpsilonAuraManagerFrame_Update();
+							UIDropDownMenu_SetSelectedID(self, 2)
+						end
+						UIDropDownMenu_AddButton(info)
+					end)
+					UIDropDownMenu_SetSelectedID(self, 1)
+				</OnLoad>
+			</Scripts>
+		</Frame>
+
+		<Button name="EpsilonAuraManagerColumnHeader1" inherits="WhoFrameColumnHeaderTemplate" text="Spell ID">
+			<Anchors>
+				<Anchor point="TOPLEFT" x="7" y="-57"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					WhoFrameColumn_SetWidth(self, 56);
+					self.sortKey = "spellID";
+					self.reversed = false;
+					self.sortType = "numeric";
+				</OnLoad>
+				<OnClick>
+					local sort_func = EpsilonAuraManager_Sort( self, self.reversed, self.sortKey, self.sortType )
+					EpsilonAuraManagerFrame_Update(sort_func)
+					PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+				</OnClick>
+			</Scripts>
+		</Button>
+
+		<Button name="EpsilonAuraManagerColumnHeader2" inherits="WhoFrameColumnHeaderTemplate" text="Custom Name">
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="EpsilonAuraManagerColumnHeader1" relativePoint="RIGHT" x="-2" y="0"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					WhoFrameColumn_SetWidth(self, 104);
+					self.sortKey = "name";
+					self.reversed = false;
+					self.sortType = "string";
+				</OnLoad>
+				<OnClick>
+					local sort_func = EpsilonAuraManager_Sort( self, self.reversed, self.sortKey, self.sortType )
+					EpsilonAuraManagerFrame_Update(sort_func)
+					PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+				</OnClick>
+			</Scripts>
+		</Button>
+
+		<Button name="EpsilonAuraManagerColumnHeader3" inherits="WhoFrameColumnHeaderTemplate" text="Original Name">
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="EpsilonAuraManagerColumnHeader2" relativePoint="RIGHT" x="-2" y="0"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					WhoFrameColumn_SetWidth(self, 104);
+					self.sortKey = "name";
+					self.reversed = false;
+					self.sortType = "string";
+				</OnLoad>
+				<OnClick>
+					local sort_func = EpsilonAuraManager_Sort( self, self.reversed, self.sortKey, self.sortType )
+					EpsilonAuraManagerFrame_Update(sort_func)
+					PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+				</OnClick>
+			</Scripts>
+		</Button>
+
+		<Button name="EpsilonAuraManagerColumnHeader4" inherits="WhoFrameColumnHeaderTemplate">
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="EpsilonAuraManagerColumnHeader3" relativePoint="RIGHT" x="-2" y="0"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					WhoFrameColumn_SetWidth(self, 40);
+				</OnLoad>
+			</Scripts>
+		</Button>
+
+		<Button name="EpsilonAuraManagerFrameButton1" inherits="EpsilonAuraManagerButtonTemplate" id="1">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="EpsilonAuraManagerFrame" x="2" y="-82"/>
+				</Anchors>
+		</Button>
+
+		<Button name="$parentNewButton" inherits="UIPanelButtonTemplate" text="New...">
+			<Size x="100" y="22"/>
+			<Anchors>
+				<Anchor point="BOTTOMLEFT" relativeTo="EpsilonAuraManagerFrame" x="4" y="4"/>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					EpsilonAuraManagerFrame.selected = nil
+					EpsilonAuraManagerAuraEditor_Open()
+					PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+				</OnClick>
+			</Scripts>
+		</Button>
+
+		<ScrollFrame name="$parentScrollFrame" inherits="FauxScrollFrameTemplate">
+			<Size x="256" y="270"/>
+			<Anchors>
+				<Anchor point="TOPRIGHT" relativeTo="EpsilonAuraManagerFrame" relativePoint="TOPRIGHT" x="-33" y="-87"/>
+			</Anchors>
+			<Scripts>
+				<OnVerticalScroll>
+					FauxScrollFrame_OnVerticalScroll(self, offset, 16, EpsilonAuraManager_Update);
+				</OnVerticalScroll>
+			</Scripts>
+			<Layers>
+				<Layer level="BORDER">
+					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+						<Size x="31" y="256"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="-2" y="5"/>
+						</Anchors>
+						<TexCoords left="0" right="0.484375" top="0" bottom="1.0"/>
+					</Texture>
+					<Texture file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+						<Size x="31" y="106"/>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="-2" y="-2"/>
+						</Anchors>
+						<TexCoords left="0.515625" right="1.0" top="0" bottom="0.4140625"/>
+					</Texture>
+				</Layer>
+			</Layers>
+		</ScrollFrame>
+
+		<!--TODO:-->
+		<!--<Button parentKey="resizer">
+			<Size x="16" y="16"/>
+			<Anchors>
+				<Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
+			</Anchors>
+			<NormalTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down"/>
+			<PushedTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up"/>
+			<HighlightTexture file="Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight"/>
+			<Scripts>
+				<OnMouseDown>
+					self:GetParent():StartSizing("BOTTOMRIGHT");
+					self:SetScript("OnUpdate", function() EpsilonAuraManagerFrame_Update() end);
+				</OnMouseDown>
+				<OnMouseUp>
+					self:GetParent():StopMovingOrSizing("BOTTOMRIGHT");
+					self:SetScript("OnUpdate", nil);
+				</OnMouseUp>
+			</Scripts>
+		</Button>-->
+
+		<Button parentKey="Tutorial" inherits="MainHelpPlateButton" mixin="EpsilonAuraManagerFrameTutorialMixin">
+			<Anchors>
+				<Anchor point="TOPLEFT" x="43" y="19"/>
+			</Anchors>
+			<Scripts>
+				<OnLoad method="OnLoad"/>
+				<OnHide method="OnHide"/>
+				<OnClick method="ToggleHelpInfo"/>
+			</Scripts>
+		</Button>
+	</Frames>
+</Frame>
+</Ui>

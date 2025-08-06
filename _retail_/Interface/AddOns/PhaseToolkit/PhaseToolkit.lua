@@ -5,7 +5,15 @@ Define the Addon NameSpace
 ---@format disable
 
 local addonName, ns = ...
+local LibDeflate = LibStub:GetLibrary("LibDeflate");
+local AceSerializer = LibStub:GetLibrary("AceSerializer-3.0");
 PhaseToolkit = {}
+PhaseToolkit.NPCcategoryList={}
+PhaseToolkit.TELEcategoryList={}
+local PTK_NPC_CATEGORY_LIST="PTK_NPC_CATEGORY_LIST";
+local PTK_TELE_CATEGORY_LIST="PTK_TELE_CATEGORY_LIST";
+local PTK_LAST_MAX_ID_CATEGORY_NPC="PTK_LAST_MAX_ID_CATEGORY";
+local PTK_LAST_MAX_ID_CATEGORY_TELE="PTK_LAST_MAX_ID_CATEGORY_TELE";
 
 local function dump(obj, indent)
     indent = indent or 0
@@ -38,6 +46,30 @@ local function updateContainers()
 	C_Timer.After(0.25,ContainerFrame_UpdateAll)
 end
 
+local function RGBAToNormalized(r, g, b,a)
+    return r / 255, g / 255, b / 255, a / 255
+end
+
+function PhaseToolkit.getCategoryByIdGENERIC(categoryId,type)
+	if(type =="NPC") then
+
+		for _, category in ipairs(PhaseToolkit.NPCcategoryList) do
+			if category.id == categoryId then
+				return category
+			end
+		end
+		return nil
+	end
+	if(type =="TELE") then
+		for _, category in ipairs(PhaseToolkit.TELEcategoryList) do
+			if category.id == categoryId then
+				return category
+			end
+		end
+		return nil
+	end
+end
+
 -- ============================== VARIABLES GLOBALES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
@@ -51,7 +83,6 @@ PhaseToolkit.MapIconInfo = {
 		["minimapPos"] = 207
 	},
 }
-
 PhaseToolkit.itemCreatorData={}
 PhaseToolkit.CommandToSend={}
 PhaseToolkit.additemOption={
@@ -63,150 +94,149 @@ PhaseToolkit.additemOption={
 PhaseToolkit.currentWhitelistType=""
 
 PhaseToolkit.ModifyItemData=false
-
+PhaseToolkit.npcCurrentPage=nil
 
 PhaseToolkit.itemCreatorData.whitelistedChar={}
 PhaseToolkit.itemCreatorData.whitelistedPhaseForMember={}
 PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer={}
 PhaseToolkit.GeneralStat = {
-	["Makeup"] = 1,
-	["Arm(left)"] = 1,
-	["Arm(right"] = 1,
-	["Beard"] = 1,
-	["Blindfold"] = 1,
-	["Body"] = 1,
-	["Bodyshape"] = 1,
-	["BodyTattoo"] = 1,
-	["Bodytype"] = 1,
-	["Complexion"] = 1,
-	["Earrings"] = 1,
-	["Ears"] = 1,
-	["Eyebrows"] = 1,
-	["Eyecolor"] = 1,
-	["Eyetype"] = 1,
-	["Face"] = 11,
-	["Faceshape"] = 1,
-	["Facefeatures"] = 1,
-	["FaceTattoo"] = 1,
-	["Furcolor"] = 1,
-	["Feather"] = 1,
-	["FeatherColor"] = 1,
-	["Garment"] = 1,
-	["GemColor"] = 1,
-	["Grime"] = 1,
-	["HairColor"] = 1,
-	["Hairstyle"] = 1,
-	["Hairgradient"] = 1,
-	["Hand(left)"] = 1,
-	["Hand(right)"] = 1,
-	["Handjewelry"] = 1,
-	["Headdress"] = 1,
-	["Horns"] = 1,
-	["JewelryColor"] = 1,
-	["leg(left)"] = 1,
-	["leg(right)"] = 1,
-	["Mustache"] = 1,
-	["Necklace"] = 1,
-	["Runes"] = 1,
-	["RunesColor"] = 1,
-	["Ribs"] = 1,
-	["Piercings"] = 1,
-	["Scars"] = 1,
-	["SecondaryEyeColor"] = 1,
-	["Sideburns"] = 1,
-	["SkinColor"] = 1,
-	["Stubble"] = 1,
-	["Spine"] = 1,
-	["TattooColor"] = 1,
-	["Tusks"] = 1,
-	["Vines"] = 1,
-	["VineColor"] = 1,
-	["Accentcolor"] = 1,
-	["Goggles"] = 1,
-	["Haircolor"] = 1,
-	["Hairgradients"] = 1,
-	["Hairstreaks"] = 1,
-	["Jewelrycolor"] = 1,
-	["Secondaryeyecolor"] = 1,
-	["Skincolor"] = 1,
-	["Wristjewelry"] = 1,
-	["Bodypaint"] = 1,
+	["complexion"] = 1,
+	["face"] = 1,
+	["haircolor"] = 1,
+	["eyecolor"] = 1,
+	["jewelrycolor"] = 1,
+	["faceshape"] = 1,
+	["mustache"] = 1,
+	["earrings"] = 1,
+	["piercings"] = 1,
+	["eyebrows"] = 1,
+	["skincolor"] = 1,
+	["gemcolor"] = 1,
+	["scars"] = 1,
+	["ears"] = 1,
+	["necklace"] = 1,
+	["sideburns"] = 1,
+	["secondaryeyecolor"] = 1,
+	["eyetype"] = 1,
+	["stubble"] = 1,
+	["hairstyle"] = 1,
+	["beard"] = 1,
+	["makeup"] = 1,
+	["tattoocolor"] = 1,
+	["bodytattoo"] = 1,
+	["hand(left)"] = 1,
+	["hand(right)"] = 1,
+	["leg(left)"]=1,
+	["leg(right)"]=1,
+	["arm(left)"]=1,
+	["arm(right)"]=1,
+	["tusks"] = 1,
+	["grime"] = 1,
+	["posture"] = 1,
+	["body"] = 1,
+	["garment"] = 1,
+	["bodyshape"] = 1,
+	["feathercolor"] = 1,
+	["feather"] = 1,
+	["facetattoo"] = 1,
+	["handjewelry"] = 1,
+	["runes"] = 1,
+	["runescolor"] = 1,
+	["blindfold"] = 1,
+	["vines"] = 1,
+	["vinecolor"] = 1,
+	["horns"] = 1,
+	["bodytype"] = 1,
+	["headdress"] = 1,
+	["furcolor"] = 1,
+	["facefeatures"] = 1,
+	["hairgradient"] = 1,
+	["facetype"] = 1,
+	["spine"] = 1,
+	["skintype"] = 1,
+	["ribs"] = 1,
+	["hips"] = 1,
+	["mane"] = 1,
+	["accentcolor"] = 1,
 	["facepaint"] = 1,
-	["Flower"] = 1,
-	["Foremane"] = 1,
-	["Gemcolor"] = 1,
-	["Goatee"] = 1,
-	["Hair"] = 1,
-	["Horncolor"] = 1,
-	["Mane"] = 1,
-	["Nosering"] = 1,
-	["PaintColor"] = 1,
-	["Tail"] = 1,
-	["TailDecoration"] = 1,
-	["HairDecoration"] = 1,
-	["Hornstyle"] = 1,
-	["Hornmarkings"] = 1,
-	["HairAccessory"] = 1,
-	["HairGradient"] = 1,
-	["HairStreaks"] = 1,
-	["Bandages"] = 1,
-	["Browpiercing"] = 1,
-	["Hairhighlight"] = 1,
-	["Leg(left)"] = 1,
-	["Leg(right)"] = 1,
-	["Mouthpiercing"] = 1,
-	["Nosepiercing"] = 1,
-	["TattooStyle"] = 1,
-	["Chin"] = 1,
-	["Nose"] = 1,
-	["Posture"] = 1,
-	["Skintype"] = 1,
-	["Tuskdecoration"] = 1,
-	["Armbands"] = 1,
-	["Runecolor"] = 1,
-	["Bracelets"] = 1,
-	["Facetendrils"] = 1,
-	["HornAccessories"] = 1,
-	["Tendrils"] = 1,
-	["Trims"] = 1,
-	["Horndecoration"] = 1,
-	["Hairaccents"] = 1,
-	["SecondaryEarStyle"] = 1,
-	["Bodyfur"] = 1,
-	["Claws"] = 1,
-	["Earstyle"] = 1,
-	["Fangs"] = 1,
-	["FacialHair"] = 1,
-	["Chinjewelry"] = 1,
-	["Eyeshape"] = 1,
-	["Facejewelry"] = 1,
-	["Jawjewelry"] = 1,
-	["LuminousHands"] = 1,
-	["Bodypaintcolor"] = 1,
-	["Hornwrap"] = 1,
-	["Bodymarkings"] = 1,
-	["Facemarkings"] = 1,
-	["Tentacles"] = 1,
-	["Facerune"] = 1,
-	["Bodyrune"] = 1,
-	["Tattoo"] = 1,
-	["Pattern"] = 1,
-	["Patterncolor"] = 1,
-	["Snout"] = 1,
-	["BodyPiercings"] = 1,
-	["Chestmod"] = 1,
-	["Chinmod"] = 1,
-	["Earmod"] = 1,
-	["Facemod"] = 1,
-	["Optics"] = 1,
-	["Paintcolor"] = 1,
-	["Eargauge"] = 1,
-	["Facetype"] = 1
+	["wristjewelry"]=1,
+	["hornmarkings"]=1,
+	["tail"]=1,
+	["flower"]=1,
+	["paintcolor"]=1,
+	["hornstyle"]=1,
+	["bodypaint"]=1,
+	["foremane"]=1,
+	["nosering"]=1,
+	["hair"]=1,
+	["horncolor"]=1,
+	["taildecoration"]=1,
+	["horndecoration"]=1,
+	["goatee"]=1,
+	["legjewelry"]=1,
+	["armjewelry"]=1,
+	["earjewelry"]=1,
+	["hairdecoration"]=1,
+	["goggles"]=1,
+	["hairstreaks"]=1,
+	["hairaccessory"]=1,
+	["tattoostyle"]=1,
+	["nosepiercing"]=1,
+	["bandages"]=1,
+	["tuskdecoration"]=1,
+	["mouthpiercing"]=1,
+	["hairhighlight"]=1,
+	["browpiercing"]=1,
+	["nose"]=1,
+	["chin"]=1,
+	["runecolor"]=1,
+	["armbands"]=1,
+	["bracelets"]=1,
+	["tendrils"]=1,
+	["trims"]=1,
+	["facetendrils"]=1,
+	["hornaccessories"]=1,
+	["facialhair"]=1,
+	["fangs"] = 1,
+	["hairaccents"] = 1,
+	["secondaryearstyle"] = 1,
+	["jawjewelry"] = 1,
+	["facejewelry"] = 1,
+	["eyeshape"] = 1,
+	["luminoushands"] = 1,
+	["chinjewelry"] = 1,
+	["hornwraps"] = 1,
+	["bodypaintcolor"] = 1,
+	["bodymarkings"] = 1,
+	["tentacles"] = 1,
+	["facemarkings"] = 1,
+	["facerune"] = 1,
+	["bodyrune"] = 1,
+	["jawdecoration"] = 1,
+	["eargauge"] = 1,
+	["tattoo"] = 1,
+	["pattern"] = 1,
+	["patterncolor"] = 1,
+	["snout"] = 1,
+	["bodypiercings"] = 1,
+	["chestmodification"] = 1,
+	["arm(right"] = 1,
+	["facemodification"] = 1,
+	["optics"] = 1,
+	["chinmodification"] = 1,
+	["earmodification"] = 1,
+	["bodyfur"]=1,
+	["claws"] = 1,
+	["earstyle"] = 1,
 }
 PhaseToolkit.ModeFR = false
 
 PhaseToolkit.IntensiteMeteo = 1
 PhaseToolkit.IntensiteMeteoMin, IntensiteMeteoMax = 1, 100
+
+--Pool of category used for filtering no max size 
+PhaseToolkit.NPCcategoryToFilterPool={}
+PhaseToolkit.TELEcategoryToFilterPool={}
 
 PhaseToolkit.Meteo = {
 	{ text = "Normal",           value = "normal" },
@@ -291,593 +321,594 @@ PhaseToolkit.Races = {
 PhaseToolkit.InfoCustom = {
 	["Human"] = {
 		["male"] = {
-			["Beard"] = 21,
-			["Complexion"] = 5,
-			["Earrings"] = 9,
-			["Ears"] = 4,
-			["Eyebrows"] = 16,
-			["Eyecolor"] = 90,
-			["Eyetype"] = 4,
-			["Face"] = 24,
-			["Faceshape"] = 4,
-			["GemColor"] = 10,
-			["HairColor"] = 48,
-			["Hairstyle"] = 74,
-			["JewelryColor"] = 5,
-			["Mustache"] = 12,
-			["Necklace"] = 3,
-			["Piercings"] = 4,
-			["Scars"] = 12,
-			["SecondaryEyeColor"] = 88,
-			["Sideburns"] = 8,
-			["SkinColor"] = 30,
-			["Stubble"] = 13
+			["complexion"] = 5,
+			["face"] = 24,
+			["haircolor"] = 48,
+			["eyecolor"] = 89,
+			["jewelrycolor"] = 5,
+			["faceshape"] = 4,
+			["mustache"] = 12,
+			["earrings"] = 9,
+			["piercings"] = 4,
+			["eyebrows"] = 17,
+			["skincolor"] = 30,
+			["gemcolor"] = 10,
+			["scars"] = 12,
+			["ears"] = 4,
+			["necklace"] = 3,
+			["sideburns"] = 8,
+			["secondaryeyecolor"] = 88,
+			["eyetype"] = 4,
+			["stubble"] = 13,
+			["hairstyle"] = 74,
+			["beard"] = 21,
 		},
 		["female"] = {
-			["Complexion"] = 5,
-			["Earrings"] = 10,
-			["Ears"] = 4,
-			["Eyebrows"] = 22,
-			["Eyecolor"] = 89,
-			["Eyetype"] = 4,
-			["Face"] = 30,
-			["Faceshape"] = 3,
-			["GemColor"] = 10,
-			["HairColor"] = 48,
-			["Hairstyle"] = 71,
-			["JewelryColor"] = 5,
-			["Makeup"] = 10,
-			["Necklace"] = 6,
-			["Piercings"] = 7,
-			["Scars"] = 12,
-			["SecondaryEyeColor"] = 88,
-			["SkinColor"] = 30,
+			["complexion"] = 5,
+			["face"] = 30,
+			["haircolor"] = 48,
+			["eyecolor"] = 89,
+			["jewelrycolor"] = 5,
+			["faceshape"] = 3,
+			["earrings"] = 11,
+			["piercings"] = 7,
+			["eyebrows"] = 22,
+			["skincolor"] = 30,
+			["gemcolor"] = 10,
+			["ears"] = 4,
+			["necklace"] = 6,
+			["makeup"] = 10,
+			["eyetype"] = 4,
+			["secondaryeyecolor"] = 88,
+			["scars"] = 12,
+			["hairstyle"] = 70,
 		}
 	},
 	["Orc"] = {
 		["male"] = {
-			["Beard"] = 18,
-			["Body"] = 7,
-			["BodyTattoo"] = 13,
-			["Earrings"] = 8,
-			["Ears"] = 2,
-			["Eyebrows"] = 5,
-			["Eyecolor"] = 31,
-			["Face"] = 9,
-			["Faceshape"] = 3,
-			["FaceTattoo"] = 18,
-			["GemColor"] = 0,
-			["Grime"] = 4,
-			["HairColor"] = 37,
-			["Hairstyle"] = 33,
-			["Hand(left)"] = 9,
-			["Hand(right)"] = 9,
-			["Mustache"] = 5,
-			["Necklace"] = 8,
-			["Piercings"] = 7,
-			["Posture"] = 2,
-			["Scars"] = 5,
-			["SecondaryEyeColor"] = 30,
-			["Sideburns"] = 12,
-			["SkinColor"] = 35,
-			["Stubble"] = 2,
-			["TattooColor"] = 11,
-			["Tusks"] = 7
+			["secondaryeyecolor"] = 22,
+			["tattoocolor"] = 11,
+			["face"] = 9,
+			["bodytattoo"] = 13,
+			["eyecolor"] = 23,
+			["hand(left)"] = 9,
+			["faceshape"] = 3,
+			["mustache"] = 5,
+			["earrings"] = 8,
+			["tusks"] = 7,
+			["piercings"] = 7,
+			["eyebrows"] = 5,
+			["haircolor"] = 36,
+			["facetattoo"] = 18,
+			["skincolor"] = 40,
+			["grime"] = 4,
+			["sideburns"] = 12,
+			["scars"] = 5,
+			["ears"] = 2,
+			["necklace"] = 8,
+			["posture"] = 2,
+			["body"] = 7,
+			["hand(right)"] = 9,
+			["stubble"] = 2,
+			["hairstyle"] = 33,
+			["beard"] = 18,
 		},
 		["female"] = {
-			["Body"] = 7,
-			["BodyTattoo"] = 13,
-			["Earrings"] = 17,
-			["Ears"] = 2,
-			["Eyecolor"] = 31,
-			["Face"] = 9,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 17,
-			["HairColor"] = 36,
-			["Hairstyle"] = 45,
-			["Hand(left)"] = 6,
-			["Hand(right)"] = 6,
-			["Necklace"] = 5,
-			["Piercings"] = 5,
-			["Scars"] = 5,
-			["SecondaryEyeColor"] = 29,
-			["SkinColor"] = 35,
-			["TattooColor"] = 11,
+			["secondaryeyecolor"] = 22,
+			["tattoocolor"] = 11,
+			["face"] = 9,
+			["haircolor"] = 36,
+			["eyecolor"] = 23,
+			["hand(left)"] = 6,
+			["faceshape"] = 2,
+			["earrings"] = 17,
+			["piercings"] = 5,
+			["facetattoo"] = 17,
+			["ears"] = 2,
+			["necklace"] = 5,
+			["skincolor"] = 40,
+			["scars"] = 5,
+			["hand(right)"] = 6,
+			["bodytattoo"] = 13,
+			["body"] = 7,
+			["hairstyle"] = 45,
 		}
 	},
 	["Dwarf"] = {
 		["male"] = {
-			["Beard"] = 28,
-			["Body"] = 7,
-			["Bodyshape"] = 2,
-			["BodyTattoo"] = 9,
-			["Earrings"] = 5,
-			["Eyebrows"] = 4,
-			["Eyecolor"] = 26,
-			["Face"] = 20,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 13,
-			["Feather"] = 7,
-			["FeatherColor"] = 9,
-			["Garment"] = 3,
-			["Grime"] = 4,
-			["HairColor"] = 20,
-			["Hairstyle"] = 27,
-			["Handjewelry"] = 7,
-			["JewelryColor"] = 7,
-			["Mustache"] = 15,
-			["Piercings"] = 6,
-			["SecondaryEyeColor"] = 25,
-			["SkinColor"] = 29,
-			["TattooColor"] = 7,
+			["secondaryeyecolor"] = 25,
+			["tattoocolor"] = 8,
+			["garment"] = 3,
+			["haircolor"] = 20,
+			["eyecolor"] = 26,
+			["bodyshape"] = 2,
+			["feathercolor"] = 9,
+			["faceshape"] = 2,
+			["mustache"] = 15,
+			["earrings"] = 5,
+			["piercings"] = 6,
+			["eyebrows"] = 4,
+			["feather"] = 7,
+			["facetattoo"] = 13,
+			["skincolor"] = 29,
+			["jewelrycolor"] = 7,
+			["face"] = 20,
+			["handjewelry"] = 4,
+			["bodytattoo"] = 9,
+			["hairstyle"] = 27,
+			["beard"] = 28,
 		},
 		["female"] = {
-			["BodyTattoo"] = 10,
-			["Earrings"] = 14,
-			["Eyebrows"] = 18,
-			["Eyecolor"] = 26,
-			["Face"] = 10,
-			["FaceTattoo"] = 11,
-			["Feather"] = 7,
-			["FeatherColor"] = 9,
-			["Garment"] = 3,
-			["HairColor"] = 20,
-			["Hairstyle"] = 45,
-			["JewelryColor"] = 7,
-			["Piercings"] = 9,
-			["SecondaryEyeColor"] = 25,
-			["SkinColor"] = 23,
-			["TattooColor"] = 7,
+			["piercings"] = 9,
+			["eyebrows"] = 18,
+			["feather"] = 7,
+			["facetattoo"] = 11,
+			["tattoocolor"] = 8,
+			["face"] = 10,
+			["bodytattoo"] = 10,
+			["eyecolor"] = 26,
+			["skincolor"] = 23,
+			["secondaryeyecolor"] = 25,
+			["feathercolor"] = 9,
+			["jewelrycolor"] = 7,
+			["hairstyle"] = 45,
+			["haircolor"] = 20,
+			["earrings"] = 14,
+			["garment"] = 3,
 		}
 	},
 	["NightElf"] = {
 		["male"] = {
-			["Beard"] = 17,
-			["Blindfold"] = 12,
-			["Bodyshape"] = 2,
-			["BodyTattoo"] = 14,
-			["Bodytype"] = 2,
-			["Earrings"] = 6,
-			["Ears"] = 5,
-			["Eyebrows"] = 10,
-			["Eyecolor"] = 41,
-			["Eyetype"] = 2,
-			["Face"] = 12,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 16,
-			["Furcolor"] = 31,
-			["GemColor"] = 14,
-			["HairColor"] = 30,
-			["Hairstyle"] = 45,
-			["Headdress"] = 3,
-			["Horns"] = 16,
-			["JewelryColor"] = 14,
-			["Mustache"] = 7,
-			["Necklace"] = 4,
-			["Runes"] = 7,
-			["RunesColor"] = 7,
-			["Scars"] = 7,
-			["SecondaryEyeColor"] = 40,
-			["Sideburns"] = 7,
-			["SkinColor"] = 35,
-			["TattooColor"] = 11,
-			["Vines"] = 2,
-			["VineColor"] = 20
+			["secondaryeyecolor"] = 40,
+			["scars"] = 7,
+			["haircolor"] = 30,
+			["eyecolor"] = 41,
+			["blindfold"] = 12,
+			["jewelrycolor"] = 14,
+			["runes"] = 7,
+			["eyebrows"] = 10,
+			["gemcolor"] = 14,
+			["vinecolor"] = 20,
+			["sideburns"] = 7,
+			["runescolor"] = 6,
+			["beard"] = 17,
+			["horns"] = 16,
+			["bodyshape"] = 2,
+			["vines"] = 2,
+			["faceshape"] = 2,
+			["mustache"] = 7,
+			["hairstyle"] = 45,
+			["tattoocolor"] = 11,
+			["skincolor"] = 35,
+			["headdress"] = 3,
+			["face"] = 12,
+			["bodytattoo"] = 14,
+			["furcolor"] = 30,
+			["ears"] = 5,
+			["necklace"] = 4,
+			["earrings"] = 6,
+			["eyetype"] = 2,
+			["facetattoo"] = 16,
+			["bodytype"] = 2,
 		},
 		["female"] = {
-			["Blindfold"] = 12,
-			["BodyTattoo"] = 12,
-			["Bodytype"] = 2,
-			["Earrings"] = 11,
-			["Ears"] = 5,
-			["Eyebrows"] = 4,
-			["Eyecolor"] = 41,
-			["Eyetype"] = 2,
-			["Face"] = 9,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 20,
-			["Furcolor"] = 31,
-			["GemColor"] = 14,
-			["HairColor"] = 31,
-			["Hairstyle"] = 57,
-			["Headdress"] = 4,
-			["Horns"] = 16,
-			["JewelryColor"] = 14,
-			["Necklace"] = 4,
-			["Runes"] = 7,
-			["RunesColor"] = 7,
-			["Piercings"] = 8,
-			["Scars"] = 7,
-			["SecondaryEyeColor"] = 40,
-			["SkinColor"] = 35,
-			["Stubble"] = 0,
-			["TattooColor"] = 21,
-			["Vines"] = 2,
-			["VineColor"] = 20
+			["secondaryeyecolor"] = 40,
+			["scars"] = 7,
+			["haircolor"] = 30,
+			["eyecolor"] = 41,
+			["blindfold"] = 12,
+			["jewelrycolor"] = 14,
+			["piercings"] = 8,
+			["eyebrows"] = 5,
+			["gemcolor"] = 14,
+			["vinecolor"] = 20,
+			["runescolor"] = 6,
+			["horns"] = 16,
+			["vines"] = 2,
+			["faceshape"] = 2,
+			["hairstyle"] = 57,
+			["tattoocolor"] = 21,
+			["skincolor"] = 35,
+			["face"] = 9,
+			["facetattoo"] = 20,
+			["bodytattoo"] = 12,
+			["furcolor"] = 30,
+			["runes"] = 7,
+			["ears"] = 5,
+			["necklace"] = 4,
+			["earrings"] = 11,
+			["headdress"] = 4,
+			["eyetype"] = 2,
+			["bodytype"] = 2,
 		}
 	},
 	["Undead"] = {
 		["male"] = {
-			["Arm(left)"] = 2,
-			["Arm(right"] = 2,
-			["Beard"] = 8,
-			["Ears"] = 2,
-			["Eyebrows"] = 3,
-			["Eyecolor"] = 20,
-			["Face"] = 11,
-			["Facefeatures"] = 5,
-			["HairColor"] = 18,
-			["Hairstyle"] = 41,
-			["Hairgradient"] = 13,
-			["Facetype"] = 14,
 			["leg(left)"] = 2,
+			["secondaryeyecolor"] = 20,
+			["hairgradient"] = 13,
+			["facetype"] = 11,
+			["eyecolor"] = 20,
+			["facefeatures"] = 5,
+			["mustache"] = 6,
+			["hairstyle"] = 41,
+			["arm(right)"] = 2,
+			["skincolor"] = 12,
+			["arm(left)"] = 2,
+			["ribs"] = 4,
+			["spine"] = 2,
+			["ears"] = 2,
+			["sideburns"] = 6,
+			["skintype"] = 3,
+			["eyebrows"] = 3,
 			["leg(right)"] = 2,
-			["Mustache"] = 6,
-			["Ribs"] = 4,
-			["SecondaryEyeColor"] = 20,
-			["Sideburns"] = 6,
-			["Skintype"] = 3,
-			["SkinColor"] = 12,
-			["Spine"] = 2,
+			["haircolor"] = 17,
+			["face"] = 11,
+			["beard"] = 8,
 		},
 		["female"] = {
-			["Arm(left)"] = 2,
-			["Arm(right"] = 2,
-			["Earrings"] = 2,
-			["Ears"] = 2,
-			["Eyecolor"] = 20,
-			["Face"] = 10,
-			["Facefeatures"] = 4,
-			["HairColor"] = 17,
-			["Hairstyle"] = 47,
-			["Hairgradient"] = 13,
 			["leg(left)"] = 2,
+			["hips"] = 4,
+			["hairgradient"] = 13,
+			["haircolor"] = 17,
+			["eyecolor"] = 20,
+			["facefeatures"] = 4,
+			["earrings"] = 2,
+			["piercings"] = 15,
+			["arm(right)"] = 2,
+			["skincolor"] = 12,
+			["arm(left)"] = 2,
+			["spine"] = 2,
+			["ears"] = 2,
+			["necklace"] = 7,
+			["skintype"] = 3,
+			["secondaryeyecolor"] = 20,
 			["leg(right)"] = 2,
-			["Necklace"] = 7,
-			["Piercings"] = 15,
-			["SecondaryEyeColor"] = 20,
-			["SkinColor"] = 12,
-			["Skintype"] = 3,
-			["Spine"] = 2,
+			["face"] = 10,
+			["facetype"] = 5,
+			["hairstyle"] = 47,
 		}
 	},
 	["Tauren"] = {
 		["male"] = {
-			["Accentcolor"] = 18,
-			["Beard"] = 12,
-			["Bodypaint"] = 8,
-			["Earrings"] = 12,
-			["Eyecolor"] = 18,
-			["Face"] = 5,
+			["mane"] = 5,
+			["secondaryeyecolor"] = 17,
+			["tail"] = 4,
+			["eyecolor"] = 18,
+			["jewelrycolor"] = 8,
+			["accentcolor"] = 18,
+			["gemcolor"] = 8,
+			["sideburns"] = 6,
 			["facepaint"] = 9,
-			["Flower"] = 2,
-			["Foremane"] = 12,
-			["Gemcolor"] = 8,
-			["Goatee"] = 9,
-			["Hair"] = 12,
-			["Headdress"] = 3,
-			["Hornstyle"] = 20,
-			["Horncolor"] = 16,
-			["JewelryColor"] = 8,
-			["Mane"] = 5,
-			["Necklace"] = 3,
-			["Nosering"] = 9,
-			["PaintColor"] = 21,
-			["Tail"] = 4,
-			["TailDecoration"] = 4,
-			["SecondaryEyeColor"] = 17,
-			["Sideburns"] = 6,
-			["SkinColor"] = 35,
+			["beard"] = 12,
+			["hornmarkings"] = 3,
+			["goatee"] = 9,
+			["nosering"] = 9,
+			["flower"] = 2,
+			["paintcolor"] = 21,
+			["hornstyle"] = 20,
+			["earrings"] = 12,
+			["headdress"] = 3,
+			["taildecoration"] = 4,
+			["horncolor"] = 16,
+			["face"] = 5,
+			["skincolor"] = 35,
+			["necklace"] = 3,
+			["hair"] = 12,
+			["horndecoration"] = 8,
+			["foremane"] = 12,
+			["bodypaint"] = 8,
 		},
 		["female"] = {
-			['Accentcolor'] = 18,
-			["Bodypaint"] = 8,
-			["Earrings"] = 8,
-			["Eyecolor"] = 18,
-			["Face"] = 4,
+			["mane"] = 2,
+			["hornmarkings"] = 3,
+			["secondaryeyecolor"] = 17,
+			["face"] = 4,
+			["eyecolor"] = 18,
+			["flower"] = 2,
+			["paintcolor"] = 21,
+			["jewelrycolor"] = 8,
+			["accentcolor"] = 18,
+			["hornstyle"] = 20,
+			["earrings"] = 8,
+			["taildecoration"] = 5,
+			["tail"] = 3,
+			["skincolor"] = 27,
+			["nosering"] = 12,
+			["headdress"] = 3,
+			["hairdecoration"] = 6,
+			["gemcolor"] = 8,
+			["horncolor"] = 16,
+			["necklace"] = 8,
+			["hair"] = 24,
+			["foremane"] = 11,
 			["facepaint"] = 9,
-			['Flower'] = 2,
-			["Foremane"] = 11,
-			["Gemcolor"] = 8,
-			["Hair"] = 24,
-			["HairDecoration"] = 6,
-			["Headdress"] = 3,
-			["Hornstyle"] = 20,
-			["Hornmarkings"] = 3,
-			["Horncolor"] = 16,
-			["JewelryColor"] = 8,
-			["Necklace"] = 8,
-			["Nosering"] = 12,
-			["PaintColor"] = 21,
-			["Tail"] = 3,
-			["TailDecoration"] = 5,
-			["SecondaryEyeColor"] = 17,
-			["SkinColor"] = 27,
-			["Mane"] = 2
+			["bodypaint"] = 8,
 		}
 	},
 	["Gnome"] = {
 		["male"] = {
-			["Accentcolor"] = 7,
-			["Beard"] = 13,
-			["Earrings"] = 12,
-			["Ears"] = 3,
-			["Eyebrows"] = 13,
-			["Eyecolor"] = 32,
-			["Face"] = 7,
-			["Goggles"] = 2,
-			["Haircolor"] = 74,
-			["Hairgradients"] = 20,
-			["Hairstreaks"] = 75,
-			["Hairstyle"] = 63,
-			["Jewelrycolor"] = 5,
-			["Mustache"] = 24,
-			["Piercings"] = 5,
-			["Scars"] = 7,
-			["Secondaryeyecolor"] = 31,
-			["Sideburns"] = 6,
-			["Skincolor"] = 6,
-			["Wristjewelry"] = 2,
+			["wristjewelry"] = 2,
+			["goggles"] = 2,
+			["face"] = 7,
+			["haircolor"] = 74,
+			["eyecolor"] = 32,
+			["jewelrycolor"] = 5,
+			["accentcolor"] = 7,
+			["mustache"] = 24,
+			["earrings"] = 12,
+			["piercings"] = 5,
+			["eyebrows"] = 13,
+			["skincolor"] = 23,
+			["ears"] = 3,
+			["sideburns"] = 6,
+			["secondaryeyecolor"] = 31,
+			["scars"] = 7,
+			["hairgradient"] = 20,
+			["hairstyle"] = 63,
+			["hairstreaks"] = 75,
+			["beard"] = 13,
 		},
 		["female"] = {
-			["Accentcolor"] = 7,
-			["Earrings"] = 22,
-			["Ears"] = 3,
-			["Eyebrows"] = 19,
-			["Eyecolor"] = 32,
-			["Face"] = 7,
-			["Goggles"] = 2,
-			["HairAccessory"] = 2,
-			["HairColor"] = 74,
-			["HairGradient"] = 20,
-			["HairStreaks"] = 75,
-			["Hairstyle"] = 59,
-			["JewelryColor"] = 5,
-			["Piercings"] = 8,
-			["Scars"] = 7,
-			["SecondaryEyeColor"] = 31,
-			["SkinColor"] = 23,
-			["Wristjewelry"] = 2
+			["wristjewelry"] = 2,
+			["goggles"] = 2,
+			["hairgradient"] = 20,
+			["haircolor"] = 74,
+			["eyecolor"] = 32,
+			["jewelrycolor"] = 5,
+			["accentcolor"] = 7,
+			["earrings"] = 22,
+			["piercings"] = 8,
+			["eyebrows"] = 19,
+			["skincolor"] = 23,
+			["ears"] = 3,
+			["secondaryeyecolor"] = 31,
+			["scars"] = 7,
+			["face"] = 7,
+			["hairaccessory"] = 2,
+			["hairstyle"] = 59,
+			["hairstreaks"] = 75,
 		}
 	},
 	["Troll"] = {
 		["male"] = {
-			["Accentcolor"] = 27,
-			["Arm(left)"] = 20,
-			["Arm(right"] = 20,
-			["Bandages"] = 9,
-			["Beard"] = 18,
-			["BodyTattoo"] = 9,
-			["Earrings"] = 11,
-			["Eyebrows"] = 2,
-			["Eyecolor"] = 24,
-			["Face"] = 5,
-			["FaceTattoo"] = 14,
-			["HairColor"] = 43,
-			["Hairgradient"] = 11,
-			["Hairhighlight"] = 48,
-			["Hairstyle"] = 39,
-			["JewelryColor"] = 12,
-			["Leg(left)"] = 18,
-			["Leg(right)"] = 18,
-			["Mouthpiercing"] = 4,
-			["Mustache"] = 4,
-			["Necklace"] = 5,
-			["Nosepiercing"] = 7,
-			["SecondaryEyeColor"] = 23,
-			["Sideburns"] = 7,
-			["SkinColor"] = 36,
-			["TattooColor"] = 43,
-			["TattooStyle"] = 3,
-			["Tuskdecoration"] = 11,
-			["Tusks"] = 17
+			["nosepiercing"] = 7,
+			["secondaryeyecolor"] = 23,
+			["hairgradient"] = 11,
+			["haircolor"] = 43,
+			["eyecolor"] = 24,
+			["jewelrycolor"] = 12,
+			["accentcolor"] = 27,
+			["bandages"] = 9,
+			["eyebrows"] = 2,
+			["sideburns"] = 7,
+			["mouthpiercing"] = 4,
+			["leg(right)"] = 18,
+			["beard"] = 18,
+			["hairhighlight"] = 36,
+			["tattoostyle"] = 3,
+			["mustache"] = 4,
+			["hairstyle"] = 39,
+			["arm(right)"] = 20,
+			["tusks"] = 17,
+			["facetattoo"] = 14,
+			["arm(left)"] = 20,
+			["tuskdecoration"] = 11,
+			["leg(left)"] = 18,
+			["necklace"] = 5,
+			["tattoocolor"] = 43,
+			["face"] = 5,
+			["bodytattoo"] = 9,
+			["skincolor"] = 36,
+			["earrings"] = 11,
 		},
 		["female"] = {
-			["Accentcolor"] = 27,
-			["Arm(left)"] = 24,
-			["Arm(right"] = 24,
-			["Bandages"] = 9,
-			["BodyTattoo"] = 10,
-			["Browpiercing"] = 4,
-			["Earrings"] = 12,
-			["Eyecolor"] = 24,
-			["Face"] = 6,
-			["FaceTattoo"] = 11,
-			["HairColor"] = 43,
-			["Hairgradient"] = 11,
-			["Hairhighlight"] = 48,
-			["Hairstyle"] = 54,
-			["JewelryColor"] = 12,
-			["Leg(left)"] = 22,
-			["Leg(right)"] = 25,
-			["Mouthpiercing"] = 4,
-			["Necklace"] = 9,
-			["Nosepiercing"] = 5,
-			["SecondaryEyeColor"] = 23,
-			["SkinColor"] = 36,
-			["TattooColor"] = 43,
-			["TattooStyle"] = 3,
-			["Tusks"] = 10,
+			["leg(left)"] = 25,
+			["tusks"] = 10,
+			["secondaryeyecolor"] = 23,
+			["face"] = 6,
+			["bodytattoo"] = 10,
+			["eyecolor"] = 24,
+			["tattoocolor"] = 43,
+			["tattoostyle"] = 3,
+			["jewelrycolor"] = 12,
+			["accentcolor"] = 27,
+			["skincolor"] = 36,
+			["nosepiercing"] = 5,
+			["bandages"] = 9,
+			["hairstyle"] = 54,
+			["hairhighlight"] = 33,
+			["arm(right)"] = 24,
+			["facetattoo"] = 11,
+			["arm(left)"] = 24,
+			["haircolor"] = 43,
+			["browpiercing"] = 4,
+			["headdress"] = 3,
+			["necklace"] = 9,
+			["mouthpiercing"] = 4,
+			["hairgradient"] = 11,
+			["leg(right)"] = 25,
+			["earrings"] = 12,
 		}
 	},
 	["Goblin"] = {
 		["male"] = {
-			["Beard"] = 12,
-			["Chin"] = 6,
-			["Earrings"] = 9,
-			["Ears"] = 10,
-			["Eyebrows"] = 2,
-			["Eyecolor"] = 25,
-			["Face"] = 7,
-			["HairColor"] = 68,
-			["Hairgradient"] = 20,
-			["Hairstyle"] = 50,
-			["JewelryColor"] = 8,
-			["Mustache"] = 9,
-			["Nose"] = 11,
-			["Nosering"] = 5,
-			["SecondaryEyeColor"] = 24,
-			["Sideburns"] = 8,
-			["SkinColor"] = 20,
+			["secondaryeyecolor"] = 24,
+			["face"] = 7,
+			["haircolor"] = 68,
+			["eyecolor"] = 25,
+			["jewelrycolor"] = 8,
+			["nose"] = 11,
+			["mustache"] = 9,
+			["earrings"] = 9,
+			["eyebrows"] = 2,
+			["skincolor"] = 20,
+			["ears"] = 10,
+			["sideburns"] = 8,
+			["chin"] = 6,
+			["nosering"] = 5,
+			["hairgradient"] = 20,
+			["hairstyle"] = 50,
+			["beard"] = 12,
 		},
 		["female"] = {
-			["Bodyshape"] = 2,
-			["Chin"] = 7,
-			["Earrings"] = 13,
-			["Ears"] = 7,
-			["Eyebrows"] = 20,
-			["Eyecolor"] = 25,
-			["SecondaryEyeColor"] = 24,
-			["Face"] = 10,
-			["HairColor"] = 68,
-			["HairGradient"] = 20,
-			["Hairstyle"] = 48,
-			["JewelryColor"] = 8,
-			["Necklace"] = 7,
-			["Nose"] = 9,
-			["Nosering"] = 9,
-			["SkinColor"] = 16,
+			["skincolor"] = 16,
+			["eyebrows"] = 20,
+			["nosering"] = 9,
+			["secondaryeyecolor"] = 24,
+			["hairgradient"] = 20,
+			["face"] = 10,
+			["haircolor"] = 68,
+			["eyecolor"] = 25,
+			["bodyshape"] = 2,
+			["necklace"] = 7,
+			["jewelrycolor"] = 8,
+			["hairstyle"] = 48,
+			["nose"] = 9,
+			["ears"] = 7,
+			["earrings"] = 13,
+			["chin"] = 7,
 		}
 	},
 	["BloodElf"] = {
 		["male"] = {
-			["Accentcolor"] = 5,
-			["Beard"] = 23,
-			["Blindfold"] = 12,
-			["BodyTattoo"] = 17,
-			["Earrings"] = 6,
-			["Ears"] = 4,
-			["Eyebrows"] = 4,
-			["Eyecolor"] = 41,
-			["Eyetype"] = 2,
-			["Face"] = 12,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 22,
-			["Gemcolor"] = 6,
-			["Haircolor"] = 40,
-			["Hairgradient"] = 18,
-			["Hairstyle"] = 54,
-			["Headdress"] = 3,
-			["Horns"] = 7,
-			["Jewelrycolor"] = 3,
-			["Mustache"] = 7,
-			["Runecolor"] = 6,
-			["Runes"] = 12,
-			["Secondaryeyecolor"] = 40,
-			["Sideburns"] = 5,
-			["Skincolor"] = 33,
-			["Stubble"] = 2,
-			["TattooColor"] = 10,
+			["secondaryeyecolor"] = 40,
+			["tattoocolor"] = 10,
+			["face"] = 12,
+			["bodytattoo"] = 17,
+			["eyecolor"] = 41,
+			["blindfold"] = 12,
+			["jewelrycolor"] = 3,
+			["accentcolor"] = 5,
+			["faceshape"] = 2,
+			["mustache"] = 7,
+			["earrings"] = 6,
+			["runes"] = 12,
+			["eyebrows"] = 4,
+			["hairgradient"] = 18,
+			["facetattoo"] = 22,
+			["skincolor"] = 34,
+			["gemcolor"] = 6,
+			["sideburns"] = 5,
+			["horns"] = 7,
+			["ears"] = 4,
+			["runecolor"] = 6,
+			["headdress"] = 3,
+			["hairstyle"] = 54,
+			["eyetype"] = 2,
+			["stubble"] = 2,
+			["haircolor"] = 40,
+			["beard"] = 23,
 		},
 		["female"] = {
-			["Accentcolor"] = 5,
-			["Armbands"] = 4,
-			["Blindfold"] = 12,
-			["BodyTattoo"] = 17,
-			["Bracelets"] = 6,
-			["Earrings"] = 14,
-			["Ears"] = 4,
-			["Eyecolor"] = 41,
-			["Eyetype"] = 2,
-			["Face"] = 12,
-			["Faceshape"] = 2,
-			["Gemcolor"] = 6,
-			["HairColor"] = 40,
-			["HairGradient"] = 18,
-			["Hairstyle"] = 63,
-			["Headdress"] = 3,
-			["JewelryColor"] = 3,
-			["Necklace"] = 5,
-			["Runes"] = 12,
-			["RunesColor"] = 6,
-			["SecondaryEyeColor"] = 40,
-			["SkinColor"] = 33,
-			["TattooColor"] = 10,
-			["Horns"] = 7
+			["armbands"] = 4,
+			["secondaryeyecolor"] = 40,
+			["tattoocolor"] = 10,
+			["face"] = 12,
+			["bodytattoo"] = 17,
+			["eyecolor"] = 41,
+			["blindfold"] = 12,
+			["jewelrycolor"] = 3,
+			["accentcolor"] = 5,
+			["faceshape"] = 2,
+			["earrings"] = 14,
+			["runes"] = 12,
+			["headdress"] = 3,
+			["gemcolor"] = 6,
+			["skincolor"] = 33,
+			["hairgradient"] = 18,
+			["ears"] = 4,
+			["necklace"] = 5,
+			["horns"] = 7,
+			["bracelets"] = 6,
+			["eyetype"] = 2,
+			["runescolor"] = 6,
+			["hairstyle"] = 63,
+			["haircolor"] = 40,
 		}
 	},
 	["Draenei"] = {
 		["male"] = {
-			["Beard"] = 17,
-			["Bodyshape"] = 3,
-			["Earrings"] = 12,
-			["Eyebrows"] = 3,
-			["Eyecolor"] = 28,
-			["Face"] = 10,
-			["Faceshape"] = 2,
-			["Gemcolor"] = 6,
-			["Haircolor"] = 52,
-			["Hairstyle"] = 34,
-			["Headdress"] = 7,
-			["Horndecoration"] = 6,
-			["Horns"] = 28,
-			["Jewelrycolor"] = 10,
-			["Mustache"] = 10,
-			["Necklace"] = 2,
-			["Secondaryeyecolor"] = 28,
-			["Sideburns"] = 12,
-			["Skincolor"] = 24,
-			["Stubble"] = 5,
-			["Tail"] = 2,
-			["Tendrils"] = 11,
-			["Trims"] = 2,
+			["secondaryeyecolor"] = 28,
+			["face"] = 10,
+			["haircolor"] = 52,
+			["eyecolor"] = 28,
+			["bodyshape"] = 3,
+			["jewelrycolor"] = 10,
+			["faceshape"] = 2,
+			["mustache"] = 10,
+			["earrings"] = 12,
+			["eyebrows"] = 3,
+			["headdress"] = 7,
+			["trims"] = 2,
+			["gemcolor"] = 6,
+			["skincolor"] = 24,
+			["tail"] = 2,
+			["horns"] = 28,
+			["necklace"] = 2,
+			["tendrils"] = 11,
+			["sideburns"] = 12,
+			["horndecoration"] = 6,
+			["stubble"] = 5,
+			["hairstyle"] = 34,
+			["beard"] = 17,
 		},
 		["female"] = {
-			["Earrings"] = 6,
-			["Eyecolor"] = 28,
-			["Face"] = 10,
-			["Facetendrils"] = 4,
-			["Gemcolor"] = 6,
-			["Haircolor"] = 52,
-			["HairDecoration"] = 2,
-			["Hairstyle"] = 36,
-			["Headdress"] = 12,
-			["HornAccessories"] = 28,
-			["Horns"] = 19,
-			["Jewelrycolor"] = 10,
-			["Necklace"] = 3,
-			["Secondaryeyecolor"] = 28,
-			["Skincolor"] = 22,
-			["Tail"] = 6,
-			["Tendrils"] = 4,
-			["Trims"] = 2,
+			["secondaryeyecolor"] = 28,
+			["horns"] = 19,
+			["haircolor"] = 52,
+			["eyecolor"] = 28,
+			["facetendrils"] = 4,
+			["hairdecoration"] = 2,
+			["earrings"] = 6,
+			["hornaccessories"] = 28,
+			["headdress"] = 12,
+			["gemcolor"] = 6,
+			["face"] = 10,
+			["necklace"] = 3,
+			["tendrils"] = 4,
+			["tail"] = 6,
+			["skincolor"] = 22,
+			["trims"] = 2,
+			["jewelrycolor"] = 10,
+			["hairstyle"] = 36,
 		}
 	},
 	["Worgen"] = {
 		["male"] = {
-			["Beard"] = 12,
-			["Bodyfur"] = 4,
-			["Claws"] = 2,
-			["Earstyle"] = 18,
-			["Eyecolor"] = 23,
-			["Face"] = 7,
-			["Faceshape"] = 2,
-			["Fangs"] = 2,
-			["Foremane"] = 10,
-			["Furcolor"] = 15,
-			["Hairstyle"] = 11,
-			["Mane"] = 4,
-			["SecondaryEarStyle"] = 19,
-			["SecondaryEyeColor"] = 22,
-			["Tail"] = 5,
-			["Sideburns"] = 12,
+			["mane"] = 4,
+			["secondaryeyecolor"] = 22,
+			["face"] = 7,
+			["eyecolor"] = 23,
+			["claws"] = 2,
+			["faceshape"] = 2,
+			["earstyle"] = 18,
+			["bodyfur"] = 4,
+			["secondaryearstyle"] = 19,
+			["tail"] = 5,
+			["hairstyle"] = 11,
+			["sideburns"] = 12,
+			["furcolor"] = 15,
+			["fangs"] = 2,
+			["foremane"] = 10,
+			["beard"] = 12,
 		},
 		["female"] = {
-			["Bodyfur"] = 4,
-			["Claws"] = 2,
-			["Earstyle"] = 20,
-			["Eyecolor"] = 23,
-			["Face"] = 16,
-			["Faceshape"] = 2,
-			["Fangs"] = 2,
-			["Foremane"] = 11,
-			["Furcolor"] = 19,
-			["Hairaccents"] = 3,
-			["Hairstyle"] = 16,
-			["Mane"] = 3,
-			["SecondaryEarStyle"] = 21,
-			["SecondaryEyeColor"] = 22,
-			["Tail"] = 6,
+			["mane"] = 3,
+			["secondaryeyecolor"] = 22,
+			["face"] = 16,
+			["eyecolor"] = 23,
+			["claws"] = 2,
+			["faceshape"] = 2,
+			["earstyle"] = 20,
+			["hairaccents"] = 3,
+			["secondaryearstyle"] = 21,
+			["tail"] = 6,
+			["hairstyle"] = 16,
+			["bodyfur"] = 4,
+			["fangs"] = 2,
+			["furcolor"] = 19,
+			["foremane"] = 11,
 		}
 	},
 	["Gilnean"] = {
@@ -898,248 +929,248 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Pandaren"] = {
 		["male"] = {
-			["Beard"] = 20,
-			["Eyebrows"] = 5,
-			["Eyecolor"] = 20,
-			["Face"] = 21,
-			["Hairstyle"] = 22,
-			["Mustache"] = 7,
-			["SecondaryEyeColor"] = 19,
-			["SkinColor"] = 18,
+			["skincolor"] = 18,
+			["eyebrows"] = 5,
+			["mustache"] = 7,
+			["secondaryeyecolor"] = 19,
+			["eyecolor"] = 20,
+			["face"] = 21,
+			["hairstyle"] = 22,
+			["beard"] = 20,
 		},
 		["female"] = {
-			["Earrings"] = 6,
-			["Eyecolor"] = 19,
-			["Face"] = 20,
-			["Haircolor"] = 16,
-			["Hairstyle"] = 20,
-			["SecondaryEyeColor"] = 19,
-			["SkinColor"] = 18,
-			["Tail"] = 2
+			["tail"] = 2,
+			["skincolor"] = 18,
+			["hairstyle"] = 20,
+			["secondaryeyecolor"] = 19,
+			["haircolor"] = 16,
+			["face"] = 20,
+			["earrings"] = 6,
+			["eyecolor"] = 19,
 		}
 	},
 	["Nightborne"] = {
 		["male"] = {
-			["Beard"] = 4,
-			["BodyTattoo"] = 7,
-			["Chinjewelry"] = 5,
-			["Earrings"] = 7,
-			["Eyebrows"] = 3,
-			["Eyecolor"] = 22,
-			["Eyeshape"] = 2,
-			["Face"] = 14,
-			["Facejewelry"] = 4,
-			["FaceTattoo"] = 9,
-			["HairColor"] = 12,
-			["Hairstyle"] = 16,
-			["Headdress"] = 2,
-			["Jawjewelry"] = 5,
-			["Jewelrycolor"] = 3,
-			["LuminousHands"] = 2,
-			["Mustache"] = 4,
-			["SecondaryEyeColor"] = 21,
-			["SkinColor"] = 11,
+			["jawjewelry"] = 5,
+			["secondaryeyecolor"] = 21,
+			["facejewelry"] = 4,
+			["bodytattoo"] = 7,
+			["eyecolor"] = 22,
+			["jewelrycolor"] = 3,
+			["eyeshape"] = 2,
+			["mustache"] = 4,
+			["earrings"] = 7,
+			["eyebrows"] = 3,
+			["headdress"] = 2,
+			["skincolor"] = 11,
+			["face"] = 14,
+			["facetattoo"] = 9,
+			["haircolor"] = 11,
+			["luminoushands"] = 2,
+			["hairstyle"] = 16,
+			["chinjewelry"] = 5,
+			["beard"] = 4,
 		},
 		["female"] = {
-			["BodyTattoo"] = 7,
-			["Chinjewelry"] = 4,
-			["Earrings"] = 8,
-			["Eyebrows"] = 3,
-			["Eyecolor"] = 22,
-			["Eyeshape"] = 2,
-			["Face"] = 12,
-			["Facejewelry"] = 5,
-			["FaceTattoo"] = 9,
-			["HairColor"] = 12,
-			["HairDecoration"] = 2,
-			["Hairstyle"] = 16,
-			["Headdress"] = 2,
-			["Jawjewelry"] = 2,
-			["Jewelrycolor"] = 3,
-			["LuminousHands"] = 2,
-			["SecondaryEyeColor"] = 21,
-			["SkinColor"] = 11,
+			["jawjewelry"] = 2,
+			["secondaryeyecolor"] = 21,
+			["facejewelry"] = 5,
+			["bodytattoo"] = 7,
+			["eyecolor"] = 22,
+			["jewelrycolor"] = 3,
+			["hairdecoration"] = 2,
+			["eyeshape"] = 2,
+			["earrings"] = 8,
+			["eyebrows"] = 3,
+			["headdress"] = 2,
+			["skincolor"] = 11,
+			["necklace"] = 4,
+			["haircolor"] = 11,
+			["facetattoo"] = 9,
+			["luminoushands"] = 2,
+			["face"] = 12,
+			["hairstyle"] = 16,
+			["chinjewelry"] = 4,
 		}
 	},
 	["Highmountain"] = {
 		["male"] = {
-			["Beard"] = 9,
-			["Bodypaint"] = 4,
-			["Bodypaintcolor"] = 3,
-			["Eyecolor"] = 18,
-			["Face"] = 5,
+			["nosepiercing"] = 5,
+			["hornmarkings"] = 2,
+			["secondaryeyecolor"] = 17,
+			["face"] = 5,
+			["eyecolor"] = 18,
+			["hornwraps"] = 3,
+			["hornstyle"] = 9,
+			["taildecoration"] = 4,
+			["tail"] = 3,
+			["skincolor"] = 10,
+			["feather"] = 3,
+			["headdress"] = 3,
+			["bodypaint"] = 4,
+			["horncolor"] = 4,
+			["bodypaintcolor"] = 3,
+			["hair"] = 9,
+			["foremane"] = 8,
 			["facepaint"] = 4,
-			['Feather'] = 3,
-			["Foremane"] = 8,
-			["Hair"] = 9,
-			["Headdress"] = 3,
-			["Horncolor"] = 4,
-			["Horndecoration"] = 8,
-			["Hornmarkings"] = 3,
-			["Hornstyle"] = 9,
-			["Hornwrap"] = 3,
-			["Nosepiercing"] = 5,
-			["SecondaryEyeColor"] = 17,
-			["SkinColor"] = 10,
-			["Tail"] = 3,
-			["TailDecoration"] = 4,
+			["horndecoration"] = 8,
+			["beard"] = 9,
 		},
 		["female"] = {
-			["Bodypaint"] = 4,
-			["Bodypaintcolor"] = 3,
-			["Earrings"] = 5,
-			["Eyecolor"] = 18,
-			["Face"] = 4,
+			["nosepiercing"] = 4,
+			["hornmarkings"] = 2,
+			["secondaryeyecolor"] = 17,
+			["face"] = 4,
+			["eyecolor"] = 18,
+			["hornwraps"] = 2,
+			["hairdecoration"] = 4,
+			["hornstyle"] = 8,
+			["earrings"] = 5,
+			["taildecoration"] = 5,
+			["tail"] = 2,
+			["skincolor"] = 10,
+			["feather"] = 2,
+			["headdress"] = 3,
 			["facepaint"] = 4,
-			['Feather'] = 2,
-			["Foremane"] = 7,
-			["Hair"] = 9,
-			["HairDecoration"] = 4,
-			["Headdress"] = 3,
-			["Horncolor"] = 4,
-			["Horndecoration"] = 2,
-			["Hornmarkings"] = 3,
-			["Hornstyle"] = 8,
-			["Hornwrap"] = 2,
-			["Necklace"] = 4,
-			["Nosepiercing"] = 4,
-			["SecondaryEyeColor"] = 17,
-			["SkinColor"] = 10,
-			["Tail"] = 2,
-			["TailDecoration"] = 5,
-
-
+			["foremane"] = 7,
+			["horncolor"] = 4,
+			["necklace"] = 4,
+			["bodypaintcolor"] = 3,
+			["hair"] = 9,
+			["horndecoration"] = 2,
+			["bodypaint"] = 4,
 		}
 	},
 	["VoidElf"] = {
 		["male"] = {
-			["Bodymarkings"] = 3,
-			["Ears"] = 3,
-			["Eyecolor"] = 20,
-			["Face"] = 28,
-			["Facemarkings"] = 11,
-			["FacialHair"] = 8,
-			["HairColor"] = 40,
-			["Hairstyle"] = 13,
-			["SecondaryEyeColor"] = 19,
-			["SkinColor"] = 33,
-			["Stubble"] = 2,
-			["Tentacles"] = 2
+			["secondaryeyecolor"] = 19,
+			["bodymarkings"] = 3,
+			["face"] = 12,
+			["haircolor"] = 40,
+			["eyecolor"] = 20,
+			["ears"] = 3,
+			["facialhair"] = 8,
+			["tentacles"] = 2,
+			["skincolor"] = 29,
+			["stubble"] = 2,
+			["hairstyle"] = 13,
+			["facemarkings"] = 11,
 		},
 		["female"] = {
-			["Bodymarkings"] = 3,
-			["Earrings"] = 5,
-			["Ears"] = 3,
-			["Eyecolor"] = 20,
-			["Face"] = 28,
-			["Facemarkings"] = 11,
-			["HairColor"] = 40,
-			["Hairstyle"] = 11,
-			["SecondaryEyeColor"] = 19,
-			["SkinColor"] = 33,
-			["Tentacles"] = 2
+			["secondaryeyecolor"] = 19,
+			["bodymarkings"] = 3,
+			["face"] = 12,
+			["haircolor"] = 40,
+			["eyecolor"] = 20,
+			["ears"] = 3,
+			["facemarkings"] = 11,
+			["tentacles"] = 2,
+			["skincolor"] = 29,
+			["earrings"] = 5,
+			["hairstyle"] = 11,
 		}
 	},
 	["Lightforged"] = {
 		["male"] = {
-			["Bodyrune"] = 4,
-			["Eyebrows"] = 2,
-			["Eyecolor"] = 4,
-			["Face"] = 10,
-			["Facerune"] = 6,
-			["FacialHair"] = 12,
-			["Haircolor"] = 11,
-			["Hairstyle"] = 13,
-			["Horndecoration"] = 4,
-			["Jewelrycolor"] = 13,
-			["Skincolor"] = 8,
-			["Tail"] = 2,
-			["Tendrils"] = 7,
+			["facerune"] = 6,
+			["eyebrows"] = 2,
+			["skincolor"] = 7,
+			["face"] = 10,
+			["haircolor"] = 10,
+			["eyecolor"] = 4,
+			["facialhair"] = 12,
+			["jewelrycolor"] = 13,
+			["bodyrune"] = 4,
+			["horndecoration"] = 4,
+			["tendrils"] = 7,
+			["hairstyle"] = 13,
+			["tail"] = 2,
 		},
 		["female"] = {
-			["Bodyrune"] = 4,
-			["Earrings"] = 3,
-			["Eyecolor"] = 4,
-			["Face"] = 10,
-			["Facerune"] = 6,
-			["Haircolor"] = 11,
-			["HairDecoration"] = 4,
-			["Hairstyle"] = 13,
-			["Headdress"] = 5,
-			["Horndecoration"] = 7,
-			["Horns"] = 13,
-			["Jewelrycolor"] = 13,
-			["Necklace"] = 2,
-			["Skincolor"] = 8,
-			["Tail"] = 6,
-			["Tendrils"] = 2,
+			["horns"] = 13,
+			["haircolor"] = 10,
+			["eyecolor"] = 4,
+			["jewelrycolor"] = 13,
+			["hairdecoration"] = 4,
+			["earrings"] = 3,
+			["facerune"] = 6,
+			["headdress"] = 5,
+			["skincolor"] = 7,
+			["tail"] = 6,
+			["jawdecoration"] = 2,
+			["tendrils"] = 2,
+			["bodyrune"] = 4,
+			["horndecoration"] = 7,
+			["necklace"] = 2,
+			["face"] = 10,
+			["hairstyle"] = 13,
 		}
 	},
 	["Zandalari"] = {
 		["male"] = {
-			["Eargauge"] = 3,
-			["Eyecolor"] = 9,
-			["Face"] = 6,
-			["Haircolor"] = 7,
-			["Hairstyle"] = 12,
-			["Piercings"] = 6,
-			["SecondaryEyeColor"] = 7,
-			["SkinColor"] = 8,
-			["Tattoo"] = 4,
-			["TattooColor"] = 8,
-			["Tusks"] = 7,
+			["secondaryeyecolor"] = 7,
+			["haircolor"] = 6,
+			["eyecolor"] = 9,
+			["hairstyle"] = 12,
+			["piercings"] = 6,
+			["skincolor"] = 6,
+			["tusks"] = 7,
+			["tattoocolor"] = 8,
+			["eargauge"] = 3,
+			["face"] = 6,
+			["tattoo"] = 4,
 
 		},
 		["female"] = {
-			["Eargauge"] = 3,
-			["Earrings"] = 2,
-			["Eyecolor"] = 9,
-			["Face"] = 6,
-			["Haircolor"] = 7,
-			["Hairstyle"] = 11,
-			["Necklace"] = 2,
-			["Piercings"] = 4,
-			["SecondaryEyeColor"] = 7,
-			["SkinColor"] = 8,
-			["Tattoo"] = 5,
-			["TattooColor"] = 8,
-			["Tusks"] = 7,
+			["secondaryeyecolor"] = 7,
+			["haircolor"] = 6,
+			["eyecolor"] = 9,
+			["earrings"] = 2,
+			["piercings"] = 4,
+			["skincolor"] = 6,
+			["tusks"] = 7,
+			["tattoocolor"] = 8,
+			["necklace"] = 2,
+			["tattoo"] = 5,
+			["eargauge"] = 3,
+			["face"] = 6,
+			["hairstyle"] = 10,
 		}
 	},
 	["Kul tiran"] = {
 		["male"] = {
-			["Beard"] = 4,
-			["BodyTattoo"] = 6,
-			["Eyecolor"] = 29,
-			["Face"] = 7,
-			["HairColor"] = 48,
-			["Hairstyle"] = 6,
-			["Mustache"] = 4,
-			["SecondaryEyeColor"] = 28,
-			["Sideburns"] = 2,
-			["SkinColor"] = 20,
-			["TattooColor"] = 8
+			["secondaryeyecolor"] = 28,
+			["face"] = 7,
+			["bodytattoo"] = 6,
+			["eyecolor"] = 29,
+			["mustache"] = 4,
+			["hairstyle"] = 6,
+			["skincolor"] = 20,
+			["sideburns"] = 2,
+			["tattoocolor"] = 8,
+			["haircolor"] = 48,
+			["beard"] = 4,
 		},
 		["female"] = {
-			["BodyTattoo"] = 6,
-			["Earrings"] = 7,
-			["Eyebrows"] = 2,
-			["Eyecolor"] = 29,
-			["Face"] = 7,
-			["HairColor"] = 50,
-			["Hairstyle"] = 10,
-			["Necklace"] = 7,
-			["SecondaryEyeColor"] = 28,
-			["SkinColor"] = 20,
-			["TattooColor"] = 8
+			["secondaryeyecolor"] = 28,
+			["haircolor"] = 49,
+			["eyecolor"] = 29,
+			["earrings"] = 7,
+			["eyebrows"] = 2,
+			["skincolor"] = 20,
+			["necklace"] = 7,
+			["tattoocolor"] = 8,
+			["face"] = 7,
+			["bodytattoo"] = 6,
+			["hairstyle"] = 10,
 		}
 	},
 	["Thin Human"] = {
 		["male"] = {
-			["FacialHair"] = 7,
-			["HairColor"] = 4,
-			["Hairstyle"] = 4,
-			["SkinColor"] = 4,
+			["hairstyle"] = 4,
+			["facialhair"] = 7,
+			["haircolor"] = 4,
+			["skincolor"] = 4,
 		},
 		["female"] = {
 
@@ -1147,163 +1178,163 @@ PhaseToolkit.InfoCustom = {
 	},
 	["DarkIron"] = {
 		["male"] = {
-			["Eyecolor"] = 4,
-			["Face"] = 10,
-			["FacialHair"] = 7,
-			["Haircolor"] = 7,
-			["Hairstyle"] = 8,
-			["Piercings"] = 6,
-			["SkinColor"] = 5,
-			["TattooColor"] = 6,
+			["piercings"] = 6,
+			["facialhair"] = 7,
+			["tattoo"] = 6,
+			["skincolor"] = 5,
+			["hairstyle"] = 8,
+			["face"] = 10,
+			["haircolor"] = 6,
+			["eyecolor"] = 4,
 		},
 		["female"] = {
-			["Eyecolor"] = 4,
-			["Face"] = 10,
-			["Haircolor"] = 11,
-			["Hairstyle"] = 7,
-			["Piercings"] = 5,
-			["SkinColor"] = 6,
-			["Tattoo"] = 6,
+			["piercings"] = 7,
+			["tattoo"] = 6,
+			["skincolor"] = 5,
+			["hairstyle"] = 11,
+			["face"] = 10,
+			["haircolor"] = 6,
+			["eyecolor"] = 4,
 		}
 	},
 	["Vulpera"] = {
 		["male"] = {
-			["Earrings"] = 2,
-			["Ears"] = 6,
-			["Eyecolor"] = 24,
-			["Face"] = 6,
-			["Furcolor"] = 9,
-			["Pattern"] = 3,
-			["Patterncolor"] = 8,
-			["SecondaryEyeColor"] = 23,
-			["Snout"] = 6,
+			["pattern"] = 3,
+			["secondaryeyecolor"] = 23,
+			["face"] = 6,
+			["patterncolor"] = 8,
+			["eyecolor"] = 24,
+			["ears"] = 6,
+			["furcolor"] = 9,
+			["snout"] = 6,
+			["earrings"] = 2,
 		},
 		["female"] = {
-			["Earrings"] = 2,
-			["Ears"] = 8,
-			["Eyecolor"] = 24,
-			["Face"] = 6,
-			["Furcolor"] = 9,
-			["Pattern"] = 3,
-			["Patterncolor"] = 8,
-			["SecondaryEyeColor"] = 23,
-			["Snout"] = 6,
+			["pattern"] = 3,
+			["secondaryeyecolor"] = 23,
+			["face"] = 6,
+			["patterncolor"] = 8,
+			["eyecolor"] = 24,
+			["ears"] = 8,
+			["furcolor"] = 9,
+			["snout"] = 6,
+			["earrings"] = 2,
 		}
 	},
 	["Mag'har"] = {
 		["male"] = {
-			["Beard"] = 18,
-			["BodyPiercings"] = 2,
-			["BodyTattoo"] = 13,
-			["Earrings"] = 6,
-			["Eyebrows"] = 5,
-			["Eyecolor"] = 20,
-			["Face"] = 9,
-			["Faceshape"] = 3,
-			["FaceTattoo"] = 18,
-			["Grime"] = 4,
-			["HairColor"] = 36,
-			["Hairstyle"] = 33,
-			["Hand(left)"] = 8,
-			["Hand(right)"] = 8,
-			["Mustache"] = 5,
-			["Necklace"] = 7,
-			["Piercings"] = 7,
-			["Posture"] = 2,
-			["Scars"] = 5,
-			["SecondaryEyeColor"] = 19,
-			["Sideburns"] = 12,
-			["SkinColor"] = 11,
-			["TattooColor"] = 11,
-			["Tusks"] = 5
+			["secondaryeyecolor"] = 19,
+			["tattoocolor"] = 11,
+			["face"] = 9,
+			["haircolor"] = 36,
+			["eyecolor"] = 20,
+			["hand(left)"] = 8,
+			["faceshape"] = 3,
+			["mustache"] = 5,
+			["earrings"] = 6,
+			["piercings"] = 7,
+			["eyebrows"] = 5,
+			["facetattoo"] = 18,
+			["bodypiercings"] = 2,
+			["grime"] = 4,
+			["tusks"] = 5,
+			["skincolor"] = 15,
+			["sideburns"] = 12,
+			["necklace"] = 7,
+			["scars"] = 5,
+			["posture"] = 2,
+			["hand(right)"] = 8,
+			["hairstyle"] = 33,
+			["bodytattoo"] = 13,
+			["beard"] = 18,
 		},
 		["female"] = {
-			["BodyPiercings"] = 2,
-			["BodyTattoo"] = 13,
-			["Earrings"] = 17,
-			["Eyecolor"] = 20,
-			["Face"] = 9,
-			["Faceshape"] = 2,
-			["FaceTattoo"] = 17,
-			["HairColor"] = 36,
-			["Hairstyle"] = 46,
-			["Hand(left)"] = 6,
-			["Hand(right)"] = 6,
-			["Necklace"] = 5,
-			["Piercings"] = 4,
-			["SecondaryEyeColor"] = 19,
-			["SkinColor"] = 15,
-			["TattooColor"] = 11,
+			["piercings"] = 4,
+			["tattoocolor"] = 11,
+			["skincolor"] = 15,
+			["facetattoo"] = 17,
+			["bodypiercings"] = 2,
+			["face"] = 9,
+			["bodytattoo"] = 13,
+			["eyecolor"] = 20,
+			["secondaryeyecolor"] = 19,
+			["necklace"] = 5,
+			["hand(left)"] = 6,
+			["hand(right)"] = 6,
+			["faceshape"] = 2,
+			["hairstyle"] = 46,
+			["earrings"] = 17,
+			["haircolor"] = 36,
 		}
 	},
 	["Mechagnome"] = {
 		["male"] = {
-			["Arm(left)"] = 9,
-			["Arm(right"] = 9,
-			["Beard"] = 13,
-			["Chestmod"] = 4,
-			["Chinmod"] = 2,
-			["Earmod"] = 8,
-			["Eyebrows"] = 13,
-			["Eyecolor"] = 32,
-			["Face"] = 7,
-			["Facemod"] = 17,
-			["Haircolor"] = 74,
-			["Hairgradient"] = 20,
-			["Hairstreaks"] = 75,
-			["Hairstyle"] = 62,
-			["Leg(left)"] = 4,
-			["Leg(right)"] = 4,
-			["Mustache"] = 24,
-			["Optics"] = 9,
-			["Paintcolor"] = 45,
-			["Scars"] = 10,
-			["SecondaryEyeColor"] = 32,
-			["Sideburns"] = 6,
-			["Skincolor"] = 23,
+			["leg(left)"] = 4,
+			["secondaryeyecolor"] = 32,
+			["chestmodification"] = 4,
+			["hairgradient"] = 20,
+			["haircolor"] = 74,
+			["eyecolor"] = 32,
+			["paintcolor"] = 45,
+			["arm(right"] = 9,
+			["mustache"] = 24,
+			["hairstreaks"] = 75,
+			["facemodification"] = 17,
+			["optics"] = 9,
+			["eyebrows"] = 13,
+			["chinmodification"] = 2,
+			["skincolor"] = 23,
+			["arm(left)"] = 9,
+			["sideburns"] = 6,
+			["scars"] = 10,
+			["face"] = 7,
+			["leg(right)"] = 4,
+			["earmodification"] = 8,
+			["hairstyle"] = 62,
+			["beard"] = 13,
 		},
 		["female"] = {
-			["Arm(left)"] = 13,
-			["Arm(right"] = 9,
-			["Chestmod"] = 4,
-			["Chinmod"] = 2,
-			["Earmod"] = 8,
-			["Eyebrows"] = 19,
-			["Eyecolor"] = 32,
-			["Face"] = 7,
-			["Facemod"] = 18,
-			["Haircolor"] = 74,
-			["Hairgradient"] = 20,
-			["Hairstreaks"] = 75,
-			["Hairstyle"] = 59,
-			["Leg(left)"] = 6,
-			["Leg(right)"] = 4,
-			["Optics"] = 9,
-			["Paintcolor"] = 45,
-			["Scars"] = 10,
-			["SecondaryEyeColor"] = 32,
-			["Skincolor"] = 24,
+			["leg(left)"] = 4,
+			["secondaryeyecolor"] = 32,
+			["chestmodification"] = 4,
+			["hairgradient"] = 20,
+			["haircolor"] = 74,
+			["eyecolor"] = 32,
+			["paintcolor"] = 45,
+			["hairstreaks"] = 75,
+			["facemodification"] = 18,
+			["optics"] = 9,
+			["arm(right)"] = 9,
+			["chinmodification"] = 2,
+			["skincolor"] = 23,
+			["arm(left)"] = 9,
+			["scars"] = 10,
+			["eyebrows"] = 19,
+			["leg(right)"] = 4,
+			["earmodification"] = 8,
+			["face"] = 7,
+			["hairstyle"] = 59,
 		}
 	},
 	["Fel Orc"] = {
 		["male"] = {
-			["SkinColor"] = 3,
+			["skincolor"] = 3,
 		},
 		["female"] = {}
 	},
 	["Naga"] = {
 		["male"] = {
-			["SkinColor"] = 6
+			["skincolor"] = 6
 		},
 		["female"] = {
-			["SkinColor"] = 6
+			["skincolor"] = 6
 		}
 	},
 	["Broken"] = {
 		["male"] = {
-			["HairColor"] = 10,
-			["Hairstyle"] = 3,
-			["SkinColor"] = 6,
+			["haircolor"] = 10,
+			["hairstyle"] = 3,
+			["skincolor"] = 6,
 		},
 		["female"] = {
 
@@ -1319,10 +1350,10 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Vrykul"] = {
 		["male"] = {
-			["FacialHair"] = 6,
-			["HairColor"] = 5,
-			["Hairstyle"] = 6,
-			["SkinColor"] = 6
+			["facialhair"] = 6,
+			["haircolor"] = 5,
+			["hairstyle"] = 6,
+			["skincolor"] = 6
 		},
 		["female"] = {
 
@@ -1330,10 +1361,10 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Tuskarr"] = {
 		["male"] = {
-			["FacialHair"] = 7,
-			["HairColor"] = 7,
-			["Hairstyle"] = 7,
-			["SkinColor"] = 7,
+			["facialhair"] = 7,
+			["haircolor"] = 7,
+			["hairstyle"] = 7,
+			["skincolor"] = 7,
 		},
 		["female"] = {
 
@@ -1341,11 +1372,11 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Forest Troll"] = {
 		["male"] = {
-			["Face"] = 5,
-			["FacialHair"] = 11,
-			["HairColor"] = 10,
-			["Hairstyle"] = 6,
-			["SkinColor"] = 15
+			["face"] = 5,
+			["facialhair"] = 11,
+			["haircolor"] = 10,
+			["hairstyle"] = 6,
+			["skincolor"] = 15
 		},
 		["female"] = {
 
@@ -1353,8 +1384,8 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Taunka"] = {
 		["male"] = {
-			["FacialHair"] = 3,
-			["SkinColor"] = 4
+			["facialhair"] = 3,
+			["skincolor"] = 4
 		},
 		["female"] = {
 
@@ -1362,9 +1393,9 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Northrend Skeleton"] = {
 		["male"] = {
-			["FacialHair"] = 5,
-			["HairColor"] = 4,
-			["SkinColor"] = 4
+			["facialhair"] = 5,
+			["haircolor"] = 4,
+			["skincolor"] = 4
 		},
 		["female"] = {
 
@@ -1372,22 +1403,20 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Ice troll"] = {
 		["male"] = {
-			["FacialHair"] = 5,
-			["HairColor"] = 6,
-			["Hairstyle"] = 6,
-			["SkinColor"] = 8
+			["facialhair"] = 5,
+			["haircolor"] = 6,
+			["hairstyle"] = 6,
+			["skincolor"] = 8
 		},
 		["female"] = {
 
 		}
 	},
 }
-
 PhaseToolkit.Genre = {
 	"male",
 	"female"
 }
-
 PhaseToolkit.itemClass={
 	{name="Item Class",classId=-1,subclass={}},
 	{name="Weapon",classId=2,subclass={
@@ -1581,17 +1610,23 @@ PhaseToolkit.Toggleslist = {
 PhaseToolkit.Toggleslist_checked = {
 }
 
-
 PhaseToolkit.PhaseId = 0
 PhaseToolkit.creatureList = {}
 PhaseToolkit.filteredCreatureList = {}
-PhaseToolkit.IsCurrentlyFilteringNpc = false
+
+PhaseToolkit.IsCurrentlyFilteringNpcViaText = false
+PhaseToolkit.IsCurrentlyFilteringNpcViaCategory = false
+PhaseToolkit.IsCurrentlyFilteringTeleViaText = false
+PhaseToolkit.IsCurrentlyFilteringTeleViaCategory = false
 
 PhaseToolkit.teleList = {}
 PhaseToolkit.filteredTeleList = {}
-PhaseToolkit.IsCurrentlyFilteringTele = false
+PhaseToolkit.IsCurrentlyFilteringTeleViaText = false
 
 PhaseToolkit.tempChatFrame = nil
+
+PhaseToolkit.npcToDeletePrompt=""
+PhaseToolkit.teleToDelete=nil
 
 -- // EpsilonLib for AddOnCommands:
 local sendAddonCmd
@@ -1612,6 +1647,58 @@ else
 		print("Something went wrong with epsilib... report this please")
 		SendChatMessage("." .. command, "GUILD")
 	end
+end
+
+function PhaseToolkit.PTK_DEBUG_NPC_CUSTOM()
+	if UnitExists("target") and not UnitIsPlayer("target") then
+		sendAddonCmd("phase forge npc outfit custom",function(isSuccessful,response)
+			if isSuccessful then
+				-- Parse the response to extract the list after "ways:"
+				local customList = {}
+				response=response[1]
+				response = response:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+				local match = string.match(response, "ways:%s*(.+)")
+				if match then
+					for word in string.gmatch(match, "[^,%s]+") do
+						local cleanword = string.gsub(word, ";", "")
+						table.insert(customList, cleanword)
+					end
+				end
+
+				-- Table to store the results for each customList item
+				PhaseToolkit.NPCCustomOutfitResults = {}
+
+				local function processCustomList(index)
+					if customList[index] then
+						local customItem = customList[index]
+
+						sendAddonCmd("ph f n out custom " .. customItem, function(success, response)
+							if success and response and #response > 0 then
+								response=response[1]
+								response= response:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+								local maxId = string.match(response, "between%s+%d+%s+and%s+(%d+)")
+								if(tonumber(maxId)>1) then
+									PhaseToolkit.NPCCustomOutfitResults[customItem] = tonumber(maxId)
+								end
+							end
+							processCustomList(index + 1)
+						end)
+					end
+					if not customList[index] then
+						local output = {}
+						for k, v in pairs(PhaseToolkit.NPCCustomOutfitResults) do
+							table.insert(output, string.format('["%s"] = %s,', k, tostring(v)))
+						end
+						local result = table.concat(output, "\n")
+						print(result)
+					end
+				end
+
+				processCustomList(1)
+			end
+		end);
+	end
+	
 end
 -- ============================== FUNCTION PRINCIPALES ============================== --
 local function isKeyInTable(key)
@@ -1753,6 +1840,19 @@ function PhaseToolkit.ChangePhaseWeather()
 	sendAddonCmd("phase set weather " .. PhaseToolkit.SelectedMeteo .. " " .. PhaseToolkit.IntensiteMeteo, nil)
 end
 
+function PhaseToolkit.GetMaxStringLength(stringTable)
+	local maxLength = 0
+	local tempFontString = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	for _, str in ipairs(stringTable) do
+		tempFontString:SetText(str)
+		local strLength = tempFontString:GetStringWidth()
+		if strLength > maxLength then
+			maxLength = strLength
+		end
+	end
+	return maxLength
+end
+
 function PhaseToolkit.GetMaxNameWidth(creatureTable)
 	-- Créer un objet FontString temporaire pour mesurer les tailles de texte
 	local tempFontString = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -1881,6 +1981,12 @@ end
 function PhaseToolkit.IsTableEmpty(t)
 	return next(t) == nil
 end
+
+function PhaseToolkit.UserHasPermission()
+	return C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()
+end
+
+
 
 -- ============================== FONCTIONS ² ============================== --
 
@@ -2593,11 +2699,11 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 
 	C_Timer.After(0.5, function()
 		if(PhaseToolkit.itemCreatorData.itemDescription~=nil) then
-			local maxDescriptionSize=254-(string.len("f i s de ")+string.len(itemLink))
+			local maxDescriptionSize=240-(string.len("f i s de ")+string.len(itemLink))
 			if(string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize) then
 				sendMessageInChunks("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
 			else
-				sendAddonCmd("forge item set description "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
+				sendAddonCmd("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
 			end
 		end
 	end)
@@ -2643,9 +2749,11 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 	end)
 	C_Timer.After(1.1, function()
 		if(PhaseToolkit.itemCreatorData.stackable~=nil and PhaseToolkit.itemCreatorData.stackable~=-1) then
-			local value=""
+			local value=1
 			if(PhaseToolkit.itemCreatorData.stackable==true) then
-				value="on"
+				if( PhaseToolkit.itemCreatorData.stackablecount and PhaseToolkit.itemCreatorData.stackablecount>0) then
+					value=PhaseToolkit.itemCreatorData.stackablecount
+				end
 			end
 			sendAddonCmd("forge item set stackable "..itemLink..value,nil,false)
 		end
@@ -2895,7 +3003,6 @@ local function updateFields(itemLink)
 	  end)
 
 end
-
 
 function PhaseToolkit.createItemCreatorFrame()
 	if (PhaseToolkit.ItemCreatorFrame ~= nil) then
@@ -3243,21 +3350,77 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.itemCreatorCheckboxStackable:SetPoint("BOTTOMLEFT",displayProperty,"BOTTOMLEFT",5,5)
 	PhaseToolkit.itemCreatorCheckboxStackable:SetSize(26, 26)
 
+	PhaseToolkit.iteeCreatorEditBoxStackable=CreateFrame("EditBox", "itemCreatorEditBoxStackable", PhaseToolkit.itemCreatorCheckboxStackable, "InputBoxTemplate")
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetSize(50, 30)
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 80, 0)
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetAutoFocus(false)
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetNumeric(true)
+	PhaseToolkit.iteeCreatorEditBoxStackable:Hide()
+
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetScript("OnEnterPressed",function(self)
+		if(self:GetText()~="") then
+			local valeur=self:GetText()
+			if(tonumber(self:GetText())>10000) then
+				PhaseToolkit.iteeCreatorEditBoxStackable:SetText("10000")
+				valeur="10000"
+			end
+			PhaseToolkit.itemCreatorData.stackablecount=tonumber(valeur)
+			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
+				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
+				sendAddonCmd("forge item set stackable "..itemLink..valeur,nil,false)
+			end
+		else
+			PhaseToolkit.itemCreatorData.stackablecount=nil
+		end
+		self:ClearFocus()
+	end)
+
+	PhaseToolkit.iteeCreatorEditBoxStackable:SetScript("OnEscapePressed",function(self)
+		self:ClearFocus()
+	end)
+
 	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetText("Stackable")
 	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 5, 0)
 
 	PhaseToolkit.itemCreatorCheckboxStackable:SetScript("OnClick", function(self)
 		if self:GetChecked() then
 			PhaseToolkit.itemCreatorData.stackable=true
+			PhaseToolkit.iteeCreatorEditBoxStackable:Show()
 		else
 			PhaseToolkit.itemCreatorData.stackable=false
+			PhaseToolkit.iteeCreatorEditBoxStackable:Hide()
 		end
 	end)
+	
 
 	PhaseToolkit.iconIdEditBox = CreateFrame("EditBox", "iconIdEditBox", displayProperty, "InputBoxTemplate")
 	PhaseToolkit.iconIdEditBox:SetSize(150, 30)
 	PhaseToolkit.iconIdEditBox:SetPoint("TOPLEFT",PhaseToolkit.ItemSheathDropdown,"BOTTOMLEFT",20,-10)
 	PhaseToolkit.iconIdEditBox:SetAutoFocus(false)
+
+
+    PhaseToolkit.iconIdPickerButton = CreateFrame("Button", nil, displayProperty, "UIPanelButtonTemplate")
+    PhaseToolkit.iconIdPickerButton:SetSize(40,20)
+    PhaseToolkit.iconIdPickerButton:SetFrameLevel(PhaseToolkit.iconIdEditBox:GetFrameLevel()+1)
+    PhaseToolkit.iconIdPickerButton.Text:SetText("Select")
+    PhaseToolkit.iconIdPickerButton:SetNormalFontObject("GameFontNormalSmall")
+    PhaseToolkit.iconIdPickerButton:SetDisabledFontObject("GameFontDisableSmall")
+    PhaseToolkit.iconIdPickerButton:SetHighlightFontObject("GameFontHighlightSmall")
+    PhaseToolkit.iconIdPickerButton:SetPoint("BOTTOMRIGHT", PhaseToolkit.iconIdEditBox, "TOPRIGHT", 0, -4)
+    PhaseToolkit.iconIdPickerButton:SetScript("OnClick", function(self)
+        --EpsilonLibIconPicker_Open(returnFunc, closeOnClick, playSound, attachFrame, hidePortrait)
+        EpsilonLibIconPicker_Open(function(path, name, id)
+            if id then 
+				PhaseToolkit.iconIdEditBox:SetText(id)
+				PhaseToolkit.itemCreatorData.itemIconIdOrLink=id
+				-- if we are live editing, we save and apply the new icon
+				if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
+					local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
+					sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,updateContainers,false)
+				end
+			end
+        end, true, true, false, true):SetPoint("LEFT", PhaseToolkit.iconIdPickerButton, "RIGHT", 20, 0)
+    end)
 
 	local function saveItemIconIdOrLink(idOrLink)
 		if idOrLink and idOrLink ~= "" then
@@ -3449,6 +3612,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.RegisterTooltip(seeOfficerAddedToListButton, "Show a list of Phases currently on the 'Officers' Whitelist.")
 
 end
+
 local function updateWhitelistDisplay(typeOfWhitelist, data)
     -- Nettoyer le contenu existant
     if PhaseToolkit.listFrame.content then
@@ -3639,6 +3803,7 @@ function PhaseToolkit.copyItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
 
 end
+
 function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
 	local function OnClick(self)
 		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
@@ -3676,6 +3841,7 @@ function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
 
 end
+
 function PhaseToolkit.infoItemOptionDropdown(_dropdown)
 	local function OnClick(self)
 		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
@@ -3713,6 +3879,7 @@ function PhaseToolkit.infoItemOptionDropdown(_dropdown)
 	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
 
 end
+
 function PhaseToolkit.lookupItemOptionDropdown(_dropdown)
 	local function OnClick(self)
 		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
@@ -4058,7 +4225,77 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 --#region Listes
 -- -- -- -- -- -- -- -- -- -- -- --
+local function checkIfCreatureInSelectedCategory(creature)
+	if(creature) then 
+		if(PhaseToolkit.NPCselectedCategory) then 
+			for _, member in ipairs(PhaseToolkit.NPCselectedCategory.members) do
+				if member == creature.IdCreature then
+					return true
+				end
+			end
+			return false
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
 
+local function checkIfTeleInSelectedCategory(tele)
+	if tele then
+		if PhaseToolkit.TELEselectedCategory then
+			for _, member in ipairs(PhaseToolkit.TELEselectedCategory.members) do
+				if member == tele then
+					return true
+				end
+			end
+			return false
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+
+--- Retrieves the index of a specific member in a list of category members.
+--- 
+--- @param categoryMembersList table A list of category members to search through.
+--- @param memberId any The ID of the member to find in the list.
+--- @return number|nil The index of the member in the list if found, or nil if not found.
+local function getIndexOfMembers(categoryMembersList,memberId)
+	for index, member in ipairs(categoryMembersList) do
+		if member == memberId then
+			return index
+		end
+	end
+	return -1
+end
+--- Checks if a string is present in an array.
+---@param array table The array to search through.
+---@param searchString string The string to search for.
+---@return integer True if the string is found, false otherwise.
+local function isStringInArray(array, searchString)
+	for index, value in ipairs(array) do
+		if value == searchString then
+			return index;
+		end
+	end
+	return -1;
+end
+
+--- Retrieves a creature from the creature list by its ID.
+---@param npcId number The ID of the creature to retrieve.
+---@return table|nil The creature object if found, or nil if not found.
+function PhaseToolkit.GetCreatureById(npcId)
+	for _, creature in ipairs(PhaseToolkit.creatureList) do
+		if creature.IdCreature == npcId then
+			return creature
+		end
+	end
+	return nil
+end
 --================================= Frame pour Listes ===============================--
 function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	if (PhaseToolkit.TELEFrame ~= nil) then
@@ -4080,11 +4317,24 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	if (PhaseToolkit.PNJFrame ~= nil) then
 		if (PhaseToolkit.PNJFrame:IsShown()) then
 			PhaseToolkit.PNJFrame:Hide()
+			if PhaseToolkit.categoryPanelNPC ~= nil then
+				PhaseToolkit.categoryPanelNPC:Hide()
+				PhaseToolkit.categoryPanelNPC = nil
+				for i = 1, 7 do
+					local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
+					if blueprintFrame then
+						blueprintFrame:Hide()
+						_G["PTK_CATEGORY_FRAME"..i] = nil
+					end
+				end
+			end
 		else
 			PhaseToolkit.PNJFrame:Show()
 		end
 		return
 	end
+
+
 	-- Fonction qui retourne la largeur maximale d'un nom de créature en pixels
 	function PhaseToolkit.GetMaxNameWidth(creatureTable)
 		-- Créer un objet FontString temporaire pour mesurer les tailles de texte
@@ -4110,6 +4360,11 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	end
 
 	local currentPage=1
+	if(PhaseToolkit.NPCListCurrentPage) then
+		currentPage=PhaseToolkit.NPCListCurrentPage
+	end
+
+	
 
 	local totalPages = math.ceil(#PhaseToolkit.creatureList / PhaseToolkit.itemsPerPageNPC)
 	if(PhaseToolkit.NPCListCurrentPage) then
@@ -4162,7 +4417,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 				NewNumberOfLineframe:Hide()
 				PhaseToolkit.PNJFrame:Hide()
 				PhaseToolkit.PNJFrame = nil
-				if (PhaseToolkit.IsCurrentlyFilteringNpc) then
+				if (PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.filteredCreatureList)
 				else
 					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
@@ -4190,18 +4445,57 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	PhaseToolkit.PNJFrame:SetSize(620, (PhaseToolkit.itemsPerPageNPC * 30) + 80)
 	PhaseToolkit.PNJFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
 
-
+	PhaseToolkit.PNJFrame:SetScript("OnHide", function()
+		if PhaseToolkit.categoryPanelNPC ~= nil then
+			if PhaseToolkit.categoryPanelNPC:IsShown() then
+				PhaseToolkit.categoryPanelNPC:Hide()
+			end
+			for i = 1, 7 do
+				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
+				if blueprintFrame then
+					blueprintFrame:Hide()
+					_G["PTK_CATEGORY_FRAME"..i] = nil
+				end
+			end
+		end
+	end)
+	
 	local ButtonToFetch = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	ButtonToFetch:SetSize(120, 15)
+	ButtonToFetch:SetSize(15, 15)
 	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -30, -3.5)
-	ButtonToFetch:SetText(PhaseToolkit.CurrentLang["Fetch Npcs"] or "Fetch Npcs")
+	ButtonToFetch.icon = ButtonToFetch:CreateTexture(nil, "OVERLAY")
+	ButtonToFetch.icon:SetAtlas("poi-door-arrow-down")
+	ButtonToFetch.icon:SetSize(14, 14)
+	ButtonToFetch.icon:SetPoint("CENTER", ButtonToFetch, "CENTER", 0, 0)
 	ButtonToFetch:SetScript("OnClick", function()
-		PhaseToolkit.IsCurrentlyFilteringNpc = false
+		PhaseToolkit.IsCurrentlyFilteringNpcViaText = false
 		PhaseToolkit.filteredCreatureList = {}
 		PhaseToolkit.NPCListCurrentPage=currentPage
+		if PhaseToolkit.categoryPanelNPC then
+			PhaseToolkit.categoryPanelNPC:Hide()
+			for i = 1, 7 do
+				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
+				if blueprintFrame then
+					blueprintFrame:Hide()
+					_G["PTK_CATEGORY_FRAME"..i] = nil
+				end
+			end
+		end
 		PhaseToolkit.PhaseNpcListSystemMessageCounter()
 	end)
-	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
+	PhaseToolkit.RegisterTooltip(ButtonToFetch, "Fetch Npc List info")
+
+	local CategoryButton=CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
+	CategoryButton:SetSize(15, 15)
+	CategoryButton:SetPoint("LEFT", ButtonToFetch, "LEFT", -20, 0)
+	CategoryButton.icon = CategoryButton:CreateTexture(nil, "OVERLAY")
+	CategoryButton.icon:SetAtlas("adventureguide-icon-whatsnew")
+	CategoryButton.icon:SetSize(14, 14)
+	CategoryButton.icon:SetPoint("CENTER", CategoryButton, "CENTER", 0, 0)
+	CategoryButton:SetScript("OnClick", function()
+		PhaseToolkit.openNpcCategoryPanel()
+	end)
+	PhaseToolkit.RegisterTooltip(CategoryButton, "Open the Category Panel")
 
 	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
 	ButtonToChangeNumberOfLine:SetSize(15, 15)
@@ -4211,35 +4505,74 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	ButtonToChangeNumberOfLine.icon:SetAllPoints()
 	ButtonToChangeNumberOfLine:SetScript("OnClick", PhaseToolkit.CreerFenetreLignesParPage)
 
+	local function collectAllNpcsFromCategories()
+		local allNpcs = {}
+		if PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+			for _,categoryID in ipairs(PhaseToolkit.NPCcategoryToFilterPool) do
+				local category = PhaseToolkit.getCategoryByIdGENERIC(categoryID,"NPC")
+				if category and category.members then
+					for _,npcId in ipairs(category.members) do
+						local npc = PhaseToolkit.GetCreatureById(npcId)
+						if npc then
+							-- Check if the NPC is already in the list
+							local isAlreadyInList = false
+							for _,existingNpc in ipairs(allNpcs) do
+								if existingNpc.IdCreature == npc.IdCreature then
+									isAlreadyInList = true
+									break
+								end
+							end
+							-- If not, add it to the list
+							if not isAlreadyInList then
+								table.insert(allNpcs, npc)
+							end
+						end
+					end
+				end
+			end
+
+		end
+		return allNpcs
+	end
+
 	local function SearchAndFindNpcByText(self)
 		if self:GetText() ~= nil and self:GetText() ~= "" then
+			local sourceList = PhaseToolkit.creatureList
+			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then 
+				sourceList=collectAllNpcsFromCategories()
+			end
 			PhaseToolkit.filteredCreatureList = {}
 			PhaseToolkit.CurrenttextToLookForNpc = self:GetText()
-			PhaseToolkit.IsCurrentlyFilteringNpc = true
+			PhaseToolkit.IsCurrentlyFilteringNpcViaText = true
 
-			for _, creature in ipairs(PhaseToolkit.creatureList) do
-				if string.find(creature["NomCreature"], PhaseToolkit.CurrenttextToLookForNpc) then
+			for _, creature in ipairs(sourceList) do
+				if string.find(string.lower(creature["NomCreature"]), string.lower(PhaseToolkit.CurrenttextToLookForNpc)) then
 					table.insert(PhaseToolkit.filteredCreatureList, creature)
 				end
 			end
 			PhaseToolkit.PNJFrame:Hide()
 			PhaseToolkit.PNJFrame = nil
 			PhaseToolkit.CreateNpcListFrame(PhaseToolkit.filteredCreatureList)
-		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringNpc == true then
+		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringNpcViaText == true then
+			local sourceList = PhaseToolkit.creatureList
+			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then 
+				sourceList=collectAllNpcsFromCategories()
+			end
 			PhaseToolkit.PNJFrame:Hide()
 			PhaseToolkit.PNJFrame = nil
 			PhaseToolkit.CurrenttextToLookForNpc = ""
-			PhaseToolkit.IsCurrentlyFilteringNpc = false
-			PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
+			PhaseToolkit.IsCurrentlyFilteringNpcViaText = false
+			PhaseToolkit.CreateNpcListFrame(sourceList)
 		end
 	end
 
 	if (PhaseToolkit.creatureList ~= nil and PhaseToolkit.IsTableEmpty(PhaseToolkit.creatureList) == false) then
 		PhaseToolkit.LookupInNpcListEditBox = CreateFrame("EditBox", nil, PhaseToolkit.PNJFrame, "InputBoxTemplate")
 
-		if (PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) < 80) then
-			PhaseToolkit.LookupInNpcListEditBox:SetSize(130, 20)
+		if (PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) < 190) then
+			PhaseToolkit.LookupInNpcListEditBox:SetSize(190, 20)
 		else
+			
 			PhaseToolkit.LookupInNpcListEditBox:SetSize(PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) - 50, 20)
 		end
 
@@ -4271,21 +4604,24 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	local function OnDeleteClick(pnjId)
 		local creature = GetNpcById(pnjId)
 		StaticPopupDialogs["CONFIRM_DELETE_NPC"] = {
-			text = creature and "Are you sure you want to delete this NPC ?\n"..creature["NomCreature"] or "Are you sure you want to delete this NPC?",
+			text = "Are you sure you want to delete "..creature["NomCreature"] .. "?",
 			button1 = "Yes",
 			button2 = "No",
-			OnAccept = function()
-				sendAddonCmd("ph forge npc delete " .. pnjId, nil, false)
-				PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, pnjId)
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+			OnAccept = function(self, data)
+				sendAddonCmd("ph forge npc delete " .. data.pnjId, nil, false)
+				PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, data.pnjId)
+				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText or PhaseToolkit.IsCurrentlyFilteringNpcViaCategory) then
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+				else
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+				end
 			end,
 			timeout = 0,
 			whileDead = true,
 			hideOnEscape = true,
 			preferredIndex = 3,
 		}
-
-		StaticPopup_Show("CONFIRM_DELETE_NPC")
+		StaticPopup_Show("CONFIRM_DELETE_NPC", nil, nil, { pnjId = pnjId, creature = creature })
 	end
 
 	for i = 1, PhaseToolkit.itemsPerPageNPC do
@@ -4299,6 +4635,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		row.spawnButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 		row.spawnButton:SetSize(80, 30)
 		row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
+		
 		row.spawnButton:SetText("Spawn")
 
 		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
@@ -4306,13 +4643,41 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
 		row.deleteButton:SetText(PhaseToolkit.CurrentLang["Delete"] or "Delete")
 
+		row.addToCategoryButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.addToCategoryButton:SetSize(30, 30)
+		row.addToCategoryButton:SetPoint("LEFT", row.deleteButton, "RIGHT", 10, 0)
+
+		row.addToCategoryButton.icon = row.addToCategoryButton:CreateTexture(nil, "OVERLAY")
+		row.addToCategoryButton.icon:SetAtlas("GarrMission_CurrencyIcon-Material")
+		row.addToCategoryButton.icon:SetSize(28, 28)
+		row.addToCategoryButton.icon:SetPoint("CENTER", row.addToCategoryButton, "CENTER", 0, 0)
+		row.addToCategoryButton:Hide()
+
+		row.getOutOfCategoryButton=CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.getOutOfCategoryButton:SetSize(30, 30)
+		row.getOutOfCategoryButton:SetPoint("LEFT", row.addToCategoryButton, "RIGHT", 10, 0)
+		row.getOutOfCategoryButton.icon = row.getOutOfCategoryButton:CreateTexture(nil, "OVERLAY")
+		row.getOutOfCategoryButton.icon:SetAtlas("poi-traveldirections-arrow2")
+		row.getOutOfCategoryButton.icon:SetTexCoord(1, 0, 0, 1)
+		row.getOutOfCategoryButton.icon:SetSize(28, 28)
+		row.getOutOfCategoryButton.icon:SetPoint("CENTER", row.getOutOfCategoryButton, "CENTER", 0, 0)
+		row.getOutOfCategoryButton:Hide()
+		row.addToCategoryButton:Disable()
+		row.getOutOfCategoryButton:Disable()
+
+		PhaseToolkit.RegisterTooltip(row.addToCategoryButton,"add to selected category")
+		PhaseToolkit.RegisterTooltip(row.getOutOfCategoryButton,"remove from selected category")
+
 		PNJRows[i] = row
 	end
 
-	local function DisplayPage(creatureList)
+	function PhaseToolkit.DisplayNpcPage(creatureList)
 		-- Calcul des indices de la page actuelle
 		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageNPC + 1
 		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageNPC, #creatureList)
+
+		local isAlreadyBiggerForAddToCategory=false
+		local isAlreadyBiggerForGetOutOfCategory=false
 
 		-- Calculer la largeur maximale des noms pour la page actuelle
 		local pageCreatureList = {}
@@ -4324,8 +4689,25 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 
 		-- Ajuster la largeur de la GlobalNPCCUSTOMISER_PNJFrame en fonction de la largeur maximale des noms
 		local frameWidth = maxNameWidth + 190 -- 180 pour les boutons et marges
+		if PhaseToolkit.LookupInNpcListEditBox then
+			PhaseToolkit.LookupInNpcListEditBox:SetWidth(maxNameWidth - 10) -- Ajuster la largeur de la zone de recherche
+		end
 		PhaseToolkit.PNJFrame:SetWidth(frameWidth + 30 * 2)
+		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory then
+			PhaseToolkit.categoryPanelNPC:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPRIGHT", 5, 0)
+		end
 
+		local generaloffset =-100
+		for _, creature in ipairs(pageCreatureList) do
+			if checkIfCreatureInSelectedCategory(creature) then
+				generaloffset = -190
+				break
+			end
+		end
+
+		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory  and generaloffset>(-190) then
+			generaloffset = -145
+		end
 		-- Affichage des PNJ sur la page
 		for i = 1, PhaseToolkit.itemsPerPageNPC do
 			local idx = startIndex + i - 1
@@ -4338,9 +4720,75 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 				-- Associe l'ID de la créature aux boutons "Spawn" et "Delete"
 				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(creature["IdCreature"]) end)
 				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(creature["IdCreature"]) end)
+
+				if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory and PhaseToolkit.UserHasPermission() then
+
+					row.addToCategoryButton:Show()
+					row.addToCategoryButton:Enable()
+					row.addToCategoryButton:SetScript("OnClick", function()
+						if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory) then
+							if isStringInArray(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"]) <0 then
+								tinsert(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"])
+								PhaseToolkit.updateNPCCategoryList()
+								if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+								else
+									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+								end
+								PhaseToolkit.saveNpcCategoryDataToServer()
+							end
+						end
+					end)
+					if(not isAlreadyBiggerForAddToCategory) then
+						PhaseToolkit.PNJFrame:SetWidth(PhaseToolkit.PNJFrame:GetWidth()+45)
+						isAlreadyBiggerForAddToCategory=true
+					end
+				else
+					row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
+					row.addToCategoryButton:Hide()
+				end
+
+				if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory and PhaseToolkit.UserHasPermission() and checkIfCreatureInSelectedCategory(creature)) then
+					row.getOutOfCategoryButton:Show()
+					row.getOutOfCategoryButton:Enable()
+					row.getOutOfCategoryButton:SetScript("OnClick", function()
+					if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory) then
+						local indexToDelete=getIndexOfMembers(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"])
+						if(indexToDelete >0) then
+							table.remove(PhaseToolkit.NPCselectedCategory.members,indexToDelete)
+							PhaseToolkit.updateNPCCategoryList()
+							if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+							else
+								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+							end
+							PhaseToolkit.saveNpcCategoryDataToServer()
+						end
+					end
+					end)
+					if(not isAlreadyBiggerForGetOutOfCategory) then
+						PhaseToolkit.PNJFrame:SetWidth(PhaseToolkit.PNJFrame:GetWidth() + 90)
+						isAlreadyBiggerForGetOutOfCategory=true
+					end
+					--row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -190, -15 * i - (i * 15))
+				else
+					--row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
+					row.getOutOfCategoryButton:Hide()
+
+				end
+				row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
 			else
 				row:Hide()
 			end
+		end
+		isAlreadyBiggerForGetOutOfCategory=false
+		isAlreadyBiggerForAddToCategory=false
+
+		if totalPages >0 and currentPage > totalPages and PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+			currentPage = 1
+			NpcCurrentPageeditBox:SetText(currentPage)
+			PhaseToolkit.NPCListCurrentPage = currentPage
+			PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
 		end
 	end
 
@@ -4356,7 +4804,8 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	NpcCurrentPageeditBox:SetPoint("LEFT", prevButton, "RIGHT", 10, 0)
 	NpcCurrentPageeditBox:SetNumeric(true)
 	NpcCurrentPageeditBox:SetAutoFocus(false)
-	NpcCurrentPageeditBox:SetText(currentPage)
+	NpcCurrentPageeditBox:SetNumber(currentPage)
+
 
 	NumberOfPageMaxLabelNPC = PhaseToolkit.PNJFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	NumberOfPageMaxLabelNPC:SetText("/ " .. totalPages)
@@ -4370,8 +4819,9 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	NpcCurrentPageeditBox:SetScript("OnEnterPressed", function()
 		if NpcCurrentPageeditBox:GetText() ~= "" and tonumber(NpcCurrentPageeditBox:GetText()) ~= 0 and tonumber(NpcCurrentPageeditBox:GetText()) <= totalPages then
 			currentPage = NpcCurrentPageeditBox:GetNumber()
-			NpcCurrentPageeditBox:SetText(currentPage)
-			if (PhaseToolkit.IsCurrentlyFilteringNpc) then
+			NpcCurrentPageeditBox:SetNumber(currentPage)
+			PhaseToolkit.NPCListCurrentPage=currentPage
+			if (PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 			else
 				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -4402,7 +4852,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		end
 
 		-- Affichage de la page actuelle
-		DisplayPage(creatureList)
+		PhaseToolkit.DisplayNpcPage(creatureList)
 		NumberOfPageMaxLabelNPC:SetText("/ " .. totalPages)
 	end
 
@@ -4410,7 +4860,12 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		if currentPage < totalPages then
 			currentPage = currentPage + 1
 			NpcCurrentPageeditBox:SetText(currentPage)
-			PhaseToolkit.UpdatePNJPagination(_creatureList) -- Mise à jour avec la liste de PNJ fournie
+			PhaseToolkit.NPCListCurrentPage=currentPage
+			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+			else
+				PhaseToolkit.UpdatePNJPagination(_creatureList)
+			end
 		end
 	end)
 
@@ -4418,17 +4873,84 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		if currentPage > 1 then
 			currentPage = currentPage - 1
 			NpcCurrentPageeditBox:SetText(currentPage)
-			PhaseToolkit.UpdatePNJPagination(_creatureList)
+			PhaseToolkit.NPCListCurrentPage=currentPage
+			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+			else
+				PhaseToolkit.UpdatePNJPagination(_creatureList)
+			end
 		end
 	end)
 
 	PhaseToolkit.PNJFrame:SetScript("OnShow", function()
 		currentPage = 1
+		if(PhaseToolkit.NPCListCurrentPage) then
+			currentPage=PhaseToolkit.NPCListCurrentPage
+		end
 		PhaseToolkit.UpdatePNJPagination(_creatureList)
 	end)
 
-	PhaseToolkit.UpdatePNJPagination(_creatureList)
+	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+		PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+	else
+		PhaseToolkit.UpdatePNJPagination(_creatureList)
+	end
 end
+
+local function parseReplies(isCommandSuccessful, repliesList)
+	-- Only do the job if the command is successful
+	if (isCommandSuccessful) then
+		local isCallingAgainNeeded = false
+		for i = 1, #repliesList do
+			message = repliesList[i]
+			message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+
+			isCallingAgainNeeded = string.find(message, ".phase forge npc list") ~= nil
+			local isPhaseNameAndPhaseId = string.find(message, "Forged NPCs for") ~= nil
+			local pos = string.find(message, "-")
+			if pos and not isPhaseNameAndPhaseId then
+				-- get the creature ID
+				local id = string.sub(message, 1, pos - 1)
+
+				-- get the Creature Name
+				local Name = string.sub(message, pos + 1)
+				Name = Name:gsub("%[", ""):gsub("%]", "")
+
+				table.insert(PhaseToolkit.creatureList, { ["IdCreature"] = id, ["NomCreature"] = Name })
+			end
+		end
+		-- if there is more than 1 page (of course) we call the same func with the next replies
+		if isCallingAgainNeeded then
+			sendAddonCmd("ph f n list next", function(success, replies) parseReplies(success, replies) end, false)
+		else
+			-- if it's finished, we remove potential duplicate (by ID) and then we "regenerates" the frame for the list
+			PhaseToolkit.creatureList = PhaseToolkit.RemoveDuplicates(PhaseToolkit.creatureList)
+			if (PhaseToolkit.PNJFrame ~= nil) then
+				if PhaseToolkit.PNJFrame:IsShown() then
+					PhaseToolkit.PNJFrame:Hide()
+					PhaseToolkit.PNJFrame = nil
+					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
+				else
+					PhaseToolkit.PNJFrame = nil
+					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
+				end
+			end
+		end
+	end
+end
+
+function PhaseToolkit.PhaseNpcListSystemMessageCounter()
+	PhaseToolkit.creatureList = {}
+	-- Use Epsilib to fetch the replies
+	sendAddonCmd("ph f n list", parseReplies, false)
+end
+-- -- -- -- -- -- -- -- -- -- 
+	--#endregion
+-- -- -- -- -- -- -- -- -- -- 
+
+-- -- -- -- -- -- -- -- -- -- 
+	--#region TeleList
+-- -- -- -- -- -- -- -- -- -- 
 
 function PhaseToolkit.CreateTeleListFrame(_teleList)
 	if (PhaseToolkit.PNJFrame ~= nil) then
@@ -4450,6 +4972,17 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	if (PhaseToolkit.TELEFrame ~= nil) then
 		if (PhaseToolkit.TELEFrame:IsShown()) then
 			PhaseToolkit.TELEFrame:Hide()
+			if PhaseToolkit.categoryPanelTELE ~= nil then
+				PhaseToolkit.categoryPanelTELE:Hide()
+				PhaseToolkit.categoryPanelTELE = nil
+				for i = 1, 7 do
+					local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
+					if blueprintFrame then
+						blueprintFrame:Hide()
+						_G["PTK_CATEGORY_FRAME"..i] = nil
+					end
+				end
+			end
 		else
 			PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.GetMaxStringWidth(PhaseToolkit.teleList), 400)
 			PhaseToolkit.TELEFrame:Show()
@@ -4458,6 +4991,9 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	end
 
 	local currentPage=1
+	if(PhaseToolkit.TELEListcurrentPage) then
+		currentPage=PhaseToolkit.TELEListcurrentPage
+	end
 
 	local totalPages = math.ceil(#PhaseToolkit.teleList / PhaseToolkit.itemsPerPageTELE)
 	if(PhaseToolkit.TELEListcurrentPage) then
@@ -4511,7 +5047,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 				PhaseToolkit.TELEFrame:Hide()
 				PhaseToolkit.TELEFrame = nil
 
-				if (PhaseToolkit.IsCurrentlyFilteringTele) then
+				if (PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 					PhaseToolkit.CreateTeleListFrame(PhaseToolkit.filteredTeleList)
 				else
 					PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
@@ -4535,23 +5071,63 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		NewNumberOfLineframe:Show()
 	end
 
+
 	-- Création de la frame principale pour afficher la liste des PNJ
 	PhaseToolkit.TELEFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.TELEFrame:SetSize(600, (PhaseToolkit.itemsPerPageTELE * 30) + 80)
 	PhaseToolkit.TELEFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
 
+	PhaseToolkit.TELEFrame:SetScript("OnHide", function()
+		if PhaseToolkit.categoryPanelTELE ~= nil then
+			if PhaseToolkit.categoryPanelTELE:IsShown() then
+				PhaseToolkit.categoryPanelTELE:Hide()
+			end
+			for i = 1, 7 do
+				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
+				if blueprintFrame then
+					blueprintFrame:Hide()
+					_G["PTK_CATEGORY_FRAME"..i] = nil
+				end
+			end
+		end
+	end)
 
 	local ButtonToFetch = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
-	ButtonToFetch:SetSize(120, 15)
+	ButtonToFetch:SetSize(15, 15)
 	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", -30, -3.5)
-	ButtonToFetch:SetText(PhaseToolkit.CurrentLang["Fetch Tele"] or "Fetch Tele")
+	ButtonToFetch.icon = ButtonToFetch:CreateTexture(nil, "OVERLAY")
+	ButtonToFetch.icon:SetAtlas("poi-door-arrow-down")
+	ButtonToFetch.icon:SetSize(14, 14);
+	ButtonToFetch.icon:SetPoint("CENTER", ButtonToFetch, "CENTER", 0, 0);
 	ButtonToFetch:SetScript("OnClick", function()
-		PhaseToolkit.IsCurrentlyFilteringTele = false
-		PhaseToolkit.filteredTeleList = {}
-		PhaseToolkit.TELEListcurrentPage=currentPage
-		PhaseToolkit.PhaseTeleListSystemMessageCounter()
+		PhaseToolkit.IsCurrentlyFilteringTeleViaText = false;
+		PhaseToolkit.filteredTeleList = {};
+		PhaseToolkit.TELEListcurrentPage=currentPage;
+		if PhaseToolkit.categoryPanelTELE then
+			PhaseToolkit.categoryPanelTELE:Hide();
+			for i = 1, 7 do
+				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i];
+				if blueprintFrame then
+					blueprintFrame:Hide();
+					_G["PTK_CATEGORY_FRAME"..i] = nil;
+				end
+			end
+		end
+		PhaseToolkit.PhaseTeleListSystemMessageCounter();
 	end)
-	PhaseToolkit.RegisterTooltip(ButtonToFetch, "This can take a few seconds.")
+	PhaseToolkit.RegisterTooltip(ButtonToFetch, "Fetch Tele list");
+
+	local CategoryButton=CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate");
+	CategoryButton:SetSize(15, 15);
+	CategoryButton:SetPoint("LEFT", ButtonToFetch, "LEFT", -20, 0);
+	CategoryButton.icon = CategoryButton:CreateTexture(nil, "OVERLAY");
+	CategoryButton.icon:SetAtlas("adventureguide-icon-whatsnew");
+	CategoryButton.icon:SetSize(14, 14);
+	CategoryButton.icon:SetPoint("CENTER", CategoryButton, "CENTER", 0, 0);
+	CategoryButton:SetScript("OnClick", function()
+		PhaseToolkit.openTeleCategoryPanel();
+	end);
+	PhaseToolkit.RegisterTooltip(CategoryButton, "Open the Category Panel")
 
 	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
 	ButtonToChangeNumberOfLine:SetSize(15, 15)
@@ -4562,26 +5138,51 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	ButtonToChangeNumberOfLine:SetScript("OnClick", PhaseToolkit.CreerFenetreLignesParPage)
 	PhaseToolkit.RegisterTooltip(ButtonToChangeNumberOfLine, "Change list size")
 
-	local function SearchAndFindTeleByText(self)
-		if self:GetText() ~= nil and self:GetText() ~= "" then
-			PhaseToolkit.filteredTeleList = {}
-			CurrenttextToLookForTele = self:GetText()
-			PhaseToolkit.IsCurrentlyFilteringTele = true
 
-			for i = 1, #PhaseToolkit.teleList do
-				if string.find(PhaseToolkit.teleList[i], CurrenttextToLookForTele) then
-					table.insert(PhaseToolkit.filteredTeleList, PhaseToolkit.teleList[i])
+	local function mergeAllTeleMembers()
+		local mergedTeleList = {}
+		for _, categoryID in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
+			local category = PhaseToolkit.getCategoryByIdGENERIC(categoryID,"TELE")
+			if category then 
+				for _, member in ipairs(category.members) do
+					if isStringInArray(mergedTeleList, member)<0 then
+						table.insert(mergedTeleList, member)
+					end
 				end
 			end
+		end
+		return mergedTeleList
+	end
+
+	local function SearchAndFindTeleByText(self)
+		if self:GetText() ~= nil and self:GetText() ~= "" then
+			local sourceList = PhaseToolkit.creatureList
+			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then 
+				sourceList=mergeAllTeleMembers()
+			end
+			PhaseToolkit.filteredTeleList = {}
+			CurrenttextToLookForTele = self:GetText()
+			PhaseToolkit.IsCurrentlyFilteringTeleViaText = true
+
+			for i = 1, #sourceList do
+				if string.find(sourceList[i], CurrenttextToLookForTele) then
+					table.insert(PhaseToolkit.filteredTeleList, sourceList[i])
+				end
+			end
+
 			PhaseToolkit.TELEFrame:Hide()
 			PhaseToolkit.TELEFrame = nil
 			PhaseToolkit.CreateTeleListFrame(PhaseToolkit.filteredTeleList)
-		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringTele == true then
+		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringTeleViaText == true then
+			local sourceList = PhaseToolkit.teleList
+			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then 
+				sourceList=mergeAllTeleMembers()
+			end
 			PhaseToolkit.TELEFrame:Hide()
 			PhaseToolkit.TELEFrame = nil
 			CurrenttextToLookForTele = ""
-			PhaseToolkit.IsCurrentlyFilteringTele = false
-			PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
+			PhaseToolkit.IsCurrentlyFilteringTeleViaText = false
+			PhaseToolkit.CreateTeleListFrame(sourceList)
 		end
 	end
 
@@ -4613,11 +5214,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 	-- Fonction appelée lors du clic sur le bouton "Delete"
 	local function OnDeleteClick(teleId)
-		sendAddonCmd("phase tele delete " .. teleId .. " ", nil)
-		PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, teleId)
-		TeleUpdatePagination(PhaseToolkit.teleList)
-
-		-- Logique de suppression de la créature
+		StaticPopup_Show("CONFIRM_DELETE_TELE", nil, nil, { teleId = teleId })
 	end
 
 	-- Création des lignes (Nom, Spawn, Delete) pour chaque PNJ
@@ -4642,6 +5239,28 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
 		row.deleteButton:SetText(PhaseToolkit.CurrentLang["Delete"] or "Delete")
 
+		row.addToCategoryButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.addToCategoryButton:SetSize(30, 30)
+		row.addToCategoryButton:SetPoint("LEFT", row.deleteButton, "RIGHT", 10, 0)
+
+		row.addToCategoryButton.icon = row.addToCategoryButton:CreateTexture(nil, "OVERLAY")
+		row.addToCategoryButton.icon:SetAtlas("GarrMission_CurrencyIcon-Material")
+		row.addToCategoryButton.icon:SetSize(28, 28)
+		row.addToCategoryButton.icon:SetPoint("CENTER", row.addToCategoryButton, "CENTER", 0, 0)
+		row.addToCategoryButton:Hide()
+
+		row.getOutOfCategoryButton=CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.getOutOfCategoryButton:SetSize(30, 30)
+		row.getOutOfCategoryButton:SetPoint("LEFT", row.addToCategoryButton, "RIGHT", 10, 0)
+		row.getOutOfCategoryButton.icon = row.getOutOfCategoryButton:CreateTexture(nil, "OVERLAY")
+		row.getOutOfCategoryButton.icon:SetAtlas("poi-traveldirections-arrow2")
+		row.getOutOfCategoryButton.icon:SetTexCoord(1, 0, 0, 1)
+		row.getOutOfCategoryButton.icon:SetSize(28, 28)
+		row.getOutOfCategoryButton.icon:SetPoint("CENTER", row.getOutOfCategoryButton, "CENTER", 0, 0)
+		row.getOutOfCategoryButton:Hide()
+
+		PhaseToolkit.RegisterTooltip(row.addToCategoryButton,"add to selected category")
+		PhaseToolkit.RegisterTooltip(row.getOutOfCategoryButton,"remove from selected category")
 		-- Ajouter la ligne au tableau pour gestion
 		PNJRows[i] = row
 	end
@@ -4654,6 +5273,9 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageTELE + 1
 		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageTELE, #teleList)
 
+		local isAlreadyBiggerForAddToCategory=false
+		local isAlreadyBiggerForGetOutOfCategory=false
+
 		-- Calculer la largeur maximale des noms pour la page actuelle
 		local pageteleList = {}
 		for i = startIndex, endIndex do
@@ -4664,7 +5286,25 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 		-- Ajuster la largeur de la GlobalNPCCUSTOMISER_TELEFrame en fonction de la largeur maximale des noms
 		local frameWidth = maxNameWidth + 180 -- 180 pour les boutons et marges
+		if PhaseToolkit.LookupInTeleListEditBox then
+			PhaseToolkit.LookupInTeleListEditBox:SetWidth(maxNameWidth - 10) -- Ajuster la largeur de la zone de recherche
+		end
 		PhaseToolkit.TELEFrame:SetWidth(frameWidth + 30 * 2)
+		if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory then
+			PhaseToolkit.categoryPanelTELE:ClearAllPoints()
+			PhaseToolkit.categoryPanelTELE:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPRIGHT", 5, 0)
+		end
+
+		local generaloffset =-100
+		for _, tele in ipairs(pageteleList) do
+			if checkIfTeleInSelectedCategory(tele) then
+				generaloffset = -190
+				break
+			end
+		end
+		if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory  and generaloffset>(-190) then
+			generaloffset = -145
+		end
 
 		-- Affichage des PNJ sur la page
 		for i = 1, PhaseToolkit.itemsPerPageTELE do
@@ -4678,10 +5318,67 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 				-- Associe l'ID de la créature aux boutons "Spawn" et "Delete"
 				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(tele) end)
 				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(tele) end)
+
+				if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory and PhaseToolkit.UserHasPermission()then
+
+					row.addToCategoryButton:Show()
+					row.addToCategoryButton:SetScript("OnClick", function()
+						if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory) then
+							if (isStringInArray(PhaseToolkit.TELEselectedCategory.members,tele)<0) then
+								tinsert(PhaseToolkit.TELEselectedCategory.members, tele)
+								PhaseToolkit.updateTELECategoryList()
+								if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+								else
+									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+								end
+								PhaseToolkit.saveTELECategoryDataToServer()
+							end
+						end
+					end)
+					if(not isAlreadyBiggerForAddToCategory) then
+						PhaseToolkit.TELEFrame:SetWidth(PhaseToolkit.TELEFrame:GetWidth() + 45)
+						isAlreadyBiggerForAddToCategory=true
+					end
+				else
+					row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
+					row.addToCategoryButton:Hide()
+					
+				end
+
+				if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory and PhaseToolkit.UserHasPermission() and checkIfTeleInSelectedCategory(tele)) then
+
+					row.getOutOfCategoryButton:Show()
+					row.getOutOfCategoryButton:SetScript("OnClick", function()
+					if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory) then
+						local indexToDelete=getIndexOfMembers(PhaseToolkit.TELEselectedCategory.members, tele)
+						if(indexToDelete >0) then
+							table.remove(PhaseToolkit.TELEselectedCategory.members,indexToDelete)
+							PhaseToolkit.updateTELECategoryList()
+							if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+							else
+								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+							end
+							PhaseToolkit.saveTELECategoryDataToServer()
+						end
+					end
+					end)
+					if(not isAlreadyBiggerForGetOutOfCategory) then
+						PhaseToolkit.TELEFrame:SetWidth(PhaseToolkit.TELEFrame:GetWidth() + 45)
+						isAlreadyBiggerForGetOutOfCategory=true
+					end
+					
+				else
+					row.getOutOfCategoryButton:Hide()
+				end
+				row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
 			else
 				row:Hide()
 			end
 		end
+		isAlreadyBiggerForGetOutOfCategory=false
+		isAlreadyBiggerForAddToCategory=false
 	end
 
 
@@ -4711,10 +5408,10 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		if TeleCurrentPageeditBox:GetText() ~= "" and tonumber(TeleCurrentPageeditBox:GetText()) ~= 0 and tonumber(TeleCurrentPageeditBox:GetText()) <= totalPages then
 			currentPage = TeleCurrentPageeditBox:GetNumber()
 			TeleCurrentPageeditBox:SetText(currentPage)
-			if (PhaseToolkit.IsCurrentlyFilteringTele) then
-				TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+			if (PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
+				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 			else
-				TeleUpdatePagination(PhaseToolkit.teleList)
+				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
 			end
 			TeleCurrentPageeditBox:ClearFocus()
 		end
@@ -4728,7 +5425,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
 
 	-- Fonction pour mettre à jour les boutons et afficher la page
-	function TeleUpdatePagination(teleList)
+	function PhaseToolkit.TeleUpdatePagination(teleList)
 		totalPages = math.ceil(#teleList / PhaseToolkit.itemsPerPageTELE)
 
 		-- Mise à jour de l'état des boutons de navigation
@@ -4754,7 +5451,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		if currentPage < totalPages then
 			currentPage = currentPage + 1
 			TeleCurrentPageeditBox:SetText(currentPage)
-			TeleUpdatePagination(_teleList) -- Mise à jour avec la liste de PNJ fournie
+			PhaseToolkit.TeleUpdatePagination(_teleList) -- Mise à jour avec la liste de PNJ fournie
 		end
 	end)
 
@@ -4762,68 +5459,18 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		if currentPage > 1 then
 			currentPage = currentPage - 1
 			TeleCurrentPageeditBox:SetText(currentPage)
-			TeleUpdatePagination(_teleList)
+			PhaseToolkit.TeleUpdatePagination(_teleList)
 		end
 	end)
 
 	-- Affichage initial des PNJ à la première page
 	PhaseToolkit.TELEFrame:SetScript("OnShow", function()
 		currentPage = 1
-		TeleUpdatePagination(_teleList)
+		PhaseToolkit.TeleUpdatePagination(_teleList)
 	end)
 
-	TeleUpdatePagination(_teleList)
+	PhaseToolkit.TeleUpdatePagination(_teleList)
 end
-
---=============================== Recuperation de PNJ ===========================--
-local function parseReplies(isCommandSuccessful, repliesList)
-	-- Only do the job if the command is successful
-	if (isCommandSuccessful) then
-		local isCallingAgainNeeded = false
-		for i = 1, #repliesList do
-			message = repliesList[i]
-			message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
-
-			isCallingAgainNeeded = string.find(message, ".phase forge npc list") ~= nil
-			local isPhaseNameAndPhaseId = string.find(message, "Forged NPCs for") ~= nil
-			local pos = string.find(message, "-")
-			if pos and not isPhaseNameAndPhaseId then
-				-- get the creature ID
-				local id = string.sub(message, 1, pos - 1)
-
-				-- get the Creature Name
-				local Name = string.sub(message, pos + 1)
-				Name = Name:gsub("%[", ""):gsub("%]", "")
-
-				table.insert(PhaseToolkit.creatureList, { ["IdCreature"] = id, ["NomCreature"] = Name })
-			end
-		end
-		-- if there is more than 1 page (of course) we call the same func with the next replies
-		if isCallingAgainNeeded then
-			sendAddonCmd("ph f n list next", function(success, replies) parseReplies(success, replies) end, false)
-		else
-			-- if it's finished, we remove potential duplicate (by ID) and then we "regenerates" the frame for the list
-			PhaseToolkit.creatureList = PhaseToolkit.RemoveDuplicates(PhaseToolkit.creatureList)
-			if (PhaseToolkit.PNJFrame ~= nil) then
-				if PhaseToolkit.PNJFrame:IsShown() then
-					PhaseToolkit.PNJFrame:Hide()
-					PhaseToolkit.PNJFrame = nil
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-				else
-					PhaseToolkit.PNJFrame = nil
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-				end
-			end
-		end
-	end
-end
-
-function PhaseToolkit.PhaseNpcListSystemMessageCounter()
-	PhaseToolkit.creatureList = {}
-	-- Use Epsilib to fetch the replies
-	sendAddonCmd("ph f n list", parseReplies, false)
-end
-
 --=============================== Recuperation de Tele ===========================--
 
 PhaseToolkit.MaxNumberOfTP = nil
@@ -5467,10 +6114,6 @@ function PhaseToolkit.CreateCustomGrid(data)
 				end
 			end)
 
-
-
-
-
 			local randomValueButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 			randomValueButton:SetSize(20, 20)
 			randomValueButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -7, -7)
@@ -5545,7 +6188,6 @@ SlashCmdList["PTK"] = function(msg)
 	PhaseToolkit.ToggleMainFrame()
 end
 
-
 function PhaseToolkit.parseForDisplayId(isCommandSuccessful, repliesList)
 	local message = repliesList[1];
 	message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
@@ -5572,7 +6214,995 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 
 -- -- -- -- -- -- -- -- -- -- -- --
---#region Map Icon
+--#region Category Common
+-- -- -- -- -- -- -- -- -- -- -- --
+
+function PhaseToolkit.CompressForUpload(categoryList)
+	local compressedValue=""
+	compressedValue = AceSerializer:Serialize(categoryList)
+	compressedValue= LibDeflate:CompressDeflate(compressedValue, {level = 9})
+	compressedValue = LibDeflate:EncodeForWoWChatChannel(compressedValue)
+	return compressedValue;
+end
+
+-- -- -- -- -- -- -- -- -- -- -- --
+--#endregion
+-- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- --
+--#region Category System NPC
+-- -- -- -- -- -- -- -- -- -- -- --
+
+function PhaseToolkit.CreateNewNpcCategory(name,funcToCall)
+    -- Fetch the last max ID from the server
+    EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_NPC, function(data)
+        local lastMaxId = tonumber(data) or 0 
+        local newCategoryId = lastMaxId + 1
+
+        -- Create the new category
+        local newCategory = {
+            id = newCategoryId,
+            name = name,
+            members = {}
+        }
+
+        -- Add the new category to the local category list
+        table.insert(PhaseToolkit.NPCcategoryList, newCategory)
+
+        -- Update the server with the new max ID
+        EpsilonLib.PhaseAddonData.Set(PTK_LAST_MAX_ID_CATEGORY_NPC, tostring(newCategoryId))
+		PhaseToolkit.saveNpcCategoryDataToServer()
+		funcToCall()
+    end)
+end
+
+function PhaseToolkit.getNpcCategoryFromPhaseData(functionToCall)
+	EpsilonLib.PhaseAddonData.Get(PTK_NPC_CATEGORY_LIST, function(data)
+		if data then
+			local decoded = LibDeflate:DecodeForWoWChatChannel(data)
+			if decoded then
+				local decompressed = LibDeflate:DecompressDeflate(decoded)
+				if decompressed then
+					local success, result = AceSerializer:Deserialize(decompressed)
+					if success then
+						PhaseToolkit.NPCcategoryList = result
+						functionToCall()
+					else
+						print("An error occured or no NPC category is saved to Phase")
+						PhaseToolkit.NPCcategoryList = {}
+					end
+				else
+					print("An error occured or no NPC category is saved to Phase")
+					PhaseToolkit.NPCcategoryList = {}
+				end
+			else
+				print("An error occured or no NPC category is saved to Phase")
+				PhaseToolkit.NPCcategoryList = {}
+			end
+		else
+			PhaseToolkit.NPCcategoryList = {}
+		end
+		
+		PhaseToolkit.categoryPanelNPC:Hide()
+		PhaseToolkit.categoryPanelNPC = nil
+		for i = 1, 7 do
+            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+            if categoryFrame then
+                categoryFrame:Hide()
+                _G["PTK_CATEGORY_FRAME"..i] = nil
+            end
+        end
+		PhaseToolkit.openNpcCategoryPanel()
+
+	end)
+	
+end
+
+function PhaseToolkit.saveNpcCategoryDataToServer()
+	local serializedData = PhaseToolkit.CompressForUpload(PhaseToolkit.NPCcategoryList)
+	EpsilonLib.PhaseAddonData.Set(PTK_NPC_CATEGORY_LIST, serializedData, function(success)
+		if success then
+			print("Category data successfully saved to the server.")
+		else
+			print("Failed to save category data to the server.")
+		end
+	end)
+end
+
+function PhaseToolkit.resetNPCFrame()
+-- Reset editing state when panel is closed
+	PhaseToolkit.NPCselectedCategory = nil
+	PhaseToolkit.NPCselectedCategoryIndex = nil
+	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.categoryPanelNPC.editingLabel then
+		PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
+	end
+	if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+	else
+		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+	end
+end
+
+function PhaseToolkit.openNpcCategoryPanel()
+	local baseWidth=200
+	local minWidth = 220
+	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.categoryPanelNPC:IsShown() then
+		PhaseToolkit.categoryPanelNPC:Hide()
+		PhaseToolkit.categoryPanelNPC = nil
+		for i = 1, 7 do
+            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+            if categoryFrame then
+                categoryFrame:Hide()
+                _G["PTK_CATEGORY_FRAME"..i] = nil
+            end
+        end
+		PhaseToolkit.resetNPCFrame()
+		return
+	end
+	PhaseToolkit.categoryPanelNPC = CreateFrame("Frame", "CategoryPanel", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
+	PhaseToolkit.categoryPanelNPC:SetSize(minWidth, 320)
+	PhaseToolkit.categoryPanelNPC:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPRIGHT", 5, 0)
+
+	PhaseToolkit.categoryPanelNPC:SetScript("OnHide",PhaseToolkit.resetNPCFrame)
+
+
+	local scrollFrame = CreateFrame("ScrollFrame", "CategoryScrollFrame", PhaseToolkit.categoryPanelNPC, "FauxScrollFrameTemplate")
+	scrollFrame:SetSize(PhaseToolkit.categoryPanelNPC:GetWidth() - 20, PhaseToolkit.categoryPanelNPC:GetHeight() - 50)
+	scrollFrame:SetPoint("TOPLEFT", PhaseToolkit.categoryPanelNPC, "TOPLEFT", 10, -40)
+	scrollFrame.ScrollBar:Hide()
+
+	scrollFrame.ScrollBar = CreateFrame("Slider", nil, scrollFrame, "UIPanelScrollBarTemplate")
+	scrollFrame.ScrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", 20, -16)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 4, 16)
+	scrollFrame.ScrollBar:SetMinMaxValues(0, math.floor(#PhaseToolkit.NPCcategoryList/7))
+	scrollFrame.ScrollBar:SetValueStep(1)
+	scrollFrame.ScrollBar.scrollStep = 1
+	scrollFrame.ScrollBar:SetValue(0)
+	scrollFrame.ScrollBar:SetWidth(16)
+	scrollFrame.ScrollBar:SetScript("OnValueChanged", function(self, value)
+		self:GetParent():SetVerticalScroll(value)
+	end)
+
+
+
+	local content = CreateFrame("Frame", nil, PhaseToolkit.categoryPanelNPC)
+	content:SetSize(180, 300) -- Adjust size as needed
+	content:SetPoint("TOPLEFT", 5, -5)
+	content:Show()
+
+	local categoryFrameHeight = 40
+	local categoryFrameSpacing = 5
+
+
+	local function handleRightClickBehaviour(self,category,categoryFrame,index)
+		if(PhaseToolkit.NPCselectedCategoryIndex) then 
+			if(PhaseToolkit.NPCselectedCategory.id ~= category.id) then
+				local reducedIndex = ((PhaseToolkit.NPCselectedCategoryIndex - 1) % 7) + 1
+				local lastCategoryFrame = _G["PTK_CATEGORY_FRAME" .. reducedIndex]
+				if(lastCategoryFrame) then
+					lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				end
+				PhaseToolkit.NPCselectedCategory = nil
+				PhaseToolkit.NPCselectedCategoryIndex = nil
+
+				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+				else
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+				end
+				PhaseToolkit.categoryPanelNPC.editingLabel:Show()
+			else
+				categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				PhaseToolkit.NPCselectedCategory = nil
+				PhaseToolkit.NPCselectedCategoryIndex = nil
+				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+				else
+					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+				end
+				PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
+				return
+			end	
+		end
+		categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
+		PhaseToolkit.NPCselectedCategory = category
+		PhaseToolkit.NPCselectedCategoryIndex = index
+		if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+		else
+			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+		end
+		PhaseToolkit.categoryPanelNPC.editingLabel:Show()
+	end
+
+	local function getCategoryById(categoryId)
+		for _, category in ipairs(PhaseToolkit.NPCcategoryList) do
+			if category.id == categoryId then
+				return category
+			end
+		end
+		return nil
+	end
+
+	local function handleCategoryPoolChange()
+		if #PhaseToolkit.NPCcategoryToFilterPool == 0 then
+			-- No category selected, revert to casual listing
+			if PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+				-- Filter by NPC name only
+				PhaseToolkit.filteredCreatureList = {}
+				for _, npc in ipairs(PhaseToolkit.creatureList) do
+					if string.find(npc.NomCreature:lower(), PhaseToolkit.CurrenttextToLookForNpc:lower()) then
+						table.insert(PhaseToolkit.filteredCreatureList, npc)
+					end
+				end
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+			else
+				-- Revert to full list
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+			end
+			return
+		end
+
+		if PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+			-- Merge filtering by NPC name and category pool
+			PhaseToolkit.filteredCreatureList = {}
+			for _, npc in ipairs(PhaseToolkit.creatureList) do
+				local isInCategoryPool = false
+				for _, categoryId in ipairs(PhaseToolkit.NPCcategoryToFilterPool) do
+					local category = getCategoryById(categoryId)
+					if category and isStringInArray(category.members, npc.IdCreature) > 0 then
+						isInCategoryPool = true
+						break
+					end
+				end
+				if isInCategoryPool and string.find(npc.NomCreature:lower(), PhaseToolkit.CurrenttextToLookForNpc:lower()) then
+					table.insert(PhaseToolkit.filteredCreatureList, npc)
+				end
+			end
+		else
+			-- Filter only by category pool
+			PhaseToolkit.filteredCreatureList = {}
+			for _, npc in ipairs(PhaseToolkit.creatureList) do
+				local isInCategoryPool = false
+				for _, categoryId in ipairs(PhaseToolkit.NPCcategoryToFilterPool) do
+					local category = getCategoryById(categoryId)
+					if category and isStringInArray(category.members, npc.IdCreature) > 0 then
+						isInCategoryPool = true
+						break
+					end
+				end
+				if isInCategoryPool then
+					table.insert(PhaseToolkit.filteredCreatureList, npc)
+				end
+			end
+		end
+		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+	end
+
+
+	local function handleLeftClickBehaviour(self,category,categoryFrame,index)
+		if PhaseToolkit.categoryPanelNPC.editingLabel:IsShown() then
+			PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
+		end
+		if(PhaseToolkit.NPCselectedCategoryIndex) then 
+			local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.NPCselectedCategoryIndex]
+			if(lastCategoryFrame) then
+				lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+			end
+			PhaseToolkit.NPCselectedCategory = nil
+			PhaseToolkit.NPCselectedCategoryIndex = nil
+		end
+		-- if already in the pool we take it out
+		local indexInPool = isStringInArray(PhaseToolkit.NPCcategoryToFilterPool,category.id)
+		-- if in the pool we delete it
+		if(indexInPool>0) then 
+			tremove(PhaseToolkit.NPCcategoryToFilterPool,indexInPool);
+			categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+			handleCategoryPoolChange()
+		else
+			local r,g,b,a = RGBAToNormalized(249,226,0,255)
+			categoryFrame:SetBackdropBorderColor(r,g,b,a)
+			tinsert(PhaseToolkit.NPCcategoryToFilterPool,category.id);
+			handleCategoryPoolChange()
+		end
+	end
+
+	function  PhaseToolkit.updateNPCCategoryList()
+		local scrollOffset = scrollFrame.ScrollBar:GetValue();
+		local categoryNameForResize={};
+		for i = 1, 7 do
+			local index = scrollOffset*7+i;
+			local categoryFrame = _G["PTK_CATEGORY_FRAME"..i];
+			if not categoryFrame then
+				categoryFrame = CreateFrame("Frame", "PTK_CATEGORY_FRAME"..i, content, "BackdropTemplate");
+				categoryFrame:SetBackdrop({
+					bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+					edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+					edgeSize = 16,
+					insets = { left = 5, right = 5, top = 5, bottom = 5 },
+				});
+				categoryFrame:SetSize(content:GetWidth(), categoryFrameHeight);
+				categoryFrame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -20-((i - 1)*40));
+
+				categoryFrame.categoryName = categoryFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+				categoryFrame.categoryName:SetPoint("LEFT", categoryFrame, "LEFT", 10, 0);
+
+				categoryFrame.npcCountText = categoryFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
+				categoryFrame.npcCountText:SetPoint("RIGHT", categoryFrame, "RIGHT", -50, 0);
+
+				categoryFrame.deleteButton = CreateFrame("Button", nil, categoryFrame, "UIPanelButtonTemplate");
+				categoryFrame.deleteButton:SetSize(20, 20);
+				categoryFrame.deleteButton:SetPoint("RIGHT", categoryFrame, "RIGHT", -10, 0);
+				categoryFrame.deleteButton:SetText("X");
+			end
+
+			if index <= #PhaseToolkit.NPCcategoryList then
+				local category = PhaseToolkit.NPCcategoryList[index];
+				tinsert(categoryNameForResize,category.name);
+				categoryFrame.categoryName:SetText(category.name);
+				categoryFrame.npcCountText:SetText(#category.members .. " NPCs");
+				-- If the category is not in the filtering pool, set border color to default
+				if isStringInArray(PhaseToolkit.NPCcategoryToFilterPool, category.id) < 1 then
+					categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				else
+					local r,g,b,a = RGBAToNormalized(249,226,0,255)
+					categoryFrame:SetBackdropBorderColor(r,g,b,a)
+				end
+				if PhaseToolkit.NPCselectedCategory and PhaseToolkit.NPCselectedCategory.id == category.id then
+					categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
+				end
+
+				categoryFrame.deleteButton:SetScript("OnClick", function()
+					StaticPopup_Show("CONFIRM_DELETE_CATEGORY_NPC", nil, nil, { deleteIndex = index, funcOnYes = PhaseToolkit.updateNPCCategoryList })
+				end);
+
+				if(#category.members>200) then
+					PhaseToolkit.RegisterTooltip(categoryFrame, "This category is big (>200 Npcs), add and delete npc from it with care, it can cause crashes if done too fast.")
+
+				end
+				
+
+				categoryFrame:SetScript("OnMouseDown", function(self, button)
+					if button == "RightButton"  and PhaseToolkit.UserHasPermission() then
+						handleRightClickBehaviour(self, category, categoryFrame, index)
+						
+					else
+						handleLeftClickBehaviour(self, category, categoryFrame, index)
+					end	
+				end);
+				categoryFrame:Show();
+			else
+				categoryFrame:Hide();
+			end
+		end
+		if(PhaseToolkit.NPCcategoryList and #PhaseToolkit.NPCcategoryList > 0) then
+			local size = (#categoryNameForResize > 0) and (PhaseToolkit.GetMaxStringLength(categoryNameForResize)>180+50) and PhaseToolkit.GetMaxStringLength(categoryNameForResize) or minWidth+20
+			PhaseToolkit.categoryPanelNPC:SetWidth(size+50+20);
+			for i = 1, 7 do
+				local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+				if categoryFrame then
+					categoryFrame:SetWidth(size+50);
+				end
+			end
+		end
+
+		FauxScrollFrame_Update(scrollFrame, #PhaseToolkit.NPCcategoryList, 7, categoryFrameHeight)
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, 40, PhaseToolkit.updateNPCCategoryList)
+	end)
+
+	PhaseToolkit.updateNPCCategoryList()
+
+	scrollFrame.ScrollBar:ClearAllPoints()
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", PhaseToolkit.categoryPanelNPC, "TOPRIGHT", -10, -45)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", PhaseToolkit.categoryPanelNPC, "BOTTOMRIGHT",-10, 25)
+
+	local createCategoryButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelNPC, "UIPanelButtonTemplate")
+	createCategoryButton:SetSize(20, 20)
+	createCategoryButton:SetPoint("TOPLEFT", PhaseToolkit.categoryPanelNPC, "TOPLEFT", 0, 0)
+	createCategoryButton.icon = createCategoryButton:CreateTexture(nil, "OVERLAY")
+	createCategoryButton.icon:SetAtlas("GreenCross")
+	createCategoryButton.icon:SetAllPoints()
+	local inputFrame=nil
+
+	createCategoryButton:SetScript("OnClick", function()
+		-- Create a small frame for entering the category name
+		if(not inputFrame) then
+			inputFrame = CreateFrame("Frame", "CategoryInputFrame", PhaseToolkit.categoryPanelNPC, "BackdropTemplate")
+			inputFrame:SetSize(200, 50)
+			inputFrame:SetPoint("BOTTOM", PhaseToolkit.categoryPanelNPC, "TOP", 0, 2.5)
+			inputFrame:SetBackdrop({
+				bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+				edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+				edgeSize = 16,
+				insets = { left = 5, right = 5, top = 5, bottom = 5 },
+			})
+
+			-- Create an editbox for entering the category name
+			inputFrame.editBox = CreateFrame("EditBox", nil, inputFrame, "InputBoxTemplate")
+			inputFrame.editBox:SetSize(180, 30)
+			inputFrame.editBox:SetPoint("CENTER", inputFrame, "CENTER", 0, 0)
+			inputFrame.editBox:SetAutoFocus(true)
+
+			-- Create a label for the editbox
+			local label = inputFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+			label:SetPoint("TOP", inputFrame.editBox, "TOP", 0, 20)
+			label:SetText("Enter Category Name:")
+
+			-- Handle the input when the user presses Enter
+			inputFrame.editBox:SetScript("OnEnterPressed", function(self)
+				local categoryName = self:GetText()
+				if categoryName and categoryName ~= "" then
+					PhaseToolkit.CreateNewNpcCategory(categoryName,PhaseToolkit.updateNPCCategoryList)
+					
+				end
+				self:ClearFocus()
+				inputFrame:Hide()
+			end)
+
+			-- Close the frame when the user presses Escape
+			inputFrame.editBox:SetScript("OnEscapePressed", function(self)
+				self:ClearFocus()
+				inputFrame:Hide()
+			end)
+		else if (inputFrame:IsShown()) then
+			inputFrame:Hide()
+			inputFrame.editBox:SetText("") -- Clear the input box
+		else
+			inputFrame:Show()
+			inputFrame.editBox:SetText("") -- Clear the input box
+		end
+	end
+	end)
+
+	PhaseToolkit.RegisterTooltip(createCategoryButton, "Create Category")
+
+	local fetchCategoryButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelNPC, "UIPanelButtonTemplate")
+	fetchCategoryButton:SetSize(20, 20)
+	fetchCategoryButton:SetPoint("LEFT", createCategoryButton, "RIGHT", 5, 0)
+	fetchCategoryButton.icon = fetchCategoryButton:CreateTexture(nil, "OVERLAY")
+	fetchCategoryButton.icon:SetAtlas("poi-door-arrow-down")
+	fetchCategoryButton.icon:SetPoint("CENTER", fetchCategoryButton,"CENTER", 0, 0)
+	fetchCategoryButton.icon:SetSize(16, 16)
+	fetchCategoryButton:SetScript("OnClick", function()
+		-- Fetch the category list from the server
+		PhaseToolkit.getNpcCategoryFromPhaseData(PhaseToolkit.updateNPCCategoryList)
+	end)
+	PhaseToolkit.RegisterTooltip(fetchCategoryButton, "Fetch Categories")
+
+	-- Create the button
+	local roundButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelNPC, "UIPanelButtonTemplate")
+	roundButton:SetSize(20, 20) -- Set the size of the button
+	roundButton:SetPoint("LEFT", fetchCategoryButton, "RIGHT", 5, 0) -- Position it in the center of the screen
+
+	-- Add the icon texture
+	roundButton.icon = roundButton:CreateTexture(nil, "ARTWORK")
+	roundButton.icon:SetAtlas("NPE_TurnIn") -- Use the desired atlas texture
+	roundButton.icon:SetAllPoints(roundButton) -- Make the texture fill the button
+
+	-- Create a circular mask
+	local mask = roundButton:CreateMaskTexture()
+	mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(roundButton) -- Match the button's size and position
+
+	-- Apply the mask to the icon
+	roundButton.icon:AddMaskTexture(mask)
+
+	roundButton:SetScript("OnEnter",PhaseToolkit.ShowCategoryCustomTooltip)
+	roundButton:SetScript("OnLeave", function(self)
+		GameTooltip:Hide()
+	end)
+
+	local editingLabel = PhaseToolkit.categoryPanelNPC:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	editingLabel:SetPoint("TOPRIGHT", PhaseToolkit.categoryPanelNPC, "TOPRIGHT", -30, -5)
+	editingLabel:SetText("EDITING")
+	editingLabel:SetTextColor(1, 0, 0) -- Bright red
+	editingLabel:Hide()
+
+	PhaseToolkit.categoryPanelNPC.editingLabel = editingLabel
+
+
+end
+-- -- -- -- -- -- -- -- -- -- -- --
+--#endregion
+-- -- -- -- -- -- -- -- -- -- -- --
+
+-- -- -- -- -- -- -- -- -- -- -- --
+--#region Category System TELE
+-- -- -- -- -- -- -- -- -- -- -- --
+function PhaseToolkit.CreateNewTELECategory(name,funcToCall)
+    -- Fetch the last max ID from the server
+    EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_TELE, function(data)
+        local lastMaxId = tonumber(data) or 0 
+        local newCategoryId = lastMaxId + 1
+
+        -- Create the new category
+        local newCategory = {
+            id = newCategoryId,
+            name = name,
+            members = {}
+        }
+
+        -- Add the new category to the local category list
+        table.insert(PhaseToolkit.TELEcategoryList, newCategory)
+
+        -- Update the server with the new max ID
+        EpsilonLib.PhaseAddonData.Set(PTK_LAST_MAX_ID_CATEGORY_TELE, tostring(newCategoryId))
+		PhaseToolkit.saveTELECategoryDataToServer()
+		funcToCall()
+    end)
+end
+
+function PhaseToolkit.getTeleCategoryFromPhaseData(functionToCall)
+	EpsilonLib.PhaseAddonData.Get(PTK_TELE_CATEGORY_LIST, function(data)
+		if data then
+			local decoded = LibDeflate:DecodeForWoWChatChannel(data)
+			if decoded then
+				local decompressed = LibDeflate:DecompressDeflate(decoded)
+				if decompressed then
+					local success, result = AceSerializer:Deserialize(decompressed)
+					if success then
+						PhaseToolkit.TELEcategoryList = result
+						functionToCall()
+					else
+						print("An error occured or no Tele category is saved to Phase")
+						PhaseToolkit.TELEcategoryList = {}
+					end
+				else
+					print("An error occured or no Tele category is saved to Phase")
+					PhaseToolkit.TELEcategoryList = {}
+				end
+			else
+				print("An error occured or no Tele category is saved to Phase")
+				PhaseToolkit.TELEcategoryList = {}
+			end
+		else
+			PhaseToolkit.TELEcategoryList = {}
+		end
+		
+		PhaseToolkit.categoryPanelTELE:Hide()
+		PhaseToolkit.categoryPanelTELE = nil
+		for i = 1, 7 do
+            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+            if categoryFrame then
+                categoryFrame:Hide()
+                _G["PTK_CATEGORY_FRAME"..i] = nil
+            end
+        end
+		PhaseToolkit.openTeleCategoryPanel()
+	end)
+end
+
+function PhaseToolkit.saveTELECategoryDataToServer()
+	local serializedData = PhaseToolkit.CompressForUpload(PhaseToolkit.TELEcategoryList)
+	EpsilonLib.PhaseAddonData.Set(PTK_TELE_CATEGORY_LIST, serializedData, function(success)
+		if not success then
+			print("Something failed while sending data to server. Please retry later and report the bug if the problem persists.")
+		end
+	end)
+end
+
+function PhaseToolkit.resetTELEFrame()
+	-- Reset editing state when panel is closed
+	PhaseToolkit.TELEselectedCategory = nil
+	PhaseToolkit.TELEselectedCategoryIndex = nil
+	if PhaseToolkit.categoryPanelTELE and PhaseToolkit.categoryPanelTELE.editingLabel then
+		PhaseToolkit.categoryPanelTELE.editingLabel:Hide()
+	end
+	if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+	else
+		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+	end
+end
+
+function PhaseToolkit.openTeleCategoryPanel()
+	local baseWidth=200
+	local minWidth = 220
+	if PhaseToolkit.categoryPanelTELE and PhaseToolkit.categoryPanelTELE:IsShown() then
+		PhaseToolkit.categoryPanelTELE:Hide()
+		PhaseToolkit.categoryPanelTELE = nil
+		for i = 1, 7 do
+            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+            if categoryFrame then
+                categoryFrame:Hide()
+                _G["PTK_CATEGORY_FRAME"..i] = nil
+            end
+        end
+		PhaseToolkit.resetTELEFrame();
+		return
+	end
+	PhaseToolkit.categoryPanelTELE = CreateFrame("Frame", "CategoryPanel", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
+	PhaseToolkit.categoryPanelTELE:SetSize(minWidth, 320)
+	PhaseToolkit.categoryPanelTELE:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPRIGHT", 5, 0)
+
+	PhaseToolkit.categoryPanelTELE:SetScript("OnHide",PhaseToolkit.resetTELEFrame)
+
+	local scrollFrame = CreateFrame("ScrollFrame", "CategoryScrollFrame", PhaseToolkit.categoryPanelTELE, "FauxScrollFrameTemplate")
+	scrollFrame:SetSize(PhaseToolkit.categoryPanelTELE:GetWidth() - 20, PhaseToolkit.categoryPanelTELE:GetHeight() - 50)
+	scrollFrame:SetPoint("TOPLEFT", PhaseToolkit.categoryPanelTELE, "TOPLEFT", 10, -40)
+	scrollFrame.ScrollBar:Hide()
+
+	scrollFrame.ScrollBar = CreateFrame("Slider", nil, scrollFrame, "UIPanelScrollBarTemplate")
+	scrollFrame.ScrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", 20, -16)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 4, 16)
+	scrollFrame.ScrollBar:SetMinMaxValues(0, math.floor(#PhaseToolkit.TELEcategoryList/7))
+	scrollFrame.ScrollBar:SetValueStep(1)
+	scrollFrame.ScrollBar.scrollStep = 1
+	scrollFrame.ScrollBar:SetValue(0)
+	scrollFrame.ScrollBar:SetWidth(16)
+	scrollFrame.ScrollBar:SetScript("OnValueChanged", function(self, value)
+		self:GetParent():SetVerticalScroll(value)
+	end)
+
+	local content = CreateFrame("Frame", nil, PhaseToolkit.categoryPanelTELE)
+	content:SetSize(180, 300) -- Adjust size as needed
+	content:SetPoint("TOPLEFT", 5, -5)
+	content:Show()
+
+	local categoryFrameHeight = 40
+	local categoryFrameSpacing = 5
+
+
+	local function handleRightClickBehaviour(self,category,categoryFrame,index)
+		if(PhaseToolkit.TELEselectedCategoryIndex) then 
+			if(PhaseToolkit.TELEselectedCategory.id ~= category.id) then
+				local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.TELEselectedCategoryIndex]
+				if(lastCategoryFrame) then
+					lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				end
+				PhaseToolkit.TELEselectedCategory = nil
+				PhaseToolkit.TELEselectedCategoryIndex = nil
+
+				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+				else
+					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+				end
+				PhaseToolkit.categoryPanelTELE.editingLabel:Show()
+			else
+				categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				PhaseToolkit.TELEselectedCategory = nil
+				PhaseToolkit.TELEselectedCategoryIndex = nil
+				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+				else
+					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+				end
+				PhaseToolkit.categoryPanelTELE.editingLabel:Hide()
+				return
+			end	
+		end
+		categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
+		PhaseToolkit.TELEselectedCategory = category
+		PhaseToolkit.TELEselectedCategoryIndex = index
+		if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+		else
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+		end
+		PhaseToolkit.categoryPanelTELE.editingLabel:Show()
+	end
+
+	local function getCategoryById(categoryId)
+		for _, category in ipairs(PhaseToolkit.TELEcategoryList) do
+			if category.id == categoryId then
+				return category
+			end
+		end
+		return nil
+	end
+
+	local function handleCategoryPoolChange()
+		if #PhaseToolkit.TELEcategoryToFilterPool == 0 then
+			-- No category selected, revert to casual listing
+			if PhaseToolkit.IsCurrentlyFilteringTeleViaText then
+				-- Filter by NPC name only
+				PhaseToolkit.filteredTeleList = {}
+				for _, tele in ipairs(PhaseToolkit.teleList) do
+					if string.find(tele:lower(), PhaseToolkit.CurrenttextToLookForTele:lower()) then
+						table.insert(PhaseToolkit.filteredTeleList, tele)
+					end
+				end
+				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+			else
+				-- Revert to full list
+				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+			end
+			return
+		end
+
+		if PhaseToolkit.IsCurrentlyFilteringTeleViaText then
+			-- Merge filtering by NPC name and category pool
+			PhaseToolkit.filteredTeleList = {}
+			for _, tele in ipairs(PhaseToolkit.teleList) do
+				local isInCategoryPool = false
+				for _, categoryId in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
+					local category = getCategoryById(categoryId)
+					if category and isStringInArray(category.members, tele) > 0 then
+						isInCategoryPool = true
+						break
+					end
+				end
+				if isInCategoryPool and string.find(tele:lower(), PhaseToolkit.CurrenttextToLookForTele:lower()) then
+					table.insert(PhaseToolkit.filteredTeleList, tele)
+				end
+			end
+		elseif #PhaseToolkit.TELEcategoryToFilterPool > 0 then
+			-- Filter only by category pool
+			PhaseToolkit.filteredTeleList = {}
+			for _, tele in ipairs(PhaseToolkit.teleList) do
+				for _, categoryId in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
+					local category = getCategoryById(categoryId)
+					if category and isStringInArray(category.members, tele) > 0 then
+						table.insert(PhaseToolkit.filteredTeleList, tele)
+						break
+					end
+				end
+			end
+		else
+			-- Filter only by category pool
+			PhaseToolkit.filteredTeleList = {}
+			for _, tele in ipairs(PhaseToolkit.teleList) do
+				local isInCategoryPool = false
+				for _, categoryId in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
+					local category = getCategoryById(categoryId)
+					if category and isStringInArray(category.members, tele) > 0 then
+						isInCategoryPool = true
+						break
+					end
+				end
+				if isInCategoryPool then
+					table.insert(PhaseToolkit.filteredTeleList, tele)
+				end
+			end
+		end
+		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+	end
+
+
+	local function handleLeftClickBehaviour(self,category,categoryFrame,index)
+		if(PhaseToolkit.TELEselectedCategoryIndex) then 
+			local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.TELEselectedCategoryIndex]
+			if(lastCategoryFrame) then
+				lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+			end
+			PhaseToolkit.TELEselectedCategory = nil
+			PhaseToolkit.TELEselectedCategoryIndex = nil
+		end
+		-- if already in the pool we take it out
+		local indexInPool = isStringInArray(PhaseToolkit.TELEcategoryToFilterPool,category.id)
+		-- if in the pool we delete it
+		if(indexInPool>0) then 
+			tremove(PhaseToolkit.TELEcategoryToFilterPool,indexInPool);
+			categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+			handleCategoryPoolChange()
+		else
+			local r,g,b,a = RGBAToNormalized(249,226,0,255)
+			categoryFrame:SetBackdropBorderColor(r,g,b,a)
+			tinsert(PhaseToolkit.TELEcategoryToFilterPool,category.id);
+			handleCategoryPoolChange()
+		end
+	end
+
+	function  PhaseToolkit.updateTELECategoryList()
+		
+		local scrollOffset = scrollFrame.ScrollBar:GetValue();
+		local categoryNameForResize={};
+		for i = 1, 7 do
+			local index = scrollOffset*7+i;
+			local categoryFrame = _G["PTK_CATEGORY_FRAME"..i];
+			if not categoryFrame then
+				categoryFrame = CreateFrame("Frame", "PTK_CATEGORY_FRAME"..i, content, "BackdropTemplate");
+				categoryFrame:SetBackdrop({
+					bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+					edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+					edgeSize = 16,
+					insets = { left = 5, right = 5, top = 5, bottom = 5 },
+				});
+				categoryFrame:SetSize(content:GetWidth(), categoryFrameHeight);
+				categoryFrame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -20-((i - 1)*40));
+
+				categoryFrame.categoryName = categoryFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+				categoryFrame.categoryName:SetPoint("LEFT", categoryFrame, "LEFT", 10, 0);
+
+				categoryFrame.npcCountText = categoryFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
+				categoryFrame.npcCountText:SetPoint("RIGHT", categoryFrame, "RIGHT", -50, 0);
+
+				categoryFrame.deleteButton = CreateFrame("Button", nil, categoryFrame, "UIPanelButtonTemplate");
+				categoryFrame.deleteButton:SetSize(20, 20);
+				categoryFrame.deleteButton:SetPoint("RIGHT", categoryFrame, "RIGHT", -10, 0);
+				categoryFrame.deleteButton:SetText("X");
+			end
+
+			if index <= #PhaseToolkit.TELEcategoryList then
+				local category = PhaseToolkit.TELEcategoryList[index];
+				tinsert(categoryNameForResize,category.name);
+				categoryFrame.categoryName:SetText(category.name);
+				categoryFrame.npcCountText:SetText(#category.members .. " Teles");
+				-- If the category is not in the filtering pool, set border color to default
+				if isStringInArray(PhaseToolkit.TELEcategoryToFilterPool, category.id) < 1 then
+					categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
+				else
+					local r,g,b,a = RGBAToNormalized(249,226,0,255)
+					categoryFrame:SetBackdropBorderColor(r,g,b,a)
+				end
+				if PhaseToolkit.TELEselectedCategory and PhaseToolkit.TELEselectedCategory.id == category.id then
+					categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
+				end
+				categoryFrame.deleteButton:SetScript("OnClick", function()
+					StaticPopup_Show("CONFIRM_DELETE_CATEGORY_TELE", nil, nil, { deleteIndex = index, funcOnYes = PhaseToolkit.updateTELECategoryList })
+				end);
+
+				if(#category.members>200) then
+					PhaseToolkit.RegisterTooltip(categoryFrame, "This category is big (>200 Tele), add and delete tele from it with care, it can cause crashes if done too fast.")
+				end
+
+				categoryFrame:SetScript("OnMouseDown", function(self, button)
+					if button == "RightButton" and PhaseToolkit.UserHasPermission() then
+						handleRightClickBehaviour(self, category, categoryFrame, index)
+					else
+						handleLeftClickBehaviour(self, category, categoryFrame, index)
+					end	
+				end);
+				categoryFrame:Show();
+			else
+				categoryFrame:Hide();
+			end
+		end
+		if(PhaseToolkit.TELEcategoryList and #PhaseToolkit.TELEcategoryList > 0) then
+			local size = (#categoryNameForResize > 0) and ( PhaseToolkit.GetMaxStringLength(categoryNameForResize)>180+50) and  PhaseToolkit.GetMaxStringLength(categoryNameForResize) or minWidth+20
+			PhaseToolkit.categoryPanelTELE:SetWidth(size+50+20);
+			for i = 1, 7 do
+				local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
+				if categoryFrame then
+					categoryFrame:SetWidth(size+50);
+				end
+			end
+		end
+
+		FauxScrollFrame_Update(scrollFrame, #PhaseToolkit.TELEcategoryList, 7, categoryFrameHeight)
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, 40, PhaseToolkit.updateTELECategoryList)
+	end)
+
+	PhaseToolkit.updateTELECategoryList()
+
+	scrollFrame.ScrollBar:ClearAllPoints()
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", PhaseToolkit.categoryPanelTELE, "TOPRIGHT", -10, -45)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", PhaseToolkit.categoryPanelTELE, "BOTTOMRIGHT",-10, 25)
+
+	local createCategoryButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelTELE, "UIPanelButtonTemplate")
+	createCategoryButton:SetSize(20, 20)
+	createCategoryButton:SetPoint("TOPLEFT", PhaseToolkit.categoryPanelTELE, "TOPLEFT", 0, 0)
+	createCategoryButton.icon = createCategoryButton:CreateTexture(nil, "OVERLAY")
+	createCategoryButton.icon:SetAtlas("GreenCross")
+	createCategoryButton.icon:SetAllPoints()
+	createCategoryButton:SetScript("OnClick", function()
+		-- Create a small frame for entering the category name
+		local inputFrame = CreateFrame("Frame", "CategoryInputFrame", PhaseToolkit.categoryPanelTELE, "BackdropTemplate")
+		inputFrame:SetSize(200, 50)
+		inputFrame:SetPoint("BOTTOM", PhaseToolkit.categoryPanelTELE, "TOP", 0, 2.5)
+		inputFrame:SetBackdrop({
+			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+			edgeSize = 16,
+			insets = { left = 5, right = 5, top = 5, bottom = 5 },
+		})
+
+		-- Create an editbox for entering the category name
+		local editBox = CreateFrame("EditBox", nil, inputFrame, "InputBoxTemplate")
+		editBox:SetSize(180, 30)
+		editBox:SetPoint("CENTER", inputFrame, "CENTER", 0, 0)
+		editBox:SetAutoFocus(true)
+
+		-- Create a label for the editbox
+		local label = inputFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		label:SetPoint("TOP", editBox, "TOP", 0, 20)
+		label:SetText("Enter Category Name:")
+
+		-- Handle the input when the user presses Enter
+		editBox:SetScript("OnEnterPressed", function(self)
+			local categoryName = self:GetText()
+			if categoryName and categoryName ~= "" then
+				PhaseToolkit.CreateNewTELECategory(categoryName,PhaseToolkit.updateTELECategoryList)
+				
+			end
+			self:ClearFocus()
+			inputFrame:Hide()
+		end)
+
+		-- Close the frame when the user presses Escape
+		editBox:SetScript("OnEscapePressed", function(self)
+			self:ClearFocus()
+			inputFrame:Hide()
+		end)
+	end)
+	PhaseToolkit.RegisterTooltip(createCategoryButton, "Create Category")
+
+	local fetchCategoryButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelTELE, "UIPanelButtonTemplate")
+	fetchCategoryButton:SetSize(20, 20)
+	fetchCategoryButton:SetPoint("LEFT", createCategoryButton, "RIGHT", 5, 0)
+	fetchCategoryButton.icon = fetchCategoryButton:CreateTexture(nil, "OVERLAY")
+	fetchCategoryButton.icon:SetAtlas("poi-door-arrow-down")
+	fetchCategoryButton.icon:SetPoint("CENTER", fetchCategoryButton,"CENTER", 0, 0)
+	fetchCategoryButton.icon:SetSize(16, 16)
+	fetchCategoryButton:SetScript("OnClick", function()
+		-- Fetch the category list from the server
+		PhaseToolkit.getTeleCategoryFromPhaseData(PhaseToolkit.updateTELECategoryList)
+	end)
+	PhaseToolkit.RegisterTooltip(fetchCategoryButton, "Fetch Categories")
+	
+	-- Create the button
+	local roundButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelTELE, "UIPanelButtonTemplate")
+	roundButton:SetSize(20, 20) -- Set the size of the button
+	roundButton:SetPoint("LEFT", fetchCategoryButton, "RIGHT", 5, 0) -- Position it in the center of the screen
+
+	-- Add the icon texture
+	roundButton.icon = roundButton:CreateTexture(nil, "ARTWORK")
+	roundButton.icon:SetAtlas("NPE_TurnIn") -- Use the desired atlas texture
+	roundButton.icon:SetAllPoints(roundButton) -- Make the texture fill the button
+
+	-- Create a circular mask
+	local mask = roundButton:CreateMaskTexture()
+	mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(roundButton) -- Match the button's size and position
+
+	-- Apply the mask to the icon
+	roundButton.icon:AddMaskTexture(mask)
+
+	roundButton:SetScript("OnEnter",PhaseToolkit.ShowCategoryCustomTooltip)
+	roundButton:SetScript("OnLeave", function(self)
+		GameTooltip:Hide()
+	end)
+
+	local editingLabel = PhaseToolkit.categoryPanelTELE:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	editingLabel:SetPoint("TOPRIGHT", PhaseToolkit.categoryPanelTELE, "TOPRIGHT", -10, -10)
+	editingLabel:SetText("EDITING")
+	editingLabel:SetTextColor(1, 0, 0) -- Bright red
+	editingLabel:Hide()
+
+	PhaseToolkit.categoryPanelTELE.editingLabel = editingLabel
+
+end
+
+function PhaseToolkit.ShowCategoryCustomTooltip(frame)
+    -- Clear the tooltip to avoid overlapping content
+    GameTooltip:ClearLines()
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+
+    -- Add a title to the tooltip
+    GameTooltip:AddLine("How in the Phase Hell do I use this ?", 1, 1, 0) -- Yellow text
+
+    -- Add a line with an icon for the left mouse button
+    GameTooltip:AddLine(CreateAtlasMarkup("NPE_LeftClick").. " |cFFFFA500Left-click|r to filter the list with this category (you can select multiple)", 1, 1, 1) -- White text
+
+    -- Add a line with an icon for the right mouse button
+	GameTooltip:AddLine(CreateAtlasMarkup("NPE_RightClick") .. " |cFFFFA500Right-click|r to select / deselect a category to modify (Only one category at a time)", 1, 1, 1) -- White text
+	GameTooltip:AddLine("Modifying a category will bring up buttons to add element into the selected category",1,1,1)
+	GameTooltip:AddLine("and to take it out of the selected category",1,1,1)
+
+    -- Add a blank line for spacing
+    GameTooltip:AddLine(" ")
+	GameTooltip:AddLine("Can't use the right click ? you need to be Officer or Owner of this phase to modify the categories",1,1,1)
+	GameTooltip:AddLine(" ")
+	GameTooltip:AddLine(CreateAtlasMarkup("services-icon-warning").." Be advised that if multiple people are creating / deleting / modifying categories at the same time, it can lead to some issues.", 1, 0.5, 0.5) -- Orange text
+	GameTooltip:AddLine(" It is greatly advised to have only one person handle those kind of modifications. |cFFFFA500(Using the category for filtering,aka left click isn't affected.)|r", 1, 0.5, 0.5) -- Orange text
+	-- Add a blank line for spacing
+	GameTooltip:AddLine(" ")
+
+    -- Add additional instructions or information
+    GameTooltip:AddLine("Use the scroll bar to navigate through the list.", 0.5, 0.8, 1) -- Light blue text
+
+    -- Show the tooltip
+    GameTooltip:Show()
+end
+
+-- -- -- -- -- -- -- -- -- -- -- --
+--#endregion
 -- -- -- -- -- -- -- -- -- -- -- --
 
 -- ============================== ICONE AUTOUR MAP ============================== --
@@ -5638,3 +7268,61 @@ end)
 -- -- -- -- -- -- -- -- -- -- -- --
 --#endregion
 -- -- -- -- -- -- -- -- -- -- -- --
+StaticPopupDialogs["CONFIRM_DELETE_CATEGORY_NPC"] = {
+    text = "Are you sure you want to delete this category ?",
+    button1 = "Yes",
+    button2 = "No",
+    OnAccept = function(self, data)
+        table.remove(PhaseToolkit.NPCcategoryList, data.deleteIndex)
+		PhaseToolkit.saveNpcCategoryDataToServer()
+		if data.funcOnYes then
+			data.funcOnYes()
+		end
+
+    end,
+    OnCancel = function(self, data) end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["CONFIRM_DELETE_CATEGORY_TELE"] = {
+    text = "Are you sure you want to delete this category ?",
+    button1 = "Yes",
+    button2 = "No",
+    OnAccept = function(self, data)
+        table.remove(PhaseToolkit.TELEcategoryList, data.deleteIndex)
+		PhaseToolkit.saveTELECategoryDataToServer()
+		if data.funcOnYes then
+			data.funcOnYes()
+		end
+
+    end,
+    OnCancel = function(self, data) end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+
+
+StaticPopupDialogs["CONFIRM_DELETE_TELE"] = {
+	text = "Are you sure you want to delete this teleport?",
+	button1 = "Yes",
+	button2 = "No",
+	OnAccept = function(self, data)
+		sendAddonCmd("phase tele delete " .. data, nil, false)
+		PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, data)
+		if(PhaseToolkit.IsCurrentlyFilteringTeleViaText or PhaseToolkit.IsCurrentlyFilteringTeleViaCategory) then
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+		else
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}

@@ -69,6 +69,10 @@ end
 --]]
 --aaa
 
+local function safeCallback(cb, ...)
+	if cb then return cb(...) end
+end
+
 local WMO_TYPES = { [14] = true, [15] = true, [33] = true, [38] = true, [43] = true, [54] = true }
 local ObjectTypes = {
 	[0] = "DOOR",
@@ -141,10 +145,119 @@ local function shortenFileName(path)
 	return fileName and fileName:match("(.+)%..+$") or fileName
 end
 
+local dimDetectSceneFrame = CreateFrame("ModelScene")
+Mixin(dimDetectSceneFrame, ModelSceneMixin)
+dimDetectSceneFrame.objActor = dimDetectSceneFrame:CreateActor(nil, "ModelSceneActorTemplate")
+dimDetectSceneFrame.objActor.scene = dimDetectSceneFrame
+
+dimDetectSceneFrame.objActor.queue = {}
+dimDetectSceneFrame.objActor._log = {}
+
+---Request an object size, running the callback when it's done
+---@param fileID integer
+---@param objType integer
+---@param callback function
+---@return boolean? success -- Returns true if the request was successfully queued or ran, false if it was a WMO and not queued
+function dimDetectSceneFrame:GetObjectSize(fileID, objType, callback)
+	-- invalid fileID
+	if not fileID or type(fileID) ~= "number" then
+		return error("Cannot call GetObjectSize without a valid fileID.")
+	end
+
+	if not objType or type(objType) ~= "number" then
+		return error("Cannot call GetObjectSize without a valid objType. This is an anti-crash measure. Fix your call.")
+	end
+
+	if not callback or type(callback) ~= "function" then
+		return error("Cannot call GetObjectSize without a valid callback function. Where do you think the data from this goes? It's async.")
+	end
+
+	if WMO_TYPES[objType] then
+		if callback then callback(false) end
+		return false
+	end
+
+	-- this fileID has already been logged, run the callback immediately with the size
+	if self.objActor._log[fileID] then
+		if callback then callback(self.objActor._log[fileID]) end
+		return true
+	end
+
+	local cbObj = { fid = fileID, callback = callback }
+	tinsert(self.objActor.queue, cbObj)
+
+	self.objActor:Next()
+
+	return true
+end
+
+function dimDetectSceneFrame.objActor:Next()
+	if #self.queue == 0 then
+		-- queue empty, exit recursion
+		return
+	end
+
+	local nextObj = tremove(self.queue, 1)
+
+	self.currentFileID = nextObj.fid
+	self.loading = true
+	self.curCallback = nextObj.callback
+	self:SetModelByFileID(nextObj.fid)
+end
+
+dimDetectSceneFrame.objActor.onModelLoadedCallback = function(self)
+	local mX1, mY1, mZ1, mX2, mY2, mZ2 = self:GetActiveBoundingBox()
+	local mX = mX1 - mX2; local mY = mY1 - mY2; local mZ = mZ1 - mZ2
+
+	local size = EpsiLib.API.MathU.Vector3.new(abs(mX), abs(mY), abs(mZ))
+
+	local fileID = self:GetModelFileID()
+
+	self._log[fileID] = size
+
+	if self.curCallback then
+		self.curCallback(size) -- Call the callback with the size
+		self.curCallback = nil -- destroy just to be safe
+	end
+
+	self:ClearModel()
+	self.loading = false
+
+	self:Next() -- Process the next object in the queue if needed (will short circuit if queue is empty)
+end
+
+
+-- Get the size of an object - takes a full object class or FileID & embeds the size on the object at the end
+local function GetAndEmbedObjectSize(obj, callback)
+	if obj:IsWMO() then return safeCallback(callback, false) end -- just exit now for WMOs. We have several wmo anti-crash checks along the way, but better safe than crash.
+	obj.size = false
+	dimDetectSceneFrame:GetObjectSize(obj.fileID, obj.objType, function(size)
+		if size then
+			obj.size = size
+		else
+			print("Failed to get size for object with fileID: " .. tostring(obj.fileID))
+		end
+	end)
+end
+
 local GameObjectMeta = {}
+
+function GameObjectMeta:GetSize(callback)
+	if self.size then
+		safeCallback(callback, self.size)
+		return self.size
+	else
+		GetAndEmbedObjectSize(self, callback)
+		return true
+	end
+end
 
 function GameObjectMeta:Select()
 	EpsiLib.AddonCommands._SendAddonCommand("gobject select " .. self.guid)
+end
+
+function GameObjectMeta:SelectGroup()
+	EpsiLib.AddonCommands._SendAddonCommand("gobject group select")
 end
 
 function GameObjectMeta:IsSelected()
@@ -412,6 +525,59 @@ function GameObjectMeta:SpawnDuplicate()
 	end, false)
 end
 
+function GameObjectMeta:DeepCopy(samePos)
+	local gobData = self
+
+	if samePos and select(4, C_Epsilon.GetPosition()) ~= gobData.map then
+		local text = ("You need to be on the same map as the object to copy at the same position (map id %s).\n\rYou can teleport there now & then attempt to copy-in-place again after."):format(gobData.map)
+		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
+			text = text,
+			acceptText = "Teleport",
+			showAlert = true,
+			callback = function()
+				EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map,
+					gobData.transform.rotation.z))
+			end
+		})
+		return;
+	end
+
+	local mainSpawnCommand
+	if samePos then
+		mainSpawnCommand = ("gobject spawn %s scale %s posx %s posy %s posz %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.position.x,
+			gobData.transform.position.y, gobData.transform.position.z, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
+	else
+		mainSpawnCommand = ("gobject spawn %s scale %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
+	end
+
+	if gobData.HasTint then
+		local tintCommand
+		if gobData.HasTint == 1 then
+			tintCommand = (" tint %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.alpha)
+		else
+			tintCommand = (" overlay %s %s %s"):format(gobData.color.red, gobData.color.blue, gobData.color.green, gobData.color.saturation, gobData.color.alpha)
+		end
+		mainSpawnCommand = mainSpawnCommand .. tintCommand
+	elseif gobData.spell and gobData.spell ~= 0 then
+		mainSpawnCommand = mainSpawnCommand .. " spell " .. gobData.spell
+	end
+
+	local commands = { mainSpawnCommand }
+
+	if gobData.groupLeader and gobData.groupLeader ~= 0 then
+		table.insert(commands, ("gobject group add %s"):format(gobData.groupLeader))
+	end
+
+	EpsiLib.AddonCommands._SendAddonChain(commands, function(success, messages)
+		if not success then
+			print("Failed to copy GameObject: " .. gobData.guid .. " with message: " .. messages[1])
+		else
+			gobData.isRestored = true
+			print("Deep-Copied GameObject: " .. gobData.guid)
+		end
+	end, false)
+end
+
 function GameObjectMeta:Delete()
 	EpsiLib.AddonCommands._SendAddonCommand("gobject delete " .. self.guid, function(success, messages)
 		if not success then
@@ -436,13 +602,15 @@ function GameObjectMeta:Restore()
 			acceptText = "Teleport",
 			showAlert = true,
 			callback = function()
-				EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map, gobData.transform.rotation.z))
+				EpsiLib.AddonCommands._SendAddonCommand(("worldport %s %s %s %s %s"):format(gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.map,
+					gobData.transform.rotation.z))
 			end
 		})
 		return;
 	end
 
-	local mainSpawnCommand = ("gobject spawn %s scale %s posx %s posy %s posz %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.position.x, gobData.transform.position.y, gobData.transform.position.z, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
+	local mainSpawnCommand = ("gobject spawn %s scale %s posx %s posy %s posz %s pitch %s roll %s face north turn %s"):format(gobData.entry, gobData.scale, gobData.transform.position.x,
+		gobData.transform.position.y, gobData.transform.position.z, gobData.transform.rotation.y, gobData.transform.rotation.x, gobData.transform.rotation.z)
 	if gobData.HasTint then
 		local tintCommand
 		if gobData.HasTint == 1 then
@@ -469,6 +637,38 @@ function GameObjectMeta:Restore()
 			print("Restored GameObject: " .. gobData.guid)
 		end
 	end, false)
+end
+
+--#region GameObject API
+
+function EpsiLib.GameObject:Select(name, id)
+	local command = "gobject select "
+	if name then
+		command = command .. name
+	end
+	if id then
+		command = command .. id
+	end
+
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			print(("Failed to select GameObject (%s) with message: " .. messages[1]):format(name or id or "nearest"))
+		else
+			--print("Selected GameObject: " .. (name or guid or entry))
+		end
+	end)
+end
+
+function EpsiLib.GameObject:Unselect()
+	EpsiLib.AddonCommands._SendAddonCommand("gobject unselect", function(success, messages)
+		if not success then
+			print("Failed to unselect GameObject with message: " .. messages[1])
+		else
+			-- Clear the selected object
+			self._log._selected = nil
+			EpsiLib.EventManager:Fire("EPSILON_OBJ_UPDATE", "UNSEL", nil)
+		end
+	end)
 end
 
 function EpsiLib.GameObject:GetSelected()
@@ -512,8 +712,9 @@ function EpsiLib.GameObject._create()
 	return object --[[@as GameObjectClass]]
 end
 
---								guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh, canEdit
-function EpsiLib.GameObject._new(guid, entry, name, filedataid, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh, canEdit)
+--								guid, entry, name, fileID, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh, canEdit
+function EpsiLib.GameObject._new(guid, entry, name, fileID, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh,
+								 canEdit)
 	guid = tonumber(guid)
 	if not guid then return error("_new must have GUID") end
 	local object = EpsiLib.GameObject._gobs[guid] or EpsiLib.GameObject._create() -- Re-use the object it it already exists, or generate a new one
@@ -522,8 +723,9 @@ function EpsiLib.GameObject._new(guid, entry, name, filedataid, x, y, z, orienta
 	object.entry = tonumber(entry)
 	object.name = name
 	object.sname = shortenFileName(name)
-	object.filedataid = tonumber(filedataid)
-	object.transform = object.transform or {} -- WARNING: position & rotation are regenerated Vector3 each time an object is updated; they are NOT stable references. Always use the object or transform table as your base reference instead.
+	object.fileID = tonumber(fileID)
+	object.transform = object.transform or
+		{} -- WARNING: position & rotation are regenerated Vector3 each time an object is updated; they are NOT stable references. Always use the object or transform table as your base reference instead.
 	object.transform.position = EpsiLib.API.MathU.Vector3.new(x, y, z)
 	object.transform.rotation = EpsiLib.API.MathU.Vector3.new(rx, ry, rz)
 	object.orientation = tonumber(orientation)
@@ -543,6 +745,8 @@ function EpsiLib.GameObject._new(guid, entry, name, filedataid, x, y, z, orienta
 	object.canEdit = toboolean(canEdit)
 	object.map = select(4, C_Epsilon.GetPosition()) -- we assume map ID from the player position
 	object.time = time()                         -- record the time it was selected
+
+	GetAndEmbedObjectSize(object)
 
 	return object --[[@as GameObjectClass]]
 end
@@ -602,70 +806,25 @@ for k, v in pairs(events) do
 	EpsiLib.EventManager:Register(k, v, k == "PLAYER_LOGIN")
 end
 
-local function CropNineSliceCorners(slice, cropFactor)
-	-- cropFactor: number between 0 and 1 (e.g., 0.5 keeps top half)
-
-	local function SafeSetTexCoordAndSize(region, fromTop)
-		if region and region.SetTexCoord then
-			local UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY = region:GetTexCoord()
-
-			-- Store original tex coords and size for reset
-			if not region._orig then
-				region._orig = {
-					tex = { UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY },
-					height = region:GetHeight(),
-					width = region:GetWidth()
-				}
-			end
-
-			-- Vertically crop texcoords
-			if fromTop then
-				-- crop from top
-				local croppedY = (LowerLeftY - UpperLeftY) * (1 - cropFactor)
-				region:SetTexCoord(UpperLeftX, croppedY, LowerLeftX, LowerLeftY, UpperRightX, croppedY, LowerRightX, LowerRightY)
-			else
-				-- crop from bottom
-				local croppedY = UpperRightY + (LowerRightY - UpperRightY) * cropFactor
-				region:SetTexCoord(UpperLeftX, UpperLeftY, LowerLeftX, croppedY, UpperRightX, UpperRightY, LowerRightX, croppedY)
-			end
-
-			-- Physically crop height
-			region:SetHeight(region._orig.height * cropFactor)
-		end
-	end
-
-	SafeSetTexCoordAndSize(slice.TopLeftCorner)
-	SafeSetTexCoordAndSize(slice.TopRightCorner)
-	SafeSetTexCoordAndSize(slice.BottomLeftCorner, true)
-	SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
-end
-
-local function ResetNineSliceCorners(slice)
-	local function SafeReset(region)
-		if region and region._orig then
-			local t = region._orig.tex
-			region:SetTexCoord(unpack(t))
-			region:SetHeight(region._orig.height)
-			region:SetWidth(region._orig.width)
-		end
-	end
-
-	SafeReset(slice.TopLeftCorner)
-	SafeReset(slice.TopRightCorner)
-	SafeReset(slice.BottomLeftCorner)
-	SafeReset(slice.BottomRightCorner)
-end
-
 --#region GameObject History Frame
 local frame = CreateFrame("Frame", "EpsilonLibGobHistoryFrame", UIParent, "ButtonFrameTemplateMinimizable")
 frame:SetSize(380, 416)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
+frame:SetToplevel(true)
 frame:SetClampedToScreen(true)
 frame:EnableMouse(true)
 frame.TitleText:SetText("GameObject History")
 ButtonFrameTemplateMinimizable_HidePortrait(frame)
 EpsiLib.GameObject.GobLogFrame = frame
+
+NineSliceUtil.ApplyLayoutByName(frame.NineSlice, "EpsilonGoldBorderFrameDoubleButtonTemplateNoPortrait")
+
+frame.MinimizedText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+frame.MinimizedText:SetText("Minimized. Click the _ button in the top right to expand.")
+frame.MinimizedText:SetTextColor(0.66, 0.66, 0.66, 1)
+frame.MinimizedText:SetPoint("TOP", 0, -35)
+frame.MinimizedText:Hide()
 
 frame.BottomButtons = CreateFrame("Frame", nil, frame)
 frame.BottomButtons:SetSize(380, 32)
@@ -690,8 +849,9 @@ minimizeButton:SetScript("OnClick", function(self)
 		frame:SetHeight(60) -- Adjust this to show just the title bar
 		frame:ClearAllPoints()
 		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
-		CropNineSliceCorners(frame.NineSlice, 0.4) -- Crop the corners to show only the top half
-		frame.BottomButtons:Hide()           -- Hide the bottom buttons
+		EpsiLib.Utils.NineSlice.CropNineSliceCorners(frame.NineSlice, 0.4) -- Crop the corners to show only the top half
+		frame.BottomButtons:Hide()                                   -- Hide the bottom buttons
+		frame.MinimizedText:Show()
 	else
 		frame.Inset:Show()
 		local top = frame:GetTop()
@@ -699,8 +859,9 @@ minimizeButton:SetScript("OnClick", function(self)
 		frame:SetHeight(416) -- Restore full height
 		frame:ClearAllPoints()
 		frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
-		ResetNineSliceCorners(frame.NineSlice) -- Reset the corners to full size
-		frame.BottomButtons:Show()       -- Show the bottom buttons
+		EpsiLib.Utils.NineSlice.ResetNineSliceCorners(frame.NineSlice) -- Reset the corners to full size
+		frame.BottomButtons:Show()                               -- Show the bottom buttons
+		frame.MinimizedText:Hide()
 	end
 end)
 
@@ -711,6 +872,9 @@ dragBar:SetSize(20, 20)
 dragBar:SetPoint("RIGHT", frame.CloseButton, "LEFT", -20, 0)
 dragBar:EnableMouse(true)
 dragBar:Init(frame)
+dragBar:HookScript("OnMouseDown", function(self)
+	frame:Raise()
+end)
 
 local GAME_GOLD = CreateColorFromHexString("FFFFD700")
 
@@ -762,7 +926,13 @@ Status: %s
 ]]
 local tt_fieldFormat = "%s: %s\n"
 local tt_fields = {
-	{ field = "Tint",     func = function(object) return object.HasTint and (("[R: %s, G: %s, B: %s, A: %s, S: %s]"):format(object.color.red, object.color.green, object.color.blue, object.color.alpha, object.color.saturation)) end },
+	{
+		field = "Tint",
+		func = function(object)
+			return object.HasTint and
+				(("[R: %s, G: %s, B: %s, A: %s, S: %s]"):format(object.color.red, object.color.green, object.color.blue, object.color.alpha, object.color.saturation))
+		end
+	},
 	{ field = "Spell",    func = function(object) return object.spell ~= 0 and object.spell end },
 	{ field = "In Group", func = function(object) return (object.groupLeaderID and "Yes" or "No") end },
 }

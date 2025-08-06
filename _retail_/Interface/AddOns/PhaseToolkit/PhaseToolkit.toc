@@ -3,8 +3,11 @@
 ## Notes: Addon to fill in the gap that phase manager left behind
 ## Version: 1.4.0
 ## Author: Naponico#1212
+## OptionalDeps: EpsilonLib, EpsilonLib-dev
 ## SavedVariables: PhaseToolKitConfig
+
+libs\embeds.xml
 PhaseToolkit.lua
 PhaseToolkitConfig.lua
-LibDBIcon-1.0\embeds.xml
 PhaseToolkit.xml
+

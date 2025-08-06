@@ -225,12 +225,28 @@ EpsiLib_DB = {
 }
 local default_db = EpsiLib_DB
 
+EpsiLib_Char_DB = {
+	[UnitName("player")] = {
+		spellbook = {
+			spells ={},
+			tabs = {},
+			swapped_spells = {},
+			hidden_spells = {},
+		}
+	},
+}
+
+local default_char_db = EpsiLib_Char_DB
+
+
 local registerForAddonDataLoaded
 function registerForAddonDataLoaded(_, event, addonName, containsBindings)
 	if addonName ~= EpsilonLib then return end
 
 	-- Run anything here you need to load default values into the config options
 	loadDefaultsIntoMaster(default_db, EpsiLib_DB)
+	loadDefaultsIntoMaster(default_char_db, EpsiLib_Char_DB)
+	EpsilLib_Current_Char_DB = EpsiLib_Char_DB[UnitName("player")]
 
 	-- Remove our hook
 	EpsiLib.EventManager:Remove(registerForAddonDataLoaded, "ADDON_LOADED")

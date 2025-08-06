@@ -1001,6 +1001,7 @@
 
 	<!-- Extra Gossip Button -->
 
+	<!--
 	<Button name="GossipTitleButtonAddVendor" parent="GossipFrame" inherits="GossipTitleButtonTemplate" hidden="true">
 		<Anchors>
 			<Anchor point="TOPLEFT" relativeTo="GossipGreetingText" relativePoint="BOTTOMLEFT">
@@ -1045,6 +1046,7 @@
 			</OnEvent>
 		</Scripts>
 	</Button>
+	-->
 
 	<Button name="GossipTitleButtonRemoveVendor" parent="GossipFrame" hidden="true">
 		<Size x="16" y="16"/>
@@ -1105,9 +1107,20 @@
 			<Anchor point="TOPLEFT" x="64" y="-32"/>
 		</Anchors>
 		<Scripts>
+			<OnLoad>
+				self:RegisterEvent("GOSSIP_SHOW")
+			</OnLoad>
 			<OnClick>
 				Epsilon_MerchantSoundPicker_Open()
 			</OnClick>
+			<OnEvent>
+				if ImmersionFrame then
+					self:SetParent(ImmersionFrame)
+					self:SetPoint("BOTTOM", ImmersionFrame.TalkBox.PortraitFrame.Portrait, "TOP")
+					Epsilon_MerchantSoundPicker:ClearAllPoints()
+					Epsilon_MerchantSoundPicker:SetPoint("BOTTOM", self, "TOP")
+				end
+			</OnEvent>
 		</Scripts>
 	</Button>
 </Ui>

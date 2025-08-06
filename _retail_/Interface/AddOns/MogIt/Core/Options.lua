@@ -271,13 +271,22 @@ function mog.createOptions()
 					autoShowMogNPCNamePreviews = {
 						type = "toggle",
 						order = 3,
-						name = L["Auto Show Preview when targetting NPCs with MogIt link in name"],
+						name = L["Auto Show Preview when targeting NPCs with MogIt link in name"],
+						desc = L["Auto-Show Preview when Targetting an NPC with a MogIt Link as their name"],
 						width = "full",
 						arg = "autoShowMogNPCNamePreviews",
 					},
-					debugMessages = {
+					autoSaveMogNPCNameToEMOG = {
 						type = "toggle",
 						order = 4,
+						name = L["Auto Save Targeted NPCs with MogIt Link names to E.M.O.G. Database"],
+						width = "full",
+						arg = "autoSaveMogNPCNameToEMOG",
+						desc = L["When targeting an NPC with a MogIt Link / Set as it's name, automatically save this set into the Epsilon Mobile Outfit Gallery database, for viewing later on."],
+					},
+					debugMessages = {
+						type = "toggle",
+						order = 5,
 						name = L["Toggle debug"],
 						width = "full",
 						arg = "toggleDebugMode",

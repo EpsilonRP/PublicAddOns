@@ -2,7 +2,7 @@
 ## Title: EpsilonLib
 ## Notes: Various functions and methods for use when developing addons for Epsilon.
 ## Author: Gardener
-## SavedVariables: EpsiLib_DB
+## SavedVariables: EpsiLib_DB, EpsiLib_Char_DB
 ## Version: 0.1
 
 Lib\Lib.xml

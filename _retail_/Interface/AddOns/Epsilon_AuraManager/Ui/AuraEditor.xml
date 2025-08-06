@@ -1,0 +1,743 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+
+	<Button name="EpsilonAuraManagerSearchSMTemplate" enableMouse="true" parentArray="searchPreview" virtual="true">
+		<Size x="275" y="27"/>
+		<Layers>
+			<Layer level="OVERLAY" textureSubLevel="3">
+				<Texture parentKey="selectedTexture" atlas="search-highlight" hidden="true">
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture name="$parentIcon" parentKey="icon">
+					<Size x="21" y="21"/>
+					<Anchors>
+						<Anchor point="LEFT" x="5" y="1"/>
+					</Anchors>
+				</Texture>
+				<FontString name="$parentSpellID" inherits="GameFontNormalSmall" justifyH="RIGHT" parentKey="spellID">
+					<Anchors>
+						<Anchor point="RIGHT" x="-5" y="0"/>
+					</Anchors>
+					<Color r="0.5" g="0.5" b="0.5" a="1"/>
+				</FontString>
+				<FontString name="$parentName" inherits="GameFontNormalSmall" justifyH="LEFT" parentKey="name">
+					<Size x="400" y="0"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentIcon" relativePoint="RIGHT" x="5" y="0"/>
+						<Anchor point="RIGHT" relativeTo="$parentSpellID" relativePoint="LEFT" x="-5" y="0"/>
+					</Anchors>
+					<Color r="1" g="1" b="1" a="1"/>
+				</FontString>
+			</Layer>
+		</Layers>
+		<NormalTexture file="Interface\EncounterJournal\UI-EncounterJournalTextures_Tile" horizTile="true">
+			<Size x="64" y="27"/>
+			<TexCoords left="0.00000000" right="1.00000000" top="0.16601563" bottom="0.21875000"/>
+		</NormalTexture>
+		<PushedTexture file="Interface\EncounterJournal\UI-EncounterJournalTextures_Tile" horizTile="true">
+			<Size x="64" y="27"/>
+			<TexCoords left="0.00000000" right="1.00000000" top="0.16601563" bottom="0.21875000"/>
+		</PushedTexture>
+		<Scripts>
+			<OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_LEFT");
+				GameTooltip:SetSpellByID(self.SpellID)
+				GameTooltip:Show();
+				EpsilonAuraManagerAuraEditor_SetSearchPreviewSelection(self:GetID());
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide();
+			</OnLeave>
+			<OnShow>
+				self:SetFrameLevel(self:GetParent():GetFrameLevel() + 10);
+			</OnShow>
+			<OnClick>
+				EpsilonAuraManagerAuraEditor_SelectSearch(self:GetID())
+				EpsilonAuraManagerAuraEditor_ResetSearch()
+			</OnClick>
+		</Scripts>
+	</Button>
+
+	<Button name="EpsilonAuraManagerSearchEntryTemplate" virtual="true">
+		<Size x="575" y="49"/>
+		<Layers>
+		  <Layer level="OVERLAY" textureSubLevel="2">
+			<Texture name="$parentIconFrame" file="Interface\EncounterJournal\UI-EncounterJournalTextures">
+			  <Size x="38" y="38"/>
+			  <TexCoords left="0.89843750" right="0.97265625" top="0.21386719" bottom="0.25097656"/>
+			  <Anchors>
+				<Anchor point="LEFT" x="10" y="0"/>
+			  </Anchors>
+			</Texture>
+		  </Layer>
+		  <Layer level="OVERLAY">
+			<Texture name="$parentIcon" file="Interface\Icons\Ability_ThunderClap" parentKey="SpellIcon">
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parentIconFrame" x="1" y="-2"/>
+				<Anchor point="BOTTOMRIGHT" relativeTo="$parentIconFrame" x="-1" y="1"/>
+			  </Anchors>
+			</Texture>
+			<FontString name="$parentName" inherits="GameFontNormalLarge" justifyH="LEFT" parentKey="SpellName">
+			  <Size x="460" y="12"/>
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parentIcon" relativePoint="TOPRIGHT" x="10" y="0"/>
+			  </Anchors>
+			  <Color r="1" g="1" b="1" a="1"/>
+			</FontString>
+			<FontString name="$parentDesc" inherits="GameFontNormal" justifyH="LEFT" parentKey="SpellDesc" maxLines="1">
+			  <Size x="400" y="0"/>
+			  <Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parentName" relativePoint="BOTTOMLEFT" x="0" y="-7"/>
+			  </Anchors>
+			  <Color r="1" g="0.82" b="0" a="1"/>
+			</FontString>
+			<FontString name="$parentSpellID" inherits="GameFontNormal" justifyH="RIGHT" parentKey="SpellID">
+			  <Size x="140" y="0"/>
+			  <Anchors>
+				<Anchor point="RIGHT" x="-14" y="0"/>
+			  </Anchors>
+			  <Color r="0.5" g="0.5" b="0.5" a="1"/>
+			</FontString>
+		  </Layer>
+		</Layers>
+		<NormalTexture inherits="_SearchBarLg">
+		</NormalTexture>
+		<PushedTexture inherits="_SearchBarLg">
+		</PushedTexture>
+		<HighlightTexture file="Interface\EncounterJournal\UI-EncounterJournalTextures">
+			<Size x="256" y="47"/>
+			<TexCoords left="0.00195313" right="0.50195313" top="0.80468750" bottom="0.85058594"/>
+		</HighlightTexture>
+		<Scripts>
+		  <OnEnter>
+			if self.spellID then
+			  GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+			  GameTooltip:SetSpellByID(self.spellID)
+			  self.showingTooltip = true;
+			end
+		  </OnEnter>
+		  <OnLeave>
+			GameTooltip:Hide();
+			self.showingTooltip = false;
+		  </OnLeave>
+		  <OnClick>
+			EpsilonAuraManagerAuraEditor_SelectSearch(self:GetID());
+			PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
+		  </OnClick>
+		</Scripts>
+	</Button>
+
+	<Frame name="EpsilonAuraManagerSearchResults" parent="UIParent" toplevel="true" frameStrata="DIALOG" enableMouse="true" hidden="true">
+		<Size x="600" y="400"/>
+		<Anchors>
+			<Anchor point="CENTER" x="0" y="0"/>
+		</Anchors>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="$parentBg" file="Interface\FrameGeneral\UI-Background-Rock" horizTile="true" vertTile="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+					<Color r="0.9" g="0.8" b="0.7" a="1"/>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<FontString name="$parentTitleText" inherits="GameFontNormal" text="Search Results" parentKey="TitleText">
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-7"/>
+						<Anchor point="LEFT" x="60"/>
+						<Anchor point="RIGHT" x="-60"/>
+					</Anchors>
+				</FontString>
+				<Texture name="$parentTopLeftCorner" inherits="UI-Frame-TopCornerLeft">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="-7" y="4"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTopRightCorner" inherits="UI-Frame-TopCornerRightSimple">
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="4" y="4"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTopBorder" inherits="_UI-Frame-Top">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTopLeftCorner" relativePoint="TOPRIGHT" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentTopRightCorner" relativePoint="TOPLEFT" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentLeftBorder" inherits="!UI-Frame-LeftTile" parentKey="leftBorderBar">
+					<Anchors>
+						<Anchor point="BOTTOM" x="0" y="8" />
+						<Anchor point="TOPLEFT" relativeTo="$parentTopLeftCorner" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentRightBorder" inherits="!UI-Frame-RightTile">
+					<Anchors>
+						<Anchor point="BOTTOM" x="0" y="0" />
+						<Anchor point="TOPRIGHT" relativeTo="$parentTopRightCorner" relativePoint="BOTTOMRIGHT" x="1" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottomLeftCorner" inherits="UI-Frame-BotCornerLeft">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="-7" y="-6"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottomRightCorner" inherits="UI-Frame-BotCornerRight">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" x="4" y="-6"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="-1">
+				<Texture name="$parentTopTileStreaks" inherits="_UI-Frame-TopTileStreaks">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="1">
+				<Texture name="$parentTopLeftCorner2" inherits="UI-Frame-TopCornerLeft">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="-7" y="-20"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTopRightCorner2" inherits="UI-Frame-TopCornerRightSimple">
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="4" y="-20"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentTopBorder2" inherits="_UI-Frame-Top">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTopLeftCorner2" relativePoint="TOPRIGHT" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentTopRightCorner2" relativePoint="TOPLEFT" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentBottomBorder" inherits="_UI-Frame-Bot">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" x="-7" y="-6"/>
+						<Anchor point="BOTTOMLEFT" x="7" y="-6"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="7" y="2"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():Hide();
+					</OnClick>
+				</Scripts>
+			</Button>
+			<ScrollFrame name="$parentScrollFrame" parentKey="scrollFrame" inherits="HybridScrollFrameTemplate">
+				<Size x="578" y="371"/>
+				<Anchors>
+				  <Anchor point="BOTTOMLEFT" x="1" y="1"/>
+				</Anchors>
+				<Frames>
+				  <Slider name="$parentScrollBar" parentKey="scrollBar" inherits="HybridScrollBarTrimTemplate">
+					<Anchors>
+					  <Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="0" y="-16"/>
+					  <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="0" y="14"/>
+					</Anchors>
+					<Scripts>
+					  <OnLoad>
+						self.trackBG:Show();
+						self.trackBG:SetVertexColor(0, 0, 0, 1);
+					  </OnLoad>
+					</Scripts>
+				  </Slider>
+				</Frames>
+			</ScrollFrame>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				EpsilonAuraManagerSearchResults_OnLoad(self);
+			</OnLoad>
+			<OnShow>
+				PlaySound(SOUNDKIT.IG_SPELLBOOK_OPEN);
+			</OnShow>
+			<OnHide>
+				PlaySound(SOUNDKIT.IG_SPELLBOOK_CLOSE);
+			</OnHide>
+		</Scripts>
+	</Frame>
+
+	<Frame name="EpsilonAuraManagerAuraEditor" parent="EpsilonAuraManagerFrame" inherits="ButtonFrameTemplate" hidden="true" frameStrata="DIALOG" enableMouse="true" movable="true" topLevel="true">
+    <Size x="300" y="420" />
+    <Anchors>
+      <Anchor point="LEFT" relativeTo="EpsilonAuraManagerFrame" relativePoint="RIGHT" x="0" y="0" />
+    </Anchors>
+
+	<Layers>
+		<Layer level="OVERLAY">
+			<FontString parentKey="Header" inherits="GameFontNormal" justifyH="center" text="Original Aura:">
+				<Anchors>
+					<Anchor point="TOP" x="0" y="-72"/>
+				</Anchors>
+			</FontString>
+			<Texture parentKey="originalBuffIcon" file="Interface/Icons/inv_misc_questionmark">
+				<Size x="21" y="21"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="20" y="-90"/>
+				</Anchors>
+			</Texture>
+			<FontString parentKey="originalBuffName" inherits="GameFontNormal" justifyH="left" maxLines="2" text="Aura Name">
+				<Anchors>
+				  <Anchor point="LEFT" relativeKey="$parent.originalBuffIcon" relativePoint="RIGHT" x="5" y="0"/>
+				  <Anchor point="RIGHT" x="-20" y="0"/>
+				</Anchors>
+			</FontString>
+			<Texture parentKey="Divider" file="Interface/ClassTrainerFrame/UI-ClassTrainer-HorizontalBar">
+				<Size x="220" y="12"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="2" y="-115"/>
+				</Anchors>
+				<TexCoords left="0" right="1.0" top="0" bottom="0.25"/>
+			</Texture>
+			<Texture file="Interface/ClassTrainerFrame/UI-ClassTrainer-HorizontalBar">
+				<Size x="73" y="12"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.Divider" relativePoint="RIGHT" x="0" y="0"/>
+				</Anchors>
+				<TexCoords left="0" right="0.29296875" top="0.25" bottom="0.5"/>
+			</Texture>
+			<FontString parentKey="Header2" inherits="GameFontNormal" justifyH="center" text="Your Edits:">
+				<Anchors>
+					<Anchor point="TOP" x="0" y="-130"/>
+				</Anchors>
+			</FontString>
+		</Layer>
+	</Layers>
+
+    <Scripts>
+      <OnLoad>
+		  self:SetClampedToScreen( true );
+		  self:SetMovable(true);
+		  self:EnableMouse(true);
+		  self:RegisterForDrag( "LeftButton" );
+		  self:SetScript( "OnDragStart", self.StartMoving );
+		  self:SetScript( "OnDragStop", self.StopMovingOrSizing );
+		  self:SetUserPlaced( true );
+
+		  SetPortraitToTexture(self.portrait,"Interface/Icons/misc_rnrpaintbuttonup");
+
+		  self.TitleBgColor = self:CreateTexture(nil, "BACKGROUND")
+		  self.TitleBgColor:SetPoint("TOPLEFT", self.TitleBg)
+		  self.TitleBgColor:SetPoint("BOTTOMRIGHT", self.TitleBg)
+		  self.TitleBgColor:SetColorTexture(2 / 255, 102 / 255, 148 / 255, 0.5)
+
+		  NineSliceUtil.ApplyLayoutByName(self.NineSlice, "EpsilonGoldBorderFrameTemplate")
+
+		  self.TitleText:SetText( "Edit Aura" )
+	  </OnLoad>
+	  <OnShow>
+		EpsilonAuraManagerAuraEditor_Refresh()
+	  </OnShow>
+    </Scripts>
+    <Frames>
+
+      <!-- Search/filter box. -->
+		<EditBox parentKey="Search" inherits="SearchBoxTemplate">
+			<Size x="200" y="20" />
+			<Anchors>
+				<Anchor point="TOPLEFT" x="72" y="-38" />
+			</Anchors>
+			<Layers>
+			  <Layer level="ARTWORK">
+				<FontString parentKey="Label" inherits="GameFontNormalSmall" justifyH="center" text="Search for an aura to edit:">
+					<Anchors>
+					  <Anchor point="TOP" x="0" y="12"/>
+					</Anchors>
+				</FontString>
+			  </Layer>
+			</Layers>
+			<Frames>
+				<Frame parentKey="searchPreviewContainer" hidden="true" frameStrata="FULLSCREEN_DIALOG">
+					<Size x="0" y="24"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="TOPRIGHT" relativePoint="BOTTOMRIGHT"/>
+					</Anchors>
+					<Layers>
+						<Layer level="ARTWORK">
+							<Texture parentKey="botLeftCorner" inherits="UI-Frame-BotCornerLeft">
+								<Anchors>
+									<Anchor point="LEFT" x="-7" y="0"/>
+									<Anchor point="BOTTOM" x="0" y="-5"/>
+								</Anchors>
+							</Texture>
+							<Texture parentKey="botRightCorner" inherits="UI-Frame-BotCornerRight">
+								<Anchors>
+									<Anchor point="BOTTOM" x="0" y="-5"/>
+									<Anchor point="RIGHT" x="4" y="0"/>
+								</Anchors>
+							</Texture>
+							<Texture parentKey="bottomBorder" inherits="_UI-Frame-Bot">
+								<Anchors>
+									<Anchor point="BOTTOMLEFT" relativeKey="$parent.botLeftCorner" relativePoint="BOTTOMRIGHT" y="0"/>
+									<Anchor point="BOTTOMRIGHT" relativeKey="$parent.botRightCorner" relativePoint="BOTTOMLEFT" y="0"/>
+								</Anchors>
+							</Texture>
+							<Texture parentKey="leftBorder" inherits="!UI-Frame-LeftTile">
+								<Anchors>
+									<Anchor point="TOP" x="0" y="1" />
+									<Anchor point="BOTTOMLEFT" relativeKey="$parent.botLeftCorner" relativePoint="TOPLEFT"/>
+								</Anchors>
+							</Texture>
+							<Texture parentKey="rightBorder" inherits="!UI-Frame-RightTile">
+								<Anchors>
+									<Anchor point="TOP" x="0" y="1" />
+									<Anchor point="BOTTOMRIGHT" relativeKey="$parent.botRightCorner" relativePoint="TOPRIGHT" x="1" y="0"/>
+								</Anchors>
+							</Texture>
+							<Texture parentKey="topBorder" inherits="_UI-Frame-Bot">
+								<Anchors>
+									<Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="-2" y="3"/>
+									<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" x="2" y="-3"/>
+								</Anchors>
+							</Texture>
+						</Layer>
+					</Layers>
+				</Frame>
+
+				<Button name="$parentSearchButton1" inherits="EpsilonAuraManagerSearchSMTemplate" parentKey="sbutton1" frameStrata="FULLSCREEN_DIALOG">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.searchPreviewContainer" relativePoint="TOPLEFT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.searchPreviewContainer" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Button>
+				<Button name="$parentSearchButton2" inherits="EpsilonAuraManagerSearchSMTemplate" parentKey="sbutton2" frameStrata="FULLSCREEN_DIALOG" >
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentSearchButton1" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentSearchButton1" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Button>
+				<Button name="$parentSearchButton3" inherits="EpsilonAuraManagerSearchSMTemplate" parentKey="sbutton3" frameStrata="FULLSCREEN_DIALOG">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentSearchButton2" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentSearchButton2" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Button>
+				<Button name="$parentSearchButton4" inherits="EpsilonAuraManagerSearchSMTemplate" parentKey="sbutton4" frameStrata="FULLSCREEN_DIALOG">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentSearchButton3" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentSearchButton3" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Button>
+				<Button name="$parentSearchButton5" inherits="EpsilonAuraManagerSearchSMTemplate" parentKey="sbutton5" frameStrata="FULLSCREEN_DIALOG">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentSearchButton4" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parentSearchButton4" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Button>
+				<Button name="$parentShowALL" enableMouse="true" parentKey="showAllResults" frameStrata="FULLSCREEN_DIALOG">
+					<Size x="275" y="24"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSearchButton1" x="0" y="0"/>
+						<Anchor point="RIGHT" relativeTo="$parentSearchButton1" x="0" y="0"/>
+						<Anchor point="TOP" relativeTo="$parentSearchButton5" relativePoint="BOTTOM" x="0" y="0"/>
+					</Anchors>
+					<Layers>
+						<Layer level="OVERLAY" textureSubLevel="2">
+							<Texture parentKey="selectedTexture" atlas="search-highlight" hidden="true">
+								<Anchors>
+									<Anchor point="TOPLEFT"/>
+									<Anchor point="BOTTOMRIGHT"/>
+								</Anchors>
+							</Texture>
+						</Layer>
+						<Layer level="OVERLAY">
+							<FontString name="$parentText" inherits="GameFontNormal" justifyH="LEFT" parentKey="text">
+								<Size x="0" y="0"/>
+								<Anchors>
+									<Anchor point="CENTER" x="0" y="0"/>
+								</Anchors>
+							</FontString>
+						</Layer>
+					</Layers>
+					<NormalTexture file="Interface\EncounterJournal\UI-EncounterJournalTextures_Tile" horizTile="true">
+						<Size x="64" y="27"/>
+						<TexCoords left="0.00000000" right="1.00000000" top="0.16601563" bottom="0.21875000"/>
+					</NormalTexture>
+					<PushedTexture file="Interface\EncounterJournal\UI-EncounterJournalTextures_Tile" horizTile="true">
+						<Size x="64" y="27"/>
+						<TexCoords left="0.00000000" right="1.00000000" top="0.16601563" bottom="0.21875000"/>
+					</PushedTexture>
+					<Scripts>
+						<OnShow>
+							self:SetFrameLevel(self:GetParent():GetFrameLevel() + 10);
+							self:RegisterForClicks("AnyDown", "AnyUp")
+						</OnShow>
+						<OnClick>
+							EpsilonAuraManagerAuraEditor_ShowFullSearch()
+							EpsilonAuraManagerAuraEditor_ResetSearch();
+							PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						</OnClick>
+						<OnEnter>
+							EpsilonAuraManagerAuraEditor_SetSearchPreviewSelection(6);
+						</OnEnter>
+					</Scripts>
+				</Button>
+				<Frame name="$parentSearchIndicator" parentKey="searchIndicator" frameStrata="FULLSCREEN_DIALOG">
+					<Size x="275" y="24"/>
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSearchButton1" x="0" y="0"/>
+						<Anchor point="RIGHT" relativeTo="$parentSearchButton1" x="0" y="0"/>
+					</Anchors>
+					<Layers>
+						<Layer level="BACKGROUND" textureSubLevel="2">
+							<Texture file="Interface\EncounterJournal\UI-EncounterJournalTextures_Tile" horizTile="true">
+								<Size x="64" y="27"/>
+								<TexCoords left="0.00000000" right="1.00000000" top="0.16601563" bottom="0.21875000"/>
+								<Anchors>
+									<Anchor point="TOPLEFT"/>
+									<Anchor point="BOTTOMRIGHT"/>
+								</Anchors>
+							</Texture>
+						</Layer>
+						<Layer level="OVERLAY">
+							<FontString name="$parentText" inherits="GameFontNormal" justifyH="LEFT" parentKey="text">
+								<Size x="0" y="0"/>
+								<Anchors>
+									<Anchor point="CENTER" x="0" y="0"/>
+								</Anchors>
+							</FontString>
+						</Layer>
+					</Layers>
+				</Frame>
+			</Frames>
+			<Scripts>
+				<OnTextChanged>
+					EpsilonAuraManagerAuraEditor_OnTextChanged(self)
+				</OnTextChanged>
+				<OnEscapePressed function="EditBox_ClearFocus"/>
+				<OnEnterPressed>
+					EpsilonAuraManagerAuraEditor_OnEnterPressed(self)
+				</OnEnterPressed>
+				<OnKeyDown>
+					EpsilonAuraManagerAuraEditor_OnKeyDown(self, key)
+				</OnKeyDown>
+				<OnEditFocusLost>
+					EpsilonAuraManagerAuraEditor_OnFocusLost(self)
+				</OnEditFocusLost>
+				<OnEditFocusGained>
+					EpsilonAuraManagerAuraEditor_OnFocusGained( self )
+				</OnEditFocusGained>
+			</Scripts>
+		</EditBox>
+
+	  <Button name="$parentBuffIconButton" parentKey="buffIcon" >
+        <Size x="42" y="42"/>
+		<NormalTexture parentKey="icon" setAllPoints="true" file="Interface/Icons/inv_misc_questionmark">
+      	</NormalTexture>
+		<DisabledTexture setAllPoints="true" desaturated="true" file="Interface/Icons/inv_misc_questionmark">
+      	</DisabledTexture>
+		<HighlightTexture parentKey="highlight" file="Interface/Addons/DiceMaster/Texture/trait-select">
+		    <Size x="60" y="60"/>
+          	<Anchors>
+            	<Anchor point="CENTER"/>
+			</Anchors>
+		</HighlightTexture>
+		<Anchors>
+			<Anchor point="LEFT" x="20" y="0"/>
+			<Anchor point="TOP" relativeKey="$parent.Header2" relativePoint="BOTTOM" x="0" y="-12"/>
+		</Anchors>
+        <Scripts>
+          <OnClick>
+            PlaySound(54132)
+			EpsilonAuraManager_PickIcon()
+          </OnClick>
+		  <OnEnter>
+			GameTooltip:SetOwner( self, "ANCHOR_RIGHT" )
+			GameTooltip:ClearLines()
+			GameTooltip:AddLine( "|cFFFFD100Click to select an icon for this aura.", 1, 1, 1, true )
+			GameTooltip:Show()
+		  </OnEnter>
+		  <OnLeave>
+		  	GameTooltip:ClearLines()
+			GameTooltip:Hide()
+		  </OnLeave>
+        </Scripts>
+      </Button>
+
+	  <EditBox name="$parentBuffName" parentKey="buffName" font="GameFontNormalMed2" inherits="InputBoxTemplate">
+		<Size x="200" y="12"/>
+		<Anchors>
+		  <Anchor point="TOPLEFT" relativeKey="$parent.buffIcon" relativePoint="RIGHT" x="16" y="0"/>
+		</Anchors>
+		<Layers>
+		  <Layer level="ARTWORK">
+			<FontString parentKey="Label" name="$parentBuffNameTitle" inherits="GameFontNormalLeft" justifyH="left" text="Name">
+				<Size x="150" y="12"/>
+				<Anchors>
+				  <Anchor point="TOPLEFT" x="0" y="20"/>
+				</Anchors>
+			</FontString>
+		  </Layer>
+		</Layers>
+		<Scripts>
+		  <OnLoad>
+			self:SetAutoFocus( false )
+			self:SetTextColor( 1, 1, 1 )
+			self:SetMaxLetters( 200 )
+		  </OnLoad>
+		  <OnEscapePressed function="EditBox_ClearFocus"/>
+		  <OnEnterPressed function="EditBox_ClearFocus"/>
+		  <OnTabPressed>
+			EpsilonAuraManagerAuraEditorBuffDesc.EditBox:SetFocus();
+		  </OnTabPressed>
+		  <OnTextChanged>
+				EpsilonAuraManagerAuraEditor_MarkDirty();
+		  </OnTextChanged>
+		</Scripts>
+	  </EditBox>
+
+	  <ScrollFrame parentKey="buffDesc" name="$parentBuffDesc" inherits="InputScrollFrameTemplate">
+		<Size x="250" y="64"/>
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeKey="$parent.buffIcon" relativePoint="BOTTOMLEFT" x="4" y="-24"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString name="$parentBuffDescTitle" parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Aura Description">
+				<Size x="150" y="12"/>
+				<Anchors>
+				  <Anchor point="TOPLEFT" x="0" y="20"/>
+				</Anchors>
+			</FontString>
+		  </Layer>
+		</Layers>
+		<KeyValues>
+			<KeyValue key="instructions" value="The tooltip description of this aura."/>
+			<KeyValue key="hideCharCount" value="true" type="boolean"/>
+		</KeyValues>
+		<Scripts>
+			<OnLoad>
+				InputScrollFrame_OnLoad(self);
+				self.EditBox:HookScript("OnTextChanged", EpsilonAuraManagerAuraEditor_MarkDirty);
+				self.EditBox:HookScript("OnTabPressed", function()
+					EpsilonAuraManagerAuraEditorSpellDesc.EditBox:SetFocus();
+				end);
+			</OnLoad>
+		</Scripts>
+	  </ScrollFrame>
+
+	  <ScrollFrame parentKey="spellDesc" name="$parentSpellDesc" inherits="InputScrollFrameTemplate">
+		<Size x="250" y="64"/>
+		<Anchors>
+			<Anchor point="TOP" relativeKey="$parent.buffDesc" relativePoint="BOTTOM" x="0" y="-30"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+		  <FontString name="$parentSpellDescTitle" parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Spell Description">
+				<Size x="150" y="12"/>
+				<Anchors>
+				  <Anchor point="TOPLEFT" x="0" y="20"/>
+				</Anchors>
+			</FontString>
+		  </Layer>
+		</Layers>
+		<KeyValues>
+			<KeyValue key="instructions" value="The tooltip description of this spell."/>
+			<KeyValue key="hideCharCount" value="true" type="boolean"/>
+		</KeyValues>
+		<Scripts>
+			<OnLoad>
+				InputScrollFrame_OnLoad(self);
+				self.EditBox:HookScript("OnTextChanged", EpsilonAuraManagerAuraEditor_MarkDirty);
+				self.EditBox:HookScript("OnTabPressed", function()
+					EpsilonAuraManagerAuraEditorBuffName:SetFocus();
+				end);
+			</OnLoad>
+		</Scripts>
+	  </ScrollFrame>
+
+	  <CheckButton name="$parentBuffVisibility" parentKey="buffVisibility" inherits="ChatConfigCheckButtonTemplate">
+			<Anchors>
+			  <Anchor point="TOPLEFT" relativeKey="$parent.spellDesc" relativePoint="BOTTOMLEFT" x="-6" y="-10" />
+			</Anchors>
+
+			<Scripts>
+				<OnLoad>
+					_G[self:GetName().."Text"]:SetText("|cFFFFD100Visible")
+				</OnLoad>
+				<PostClick>
+					self:GetScript("OnEnter")(self);
+				</PostClick>
+				<OnEnter>
+					self.status = "|cFFFF0000Not Visible|r";
+					if self:GetChecked() then
+						self.status = "|cFF00FF00Visible|r";
+					end
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:AddLine( self.status, 1, 1, 1, 1)
+					GameTooltip:AddLine("Toggle whether this aura is visible to players while in this phase. Has no effect on spells.", 1, 0.81, 0, 1)
+					GameTooltip:Show();
+				</OnEnter>
+				<OnLeave function="GameTooltip_Hide"/>
+			</Scripts>
+	  </CheckButton>
+
+	  <CheckButton name="$parentBuffOverride" parentKey="buffOverride" inherits="ChatConfigCheckButtonTemplate">
+			<Anchors>
+			  <Anchor point="TOPLEFT" relativeKey="$parent.buffVisibility" relativePoint="BOTTOMLEFT" x="0" y="0" />
+			</Anchors>
+
+			<Scripts>
+				<OnLoad>
+					_G[self:GetName().."Text"]:SetText("|cFFFFD100Allow Personal Override")
+				</OnLoad>
+				<PostClick>
+					self:GetScript("OnEnter")(self);
+				</PostClick>
+				<OnEnter>
+					self.status = "|cFFFF0000Disallow|r";
+					if self:GetChecked() then
+						self.status = "|cFF00FF00Allow|r";
+					end
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip:AddLine( self.status .. " Personal Override", 1, 1, 1, 1)
+					GameTooltip:AddLine("Toggle whether these edits can be overridden by players with their own personal edits of this spell or aura.|n|n|cFFFFFFFFTip:|r This can be useful if you only want your edits to apply to NPCs in your phase.", 1, 0.81, 0, 1)
+					GameTooltip:Show();
+				</OnEnter>
+				<OnLeave function="GameTooltip_Hide"/>
+			</Scripts>
+	  </CheckButton>
+
+	  <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate" text="Save">
+			<Size x="85" y="22"/>
+			<Anchors>
+				<Anchor point="BOTTOMLEFT" x="6" y="4"/>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					EpsilonAuraManagerAuraEditor_Save()
+				</OnClick>
+			</Scripts>
+	  </Button>
+
+	  <Button name="$parentCancelButton" inherits="UIPanelButtonTemplate" text="Cancel">
+			<Size x="85" y="22"/>
+			<Anchors>
+				<Anchor point="BOTTOMRIGHT" x="-6" y="4"/>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					EpsilonAuraManagerAuraEditor_Close( true )
+				</OnClick>
+			</Scripts>
+	  </Button>
+
+    </Frames>
+  </Frame>
+
+</Ui>

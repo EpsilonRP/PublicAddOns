@@ -257,6 +257,7 @@ local ACTION_TYPE = {
 	QCBookNewBook = "QCBookNewBook",
 	QCBookNewPage = "QCBookNewPage",
 	QCBookAddSpell = "QCBookAddSpell",
+	QCBookSetPosition = "QCBookSetPosition",
 
 	-- Kinesis Integration
 	Kinesis_TempDisableAll = "Kinesis_TempDisableAll",
@@ -1075,6 +1076,10 @@ local actionTypeData = {
 	[ACTION_TYPE.ARCSet] = scriptAction("Set My Variable", {
 		command = function(data)
 			local var, val = strsplit("|", data, 2);
+			if not var or not val then
+				cprint("Action Usage Error (Set My Variable): Requires a variable name & value, separated by a | character.");
+				return;
+			end
 			var = strtrim(var, " \t\r\n\124");
 			val = strtrim(val, " \t\r\n\124");
 			ARC:SET(var, val);
@@ -1101,6 +1106,10 @@ local actionTypeData = {
 	[ACTION_TYPE.ARCPhaseSet] = scriptAction("Set Phase Variable", {
 		command = function(data)
 			local var, val = strsplit("|", data, 2);
+			if not var or not val then
+				cprint("Action Usage Error (Set My Variable): Requires a variable name & value, separated by a | character.");
+				return;
+			end
 			var = strtrim(var, " \t\r\n\124");
 			val = strtrim(val, " \t\r\n\124");
 			ARC.PHASE:SET(var, val);
@@ -1868,16 +1877,24 @@ local actionTypeData = {
 
 	-- QC Actions
 	[ACTION_TYPE.QCBookToggle] = scriptAction("Toggle Book", {
-		command = function(bookName)
-			ns.UI.Quickcast.Book.toggleBookByName(bookName)
+		command = function(vars)
+			local success, bookName, tog = pcall(getArgs, vars)
+			tog = ns.Utils.Data.toBoolExtended(tog)
+			ns.UI.Quickcast.Book.toggleBookByName(bookName, tog)
 		end,
 		description = "Toggle a Quickcast Book from being displayed on this character.",
-		dataName = "Book Name",
-		inputDescription = "The name of the Quickcast Book",
-		revert = function(bookName)
-			ns.UI.Quickcast.Book.toggleBookByName(bookName)
+		dataName = "Book Name [, Toggle]",
+		inputDescription = "The name of the Quickcast Book, and optionally a direct toggle value (true/false, or 1/0).\n\r" .. commaDelimitedText,
+		revert = function(vars)
+			local success, bookName, tog = pcall(getArgs, vars)
+			tog = ns.Utils.Data.toBoolExtended(tog)
+			if tog ~= nil then
+				tog = not tog -- only invert if there was a true tog value given
+			end
+			ns.UI.Quickcast.Book.toggleBookByName(bookName, tog)
 		end,
 		revertDesc = "Re-Toggles the Quickcast Book on this character. Why tho?",
+		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.QCBookStyle] = scriptAction("Change Book Style", {
 		command = function(vars)
@@ -1991,6 +2008,19 @@ local actionTypeData = {
 		example = '"Quickcast Book 1", 2, ArcSpellID1, ArcSpellID2',
 		revert = nil,
 		doNotDelimit = true,
+	}),
+	[ACTION_TYPE.QCBookSetPosition] = scriptAction("Set Book to Cursor", {
+		command = function(bookName)
+			local uiScale, cursorPositionX, cursorPositionY = UIParent:GetEffectiveScale(), GetCursorPosition()
+
+			local x, y = cursorPositionX / uiScale, cursorPositionY / uiScale
+
+			local previousX, previousY = ns.UI.Quickcast.Book.setBookToPosition(bookName, x, y)
+		end,
+		description = "Sets the position of a Quickcast Book to the current Cursors Position",
+		dataName = "Book Name",
+		inputDescription = "The name of the Quickcast Book",
+		revert = nil,
 	}),
 	[ACTION_TYPE.RotateCameraLeftStart] = scriptAction("Rotate Cam Left", {
 		command = function(speed)

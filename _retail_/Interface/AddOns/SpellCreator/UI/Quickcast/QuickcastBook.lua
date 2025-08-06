@@ -129,11 +129,10 @@ end
 ---@param self QuickcastBook
 local function Book_ToggleVisible(self, status)
 	local currentVis = self:IsShown()
-	if status == false or (currentVis) then
-		self:SetShown(false)
-	else
-		self:SetShown(true)
+	if status == nil then
+		status = not currentVis
 	end
+	self:SetShown(status)
 
 	directSetBookInCharMemory(self.savedData.name, self:IsShown())
 	Quickcast.ManagerUI.refreshQCManagerUI(self)
@@ -508,10 +507,10 @@ end)
 
 --- Toggle a Quickcast Book by it's name
 ---@param bookName string
-local function toggleBookByName(bookName)
+local function toggleBookByName(bookName, status)
 	for k, v in ipairs(_booksDB) do
 		if v.savedData.name == bookName then
-			v:ToggleVisible()
+			v:ToggleVisible(status)
 		end
 	end
 end
@@ -545,6 +544,18 @@ local function changeBookStyle(bookName, styleNameOrID)
 	end
 end
 
+---Sets position of a book to the cursor
+---@param bookName string
+local function setBookToPosition(bookName, x, y)
+	for index, book in ipairs(_booksDB) do
+		if book.savedData.name == bookName then
+			book:ClearAllPoints()
+			book:SetPoint("CENTER", nil, "BOTTOMLEFT", x, y)
+			return true
+		end
+	end
+end
+
 ---@class UI_Quickcast_Book
 ns.UI.Quickcast.Book = {
 	createBook = createBook,
@@ -566,4 +577,5 @@ ns.UI.Quickcast.Book = {
 	toggleBookByName = toggleBookByName,
 	setPageInBook = setPageInBook,
 	changeBookStyle = changeBookStyle,
+	setBookToPosition = setBookToPosition,
 }
