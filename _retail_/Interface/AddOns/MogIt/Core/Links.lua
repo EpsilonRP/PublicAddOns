@@ -177,7 +177,12 @@ f:SetScript("OnEvent", function(self, event, target)
 				preview.data.weaponEnchant = enchant;
 				preview.model:ResetModel();
 				preview.model:Undress();
-				if subName then preview.TitleText:SetText(phaseName .. ' - ' .. subName) end
+				if subName then
+					preview.TitleText:SetText(phaseName .. ' - ' .. subName)
+				else
+					local id = select(6, strsplit("-", UnitGUID('target') or ''))
+					preview.TitleText:SetText(phaseName .. ' - ' .. id);
+				end
 				mog:AddToPreview(set, preview);
 			end
 
