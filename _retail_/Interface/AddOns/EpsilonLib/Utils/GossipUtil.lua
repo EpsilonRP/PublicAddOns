@@ -63,6 +63,7 @@ local _customButtons = {}
 local isGossipLoaded
 local lastGossipText
 local lastGossipNPC
+local lastGossipName
 local lastGossipDupeText
 
 local curGossipData = {
@@ -122,11 +123,20 @@ function _gossip:RemoveGreetingHook(hookData)
 end
 
 local function dupeCheck()
-	if UnitGUID('npc') == lastGossipNPC then return false end   -- Same NPC, not a dupe
+	--print("dupeCheck", UnitGUID('npc'), UnitGUID('target'), UnitName('npc'), UnitName('target'))
+
 	if lastGossipDupeText == '' then return false end           -- Can't detect no text; unreliable.
+	if UnitGUID('target') == lastGossipNPC then return false end -- Same NPC GUID, not a dupe
+	if UnitName('target') == lastGossipName then return false end -- Same NPC name, probably not a dupe, just double spawned NPC
+
 	if lastGossipDupeText == _GetGossipText() then return true end -- Different NPC, same text. Dupe.
 end
 
+local function badGossipCheck()
+	if not UnitGUID("npc") then return true end
+end
+
+local grey = CreateColor(0.8, 0.8, 0.8)
 function GetGossipText()
 	local originalText = _GetGossipText()
 	local isReload = (originalText == lastGossipText)
@@ -135,14 +145,31 @@ function GetGossipText()
 
 	if dupeCheck() then
 		_CloseGossip()
-		message("EpsiLib: GossipUtil caught unhandled Gossip Target Swap. Re-try this Gossip.")
+
+		local msg = "Oops! Gossip got confused and tried showing the last NPC's gossip instead of the new one. Give it another try!"
+		local subMsg = grey:WrapTextInColorCode("(This isn't an addon error - it's a bug safeguard. Only report it if you're seeing it when you shouldn't.)")
+
+		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
+			text = msg,
+			subText = subMsg,
+			acceptText = "Okay",
+			cancelText = false,
+			showAlert = true,
+		})
+
 		lastGossipDupeText = nil -- Force reset, incase it was a false positive and they try again
+		lastGossipNPC = nil
+		lastGossipName = nil
+		return
+	elseif badGossipCheck() then
+		_CloseGossip()
 		return
 	end
 
 	lastGossipText = originalText
 	lastGossipDupeText = originalText
-	lastGossipNPC = UnitGUID('npc')
+	lastGossipNPC = UnitGUID('target')
+	lastGossipName = UnitName('target')
 
 	for j = 1, #_greetingHooks do
 		local data = _greetingHooks[j]
