@@ -59,6 +59,7 @@ local object_names_hidden = {
 	"alphabet_morpheus",
 	"alphabet_romansd",
 	"alphabet_suastornad",
+	"collections_"
 }
 
 local function OnEvent(self, event, addOnName)
@@ -236,7 +237,7 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
    end
 end
 
-local function getDisplayIDs(filter, maxgobs) 
+local function getDisplayIDs(filter, maxgobs)
    currentCatalog = {}
 
    for i, entry in ipairs (utils.displayIDs) do
@@ -376,7 +377,7 @@ local function setSpawnTooltip(self, gridObject, gobData)
    local gobName = (gobData and gobData.name) or (gridObject.gobData and gridObject.gobData.name) or getGobName(gridObject:GetModelFileID())
    local gobDisplay = (gobData and gobData.displayid) or (gridObject.gobData and gridObject.gobData.displayid) or 804602
    local text = ''
-   if gobs then 
+   if gobs then
       text = "Left Click to Spawn %s (%s).\nRight Click to lookup."
    else
       text = "Left Click to Morph into %s (%s).\nRight Click to lookup."
@@ -659,16 +660,16 @@ local function ShowGobBrowser()
                print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
                   SendChatMessage(command..gobName, "GUILD")
                end
-            else 
+            else
                if arg1 == "LeftButton" then
                   if gameObjectsGrid[i][j]:GetModelFileID() == 130738 then gobDisplayID = -804602 else gobDisplayID = gameObjectsGrid[i][j].gobData.displayid end --if talktomequestion_ltblue then displayid is...
-                     if not IsShiftKeyDown() then   
+                     if not IsShiftKeyDown() then
                         print("\124cFF4594C1[Epsilon_Viewer]\124r - Morphing into : "..gobName)
                         SendChatMessage(".morph "..gobDisplayID, "GUILD")
                      else
                         SendChatMessage(".phase forge npc create " .. gobDisplayID, "GUILD")
                   end
-               else 
+               else
                   print("\124cFF4594C1[Epsilon_Viewer]\124r - Searching : "..gobName)
                   SendChatMessage(".lookup displayid creature "..gobName, "GUILD")
                end
@@ -880,7 +881,7 @@ local function ShowGobBrowser()
          catalogPos = catalogPos - 1
          if importType == nil or importType == 1 then
             g.db.userCatalogs[catalogPos] = utils.deserialize(importString)
-         else 
+         else
             g.db.userDisplayCatalogs[catalogPos] = utils.deserialize(importString)
          end
       end
@@ -889,7 +890,7 @@ local function ShowGobBrowser()
 
 
    local catalogNewOrDelete = StdUi:Button(gobFrame, 120, 30, 'Catalog Manager'); --Catalog Manager, to create and remove catalogs.
-   local catalogManager, catalogManagerList, deleteCatalogLabel, deleteCatalogButton, newCatalogName, newCatalogLabel, newCatalogButton, renameCatalogLabel, renameCatalogList, renameCatalogName, renameCatalogButton 
+   local catalogManager, catalogManagerList, deleteCatalogLabel, deleteCatalogButton, newCatalogName, newCatalogLabel, newCatalogButton, renameCatalogLabel, renameCatalogList, renameCatalogName, renameCatalogButton
    catalogNewOrDelete:SetScript("OnClick", function()
 
       if not catalogManager then
@@ -1031,7 +1032,7 @@ local function ShowGobBrowser()
 
                if countOfDot > 2 then status = countOfDot end --Yes, it is dumb
                ]]
-               
+
                catalogGOBWindow = utils.Window(UIParent, 320, (200), "Add or Remove")
                catalogGOBWindow:SetFrameLevel(20)
                catalogGOBWindow.closeBtn:SetFrameLevel(21)
@@ -1072,7 +1073,7 @@ local function ShowGobBrowser()
                            local id = j.id
                            if not gobs then
                               id = j.displayid
-                           end 
+                           end
                            if isGobInUserCatalog(value, id) then --Already in there
                               notAddedGobs = notAddedGobs..""..(j.name or getGobName(j.id)).."; "
                               WasThereAnyGobInHereAlready = true
@@ -1116,7 +1117,7 @@ local function ShowGobBrowser()
                                     local id = j.id
                                     if not gobs then
                                        id = j.displayid
-                                    end 
+                                    end
                                     if isGobInUserCatalog(value, id) then --In there, as expected.
                                        WasThereAnyRemovedGob = true
                                        removedGobs = removedGobs..""..(j.name or getGobName(j.id)).."; "
@@ -1255,7 +1256,7 @@ local function ShowGobBrowser()
 
       if exportCatalogValue > 1 then
          local catalog = g.db.userCatalogs[exportCatalogValue-1]
-         if not gobs then 
+         if not gobs then
             catalog = g.db.userDisplayCatalogs[exportCatalogValue-1]
          end
          if not exportWindow then
@@ -1447,7 +1448,7 @@ local function ShowGobBrowser()
                   g.db.userDisplayCatalogs[index] = {}
                end
             end
-            
+
             if currentCatalog > 1 then
                selectedCatalog(currentCatalog)
                currentGobList = divideGobList(getGobList(" ", currentCatalog, maxgobs, includeEpsilonTiles), columns, rows)
@@ -1457,7 +1458,7 @@ local function ShowGobBrowser()
          end)
       end
    end)
-   
+
    --Layout
    StdUi:GlueBottom(currentPageLabel, gobFrame, 0, 10, "CENTER");
    StdUi:GlueTop(searchBox, gobFrame, 35, -40, 'LEFT');
