@@ -435,6 +435,7 @@ end
 EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isReload)
 	if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
 		EpsilonPhases:RegisterEvent("FIRST_FRAME_RENDERED", function()
+			EpsilonPhases:GetMallsFromMPDirectory()
 			if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
 				C_Timer.After(1,
 					function()

@@ -124,7 +124,7 @@ local function CreatePhaseListItem(index, phase)
     end
     EpsilonPhasesPhaseListPhaseItemPin:SetFrameStrata("HIGH")
     EpsilonPhasesPhaseListPhaseItemPin:SetScript("OnClick", function(self, button)
-        local phaseId = EpsilonPhases.GetPhase(EpsilonPhases.GetPhaseIndexByUIIndex(index)).data.id
+        local phaseId = EpsilonPhasesPhaseListPhaseItem.phase:GetPhaseID()
         if EpsilonPhases.Favourites[phaseId] then
             EpsilonPhases.Favourites[phaseId] = nil
             EpsilonPhasesPhaseListPhaseItemPin:SetNormalTexture(EpsilonPhases.ASSETS_PATH .. "/PMStar")
