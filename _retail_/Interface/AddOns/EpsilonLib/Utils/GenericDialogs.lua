@@ -353,6 +353,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_CONFIRMATION"] = {
 ---@field text string? the text for the confirmation
 ---@field text_arg1 string? formatted into text if provided
 ---@field text_arg2 string? formatted into text if provided
+---@field subText string? additional text for the confirmation
 ---@field callback fun()? the callback when the player accepts
 ---@field cancelCallback fun()? the callback when the player cancels / not called on accept
 ---@field acceptText string? custom text for the accept button

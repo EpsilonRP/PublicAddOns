@@ -283,7 +283,7 @@ function GetSpellBookItemTexture(index, bookType)
 	local name, subName, id = GetSpellBookItemName(index, bookType)
 	local icon = _origGetSpellBookItemTexture(index, bookType)
 
-	if GetSpellBookItemInfo(index, bookType) == "FLYOUT" then
+	if GetSpellBookItemInfo(index, bookType) == "FLYOUT" or bookType == "pet" then
 		return icon
 	end
 
@@ -371,14 +371,6 @@ end
 local _origGetActionText = GetActionText
 
 
-local function BuffButton_OnClick(self)
-	if not Epsilon_AuraManager.showHidden then
-		CancelUnitBuff(self.unit, auraMappingTable[self.filter][self:GetID()], self.filter);
-	else
-		CancelUnitBuff(self.unit, self:GetID(), self.filter);
-	end
-end
-
 -------------------------------------------------------------------------
 -- Hook function for suppressing BuffFrame auras from displaying.
 --
@@ -397,7 +389,6 @@ local function CheckBuffFrame(buttonName, unit, filter, maxCount)
 		end
 		local shouldSuppress = (aura and not aura.visible)
 		local buff = BuffFrame[buttonName][index];
-		buff:SetScript("OnClick", BuffButton_OnClick)
 
 		-- check if we're suppressing this aura, and if so, ignore it.
 		if (spellID and not shouldSuppress) or C_Epsilon.IsDM or Epsilon_AuraManager.showHidden then
@@ -912,7 +903,11 @@ function Epsilon_AuraManager:OnInitialize()
 		if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
 			local spellID
 			if event == "UNIT_SPELLCAST_START" then
-				_, _, _, _, _, _, spellID = UnitCastingInfo(unit)
+				if unit == "target" then
+					spellID = select(9, UnitCastingInfo(unit))
+				else
+					_, _, _, _, _, _, spellID = UnitCastingInfo(unit)
+				end
 			else
 				_, _, _, _, _, _, _, spellID = UnitChannelInfo(unit);
 			end

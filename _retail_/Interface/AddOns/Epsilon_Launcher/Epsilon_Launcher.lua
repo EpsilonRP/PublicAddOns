@@ -171,56 +171,6 @@ tray.bg:SetAllPoints()
 tray.endcap = tray:CreateTexture(nil, "BACKGROUND")
 --]]
 
-tray.anim = tray:CreateAnimationGroup()
-tray.anim.scale = tray.anim:CreateAnimation("Scale")
-tray.anim.scale:SetFromScale(0, 0)
-tray.anim.scale:SetToScale(1, 1)
-tray.anim.scale:SetDuration(1)
-tray.anim.scale:SetOrigin("TOPRIGHT", 0, 0)
-tray.anim.scale:SetSmoothing("IN_OUT")
-
-tray.anim.alpha = tray.anim:CreateAnimation("Alpha")
-tray.anim.alpha:SetFromAlpha(0)
-tray.anim.alpha:SetToAlpha(1)
-tray.anim.alpha:SetStartDelay(0)
-tray.anim.alpha:SetDuration(0.5)
-tray.anim.alpha:SetSmoothing("IN_OUT")
-
-local function onAlphaFinish()
-	if not tray.anim.dir then
-		tray:Hide() -- insert: everything is awesome song, but instead of awesome, hard coded
-	end
-end
-
-tray.anim.alpha:SetScript("OnFinished", onAlphaFinish)
-tray.anim.dir = true
-
-local function setTrayAnims(open)
-	tray.anim.dir = open
-	if open then -- open
-		tray.anim.scale:SetFromScale(0, 0)
-		tray.anim.scale:SetToScale(1, 1)
-
-		tray.anim.alpha:SetFromAlpha(0)
-		tray.anim.alpha:SetToAlpha(1)
-		tray.anim.alpha:SetStartDelay(0)
-	else -- close
-		tray.anim.scale:SetFromScale(1, 1)
-		tray.anim.scale:SetToScale(0, 0)
-
-		tray.anim.alpha:SetFromAlpha(1)
-		tray.anim.alpha:SetToAlpha(0)
-		tray.anim.alpha:SetStartDelay(0.25)
-	end
-
-	if tray.anim.scale:IsPlaying() then tray.anim.scale:Stop() end
-	if tray.anim.alpha:IsPlaying() or tray.anim.alpha:IsDelaying() then tray.anim.alpha:Stop() end
-
-	tray.anim.scale:Play()
-	tray.anim.alpha:Play()
-end
-
-
 local lastTrayCount
 local trayIcons = {}
 
@@ -236,13 +186,18 @@ local function updateTraySizeLayout()
 	minimapButton:UpdateHighlightSize()
 
 	local numRows = math.ceil(numIcons / tray_MaxCol)
-	tray:SetHeight(numRows * (tray_iconSize + 2) + 12)
+	local height = numRows * (tray_iconSize + 2) + 12
+	tray:SetHeight(height)
+	tray.realHeight = height
 
+	local width
 	if numIcons < tray_MaxCol then
-		tray:SetWidth(((tray_iconSize + 2) * numIcons) + 12)
+		width = (((tray_iconSize + 2) * numIcons) + 12)
 	else
-		tray:SetWidth(((tray_iconSize + 2) * tray_MaxCol) + 12)
+		width = (((tray_iconSize + 2) * tray_MaxCol) + 12)
 	end
+	tray:SetWidth(width)
+	tray.realWidth = width
 
 	for i = 1, numIcons do
 		local icon = trayIcons[i]
@@ -285,6 +240,94 @@ local function genLauncherTray(mmIcon)
 	updateTraySizeLayout()
 end
 
+do
+	local frame = tray
+	local animInSpeed = 0.20
+	local MIN_SCALE = 0.01 -- must be > 0 to avoid "scale must be greater than 0" errors
+
+	-- driver frame for OnUpdate
+	local driver = CreateFrame("Frame")
+	driver:Hide()
+
+	-- easing (ease-out cubic)
+	local function easeOutCubic(t)
+		return 1 - (1 - t) * (1 - t) * (1 - t)
+	end
+
+	local anim = { running = false, start = 0, duration = animInSpeed, from = MIN_SCALE, to = 1 }
+
+	local function onUpdate()
+		local now = GetTime()
+		local t = (now - anim.start) / anim.duration
+		if t >= 1 then t = 1 end
+
+		-- interpolate and clamp to MIN_SCALE
+		local v = anim.from + (anim.to - anim.from) * easeOutCubic(t)
+		if v < MIN_SCALE then v = MIN_SCALE end
+
+		-- apply scale and alpha. Alpha mapped so MIN_SCALE -> 0 and 1 -> 1
+		frame:SetScale(v)
+		frame:SetAlpha((v - MIN_SCALE) / (1 - MIN_SCALE))
+
+		if t == 1 then
+			driver:SetScript("OnUpdate", nil)
+			driver:Hide()
+			anim.running = false
+
+			-- final cleanup
+			if anim.to == MIN_SCALE then
+				-- fully closed: restore canonical visuals then hide
+				frame:SetScale(1)
+				frame:SetAlpha(1)
+				frame:Hide()
+			else
+				-- fully opened: ensure exact final values
+				frame:SetScale(1)
+				frame:SetAlpha(1)
+			end
+		end
+	end
+
+	local function startAnim(from, to, duration)
+		-- stop existing
+		if anim.running then
+			driver:SetScript("OnUpdate", nil)
+			driver:Hide()
+			anim.running = false
+		end
+
+		anim.start = GetTime()
+		anim.duration = duration or animInSpeed
+		anim.from = math.max(from, MIN_SCALE)
+		anim.to = math.max(to, MIN_SCALE)
+		anim.running = true
+
+		-- show if opening
+		if anim.to > anim.from then frame:Show() end
+
+		-- init visuals immediately to avoid flicker
+		frame:SetScale(anim.from)
+		frame:SetAlpha((anim.from - MIN_SCALE) / (1 - MIN_SCALE))
+
+		driver:SetScript("OnUpdate", onUpdate)
+		driver:Show()
+	end
+
+	-- public API
+	function frame:Open()
+		startAnim(MIN_SCALE, 1, animInSpeed)
+	end
+
+	function frame:Close()
+		startAnim(1, MIN_SCALE, animInSpeed)
+	end
+
+	function frame:Toggle()
+		if self:IsShown() then self:Close() else self:Open() end
+	end
+end
+
+
 local function openLauncherTray()
 	if #trayIcons ~= lastTrayCount then
 		updateTraySizeLayout()
@@ -293,13 +336,13 @@ local function openLauncherTray()
 	end
 
 	--setTrayAnims(true)
-	tray:Show()
+	tray:Open()
 	arrow:flip(true)
 end
 
 local function closeLauncherTray()
 	--setTrayAnims(false)
-	tray:Hide()
+	tray:Close()
 	arrow:flip(false)
 end
 

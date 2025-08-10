@@ -411,11 +411,16 @@ function UnitSubName(unit)
 	local tooltip = subNameTT
 	tooltip:SetUnit(unit)
 
-	-- The first line is the name, the second line is Friendly/Hostile, I think, and the third is subname
-	local line = 3
+	-- The first line is the name, second line is subname, unless colorblind mode is enabled, then subname is the third line
+	local line = 2
+	local colorblindMode = GetCVar("colorblindMode")
+	if colorblindMode == "1" then
+		line = 3
+	end
 	local subName = _G[subNameTTName .. "TextLeft" .. line]
 	if subName then
 		subName = subName:GetText()
+		if not subName or subName == "" then return end
 		if subName:find("Level") then return end
 		return subName
 	end

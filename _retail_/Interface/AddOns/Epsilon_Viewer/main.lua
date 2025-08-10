@@ -866,16 +866,24 @@ local function ShowGobBrowser()
          return nil
       end
 
+      for index, _ in ipairs(g.db.userCatalogs) do
+         if g.db.userDisplayCatalogs[index] == nil then
+            g.db.userDisplayCatalogs = {}
+         end
+      end
+
    end
 
-   local function importCatalog(name, importString)
-
+   local function importCatalog(name, importString, importType)
       local catalogPos =  addCatalog(name)
       if catalogPos ~= nil then
          catalogPos = catalogPos - 1
-         g.db.userCatalogs[catalogPos] = utils.deserialize(importString)
+         if importType == nil or importType == 1 then
+            g.db.userCatalogs[catalogPos] = utils.deserialize(importString)
+         else 
+            g.db.userDisplayCatalogs[catalogPos] = utils.deserialize(importString)
+         end
       end
-
    end
 
 
@@ -1061,7 +1069,11 @@ local function ShowGobBrowser()
                         local WasThereAnyGobInHereAlready = false
 
                         for i, j in pairs(selectedGobs) do
-                           if isGobInUserCatalog(value, j.id) then --Already in there
+                           local id = j.id
+                           if not gobs then
+                              id = j.displayid
+                           end 
+                           if isGobInUserCatalog(value, id) then --Already in there
                               notAddedGobs = notAddedGobs..""..(j.name or getGobName(j.id)).."; "
                               WasThereAnyGobInHereAlready = true
                            else
@@ -1073,7 +1085,7 @@ local function ShowGobBrowser()
                                  if g.db.userDisplayCatalogs[value] == nil then
                                     g.db.userDisplayCatalogs[value] = {}
                                  end
-                                 g.db.userDisplayCatalogs[value][j.id] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
+                                 g.db.userDisplayCatalogs[value][j.displayid] = { name = (j.name or getGobName(j.id)), displayid = j.displayid--[[, entries = j.entries]]}
                               end
                            end
                         end
@@ -1101,7 +1113,11 @@ local function ShowGobBrowser()
                               text = 'Confirm',
                               onClick = function(b)
                                  for i, j in pairs(selectedGobs) do
-                                    if isGobInUserCatalog(value, j.id) then --In there, as expected.
+                                    local id = j.id
+                                    if not gobs then
+                                       id = j.displayid
+                                    end 
+                                    if isGobInUserCatalog(value, id) then --In there, as expected.
                                        WasThereAnyRemovedGob = true
                                        removedGobs = removedGobs..""..(j.name or getGobName(j.id)).."; "
                                        if gobs then
@@ -1189,13 +1205,19 @@ local function ShowGobBrowser()
    local importWindow, importName, importString
    importButton:SetScript("OnClick", function()
       if not importWindow then
-         importWindow = utils.Window(UIParent, 250, 180, "Catalog Import")
+         importWindow = utils.Window(UIParent, 250, 255, "Catalog Import")
          importWindow:SetFrameLevel(20)
          importWindow.closeBtn:SetFrameLevel(21)
          importWindow:Show()
 
          importName = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's name");
          importName:SetFrameLevel(21)
+
+         importType = StdUi:Dropdown(importWindow, 225, 25, {
+            {text = 'Game Objects', value = 1},
+            {text = 'Display IDs', value = 2},
+         }, 1)
+         importType:SetFrameLevel(21)
 
          importString = StdUi:SimpleEditBox(importWindow, 225, 25, "Catalog's table");
          importString:SetFrameLevel(21)
@@ -1205,14 +1227,16 @@ local function ShowGobBrowser()
 
             local catalogTitle = importName:GetText()
             local catalogString = importString:GetText()
-            importCatalog(catalogTitle, catalogString)
+            local catalogType = importType:GetValue()
+            importCatalog(catalogTitle, catalogString, catalogType)
             importWindow.closeBtn:Click()
 
          end);
          confirmButton:SetFrameLevel(21)
 
          StdUi:GlueTop(importName, importWindow, 0, -50);
-         StdUi:GlueBelow(importString, importName, 0, -20);
+         StdUi:GlueBelow(importType, importName, 0, -20)
+         StdUi:GlueBelow(importString, importType, 0, -20);
          StdUi:GlueBelow(confirmButton, importString, 0, -20);
       else
          importName:SetText("Catalog's name")
@@ -1230,19 +1254,23 @@ local function ShowGobBrowser()
       exportCatalogValue = catalogListScrollDown:GetValue()
 
       if exportCatalogValue > 1 then
+         local catalog = g.db.userCatalogs[exportCatalogValue-1]
+         if not gobs then 
+            catalog = g.db.userDisplayCatalogs[exportCatalogValue-1]
+         end
          if not exportWindow then
             exportCatalogName = g.db.catalogNameList[exportCatalogValue].text
             exportWindow = utils.Window(UIParent, 250, 125, "Export "..exportCatalogName)
             exportWindow:SetFrameLevel(20)
             exportWindow.closeBtn:SetFrameLevel(21)
             exportWindow:Show()
-            exportEditBox = StdUi:SimpleEditBox(exportWindow, 225, 25, utils.serialize(g.db.userCatalogs[exportCatalogValue-1])); --Well, json is a shitty option for that case, glad I fund something else.
+            exportEditBox = StdUi:SimpleEditBox(exportWindow, 225, 25, utils.serialize(catalog)); --Well, json is a shitty option for that case, glad I fund something else.
             exportEditBox:SetFrameLevel(21)
             StdUi:GlueBottom(exportEditBox, exportWindow, 0, 40)
          else
             exportCatalogName = g.db.catalogNameList[exportCatalogValue].text
             exportWindow:SetWindowTitle("Export "..exportCatalogName)
-            exportEditBox:SetText(utils.serialize(g.db.userCatalogs[exportCatalogValue-1]))
+            exportEditBox:SetText(utils.serialize(catalog))
             exportWindow:Show()
          end
       else
@@ -1413,6 +1441,13 @@ local function ShowGobBrowser()
             gobs = false
             currentGobList = fakePaginationGODITable
             local currentCatalog = catalogListScrollDown:GetValue()
+
+            for index, _ in pairs (g.db.userCatalogs) do
+               if g.db.userDisplayCatalogs[index] == nil then
+                  g.db.userDisplayCatalogs[index] = {}
+               end
+            end
+            
             if currentCatalog > 1 then
                selectedCatalog(currentCatalog)
                currentGobList = divideGobList(getGobList(" ", currentCatalog, maxgobs, includeEpsilonTiles), columns, rows)

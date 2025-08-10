@@ -587,8 +587,6 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 							if not noNotificationPhases[tonumber(C_Epsilon.GetPhaseId())] then
 								SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") ..
 									Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
-							else
-								print('test')
 							end
 							triggerSpark(sparkData) -- trigger spark
 						end

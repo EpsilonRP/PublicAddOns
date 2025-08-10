@@ -19,16 +19,33 @@ hooksecurefunc(GameTooltip, "SetHyperlink", onSetHyperlink)
 -- Spells
 hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...)
 	local id = select(10, UnitBuff(...))
+
+	if Epsilon_AuraManager_GetMappedAura then
+		id = select(10, Epsilon_AuraManager_GetMappedAura(...))
+	end
+
 	IDTip:addLine(self, id, IDTip.kinds.spell)
 end)
 
 hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...)
-	local id = select(10, UnitDebuff(...))
+	local id = select(10, UnitBuff(...))
+
+	if Epsilon_AuraManager_GetMappedAura then
+		id = select(10, Epsilon_AuraManager_GetMappedAura(...))
+	end
+
+	IDTip:addLine(self, id, IDTip.kinds.spell)
 	IDTip:addLine(self, id, IDTip.kinds.spell)
 end)
 
 hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...)
-	local id = select(10, UnitAura(...))
+	local id = select(10, UnitBuff(...))
+
+	if Epsilon_AuraManager_GetMappedAura then
+		id = select(10, Epsilon_AuraManager_GetMappedAura(...))
+	end
+
+	IDTip:addLine(self, id, IDTip.kinds.spell)
 	IDTip:addLine(self, id, IDTip.kinds.spell)
 end)
 
