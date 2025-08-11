@@ -463,9 +463,15 @@ local function ShowGobBrowser()
    local model_actor_OnModelLoaded = function(self)
 	local x1, y1, z1, x2, y2, z2 = self:GetActiveBoundingBox()
 	if x2 == nil then return end
+
 	local lx = x2 - x1
 	local ly = y2 - y1
 	local lz = z2 - z1
+
+	if lx == 0 then lx = 12 end
+	if ly == 0 then ly = 12 end
+	if lz == 0 then lz = 12 end
+
 	local size = math.sqrt(lx ^ 2 + ly ^ 2 + lz ^ 2) * 1.5
 	local angle = math.max(lx, ly) < lz and 45 / 3 or 45 / 2
 	local camera = self:GetParent():GetActiveCamera()
@@ -478,8 +484,13 @@ local function ShowGobBrowser()
 	camera:SetZoomDistance(size * 1.1)
 	camera:SnapAllInterpolatedValues();
 
+	-- Reset the cameras internal panning offsets
+	camera.panningXOffset = 0
+	camera.panningYOffset = 0
+
 	-- Always face slightly left
 	self:SetYaw(math.pi/1.2)
+	self:SetPosition(0,0,0)
    end
 
    for i = 1, g.db.rows do
