@@ -8,9 +8,9 @@ BINDING_NAME_PHASE_CODEX_OPEN = "Open Codex"
 EpsilonPhases.previousTempPhase = nil
 
 local function phaseInfoCallback(phase)
-    tinsert(EpsilonPhases.PrivatePhases, phase)
-    EpsilonPhases:RefreshPhases()
-    privatePhasesLoaded = true
+	tinsert(EpsilonPhases.PrivatePhases, phase)
+	EpsilonPhases:RefreshPhases()
+	privatePhasesLoaded = true
 end
 local function addPrivatePhase(phaseId, permanent)
 	if permanent then
@@ -67,10 +67,24 @@ StaticPopupDialogs["CLICK_LINK_CLICKURL"] = {
 }
 
 local function phaseShareCallback(phase)
+	if EpsilonPhasesMainFrame:IsShown() and EpsilonPhases.currentActivePhase == phase then
+		-- already shown, and it's this phase, assume we want to close it again as a shortcut
+		EpsilonPhasesMainFrame:Hide()
+		EpsilonPhasesPhaseListFrame:Hide()
+		EpsilonPhasesSettingsFrame:Hide()
+		return
+	end
+
 	if not EpsilonPhases:IsPhaseInTable(phase:GetPhaseID(), EpsilonPhases.PrivatePhases) then
 		tinsert(EpsilonPhases.PrivatePhases, phase)
 	end
-	EpsilonPhases:Show(phase:GetPhaseID())
+	--EpsilonPhases:Show(phase:GetPhaseID())
+	if not EpsilonPhasesMainFrame:IsShown() then
+		EpsilonPhasesPhaseListFrame:Hide()
+		EpsilonPhasesMainFrame:Show()
+	end
+
+	EpsilonPhases.SetCurrentActivePhaseByPhaseID(phase:GetPhaseID())
 end
 
 
@@ -419,17 +433,17 @@ function EpsilonPhases:IsPhaseInTable(phaseID, phaseTable)
 end
 
 local function OnEvent(_, event, prefix, text, _, sender)
-    if event == "CHAT_MSG_ADDON" then
-        if prefix == "EPSILON_UNLIST" then
-            local phaseID = string.match(text, ("(%d+)"))
-            EpsilonPhases.RemovePhaseFromList(phaseID, EpsilonPhases.PublicPhases)
-        elseif prefix == EpsilonPhases.SEND_ADDON_MESSAGE_PREFIX then
-            local sender = string.match(sender, "^(.-)-")
-            local id, name = string.match(text, "^(%d+),(.+)$")
-            local dialog = StaticPopup_Show("GET_PHASE", sender, name)
-            dialog.data = tonumber(id)
-        end
-    end
+	if event == "CHAT_MSG_ADDON" then
+		if prefix == "EPSILON_UNLIST" then
+			local phaseID = string.match(text, ("(%d+)"))
+			EpsilonPhases.RemovePhaseFromList(phaseID, EpsilonPhases.PublicPhases)
+		elseif prefix == EpsilonPhases.SEND_ADDON_MESSAGE_PREFIX then
+			local sender = string.match(sender, "^(.-)-")
+			local id, name = string.match(text, "^(%d+),(.+)$")
+			local dialog = StaticPopup_Show("GET_PHASE", sender, name)
+			dialog.data = tonumber(id)
+		end
+	end
 end
 
 EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isReload)
@@ -456,15 +470,15 @@ EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isRelo
 			EpsilonPhases.RemovePhaseFromList(EpsilonPhases.previousTempPhase, EpsilonPhases.PrivatePhases)
 		end
 
-        if privatePhasesLoaded then
-            if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
-                addPrivatePhase(phaseId, true)
-            elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
-                addPrivatePhase(phaseId, false)
-                EpsilonPhases.previousTempPhase = phaseId
-            end
-        end
-    end
+		if privatePhasesLoaded then
+			if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
+				addPrivatePhase(phaseId, true)
+			elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
+				addPrivatePhase(phaseId, false)
+				EpsilonPhases.previousTempPhase = phaseId
+			end
+		end
+	end
 end)
 
 local SetHyperlink = ItemRefTooltip.SetHyperlink
@@ -492,32 +506,32 @@ function EpsilonPhases:OnEnable()
 	EpsilonPhasesMainFrame:RegisterEvent("CHAT_MSG_ADDON")
 	C_ChatInfo.RegisterAddonMessagePrefix(EpsilonPhases.SEND_ADDON_MESSAGE_PREFIX)
 
-    EpsilonPhases.SetPhaseListToPublic()
-    GetPrivatePhases()
-    self:GetMallsFromMPDirectory()
-    EpsilonPhases:RegisterEvent("SCENARIO_UPDATE", function() 
-        local phaseId = tonumber(C_Epsilon:GetPhaseId())
-        EpsilonPhases:SetSettingsButtonEnable()
-        if phaseId == 169 then
-            -- We are back in Main Phase, refresh the malls cache
-            EpsilonPhases:GetMallsFromMPDirectory()
-        end
-        EpsilonPhasesPhaseListFrame.MallAdminButton:ShowIfMember()
+	EpsilonPhases.SetPhaseListToPublic()
+	GetPrivatePhases()
+	self:GetMallsFromMPDirectory()
+	EpsilonPhases:RegisterEvent("SCENARIO_UPDATE", function()
+		local phaseId = tonumber(C_Epsilon:GetPhaseId())
+		EpsilonPhases:SetSettingsButtonEnable()
+		if phaseId == 169 then
+			-- We are back in Main Phase, refresh the malls cache
+			EpsilonPhases:GetMallsFromMPDirectory()
+		end
+		EpsilonPhasesPhaseListFrame.MallAdminButton:ShowIfMember()
 
-        if EpsilonPhases.previousTempPhase ~= nil then
-            EpsilonPhases.RemovePhaseFromList(EpsilonPhases.previousTempPhase, EpsilonPhases.PrivatePhases)
-        end
+		if EpsilonPhases.previousTempPhase ~= nil then
+			EpsilonPhases.RemovePhaseFromList(EpsilonPhases.previousTempPhase, EpsilonPhases.PrivatePhases)
+		end
 
-        if privatePhasesLoaded then
-            if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
-                addPrivatePhase(phaseId, true)
-            elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
-                addPrivatePhase(phaseId, false)
-                EpsilonPhases.previousTempPhase = phaseId
-            end
-        end
-    end)
-    EpsilonPhases.Utils.ChatLinks_Init()
+		if privatePhasesLoaded then
+			if EpsilonPhases.IsRankToAutomaticallyAddPhase() then
+				addPrivatePhase(phaseId, true)
+			elseif EpsilonPhases.Utils.isPhaseTemp(phaseId) then
+				addPrivatePhase(phaseId, false)
+				EpsilonPhases.previousTempPhase = phaseId
+			end
+		end
+	end)
+	EpsilonPhases.Utils.ChatLinks_Init()
 end
 
 _G.EpsilonPhases = EpsilonPhases

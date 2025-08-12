@@ -101,6 +101,23 @@ inviscloseButton:SetScript("OnClick", function(self, _)
 		closeButton:SetPushedTexture("interface/buttons/ui-spellbookicon-nextpage-down")
 	end
 end)
+EpsilonPhasesMainFrame:HookScript("OnShow", function(self)
+	if EpsilonPhasesPhaseListFrame:IsVisible() then
+		closeButton:SetNormalTexture("interface/buttons/ui-spellbookicon-nextpage-up")
+		closeButton:SetPushedTexture("interface/buttons/ui-spellbookicon-nextpage-down")
+	else
+		closeButton:SetNormalTexture("interface/buttons/ui-spellbookicon-prevpage-up")
+		closeButton:SetPushedTexture("interface/buttons/ui-spellbookicon-prevpage-down")
+	end
+end)
+EpsilonPhasesPhaseListFrame:HookScript("OnShow", function(self)
+	closeButton:SetNormalTexture("interface/buttons/ui-spellbookicon-prevpage-up")
+	closeButton:SetPushedTexture("interface/buttons/ui-spellbookicon-prevpage-down")
+end)
+EpsilonPhasesPhaseListFrame:HookScript("OnHide", function(self)
+	closeButton:SetNormalTexture("interface/buttons/ui-spellbookicon-nextpage-up")
+	closeButton:SetPushedTexture("interface/buttons/ui-spellbookicon-nextpage-down")
+end)
 
 EpsilonPhasesPhaseListFrame.TopTileStreaks:SetTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiIndexBG")
 EpsilonPhasesPhaseListFrame.TopTileStreaks:SetVertexColor(0.45, 0.45, 0.45)
@@ -387,9 +404,17 @@ local function SetCurrentActivePhaseByPhaseID(phaseID)
 		if phaseListItem.phase:GetPhaseID() == phaseID then
 			SetCurrentActivePhase(index)
 			return
+		else
+			phaseListItem.ActiveTexture:Hide()
 		end
 	end
-	SetCurrentActivePhase(nil)
+
+	-- Else, if not in the list of current phases, show it based on raw data manually
+	EpsilonLib.Classes.Phase:Get(phaseID, function(phase)
+		EpsilonPhases.currentActivePhase = phase
+		EpsilonPhases.WritePhaseDetailData(phase)
+		EpsilonPhases:SetSettingsButtonEnable()
+	end)
 end
 
 EpsilonPhases.SetCurrentActivePhaseByPhaseID = SetCurrentActivePhaseByPhaseID
