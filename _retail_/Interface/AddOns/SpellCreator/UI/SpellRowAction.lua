@@ -408,6 +408,7 @@ local baseMenuList = {
 		header("Items"),
 		action(ACTION.TRP3e_Item_QuickImport),
 		action(ACTION.TRP3e_Item_AddToInventory),
+		action(ACTION.TRP3e_Item_UseID),
 		header("UI"),
 		action(ACTION.TRP3e_Cast_showCastingBar),
 		header("Sounds"),

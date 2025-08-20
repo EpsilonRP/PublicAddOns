@@ -208,7 +208,7 @@ local function ReplaceBuffText(self, unitID, auraIndex, filter)
 				end
 			end
 
-			if phaseAuras[spellID] and not phaseAuras[spellID].allowOverride then
+			if phaseAuras[spellID] and (not phaseAuras[spellID].allowOverride or not data) then
 				data = phaseAuras[spellID];
 			end
 
@@ -237,22 +237,52 @@ local function ReplaceDebuffText(self, unitID, auraIndex)
 	ReplaceBuffText(self, unitID, auraIndex, "HARMFUL")
 end
 
-local _origGetSpellTexture = GetSpellTexture
+local function _GetBestFitOverrideValueOnSpell(spellID, key, context, originalValue)
+	local localAuraValue     = localAuras[spellID] and localAuras[spellID][key]
+	local phaseAuraData      = phaseAuras[spellID]
+	local phaseAuraValue     = phaseAuraData and phaseAuraData[key]
+	local allowPhaseOverride = phaseAuraData and phaseAuraData.allowOverride
 
-function GetSpellTexture(id)
-	local origTexture, originalIcon = _origGetSpellTexture(id)
-	return (phaseAuras[id] and phaseAuras[id].icon) or (localAuras[id] and localAuras[id].icon) or _origGetSpellTexture(id), originalIcon
+	-- No context requested: get best fit using priority Phase (No Override Allowed) -> Local -> Phase (No Local Override Existed) -> Original
+	if not context then
+		return (phaseAuraValue and not allowPhaseOverride) and phaseAuraValue
+			or localAuraValue
+			or phaseAuraValue
+			or originalValue
+	end
+
+	-- Request specific context, for UI editor purposes mainly
+	if context == true then
+		return originalValue
+	elseif context == "personal" then
+		return localAuraValue or originalValue
+	elseif context == "phase" then
+		return phaseAuraValue or originalValue
+	end
+
+	return originalValue
 end
 
-function GetSpellName(id)
-	local name = GetSpellInfo(id)
 
-	return (phaseAuras[id] and phaseAuras[id].name) or (localAuras[id] and localAuras[id].name) or name
+local _origGetSpellTexture = GetSpellTexture
+
+function GetSpellTexture(id, context)
+	local spellTexture, originalIcon = _origGetSpellTexture(id)
+
+	spellTexture = _GetBestFitOverrideValueOnSpell(id, "icon", context, spellTexture)
+
+	return spellTexture, originalIcon
+end
+
+function GetSpellName(id, context)
+	local name = GetSpellInfo(id, nil, context == true)
+
+	return _GetBestFitOverrideValueOnSpell(id, "name", context, name)
 end
 
 local _origGetSpellInfo = GetSpellInfo
 
-function GetSpellInfo(spell, bookType, original)
+function GetSpellInfo(spell, bookType, context)
 	local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon
 	if bookType ~= nil then
 		name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = _origGetSpellInfo(spell, bookType)
@@ -260,19 +290,12 @@ function GetSpellInfo(spell, bookType, original)
 		name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = _origGetSpellInfo(spell)
 	end
 
-	if original then
+	if context == true then
 		return name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon
 	end
 
-	if phaseAuras[spellID] then
-		name = phaseAuras[spellID].name
-		icon = phaseAuras[spellID].icon
-	end
-
-	if ((phaseAuras[spellID] and phaseAuras[spellID].allowOverride or not phaseAuras[spellID]) and localAuras[spellID]) then
-		name = localAuras[spellID].name
-		icon = localAuras[spellID].icon
-	end
+	name = _GetBestFitOverrideValueOnSpell(spellID, "name", context, name)
+	icon = _GetBestFitOverrideValueOnSpell(spellID, "icon", context, icon)
 
 	return name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon
 end
@@ -295,22 +318,26 @@ local _origGetSpellBookItemName = GetSpellBookItemName
 function GetSpellBookItemName(slot, bookType)
 	local name, subName, id = _origGetSpellBookItemName(slot, bookType)
 
-	return (phaseAuras[id] and phaseAuras[id].name) or (localAuras[id] and localAuras[id].name) or name, subName, id
+	name = _GetBestFitOverrideValueOnSpell(id, "name", nil, name)
+
+	return name, subName, id
 end
 
 local _origGetSpellDescription = GetSpellDescription
 
-function GetSpellDescription(id, original)
-	local desc = _origGetSpellDescription(id)
-
-	if original then
-		return desc
-	end
-
-	return (phaseAuras[id] and phaseAuras[id].spellDesc) or (localAuras[id] and localAuras[id].spellDesc) or desc
+function GetSpellDescription(id, context)
+	local spellDesc = _origGetSpellDescription(id)
+	return _GetBestFitOverrideValueOnSpell(id, "spellDesc", context, spellDesc)
 end
 
-local function rebuildTTwithDesc(desc)
+function GetAuraDescription(id, context)
+	local desc = EpsilonAuraManagerAuraEditor_GetSpellTooltip(id)
+	desc = _GetBestFitOverrideValueOnSpell(id, "desc", context, desc)
+	if desc == '' then desc = nil end
+	return desc
+end
+
+local function rebuildTTwithDesc(desc, aura)
 	-- Insert a new line at the given position in GameTooltip.
 	-- Move all lines from 'position' and below down by one, copying text and font objects (left and right).
 	local tooltip = GameTooltip
@@ -324,6 +351,13 @@ local function rebuildTTwithDesc(desc)
 
 	tooltip:AddLine(desc, 1, 0.81, 0, true)
 	tooltip:AddLine(" ")
+
+	if aura and aura ~= "" then
+		tooltip:AddLine("Aura:", 1, 1, 1, true)
+		tooltip:AddLine(aura, 1, 0.81, 0, true)
+		tooltip:AddLine(" ")
+	end
+
 	local idTip = LibStub:GetLibrary("idTip")
 	idTip:addLine(tooltip, spellID, "SpellID")
 
@@ -335,7 +369,7 @@ local function rebuildTTwithDesc(desc)
 	tooltip:Show()
 end
 
-function SetSpellTooltip(id)
+function SetSpellTooltip(id, context)
 	local lines = GameTooltip:NumLines()
 	-- check if the last 2 lines are from IdTip addon
 	if string.find(_G["GameTooltipTextLeft" .. lines]:GetText(), "SpellID") or string.find(_G["GameTooltipTextLeft" .. lines]:GetText(), "IconID") then
@@ -343,15 +377,20 @@ function SetSpellTooltip(id)
 	end
 
 	local origDesc = GetSpellDescription(id, true)
-	local desc = GetSpellDescription(id)
+	local desc = GetSpellDescription(id, context)
+	local aura = GetAuraDescription(id, context)
+	if aura == "" or aura == desc then aura = nil end
 	if origDesc and origDesc ~= "" then
-		_G["GameTooltipTextLeft" .. lines]:SetText(desc .. "\r\r")
-	else
-		rebuildTTwithDesc(desc)
+		local descLine = desc .. "\n\r" .. (aura and ("|cffFFFFFFAura:|r\r" .. aura .. "\n\r") or "")
+		_G["GameTooltipTextLeft" .. lines]:SetText(descLine)
+	elseif desc ~= nil then
+		rebuildTTwithDesc(desc, aura)
 	end
 
-	-- Override name after desc, because it might be rebuilt by the desc function.
-	GameTooltipTextLeft1:SetText(GetSpellName(id))
+	if desc ~= nil then
+		-- Override name after desc, because it might be rebuilt by the desc function.
+		GameTooltipTextLeft1:SetText(GetSpellName(id, context))
+	end
 
 	GameTooltip:SetPadding(0, 0)
 end
@@ -359,9 +398,9 @@ end
 local _origGetActionTexture = GetActionTexture
 
 function GetActionTexture(slot)
-	local actionType, id, ActionSubtype = GetActionInfo(slot)
+	local actionType, id, actionSubtype = GetActionInfo(slot)
 
-	if actionType == "spell" then
+	if actionType == "spell" and actionSubtype ~= "pet" then
 		return GetSpellTexture(id)
 	end
 
@@ -460,6 +499,10 @@ local function CheckTargetBuffFrame(self, buttonName, unit, filter, maxCount)
 			end
 		end
 	end
+end
+
+function EpsilonAuraManager_Update()
+	EpsilonAuraManagerFrame_Update()
 end
 
 local function CheckPartyMemberBuffFrame(self)

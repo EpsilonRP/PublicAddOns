@@ -69,7 +69,8 @@ function EpsilonAuraManagerButton_OnEnter(self)
 		originalSpellTooltip:AddLine("(Original Spell)", 0.66, 0.66, 0.66);
 		originalSpellTooltip:Show();
 
-		SetSpellTooltip(self.guid)
+		local context = Epsilon_AuraManager.isLocal and "personal" or "phase"
+		SetSpellTooltip(self.guid, context)
 	end
 end
 

@@ -865,8 +865,8 @@ end
 
 local function SelectIcon(self, texID)
 	local icon = getFinalIcon(texID)
-	self.selectedTex = texID
-	self:SetNormalTexture(texID)
+	self.selectedTex = icon
+	self:SetNormalTexture(icon)
 end
 
 local function ResetIcon(self)
