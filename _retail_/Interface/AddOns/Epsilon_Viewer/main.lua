@@ -216,7 +216,7 @@ local function getListFromEpsilon(filter, maxgobs) --C_Epsilon is the best
    currentCatalog = {}
 
    for i = 0, C_Epsilon.GODI_Search(filter)-1 do -- 0 indexed
-      if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too much result ("..maxgobs.."+), ending the search.") break; end
+      if i > maxgobs then print("\124cFF4594C1[Epsilon_Viewer]\124r - Too many results ("..maxgobs.."+), ending the search.") break; end
       local result = C_Epsilon.GODI_RetrieveSearch(i)
       if not currentCatalog[result.fileid] then
 		if not string.find(result.name, "%.wmo") then -- No WMOs!!
