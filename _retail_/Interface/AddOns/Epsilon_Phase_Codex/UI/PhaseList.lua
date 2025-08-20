@@ -312,6 +312,10 @@ function EpsilonPhases:SetupPhaseList(list)
 
 		EpsilonPhases.SortPhaseList()
 	end
+	table.wipe(allphasesChache)
+	for i, phase in ipairs(allPhases) do
+		table.insert(allphasesChache, i, phase)
+	end
 	EpsilonPhases.SetScrollbarValues(count)
 	EpsilonPhases.SetCurrentActivePhase(currentActivePhase)
 end
@@ -507,10 +511,6 @@ EpsilonPhases.SetPhaseListToMalls = SetPhaseListToMalls
 function SetPhaseListToPublic()
 	allPhases = EpsilonPhases.PublicPhases
 
-	table.wipe(allphasesChache)
-	for i, phase in ipairs(allPhases) do
-		table.insert(allphasesChache, i, phase)
-	end
 	local removePhaseButton = _G["EpsilonPhasesMainFrameRemovePhaseButton"]
 	removePhaseButton:Disable()
 	removePhaseButton:GetNormalTexture():SetDesaturated(true)
