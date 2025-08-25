@@ -38,11 +38,35 @@ local trueVal = {
 	["true"] = true
 }
 function EpsiLib.Utils:ToBoolean(val)
+	if not val then
+		if self ~= EpsiLib.Utils then
+			val = self
+		end
+	end
 	return trueVal[val]
 end
 
 function EpsiLib.Utils:ToNumberOrFalse(val)
+	if not val then
+		if self ~= EpsiLib.Utils then
+			val = self
+		end
+	end
 	val = tonumber(val)
 	if val == 0 then val = false end
 	return val
+end
+
+function EpsiLib.Utils:TrimNumber(num)
+	if not num then
+		if self ~= EpsiLib.Utils then
+			num = self
+		end
+	end
+	-- Function to format numbers conditionally
+	if math.floor(num) == num then
+		return tostring(num)                      -- Integer, no decimals needed
+	else
+		return ("%.14f"):format(num):gsub("%.?0+$", "") -- Keep up to 12 decimals, remove trailing zeroes
+	end
 end

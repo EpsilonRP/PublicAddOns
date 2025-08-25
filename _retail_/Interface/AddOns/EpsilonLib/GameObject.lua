@@ -10,6 +10,7 @@ local group_holder = {}
 -- Utils
 local toboolean = EpsiLib.Utils.ToBoolean
 local tonumberOrFalse = EpsiLib.Utils.ToNumberOrFalse
+local formatNumber = EpsiLib.Utils.TrimNumber
 
 --[[
 GameObject = {}
@@ -451,7 +452,29 @@ function GameObjectMeta:MoveWorld(dir1, dist1, ...)
 	end
 end
 
-function GameObjectMeta:Rotate(vector)
+function GameObjectMeta:Rotate(x, y, z, virtual)
+	if not x then x = self.transform.rotation.x end
+	if not y then y = self.transform.rotation.y end
+	if not z then z = self.transform.rotation.z end
+
+	if virtual then
+		C_Epsilon.RotateObject(self.rGUIDLow, self.rGUIDHigh, x, y, z, self.scale)
+	else
+		local qX, qY, qZ, qW = C_Epsilon.RotateObject(self.rGUIDLow, self.rGUIDHigh, x, y, z, self.scale)
+		if qX and qY and qZ and qW then
+			local rotateCommand = ("gobject rotate %s %s %s %s %s %s %s"):format(
+				formatNumber(qX), formatNumber(qY), formatNumber(qZ), formatNumber(qW),
+				formatNumber(x), formatNumber(y), formatNumber(z)
+			)
+			EpsiLib.AddonCommands._SendAddonCommand(rotateCommand)
+		else
+			error("EpsiLib Failed Quat Check on Gob:Rotate()")
+		end
+	end
+end
+
+--[[
+function GameObjectMeta:Rotate(vector, virtual)
 	-- vector.x = math.deg(vector.x);
 	-- vector.y = math.deg(vector.y);
 	-- vector.z = math.deg(vector.z);
@@ -463,6 +486,54 @@ function GameObjectMeta:Rotate(vector)
 	local mover = C_Timer.After(0.15, function()
 		SendChatMessage(".gobject rotate " .. vector.x .. " " .. vector.y .. " " .. vector.z, "GUILD");
 	end)
+end
+--]]
+
+function GameObjectMeta:Pitch(val, exact)
+	if not val then error("Cannot pitch by nothing.") end
+	if exact then
+		local cur = self.transform.rotation.y
+		local desired = val
+		local diff = desired - cur
+		val = diff
+	end
+	EpsiLib.AddonCommands._SendAddonCommand("gobject pitch " .. val)
+	self.transform.rotation.y = val
+end
+
+function GameObjectMeta:Roll(val, exact)
+	if not val then error("Cannot roll by nothing.") end
+	if exact then
+		local cur = self.transform.rotation.x
+		local desired = val
+		local diff = desired - cur
+		val = diff
+	end
+	EpsiLib.AddonCommands._SendAddonCommand("gobject roll " .. val)
+	self.transform.rotation.x = val
+end
+
+function GameObjectMeta:Turn(val, exact)
+	if not val then error("Cannot turn by nothing (use Face instead).") end
+	if exact then
+		self:Face(val)
+		return
+	end
+	EpsiLib.AddonCommands._SendAddonCommand("gobject turn " .. val)
+	self.transform.rotation.z = val
+end
+
+function GameObjectMeta:Face(val)
+	if val == 0 or val == "0" then val = "north" end -- face 0 doesn't work? Stupid.
+	if type(val) == "number" then
+		EpsiLib.AddonCommands._SendAddonCommand("gobject face " .. val)
+		self.transform.rotation.z = val
+	elseif type(val) == "string" then
+		EpsiLib.AddonCommands._SendAddonCommand("gobject face " .. val)
+	else
+		EpsiLib.AddonCommands._SendAddonCommand("gobject turn")
+		self.transform.rotation.z = math.deg(GetPlayerFacing())
+	end
 end
 
 function GameObjectMeta:GetPosString()
@@ -671,6 +742,10 @@ function EpsiLib.GameObject:Unselect()
 	end)
 end
 
+function EpsiLib.GameObject:Get(id)
+
+end
+
 function EpsiLib.GameObject:GetSelected()
 	if self._log._selected == group_holder then
 		return nil -- If the selected object is the group holder, return nil
@@ -704,10 +779,15 @@ function EpsiLib.GameObject:_addToLog(obj, selected)
 	EpsiLib.GameObject.GobLogFrame.Update()
 end
 
-function EpsiLib.GameObject._create()
+function EpsiLib.GameObject._create(id)
 	local object = {}
 	-- Add meta for default function handlers to function as a class
 	setmetatable(object, { __index = GameObjectMeta })
+
+	if id then
+		object.guid = tonumber(id)
+		EpsiLib.GameObject._gobs[id] = object
+	end
 
 	return object --[[@as GameObjectClass]]
 end
