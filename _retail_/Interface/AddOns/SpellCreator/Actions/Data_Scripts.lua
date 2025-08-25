@@ -300,63 +300,64 @@ function TRP3e.items.addItem(id)
 	return TRP3_API.inventory.addItem(nil, id)
 end
 
-local TRP3_Globals, TRP3_Events, TRP3_Utils = TRP3_API.globals, TRP3_API.events, TRP3_API.utils;
-local getClass, isContainerByClassID, isUsableByClass = TRP3_API.extended.getClass, TRP3_API.inventory.isContainerByClassID, TRP3_API.inventory.isUsableByClass;
+if TRP3_API and TRP3_API.extended then
+	local TRP3_Globals, TRP3_Events, TRP3_Utils = TRP3_API.globals, TRP3_API.events, TRP3_API.utils;
+	local getClass, isContainerByClassID, isUsableByClass = TRP3_API.extended.getClass, TRP3_API.inventory.isContainerByClassID, TRP3_API.inventory.isUsableByClass;
 
-local function doUseSlot(info, class, container)
-	if info.cooldown then
-		TRP3_Utils.message.displayMessage(ERR_ITEM_COOLDOWN, TRP3_Utils.message.type.ALERT_MESSAGE);
-	else
-		local useWorkflow = class.US.SC;
-		if class.LI and class.LI.OU then
-			useWorkflow = class.LI.OU;
+	local function doUseSlot(info, class, container)
+		if info.cooldown then
+			TRP3_Utils.message.displayMessage(ERR_ITEM_COOLDOWN, TRP3_Utils.message.type.ALERT_MESSAGE);
+		else
+			local useWorkflow = class.US.SC;
+			if class.LI and class.LI.OU then
+				useWorkflow = class.LI.OU;
+			end
+			local retCode = TRP3_API.script.executeClassScript(useWorkflow, class.SC,
+				{ object = info, container = container, class = class }, info.id);
+			TRP3_Events.fireEvent(TRP3_API.extended.ITEM_USED_EVENT, info.id, retCode);
+			return retCode;
 		end
-		local retCode = TRP3_API.script.executeClassScript(useWorkflow, class.SC,
-			{ object = info, container = container, class = class }, info.id);
-		TRP3_Events.fireEvent(TRP3_API.extended.ITEM_USED_EVENT, info.id, retCode);
-		return retCode;
-	end
-end
-
-
-function TRP3e.items.useItemById(id)
-	if not id or id == '' then
-		eprint("TRP3e Use Item Error: Must supply a valid TRP3 Extended Object ID.")
-		return
 	end
 
-	-- Simplified Method: Does not require item in inventory
-	local class = getClass(id)
-	if class and isUsableByClass(class) then
-		local dummyInfo = { id = id }
-		return doUseSlot(dummyInfo, class, nil)
-	end
 
-	-- Old Inventory Scan Method:
-	--[[
-	-- Scan Inventory for the Item, use it if found
-	local inventory = TRP3_API.inventory.getInventory()
-	for slot, container in pairs(inventory.content) do
-		if container.id == id then
-			-- This is what we are looking for in the main inventory, use it (maybe not a container, misnomer really)
-			TRP3_API.inventory.useContainerSlotID(inventory, slot)
+	function TRP3e.items.useItemById(id)
+		if not id or id == '' then
+			eprint("TRP3e Use Item Error: Must supply a valid TRP3 Extended Object ID.")
 			return
 		end
-		if container.content then
-			for slotID, object in pairs(container.content) do
-				if object.id == id then
-					TRP3_API.inventory.useContainerSlotID(container, slotID)
-					return
+
+		-- Simplified Method: Does not require item in inventory
+		local class = getClass(id)
+		if class and isUsableByClass(class) then
+			local dummyInfo = { id = id }
+			return doUseSlot(dummyInfo, class, nil)
+		end
+
+		-- Old Inventory Scan Method:
+		--[[
+		-- Scan Inventory for the Item, use it if found
+		local inventory = TRP3_API.inventory.getInventory()
+		for slot, container in pairs(inventory.content) do
+			if container.id == id then
+				-- This is what we are looking for in the main inventory, use it (maybe not a container, misnomer really)
+				TRP3_API.inventory.useContainerSlotID(inventory, slot)
+				return
+			end
+			if container.content then
+				for slotID, object in pairs(container.content) do
+					if object.id == id then
+						TRP3_API.inventory.useContainerSlotID(container, slotID)
+						return
+					end
 				end
 			end
 		end
+		--]]
+
+		-- No item found, warn:
+		eprint(("TRP3e Use Item Error: Could not find TRP3e Object with ID (%s) in your TRP3e Database."):format(id))
 	end
-	--]]
-
-	-- No item found, warn:
-	eprint(("TRP3e Use Item Error: Could not find TRP3e Object with ID (%s) in your TRP3e Database."):format(id))
 end
-
 --------------------
 --#endregion
 --------------------
