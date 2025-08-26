@@ -196,6 +196,7 @@ local ACTION_TYPE = {
 
 	TRP3e_Item_QuickImport = "TRP3e_Item_QuickImport",
 	TRP3e_Item_AddToInventory = "TRP3e_Item_AddToInventory",
+	TRP3e_Item_UseID = "TRP3e_Item_UseID",
 	TRP3e_Cast_showCastingBar = "TRP3e_Cast_showCastingBar", -- Show a TRP3e based Casting Bar - mimics more of the WoW style & can be interrupted. // TRP3_API.extended.showCastingBar(duration, interruptMode, class, soundID, castText)
 
 	CheatOn = "CheatOn",
@@ -1793,6 +1794,19 @@ local actionTypeData = {
 		inputDescription =
 		"The Generated ID of an item. You can get this ID from your TRP3 Extended Database, by mousing over an item, or right clicking item and clicking 'Copy ID'. You may provide multiple ID's, separated by commas, to add multiple items.",
 		revert = nil,
+		dependency = "totalRP3_Extended"
+	}),
+	[ACTION_TYPE.TRP3e_Item_UseID] = scriptAction("TRP3e Use Item", {
+		command = function(code)
+			Scripts.TRP3e_items.useItemById(code)
+		end,
+		description =
+		"Use a TRP3 Extended Item by it's object ID.",
+		dataName = "trp3e object id",
+		inputDescription =
+		"The object ID for the TRP3 Extended object/item. You can get this ID by right-clicking an item in your TRP3 Extended Database and hitting 'Copy ID'.",
+		revert = nil,
+		doNotDelimit = true,
 		dependency = "totalRP3_Extended"
 	}),
 	[ACTION_TYPE.TRP3e_Cast_showCastingBar] = scriptAction("TRP3e Castbar", {

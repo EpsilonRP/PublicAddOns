@@ -111,7 +111,7 @@ local function GetSearchDisplay(index)
 	end
 	local spellDesc = GetSpellDescription(filteredList[index].spellID, true) or "";
 
-	return filteredList[index].name, filteredList[index].icon, filteredList[index].spellID, desc;
+	return filteredList[index].name, filteredList[index].icon, filteredList[index].spellID, spellDesc;
 end
 
 function EpsilonAuraManagerAuraEditor_ResetSearch()
@@ -152,9 +152,9 @@ function EpsilonAuraManagerAuraEditor_SelectSearch(index)
 		EpsilonAuraManagerAuraEditor.buffOverride.Text:SetTextColor(1.0, 0.82, 0)
 		EpsilonAuraManagerAuraEditor.buffID = spellID
 		EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture(icon)
-		EpsilonAuraManagerAuraEditor.buffName:SetText(name)
-		EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(desc)
-		EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(spellDesc)
+		EpsilonAuraManagerAuraEditor.buffName:SetText(name and name:gsub("|", "||"))
+		EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(desc and desc:gsub("|", "||"))
+		EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(spellDesc and spellDesc:gsub("|", "||"))
 		EpsilonAuraManagerAuraEditor.buffVisibility:SetChecked(visible)
 		EpsilonAuraManagerAuraEditor.buffVisibility.Text:SetTextColor(1.0, 0.82, 0)
 		EpsilonAuraManagerAuraEditor.buffOverride:SetChecked(allowOverride);
@@ -493,11 +493,11 @@ function EpsilonAuraManagerAuraEditor_Refresh()
 		EpsilonAuraManagerAuraEditor.originalBuffName:SetText("|cFF999999(No Aura Selected)")
 	end
 	EpsilonAuraManagerAuraEditor.buffIcon:SetNormalTexture(buff.icon)
-	EpsilonAuraManagerAuraEditor.buffName:SetText(buff.name)
+	EpsilonAuraManagerAuraEditor.buffName:SetText(buff.name and buff.name:gsub("|", "||"))
 	EpsilonAuraManagerAuraEditor.buffVisibility:SetChecked(buff.visible)
 	EpsilonAuraManagerAuraEditor.buffOverride:SetChecked(buff.allowOverride)
-	EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(buff.desc)
-	EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(buff.spellDesc)
+	EpsilonAuraManagerAuraEditor.buffDesc.EditBox:SetText(buff.desc and buff.desc:gsub("|", "||"))
+	EpsilonAuraManagerAuraEditor.spellDesc.EditBox:SetText(buff.spellDesc and buff.spellDesc:gsub("|", "||"))
 	EpsilonAuraManagerAuraEditor.selected = nil
 
 	isDirty = false;
@@ -515,11 +515,12 @@ function EpsilonAuraManagerAuraEditor_Save()
 
 	local spellID = EpsilonAuraManagerAuraEditor.buffID;
 
+	-- this is a leaky global, but useful for testing lmfao
 	spell = {
-		name          = EpsilonAuraManagerAuraEditor.buffName:GetText(),
+		name          = EpsilonAuraManagerAuraEditor.buffName:GetText():gsub("||", "|"),
 		icon          = EpsilonAuraManagerAuraEditor.buffIcon.icon:GetTexture(),
-		desc          = EpsilonAuraManagerAuraEditor.buffDesc.EditBox:GetText(),
-		spellDesc     = EpsilonAuraManagerAuraEditor.spellDesc.EditBox:GetText(),
+		desc          = EpsilonAuraManagerAuraEditor.buffDesc.EditBox:GetText():gsub("||", "|"),
+		spellDesc     = EpsilonAuraManagerAuraEditor.spellDesc.EditBox:GetText():gsub("||", "|"),
 		visible       = EpsilonAuraManagerAuraEditor.buffVisibility:GetChecked(),
 		allowOverride = EpsilonAuraManagerAuraEditor.buffOverride:GetChecked(),
 	};

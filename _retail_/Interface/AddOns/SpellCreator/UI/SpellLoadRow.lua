@@ -338,7 +338,7 @@ local function createLoadButton(row)
 		loadButton,
 		function(self)
 			local spell = getSpell(self.commID)
-			return "Load '" .. spell.commID .. "'"
+			return "Edit '" .. spell.commID .. "'"
 		end,
 		{
 			"Load the spell into the Forge UI so you can edit it.",

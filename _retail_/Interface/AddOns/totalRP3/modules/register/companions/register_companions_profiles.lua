@@ -402,7 +402,7 @@ local function onCompanionProfileSelection(value, companionID, targetType)
 		targetType = TRP3_Enums.UNIT_TYPE.MOUNT;
 	end
 	if value == 0 then
-		openProfile(getCompanionProfileID(companionID));
+		openProfile(getCompanionRegisterProfileID(companionID));
 		openMainFrame();
 	elseif value == 1 then
 		unboundPlayerCompanion(companionID, targetType);
@@ -432,7 +432,7 @@ end
 local function getPlayerCompanionProfilesAsList(companionID)
 	local list = {};
 	for profileID, profile in pairs(getProfiles()) do
-		if getCompanionProfileID(companionID) == profileID then
+		if getCompanionRegisterProfileID(companionID) == profileID then
 			tinsert(list, { profile.profileName, nil });
 		else
 			tinsert(list, { profile.profileName, profileID });
