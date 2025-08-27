@@ -85,7 +85,7 @@ local function isSparkConditionsMet(sparkData)
 
 	local shouldShowSpark = true
 	if sparkOptions.conditions then
-		shouldShowSpark = ns.Actions.Execute.checkConditions(sparkOptions.conditions)
+		shouldShowSpark = ns.Actions.Execute.checkConditions(sparkOptions.conditions, unpack(sparkOptions.inputs or {}))
 	elseif sparkOptions.requirement then
 		local script = sparkOptions.requirement
 		if not script:match("return") then
