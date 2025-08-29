@@ -175,7 +175,7 @@ end
 function mod:OnEnable()
 	sm.core:RegisterModuleOptions("ZoneText", options, L["Zone Text"])
 
-	if MinimapZoneTextButton then
+	do
 		-- Kill Blizz Frame
 		sm.core.button.SetParent(MinimapZoneTextButton, sm.core.button)
 		sm.core.font.SetParent(MinimapZoneText, sm.core.button)
@@ -189,9 +189,6 @@ function mod:OnEnable()
 		hooksecurefunc(MinimapZoneText, "SetParent", function()
 			sm.core.font.SetParent(MinimapZoneText, sm.core.button)
 		end)
-	else
-		MinimapCluster.ZoneTextButton:SetParent(sm.core.button)
-		MinimapCluster.BorderTop:SetParent(sm.core.button)
 	end
 
 	zoneTextButton = CreateFrame("Button", "SexyMapZoneTextButton", Minimap, "BackdropTemplate") -- Create our own zone text
