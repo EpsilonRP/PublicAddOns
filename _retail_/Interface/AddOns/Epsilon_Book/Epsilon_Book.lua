@@ -540,6 +540,14 @@ function EpsilonBook_OnEvent(self, event, ...)
 		end
 	elseif (event == "SCENARIO_UPDATE" or event == "PLAYER_ENTERING_WORLD") then
 		EpsilonBook_GetBookItemList();
+
+		if EpsilonBookLibraryFrame:IsShown() then
+			if IsPhaseOfficer() or IsPhaseOwner() then
+				EpsilonBookLibrary_Show()
+			else
+				EpsilonBookFrame_Hide();
+			end
+		end
 	end
 end
 
