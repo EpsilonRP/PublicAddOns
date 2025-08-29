@@ -115,41 +115,59 @@ NineSliceUtil.AddLayout("EpsilonGoldBorderFrameDoubleButtonTemplateNoPortrait", 
 --#region [[ NineSlice Util Functions ]] --
 
 local function CropNineSliceCorners(slice, cropFactor, horizontal)
-	-- cropFactor: number between 0 and 1 (e.g., 0.5 keeps top half)
-
-	local function SafeSetTexCoordAndSize(region, fromTop)
+	local function SafeSetTexCoordAndSize(region, fromTopOrLeft)
 		if region and region.SetTexCoord then
-			local UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY = region:GetTexCoord()
+			local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy = region:GetTexCoord()
 
 			-- Store original tex coords and size for reset
 			if not region._orig then
 				region._orig = {
-					tex = { UpperLeftX, UpperLeftY, LowerLeftX, LowerLeftY, UpperRightX, UpperRightY, LowerRightX, LowerRightY },
+					tex = { ULx, ULy, LLx, LLy, URx, URy, LRx, LRy },
 					height = region:GetHeight(),
 					width = region:GetWidth()
 				}
 			end
 
-			-- Vertically crop texcoords
-			if fromTop then
-				-- crop from top
-				local croppedY = (LowerLeftY - UpperLeftY) * (1 - cropFactor)
-				region:SetTexCoord(UpperLeftX, croppedY, LowerLeftX, LowerLeftY, UpperRightX, croppedY, LowerRightX, LowerRightY)
+			if horizontal then
+				if fromTopOrLeft then
+					-- crop from left
+					local croppedX = ULx + (URx - ULx) * (1 - cropFactor)
+					region:SetTexCoord(croppedX, ULy, croppedX, LLy, URx, URy, URx, LRy)
+				else
+					-- crop from right
+					local croppedX = ULx + (URx - ULx) * cropFactor
+					region:SetTexCoord(ULx, ULy, LLx, LLy, croppedX, URy, croppedX, LRy)
+				end
+				region:SetWidth(region._orig.width * cropFactor)
 			else
-				-- crop from bottom
-				local croppedY = UpperRightY + (LowerRightY - UpperRightY) * cropFactor
-				region:SetTexCoord(UpperLeftX, UpperLeftY, LowerLeftX, croppedY, UpperRightX, UpperRightY, LowerRightX, croppedY)
+				-- vertical cropping
+				if fromTopOrLeft then
+					-- crop from top
+					local croppedY = ULy + (LRy - ULy) * (1 - cropFactor)
+					region:SetTexCoord(ULx, croppedY, LLx, LLy, URx, croppedY, LRx, LRy)
+				else
+					-- crop from bottom
+					local croppedY = ULy + (LRy - ULy) * cropFactor
+					region:SetTexCoord(ULx, ULy, LLx, croppedY, URx, URy, LRx, croppedY)
+				end
+				region:SetHeight(region._orig.height * cropFactor)
 			end
-
-			-- Physically crop height
-			region:SetHeight(region._orig.height * cropFactor)
 		end
 	end
 
-	SafeSetTexCoordAndSize(slice.TopLeftCorner)
-	SafeSetTexCoordAndSize(slice.TopRightCorner)
-	SafeSetTexCoordAndSize(slice.BottomLeftCorner, true)
-	SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
+	if horizontal then
+		-- Left/right crop
+		SafeSetTexCoordAndSize(slice.TopLeftCorner, false)
+		SafeSetTexCoordAndSize(slice.BottomLeftCorner, false)
+		SafeSetTexCoordAndSize(slice.TopRightCorner, true)
+		SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
+	else
+		-- Top/bottom crop
+		SafeSetTexCoordAndSize(slice.TopLeftCorner, false)
+		SafeSetTexCoordAndSize(slice.TopRightCorner, false)
+		SafeSetTexCoordAndSize(slice.BottomLeftCorner, true)
+		SafeSetTexCoordAndSize(slice.BottomRightCorner, true)
+	end
 end
 
 local function ResetNineSliceCorners(slice)
@@ -170,3 +188,57 @@ end
 
 NineSlice.CropNineSliceCorners = CropNineSliceCorners
 NineSlice.ResetNineSliceCorners = ResetNineSliceCorners
+
+--#endregion
+
+-- Function to set a frame's background to a fixed viewport-aligned texture
+local function SetBackgroundAsViewport(f, bg, texture)
+	local frame = f
+	bg = bg or f.Bg
+
+	if not texture then texture = ASSETS_PATH .. "MainBg" end
+
+	bg:SetTexture(texture, true, true)
+	bg:SetHorizTile(false)
+	bg:SetVertTile(false)
+	bg:SetAlpha(0.99)
+
+	local lastLeft, lastTop, lastW, lastH
+	local texSize = 1024 -- your texture is 1024x1024
+
+	local function UpdateBackground()
+		local left, top = frame:GetLeft(), frame:GetTop()
+		local width, height = frame:GetWidth(), frame:GetHeight()
+		if not left or not top then return end
+
+		-- Only update if something actually changed
+		if left == lastLeft and top == lastTop and width == lastW and height == lastH then
+			return
+		end
+
+		-- Save last values
+		lastLeft, lastTop, lastW, lastH = left, top, width, height
+
+		-- Do the thing here
+		local screenW, screenH = UIParent:GetWidth(), UIParent:GetHeight()
+
+		-- Calculate slice of texture coords
+		local u1 = (left % texSize) / texSize
+		local v1 = ((screenH - top) % texSize) / texSize
+		local u2 = ((left + width) % texSize) / texSize
+		local v2 = ((screenH - (top - height)) % texSize) / texSize
+
+		-- Handle wraparound (if the window spans across a tile boundary)
+		if u2 < u1 then u2 = u2 + 1 end
+		if v2 < v1 then v2 = v2 + 1 end
+
+		bg:SetTexCoord(u1, u2, v1, v2)
+	end
+
+	-- Poll only while visible
+	frame:HookScript("OnUpdate", UpdateBackground)
+
+	-- Force update immediately on init
+	UpdateBackground()
+end
+NineSlice.SetBackgroundAsViewport = SetBackgroundAsViewport

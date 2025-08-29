@@ -234,7 +234,7 @@ PhaseToolkit.ModeFR = false
 PhaseToolkit.IntensiteMeteo = 1
 PhaseToolkit.IntensiteMeteoMin, IntensiteMeteoMax = 1, 100
 
---Pool of category used for filtering no max size 
+--Pool of category used for filtering no max size
 PhaseToolkit.NPCcategoryToFilterPool={}
 PhaseToolkit.TELEcategoryToFilterPool={}
 
@@ -1502,6 +1502,7 @@ PhaseToolkit.itemInventoryType={
 	{name="Off hand (Weapon)",inventoryTypeId=22,usableFor=2},
 	{name="Thrown",inventoryTypeId=25,usableFor=2},
 	{name="Ranged Right",inventoryTypeId=26,usableFor=2},
+	{name="Shield",inventoryTypeId=14,usableFor=4},
 }
 
 PhaseToolkit.itemBonding={
@@ -1698,7 +1699,7 @@ function PhaseToolkit.PTK_DEBUG_NPC_CUSTOM()
 			end
 		end);
 	end
-	
+
 end
 -- ============================== FUNCTION PRINCIPALES ============================== --
 local function isKeyInTable(key)
@@ -2157,7 +2158,14 @@ end
 -- ============================== FRAME PRINCIPALE ============================== --
 PhaseToolkit.NombreDeLigne = math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) / 3)))
 PhaseToolkit.HauteurDispoCustomFrame = ((PhaseToolkit.NombreDeLigne - 1) * 65)
-PhaseToolkit.NPCCustomiserMainFrame = CreateFrame("Frame", "NPCCustomiserMainFrame", UIParent, "BasicFrameTemplateWithInset")
+PhaseToolkit.NPCCustomiserMainFrame = CreateFrame("Frame", "NPCCustomiserMainFrame", UIParent, "PortraitFrameTemplate")
+ButtonFrameTemplateMinimizable_HidePortrait(PhaseToolkit.NPCCustomiserMainFrame)
+NineSliceUtil.ApplyLayoutByName(PhaseToolkit.NPCCustomiserMainFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+EpsilonLib.Utils.NineSlice.CropNineSliceCorners(PhaseToolkit.NPCCustomiserMainFrame.NineSlice, 0.8, true)
+EpsilonLib.Utils.NineSlice.CropNineSliceCorners(PhaseToolkit.NPCCustomiserMainFrame.NineSlice, 0.4)
+EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(PhaseToolkit.NPCCustomiserMainFrame, PhaseToolkit.NPCCustomiserMainFrame.Bg)
+PhaseToolkit.NPCCustomiserMainFrame.Bg:SetAlpha(0.975)
+PhaseToolkit.NPCCustomiserMainFrame:SetToplevel(true)
 
 PhaseToolkit.NPCCustomiserMainFrame:SetSize(PhaseToolkit.LargeurMax, PhaseToolkit.HauteurMax)
 PhaseToolkit.NPCCustomiserMainFrame:SetPoint("CENTER")
@@ -2184,13 +2192,28 @@ PhaseToolkit.NPCCustomMainFrameSettingsButton:SetScript("OnClick", function()
 	InterfaceOptionsFrame_OpenToCategory("PhaseToolkitConfig")
 end)
 
+do
+	local f = PhaseToolkit.NPCCustomiserMainFrame
+	local titleBgColor = f:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", f.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", f.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	f.TitleBgColor = titleBgColor
+	local r,g,b = color:GetRGB()
+	f.TitleBg:SetVertexColor(r,g,b, 1)
 
+	f.TitleText:SetText("Phase Toolkit")
+	f.TitleText:SetPoint("LEFT", 15, 0) -- Fix title text position with no portrait
+end
+
+--[[
 PhaseToolkit.NPCCustomMainFrameTitle = PhaseToolkit.NPCCustomiserMainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 PhaseToolkit.NPCCustomMainFrameTitle:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 10, -5)
 PhaseToolkit.NPCCustomMainFrameTitle:SetText("Phase Toolkit")
+--]]
 
 PhaseToolkit.NPCCustomiserMainFrame:RegisterEvent("ADDON_LOADED")
-
 
 ---Sends a command by the standard chat message instead of the addon command system, allowing it to split into chunks like UCM if multi-line.
 ---@param message string
@@ -2214,24 +2237,24 @@ end
 
 
 function PhaseToolkit.recreateFrameModule()
-	if (GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame ~= nil) then
-		GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:Hide()
-		GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame = nil
+	if (PhaseToolkit.moduleForPhaseAccessFrame ~= nil) then
+		PhaseToolkit.moduleForPhaseAccessFrame:Hide()
+		PhaseToolkit.moduleForPhaseAccessFrame = nil
 	end
 	PhaseToolkit.createPhaseAccessFrame()
-	if (GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:Hide() end
+	if (PhaseToolkit.moduleForMetteoSettingsFrame ~= nil) then PhaseToolkit.moduleForMetteoSettingsFrame:Hide() end
 	PhaseToolkit.createMeteoSettingsFrame()
-	if (GlobalNPCCUSTOMISER_moduleForTimeSliderFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:Hide() end
+	if (PhaseToolkit.moduleForTimeSliderFrame ~= nil) then PhaseToolkit.moduleForTimeSliderFrame:Hide() end
 	PhaseToolkit.createTimeSettingsFrame()
-	if (GlobalNPCCUSTOMISER_moduleForSetStartingFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForSetStartingFrame:Hide() end
+	if (PhaseToolkit.moduleForSetStartingFrame ~= nil) then PhaseToolkit.moduleForSetStartingFrame:Hide() end
 	PhaseToolkit.createSetStartingFrame()
-	if (GlobalNPCCUSTOMISER_moduleForTogglesFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForTogglesFrame:Hide() end
+	if (PhaseToolkit.moduleForTogglesFrame ~= nil) then PhaseToolkit.moduleForTogglesFrame:Hide() end
 	PhaseToolkit.createTogglesFrame()
-	if (GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:Hide() end
+	if (PhaseToolkit.moduleForPhaseSetNameFrame ~= nil) then PhaseToolkit.moduleForPhaseSetNameFrame:Hide() end
 	PhaseToolkit.createPhaseSetNameFrame()
-	if (GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame ~= nil) then GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:Hide() end
+	if (PhaseToolkit.moduleForPhaseSetDescriptionFrame ~= nil) then PhaseToolkit.moduleForPhaseSetDescriptionFrame:Hide() end
 	PhaseToolkit.createPhaseSetDescriptionFrame()
-	if (GlobalNPCCUSTOMISER_moduleforMotdFrame ~= nil) then GlobalNPCCUSTOMISER_moduleforMotdFrame:Hide() end
+	if (PhaseToolkit.moduleforMotdFrame ~= nil) then PhaseToolkit.moduleforMotdFrame:Hide() end
 	PhaseToolkit.createMotdFrame()
 end
 
@@ -3017,6 +3040,7 @@ function PhaseToolkit.createItemCreatorFrame()
 	PhaseToolkit.ItemCreatorFrame = CreateFrame("Frame", "ItemCreatorFrame", PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
 	PhaseToolkit.ItemCreatorFrame:SetSize(350,515)
 	PhaseToolkit.ItemCreatorFrame:SetPoint("TOPRIGHT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", -5, 0)
+	PhaseToolkit.ItemCreatorFrame:EnableMouse(true);
 
 	PhaseToolkit.ItemCreatorFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -3391,7 +3415,7 @@ function PhaseToolkit.createItemCreatorFrame()
 			PhaseToolkit.iteeCreatorEditBoxStackable:Hide()
 		end
 	end)
-	
+
 
 	PhaseToolkit.iconIdEditBox = CreateFrame("EditBox", "iconIdEditBox", displayProperty, "InputBoxTemplate")
 	PhaseToolkit.iconIdEditBox:SetSize(150, 30)
@@ -3410,7 +3434,7 @@ function PhaseToolkit.createItemCreatorFrame()
     PhaseToolkit.iconIdPickerButton:SetScript("OnClick", function(self)
         --EpsilonLibIconPicker_Open(returnFunc, closeOnClick, playSound, attachFrame, hidePortrait)
         EpsilonLibIconPicker_Open(function(path, name, id)
-            if id then 
+            if id then
 				PhaseToolkit.iconIdEditBox:SetText(id)
 				PhaseToolkit.itemCreatorData.itemIconIdOrLink=id
 				-- if we are live editing, we save and apply the new icon
@@ -4226,8 +4250,8 @@ end
 --#region Listes
 -- -- -- -- -- -- -- -- -- -- -- --
 local function checkIfCreatureInSelectedCategory(creature)
-	if(creature) then 
-		if(PhaseToolkit.NPCselectedCategory) then 
+	if(creature) then
+		if(PhaseToolkit.NPCselectedCategory) then
 			for _, member in ipairs(PhaseToolkit.NPCselectedCategory.members) do
 				if member == creature.IdCreature then
 					return true
@@ -4260,7 +4284,7 @@ local function checkIfTeleInSelectedCategory(tele)
 end
 
 --- Retrieves the index of a specific member in a list of category members.
---- 
+---
 --- @param categoryMembersList table A list of category members to search through.
 --- @param memberId any The ID of the member to find in the list.
 --- @return number|nil The index of the member in the list if found, or nil if not found.
@@ -4364,7 +4388,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		currentPage=PhaseToolkit.NPCListCurrentPage
 	end
 
-	
+
 
 	local totalPages = math.ceil(#PhaseToolkit.creatureList / PhaseToolkit.itemsPerPageNPC)
 	if(PhaseToolkit.NPCListCurrentPage) then
@@ -4444,6 +4468,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	PhaseToolkit.PNJFrame = CreateFrame("Frame", "PNJListFrame", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.PNJFrame:SetSize(620, (PhaseToolkit.itemsPerPageNPC * 30) + 80)
 	PhaseToolkit.PNJFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
+	PhaseToolkit.PNJFrame:EnableMouse(true);
 
 	PhaseToolkit.PNJFrame:SetScript("OnHide", function()
 		if PhaseToolkit.categoryPanelNPC ~= nil then
@@ -4459,7 +4484,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 			end
 		end
 	end)
-	
+
 	local ButtonToFetch = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
 	ButtonToFetch:SetSize(15, 15)
 	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -30, -3.5)
@@ -4538,7 +4563,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	local function SearchAndFindNpcByText(self)
 		if self:GetText() ~= nil and self:GetText() ~= "" then
 			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then 
+			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then
 				sourceList=collectAllNpcsFromCategories()
 			end
 			PhaseToolkit.filteredCreatureList = {}
@@ -4555,7 +4580,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 			PhaseToolkit.CreateNpcListFrame(PhaseToolkit.filteredCreatureList)
 		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringNpcViaText == true then
 			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then 
+			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then
 				sourceList=collectAllNpcsFromCategories()
 			end
 			PhaseToolkit.PNJFrame:Hide()
@@ -4572,7 +4597,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		if (PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) < 190) then
 			PhaseToolkit.LookupInNpcListEditBox:SetSize(190, 20)
 		else
-			
+
 			PhaseToolkit.LookupInNpcListEditBox:SetSize(PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) - 50, 20)
 		end
 
@@ -4635,7 +4660,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		row.spawnButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 		row.spawnButton:SetSize(80, 30)
 		row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
-		
+
 		row.spawnButton:SetText("Spawn")
 
 		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
@@ -4730,7 +4755,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 							if isStringInArray(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"]) <0 then
 								tinsert(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"])
 								PhaseToolkit.updateNPCCategoryList()
-								if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+								if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 								else
 									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -4757,7 +4782,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 						if(indexToDelete >0) then
 							table.remove(PhaseToolkit.NPCselectedCategory.members,indexToDelete)
 							PhaseToolkit.updateNPCCategoryList()
-							if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+							if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 							else
 								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -4944,13 +4969,13 @@ function PhaseToolkit.PhaseNpcListSystemMessageCounter()
 	-- Use Epsilib to fetch the replies
 	sendAddonCmd("ph f n list", parseReplies, false)
 end
--- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- --
 	--#endregion
--- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- --
 
--- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- --
 	--#region TeleList
--- -- -- -- -- -- -- -- -- -- 
+-- -- -- -- -- -- -- -- -- --
 
 function PhaseToolkit.CreateTeleListFrame(_teleList)
 	if (PhaseToolkit.PNJFrame ~= nil) then
@@ -5076,6 +5101,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	PhaseToolkit.TELEFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.TELEFrame:SetSize(600, (PhaseToolkit.itemsPerPageTELE * 30) + 80)
 	PhaseToolkit.TELEFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
+	PhaseToolkit.TELEFrame:EnableMouse(true)
 
 	PhaseToolkit.TELEFrame:SetScript("OnHide", function()
 		if PhaseToolkit.categoryPanelTELE ~= nil then
@@ -5143,7 +5169,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		local mergedTeleList = {}
 		for _, categoryID in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
 			local category = PhaseToolkit.getCategoryByIdGENERIC(categoryID,"TELE")
-			if category then 
+			if category then
 				for _, member in ipairs(category.members) do
 					if isStringInArray(mergedTeleList, member)<0 then
 						table.insert(mergedTeleList, member)
@@ -5157,7 +5183,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	local function SearchAndFindTeleByText(self)
 		if self:GetText() ~= nil and self:GetText() ~= "" then
 			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then 
+			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then
 				sourceList=mergeAllTeleMembers()
 			end
 			PhaseToolkit.filteredTeleList = {}
@@ -5175,7 +5201,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 			PhaseToolkit.CreateTeleListFrame(PhaseToolkit.filteredTeleList)
 		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringTeleViaText == true then
 			local sourceList = PhaseToolkit.teleList
-			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then 
+			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then
 				sourceList=mergeAllTeleMembers()
 			end
 			PhaseToolkit.TELEFrame:Hide()
@@ -5327,7 +5353,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 							if (isStringInArray(PhaseToolkit.TELEselectedCategory.members,tele)<0) then
 								tinsert(PhaseToolkit.TELEselectedCategory.members, tele)
 								PhaseToolkit.updateTELECategoryList()
-								if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+								if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 								else
 									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
@@ -5343,7 +5369,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 				else
 					row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
 					row.addToCategoryButton:Hide()
-					
+
 				end
 
 				if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory and PhaseToolkit.UserHasPermission() and checkIfTeleInSelectedCategory(tele)) then
@@ -5355,7 +5381,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 						if(indexToDelete >0) then
 							table.remove(PhaseToolkit.TELEselectedCategory.members,indexToDelete)
 							PhaseToolkit.updateTELECategoryList()
-							if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+							if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 							else
 								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
@@ -5368,7 +5394,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 						PhaseToolkit.TELEFrame:SetWidth(PhaseToolkit.TELEFrame:GetWidth() + 45)
 						isAlreadyBiggerForGetOutOfCategory=true
 					end
-					
+
 				else
 					row.getOutOfCategoryButton:Hide()
 				end
@@ -5563,6 +5589,7 @@ function PhaseToolkit.CreatePhaseOptionFrame()
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
+	PhaseToolkit.PhaseOptionFrame:EnableMouse(true)
 	PhaseToolkit.PhaseOptionFrame:SetSize(350, 450)
 	PhaseToolkit.PhaseOptionFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 0, 0)
 
@@ -5575,17 +5602,17 @@ function PhaseToolkit.CreatePhaseOptionFrame()
 
 				if listType == "BlackList" then
 					PhaseToolkit.IsPhaseWhitelist = false
-					GlobalNPCCUSTOMISER_RadioWhitelist:SetChecked(false)
-					GlobalNPCCUSTOMISER_RadioBlacklist:SetChecked(true)
+					PhaseToolkit.RadioWhitelist:SetChecked(false)
+					PhaseToolkit.RadioBlacklist:SetChecked(true)
 				elseif listType == "Whitelist" then
 					PhaseToolkit.IsPhaseWhitelist = true
-					GlobalNPCCUSTOMISER_RadioBlacklist:SetChecked(false)
-					GlobalNPCCUSTOMISER_RadioWhitelist:SetChecked(true)
+					PhaseToolkit.RadioBlacklist:SetChecked(false)
+					PhaseToolkit.RadioWhitelist:SetChecked(true)
 				end
 
 				local phaseName = string.match(message, "Phase%s+%[(.*)-")
 				if (phaseName ~= nil) then
-					GlobalNPCCUSTOMISERnameTextEdit:SetText(phaseName)
+					PhaseToolkit.nameTextEdit:SetText(phaseName)
 				end
 			end
 		end
@@ -5601,42 +5628,42 @@ end
 
 --==== Module d'accès de phase ====--
 function PhaseToolkit.createPhaseAccessFrame()
-	GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetBackdrop({
+	PhaseToolkit.moduleForPhaseAccessFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForPhaseAccessFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5)
+	PhaseToolkit.moduleForPhaseAccessFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForPhaseAccessFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5)
 
 
 
-	GlobalNPCCUSTOMISER_RadioBlacklist = CreateFrame("CheckButton", "RadioBlacklist", GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
-	GlobalNPCCUSTOMISER_RadioBlacklist:SetPoint("BOTTOMLEFT", GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame, "BOTTOMLEFT", 10, 10)
-	local labelForBlacklist = GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	labelForBlacklist:SetPoint("LEFT", GlobalNPCCUSTOMISER_RadioBlacklist, "RIGHT", 0, 1)
+	PhaseToolkit.RadioBlacklist = CreateFrame("CheckButton", "RadioBlacklist", PhaseToolkit.moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
+	PhaseToolkit.RadioBlacklist:SetPoint("BOTTOMLEFT", PhaseToolkit.moduleForPhaseAccessFrame, "BOTTOMLEFT", 10, 10)
+	local labelForBlacklist = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	labelForBlacklist:SetPoint("LEFT", PhaseToolkit.RadioBlacklist, "RIGHT", 0, 1)
 	labelForBlacklist:SetText("Blacklist")
 
 
-	GlobalNPCCUSTOMISER_RadioWhitelist = CreateFrame("CheckButton", "RadioWhitelist", GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
-	GlobalNPCCUSTOMISER_RadioWhitelist:SetPoint("LEFT", GlobalNPCCUSTOMISER_RadioBlacklist, "RIGHT", 60, 0)
+	PhaseToolkit.RadioWhitelist = CreateFrame("CheckButton", "RadioWhitelist", PhaseToolkit.moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
+	PhaseToolkit.RadioWhitelist:SetPoint("LEFT", PhaseToolkit.RadioBlacklist, "RIGHT", 60, 0)
 
-	local labelForWhitelist = GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	labelForWhitelist:SetPoint("LEFT", GlobalNPCCUSTOMISER_RadioWhitelist, "RIGHT", 0, 1)
+	local labelForWhitelist = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	labelForWhitelist:SetPoint("LEFT", PhaseToolkit.RadioWhitelist, "RIGHT", 0, 1)
 	labelForWhitelist:SetText("Whitelist")
 
 
 
-	GlobalNPCCUSTOMISER_phaseAccessLabel = GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	GlobalNPCCUSTOMISER_phaseAccessLabel:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForPhaseAccessFrame, "TOP", 0, -7.5)
+	GlobalNPCCUSTOMISER_phaseAccessLabel = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	GlobalNPCCUSTOMISER_phaseAccessLabel:SetPoint("TOP", PhaseToolkit.moduleForPhaseAccessFrame, "TOP", 0, -7.5)
 	GlobalNPCCUSTOMISER_phaseAccessLabel:SetText(PhaseToolkit.CurrentLang["Phase Access"] or "Phase Access")
 
 
 	local function RadioButton_OnClick(self)
-		GlobalNPCCUSTOMISER_RadioBlacklist:SetChecked(false)
-		GlobalNPCCUSTOMISER_RadioWhitelist:SetChecked(false)
+		PhaseToolkit.RadioBlacklist:SetChecked(false)
+		PhaseToolkit.RadioWhitelist:SetChecked(false)
 		self:SetChecked(true)
 
 		if (PhaseToolkit.IsPhaseWhitelist) then
@@ -5656,39 +5683,39 @@ function PhaseToolkit.createPhaseAccessFrame()
 		end
 	end
 
-	GlobalNPCCUSTOMISER_RadioBlacklist:SetScript("OnClick", RadioButton_OnClick)
-	GlobalNPCCUSTOMISER_RadioWhitelist:SetScript("OnClick", RadioButton_OnClick)
+	PhaseToolkit.RadioBlacklist:SetScript("OnClick", RadioButton_OnClick)
+	PhaseToolkit.RadioWhitelist:SetScript("OnClick", RadioButton_OnClick)
 
 	if (PhaseToolkit.IsPhaseWhitelist) then
-		GlobalNPCCUSTOMISER_RadioWhitelist:SetChecked(true)
+		PhaseToolkit.RadioWhitelist:SetChecked(true)
 	elseif not PhaseToolkit.IsPhaseWhitelist then
-		GlobalNPCCUSTOMISER_RadioBlacklist:SetChecked(true)
+		PhaseToolkit.RadioBlacklist:SetChecked(true)
 	end
 end
 
 --==== Module de météo ====--
 function PhaseToolkit.createMeteoSettingsFrame()
-	GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetBackdrop({
+	PhaseToolkit.moduleForMetteoSettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForMetteoSettingsFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5)
+	PhaseToolkit.moduleForMetteoSettingsFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForMetteoSettingsFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5)
 	-- --=== Dropdown ===--
-	PhaseToolkit.MeteoDropDown = CreateFrame("Frame", "MeteoDropDown", GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame, "UIDropDownMenuTemplate")
+	PhaseToolkit.MeteoDropDown = CreateFrame("Frame", "MeteoDropDown", PhaseToolkit.moduleForMetteoSettingsFrame, "UIDropDownMenuTemplate")
 	PhaseToolkit.MeteoDropDown:SetSize(200, 30)
-	PhaseToolkit.MeteoDropDown:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame, "TOP", 0, -2.5)
+	PhaseToolkit.MeteoDropDown:SetPoint("TOP", PhaseToolkit.moduleForMetteoSettingsFrame, "TOP", 0, -2.5)
 
 	PhaseToolkit.ShowMeteoDropDown(PhaseToolkit.MeteoDropDown)
 
 	--=== Slider ===--
-	GlobalNPCCUSTOMISER_SliderFrame = CreateFrame("Slider", "MyCustomSlider", GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame, "OptionsSliderTemplate")
+	GlobalNPCCUSTOMISER_SliderFrame = CreateFrame("Slider", "MyCustomSlider", PhaseToolkit.moduleForMetteoSettingsFrame, "OptionsSliderTemplate")
 	GlobalNPCCUSTOMISER_SliderFrame:SetSize(150, 20)
 
-	GlobalNPCCUSTOMISER_SliderFrame:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForMetteoSettingsFrame, "CENTER", 0, 0)
+	GlobalNPCCUSTOMISER_SliderFrame:SetPoint("TOP", PhaseToolkit.moduleForMetteoSettingsFrame, "CENTER", 0, 0)
 	GlobalNPCCUSTOMISER_SliderFrame:SetMinMaxValues(PhaseToolkit.IntensiteMeteoMin, IntensiteMeteoMax)
 	GlobalNPCCUSTOMISER_SliderFrame:SetValue(PhaseToolkit.IntensiteMeteoMin)
 	GlobalNPCCUSTOMISER_SliderFrame:SetValueStep(1)
@@ -5716,23 +5743,23 @@ end
 --==== Module pour l'heure====--
 function PhaseToolkit.createTimeSettingsFrame()
 	-- need une frame module
-	GlobalNPCCUSTOMISER_moduleForTimeSliderFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetBackdrop({
+	PhaseToolkit.moduleForTimeSliderFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForTimeSliderFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetSize(340, 80)
-	GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -85)
+	PhaseToolkit.moduleForTimeSliderFrame:SetSize(340, 80)
+	PhaseToolkit.moduleForTimeSliderFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -85)
 
-	local timeSliderLabel = GlobalNPCCUSTOMISER_moduleForTimeSliderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	timeSliderLabel:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, "TOP", 0, -10)
+	local timeSliderLabel = PhaseToolkit.moduleForTimeSliderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	timeSliderLabel:SetPoint("TOP", PhaseToolkit.moduleForTimeSliderFrame, "TOP", 0, -10)
 	timeSliderLabel:SetText(PhaseToolkit.CurrentLang["Set the time"] or "Set the time")
 
 
-	local slider = CreateFrame("Slider", "$parentSlider", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, "OptionsSliderTemplate")
-	slider:SetPoint("LEFT", GlobalNPCCUSTOMISER_moduleForTimeSliderFrame, 15, 0)
+	local slider = CreateFrame("Slider", "$parentSlider", PhaseToolkit.moduleForTimeSliderFrame, "OptionsSliderTemplate")
+	slider:SetPoint("LEFT", PhaseToolkit.moduleForTimeSliderFrame, 15, 0)
 
 	slider.Text:ClearAllPoints()
 	slider.Text:SetPoint("TOP", slider, "BOTTOM", 0, 0)
@@ -5770,22 +5797,22 @@ end
 --==== Module pour le starting ====--
 function PhaseToolkit.createSetStartingFrame()
 	-- need une frame module
-	GlobalNPCCUSTOMISER_moduleForSetStartingFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetBackdrop({
+	PhaseToolkit.moduleForSetStartingFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForSetStartingFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForSetStartingFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -80 * 2 - 5)
+	PhaseToolkit.moduleForSetStartingFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForSetStartingFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -80 * 2 - 5)
 
-	local startingLabel = GlobalNPCCUSTOMISER_moduleForSetStartingFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	startingLabel:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForSetStartingFrame, "TOP", 0, -10)
+	local startingLabel = PhaseToolkit.moduleForSetStartingFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	startingLabel:SetPoint("TOP", PhaseToolkit.moduleForSetStartingFrame, "TOP", 0, -10)
 	startingLabel:SetText(PhaseToolkit.CurrentLang["Starting point"] or 'Starting point')
 
-	local ButtonSetStarting = CreateFrame("Button", nil, GlobalNPCCUSTOMISER_moduleForSetStartingFrame, "UIPanelButtonTemplate")
-	ButtonSetStarting:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForSetStartingFrame, "CENTER", 0, -10)
+	local ButtonSetStarting = CreateFrame("Button", nil, PhaseToolkit.moduleForSetStartingFrame, "UIPanelButtonTemplate")
+	ButtonSetStarting:SetPoint("CENTER", PhaseToolkit.moduleForSetStartingFrame, "CENTER", 0, -10)
 	ButtonSetStarting:SetPoint("LEFT", 5, 0)
 	ButtonSetStarting:SetPoint("RIGHT", -5, 0)
 	ButtonSetStarting:SetText(PhaseToolkit.CurrentLang["Set Current Location"] or "Set Current Location")
@@ -5794,8 +5821,8 @@ function PhaseToolkit.createSetStartingFrame()
 	end
 	)
 
-	local ButtonDisableStart = CreateFrame("Button", nil, GlobalNPCCUSTOMISER_moduleForSetStartingFrame, "UIPanelButtonTemplate")
-	ButtonDisableStart:SetPoint("BOTTOM", GlobalNPCCUSTOMISER_moduleForSetStartingFrame, "BOTTOM", 0, 5)
+	local ButtonDisableStart = CreateFrame("Button", nil, PhaseToolkit.moduleForSetStartingFrame, "UIPanelButtonTemplate")
+	ButtonDisableStart:SetPoint("BOTTOM", PhaseToolkit.moduleForSetStartingFrame, "BOTTOM", 0, 5)
 	ButtonDisableStart:SetPoint("LEFT", 15, 0)
 	ButtonDisableStart:SetPoint("RIGHT", -15, 0)
 	ButtonDisableStart:SetText(PhaseToolkit.CurrentLang["Disable Starting"] or "Disable Starting")
@@ -5808,104 +5835,104 @@ end
 --==== Module pour les toggles ====--
 function PhaseToolkit.createTogglesFrame()
 	-- need une frame module
-	GlobalNPCCUSTOMISER_moduleForTogglesFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetBackdrop({
+	PhaseToolkit.moduleForTogglesFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForTogglesFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForTogglesFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 15 + 165, -80 * 2 - 5)
+	PhaseToolkit.moduleForTogglesFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForTogglesFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 15 + 165, -80 * 2 - 5)
 
-	local startingLabel = GlobalNPCCUSTOMISER_moduleForTogglesFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	startingLabel:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForTogglesFrame, "TOP", 0, -10)
+	local startingLabel = PhaseToolkit.moduleForTogglesFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	startingLabel:SetPoint("TOP", PhaseToolkit.moduleForTogglesFrame, "TOP", 0, -10)
 	startingLabel:SetText(PhaseToolkit.CurrentLang["Permission disabling"] or 'Permission disabling')
 
-	Togglesdropdown = CreateFrame("FRAME", "$parentDropDown", GlobalNPCCUSTOMISER_moduleForTogglesFrame, "UIDropDownMenuTemplate")
+	Togglesdropdown = CreateFrame("FRAME", "$parentDropDown", PhaseToolkit.moduleForTogglesFrame, "UIDropDownMenuTemplate")
 	Togglesdropdown:SetSize(200, 30)
-	Togglesdropdown:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForTogglesFrame, "CENTER", 0, -10)
+	Togglesdropdown:SetPoint("CENTER", PhaseToolkit.moduleForTogglesFrame, "CENTER", 0, -10)
 
 	PhaseToolkit.ShowToggleDropDown(Togglesdropdown)
 end
 
 --==== Module pour le nom ====--
 function PhaseToolkit.createPhaseSetNameFrame()
-	GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetBackdrop({
+	PhaseToolkit.moduleForPhaseSetNameFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForPhaseSetNameFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5 - 80 * 3)
+	PhaseToolkit.moduleForPhaseSetNameFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForPhaseSetNameFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5 - 80 * 3)
 
 
-	GlobalNPCCUSTOMISERnameTextEdit = CreateFrame("EDITBOX", nil, GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame, "InputBoxTemplate")
-	GlobalNPCCUSTOMISERnameTextEdit:SetSize(130, 20)
-	GlobalNPCCUSTOMISERnameTextEdit:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame, "CENTER", 2.5, 0)
-	GlobalNPCCUSTOMISERnameTextEdit:SetAutoFocus(false)
-	GlobalNPCCUSTOMISERnameTextEdit:SetScript("OnEnterPressed", function(self)
+	PhaseToolkit.nameTextEdit = CreateFrame("EDITBOX", nil, PhaseToolkit.moduleForPhaseSetNameFrame, "InputBoxTemplate")
+	PhaseToolkit.nameTextEdit:SetSize(130, 20)
+	PhaseToolkit.nameTextEdit:SetPoint("CENTER", PhaseToolkit.moduleForPhaseSetNameFrame, "CENTER", 2.5, 0)
+	PhaseToolkit.nameTextEdit:SetAutoFocus(false)
+	PhaseToolkit.nameTextEdit:SetScript("OnEnterPressed", function(self)
 		sendAddonCmd("phase rename " .. self:GetText(), nil)
 	end)
 
-	local labelForNameTextEdit = GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForNameTextEdit:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForPhaseSetNameFrame, "TOP", 0, -15)
+	local labelForNameTextEdit = PhaseToolkit.moduleForPhaseSetNameFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	labelForNameTextEdit:SetPoint("TOP", PhaseToolkit.moduleForPhaseSetNameFrame, "TOP", 0, -15)
 	labelForNameTextEdit:SetText(PhaseToolkit.CurrentLang["Phase Name"] or "Phase Name")
 end
 
 --==== Module pour la description ====--
 function PhaseToolkit.createPhaseSetDescriptionFrame()
-	GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetBackdrop({
+	PhaseToolkit.moduleForPhaseSetDescriptionFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetSize(165, 80)
-	GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5 - 80 * 3)
+	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetSize(165, 80)
+	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5 - 80 * 3)
 
-	GlobalNPCCUSTOMISER_DescTextEdit = CreateFrame("EDITBOX", nil, GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame, "InputBoxTemplate")
+	GlobalNPCCUSTOMISER_DescTextEdit = CreateFrame("EDITBOX", nil, PhaseToolkit.moduleForPhaseSetDescriptionFrame, "InputBoxTemplate")
 	GlobalNPCCUSTOMISER_DescTextEdit:SetSize(130, 20)
-	GlobalNPCCUSTOMISER_DescTextEdit:SetPoint("CENTER", GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame, "CENTER", 2.5, 0)
+	GlobalNPCCUSTOMISER_DescTextEdit:SetPoint("CENTER", PhaseToolkit.moduleForPhaseSetDescriptionFrame, "CENTER", 2.5, 0)
 	GlobalNPCCUSTOMISER_DescTextEdit:SetAutoFocus(false)
 	GlobalNPCCUSTOMISER_DescTextEdit:SetScript("OnEnterPressed", function(self)
 		sendAddonCmd("phase set description " .. self:GetText(), nil)
 	end)
 
-	local labelForNameTextEdit = GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForNameTextEdit:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleForPhaseSetDescriptionFrame, "TOP", 0, -15)
+	local labelForNameTextEdit = PhaseToolkit.moduleForPhaseSetDescriptionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	labelForNameTextEdit:SetPoint("TOP", PhaseToolkit.moduleForPhaseSetDescriptionFrame, "TOP", 0, -15)
 	labelForNameTextEdit:SetText(PhaseToolkit.CurrentLang["Phase Description"] or "Phase Description")
 end
 
 function PhaseToolkit.createMotdFrame()
-	GlobalNPCCUSTOMISER_moduleforMotdFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	GlobalNPCCUSTOMISER_moduleforMotdFrame:SetBackdrop({
+	PhaseToolkit.moduleforMotdFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
+	PhaseToolkit.moduleforMotdFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
 		edgeSize = 16,
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
-	GlobalNPCCUSTOMISER_moduleforMotdFrame:SetSize(340, 120)
-	GlobalNPCCUSTOMISER_moduleforMotdFrame:SetPoint("BOTTOM", PhaseToolkit.PhaseOptionFrame, "BOTTOM", 0, 5)
+	PhaseToolkit.moduleforMotdFrame:SetSize(340, 120)
+	PhaseToolkit.moduleforMotdFrame:SetPoint("BOTTOM", PhaseToolkit.PhaseOptionFrame, "BOTTOM", 0, 5)
 
 	local textForMotd = ""
-	GlobalNPCCUSTOMISER_editBoxForMotd = CreateFrame("FRAME", "$parentEdit", GlobalNPCCUSTOMISER_moduleforMotdFrame, "EpsilonInputScrollTemplate")
-	GlobalNPCCUSTOMISER_editBoxForMotd:SetPoint("BOTTOMLEFT", GlobalNPCCUSTOMISER_moduleforMotdFrame, "BOTTOMLEFT", 5, 5)
+	GlobalNPCCUSTOMISER_editBoxForMotd = CreateFrame("FRAME", "$parentEdit", PhaseToolkit.moduleforMotdFrame, "EpsilonInputScrollTemplate")
+	GlobalNPCCUSTOMISER_editBoxForMotd:SetPoint("BOTTOMLEFT", PhaseToolkit.moduleforMotdFrame, "BOTTOMLEFT", 5, 5)
 	GlobalNPCCUSTOMISER_editBoxForMotd:SetSize(330, 95)
 	GlobalNPCCUSTOMISER_editBoxForMotd.ScrollFrame.EditBox:SetScript("OnTextChanged", function(self)
 		textForMotd = self:GetText()
 	end)
 
-	local labelForMotdTextEdit = GlobalNPCCUSTOMISER_moduleforMotdFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForMotdTextEdit:SetPoint("TOP", GlobalNPCCUSTOMISER_moduleforMotdFrame, "TOP", 0, -5)
+	local labelForMotdTextEdit = PhaseToolkit.moduleforMotdFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	labelForMotdTextEdit:SetPoint("TOP", PhaseToolkit.moduleforMotdFrame, "TOP", 0, -5)
 	labelForMotdTextEdit:SetText(PhaseToolkit.CurrentLang["Message of the day"] or "Message of the day")
 
 
-	local buttonToSendMotd = CreateFrame("Button", nil, GlobalNPCCUSTOMISER_moduleforMotdFrame, "UIPanelButtonTemplate")
-	buttonToSendMotd:SetPoint("TOPRIGHT", GlobalNPCCUSTOMISER_moduleforMotdFrame, "TOPRIGHT", 0, 0)
+	local buttonToSendMotd = CreateFrame("Button", nil, PhaseToolkit.moduleforMotdFrame, "UIPanelButtonTemplate")
+	buttonToSendMotd:SetPoint("TOPRIGHT", PhaseToolkit.moduleforMotdFrame, "TOPRIGHT", 0, 0)
 	buttonToSendMotd:SetSize(80, 20)
 	buttonToSendMotd:SetText(PhaseToolkit.CurrentLang["SetMotd"] or "SetMotd")
 	buttonToSendMotd:SetScript("OnClick", function(self)
@@ -6008,6 +6035,7 @@ function PhaseToolkit.CreateCustomFrame()
 		insets = { left = 5, right = 5, top = 5, bottom = 5 },
 	})
 
+	PhaseToolkit.CustomFrame:EnableMouse(true);
 
 	if (PhaseToolkit.NombreDeLigne ~= nil) then
 		PhaseToolkit.HauteurDispoCustomFrame = ((PhaseToolkit.NombreDeLigne - 1) * 50)
@@ -6235,7 +6263,7 @@ end
 function PhaseToolkit.CreateNewNpcCategory(name,funcToCall)
     -- Fetch the last max ID from the server
     EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_NPC, function(data)
-        local lastMaxId = tonumber(data) or 0 
+        local lastMaxId = tonumber(data) or 0
         local newCategoryId = lastMaxId + 1
 
         -- Create the new category
@@ -6281,7 +6309,7 @@ function PhaseToolkit.getNpcCategoryFromPhaseData(functionToCall)
 		else
 			PhaseToolkit.NPCcategoryList = {}
 		end
-		
+
 		PhaseToolkit.categoryPanelNPC:Hide()
 		PhaseToolkit.categoryPanelNPC = nil
 		for i = 1, 7 do
@@ -6294,7 +6322,7 @@ function PhaseToolkit.getNpcCategoryFromPhaseData(functionToCall)
 		PhaseToolkit.openNpcCategoryPanel()
 
 	end)
-	
+
 end
 
 function PhaseToolkit.saveNpcCategoryDataToServer()
@@ -6315,7 +6343,7 @@ function PhaseToolkit.resetNPCFrame()
 	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.categoryPanelNPC.editingLabel then
 		PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
 	end
-	if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+	if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 	else
 		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -6341,6 +6369,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 	PhaseToolkit.categoryPanelNPC = CreateFrame("Frame", "CategoryPanel", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.categoryPanelNPC:SetSize(minWidth, 320)
 	PhaseToolkit.categoryPanelNPC:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPRIGHT", 5, 0)
+	PhaseToolkit.categoryPanelNPC:EnableMouse(true)
 
 	PhaseToolkit.categoryPanelNPC:SetScript("OnHide",PhaseToolkit.resetNPCFrame)
 
@@ -6374,7 +6403,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 
 
 	local function handleRightClickBehaviour(self,category,categoryFrame,index)
-		if(PhaseToolkit.NPCselectedCategoryIndex) then 
+		if(PhaseToolkit.NPCselectedCategoryIndex) then
 			if(PhaseToolkit.NPCselectedCategory.id ~= category.id) then
 				local reducedIndex = ((PhaseToolkit.NPCselectedCategoryIndex - 1) % 7) + 1
 				local lastCategoryFrame = _G["PTK_CATEGORY_FRAME" .. reducedIndex]
@@ -6384,7 +6413,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 				PhaseToolkit.NPCselectedCategory = nil
 				PhaseToolkit.NPCselectedCategoryIndex = nil
 
-				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 				else
 					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -6394,19 +6423,19 @@ function PhaseToolkit.openNpcCategoryPanel()
 				categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
 				PhaseToolkit.NPCselectedCategory = nil
 				PhaseToolkit.NPCselectedCategoryIndex = nil
-				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 				else
 					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
 				end
 				PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
 				return
-			end	
+			end
 		end
 		categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
 		PhaseToolkit.NPCselectedCategory = category
 		PhaseToolkit.NPCselectedCategoryIndex = index
-		if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then 
+		if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
 			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 		else
 			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
@@ -6483,7 +6512,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 		if PhaseToolkit.categoryPanelNPC.editingLabel:IsShown() then
 			PhaseToolkit.categoryPanelNPC.editingLabel:Hide()
 		end
-		if(PhaseToolkit.NPCselectedCategoryIndex) then 
+		if(PhaseToolkit.NPCselectedCategoryIndex) then
 			local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.NPCselectedCategoryIndex]
 			if(lastCategoryFrame) then
 				lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
@@ -6494,7 +6523,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 		-- if already in the pool we take it out
 		local indexInPool = isStringInArray(PhaseToolkit.NPCcategoryToFilterPool,category.id)
 		-- if in the pool we delete it
-		if(indexInPool>0) then 
+		if(indexInPool>0) then
 			tremove(PhaseToolkit.NPCcategoryToFilterPool,indexInPool);
 			categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
 			handleCategoryPoolChange()
@@ -6559,15 +6588,15 @@ function PhaseToolkit.openNpcCategoryPanel()
 					PhaseToolkit.RegisterTooltip(categoryFrame, "This category is big (>200 Npcs), add and delete npc from it with care, it can cause crashes if done too fast.")
 
 				end
-				
+
 
 				categoryFrame:SetScript("OnMouseDown", function(self, button)
 					if button == "RightButton"  and PhaseToolkit.UserHasPermission() then
 						handleRightClickBehaviour(self, category, categoryFrame, index)
-						
+
 					else
 						handleLeftClickBehaviour(self, category, categoryFrame, index)
-					end	
+					end
 				end);
 				categoryFrame:Show();
 			else
@@ -6635,7 +6664,7 @@ function PhaseToolkit.openNpcCategoryPanel()
 				local categoryName = self:GetText()
 				if categoryName and categoryName ~= "" then
 					PhaseToolkit.CreateNewNpcCategory(categoryName,PhaseToolkit.updateNPCCategoryList)
-					
+
 				end
 				self:ClearFocus()
 				inputFrame:Hide()
@@ -6714,7 +6743,7 @@ end
 function PhaseToolkit.CreateNewTELECategory(name,funcToCall)
     -- Fetch the last max ID from the server
     EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_TELE, function(data)
-        local lastMaxId = tonumber(data) or 0 
+        local lastMaxId = tonumber(data) or 0
         local newCategoryId = lastMaxId + 1
 
         -- Create the new category
@@ -6760,7 +6789,7 @@ function PhaseToolkit.getTeleCategoryFromPhaseData(functionToCall)
 		else
 			PhaseToolkit.TELEcategoryList = {}
 		end
-		
+
 		PhaseToolkit.categoryPanelTELE:Hide()
 		PhaseToolkit.categoryPanelTELE = nil
 		for i = 1, 7 do
@@ -6790,7 +6819,7 @@ function PhaseToolkit.resetTELEFrame()
 	if PhaseToolkit.categoryPanelTELE and PhaseToolkit.categoryPanelTELE.editingLabel then
 		PhaseToolkit.categoryPanelTELE.editingLabel:Hide()
 	end
-	if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+	if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 	else
 		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
@@ -6816,6 +6845,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 	PhaseToolkit.categoryPanelTELE = CreateFrame("Frame", "CategoryPanel", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.categoryPanelTELE:SetSize(minWidth, 320)
 	PhaseToolkit.categoryPanelTELE:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPRIGHT", 5, 0)
+	PhaseToolkit.categoryPanelTELE:EnableMouse(true)
 
 	PhaseToolkit.categoryPanelTELE:SetScript("OnHide",PhaseToolkit.resetTELEFrame)
 
@@ -6846,7 +6876,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 
 
 	local function handleRightClickBehaviour(self,category,categoryFrame,index)
-		if(PhaseToolkit.TELEselectedCategoryIndex) then 
+		if(PhaseToolkit.TELEselectedCategoryIndex) then
 			if(PhaseToolkit.TELEselectedCategory.id ~= category.id) then
 				local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.TELEselectedCategoryIndex]
 				if(lastCategoryFrame) then
@@ -6855,7 +6885,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 				PhaseToolkit.TELEselectedCategory = nil
 				PhaseToolkit.TELEselectedCategoryIndex = nil
 
-				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 				else
 					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
@@ -6865,19 +6895,19 @@ function PhaseToolkit.openTeleCategoryPanel()
 				categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
 				PhaseToolkit.TELEselectedCategory = nil
 				PhaseToolkit.TELEselectedCategoryIndex = nil
-				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+				if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 				else
 					PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
 				end
 				PhaseToolkit.categoryPanelTELE.editingLabel:Hide()
 				return
-			end	
+			end
 		end
 		categoryFrame:SetBackdropBorderColor(0, 1, 1, 1)
 		PhaseToolkit.TELEselectedCategory = category
 		PhaseToolkit.TELEselectedCategoryIndex = index
-		if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then 
+		if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
 			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
 		else
 			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
@@ -6963,7 +6993,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 
 
 	local function handleLeftClickBehaviour(self,category,categoryFrame,index)
-		if(PhaseToolkit.TELEselectedCategoryIndex) then 
+		if(PhaseToolkit.TELEselectedCategoryIndex) then
 			local lastCategoryFrame = _G["PTK_CATEGORY_FRAME"..PhaseToolkit.TELEselectedCategoryIndex]
 			if(lastCategoryFrame) then
 				lastCategoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
@@ -6974,7 +7004,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 		-- if already in the pool we take it out
 		local indexInPool = isStringInArray(PhaseToolkit.TELEcategoryToFilterPool,category.id)
 		-- if in the pool we delete it
-		if(indexInPool>0) then 
+		if(indexInPool>0) then
 			tremove(PhaseToolkit.TELEcategoryToFilterPool,indexInPool);
 			categoryFrame:SetBackdropBorderColor(1, 1, 1, 1)
 			handleCategoryPoolChange()
@@ -6987,7 +7017,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 	end
 
 	function  PhaseToolkit.updateTELECategoryList()
-		
+
 		local scrollOffset = scrollFrame.ScrollBar:GetValue();
 		local categoryNameForResize={};
 		for i = 1, 7 do
@@ -7044,7 +7074,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 						handleRightClickBehaviour(self, category, categoryFrame, index)
 					else
 						handleLeftClickBehaviour(self, category, categoryFrame, index)
-					end	
+					end
 				end);
 				categoryFrame:Show();
 			else
@@ -7109,7 +7139,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 			local categoryName = self:GetText()
 			if categoryName and categoryName ~= "" then
 				PhaseToolkit.CreateNewTELECategory(categoryName,PhaseToolkit.updateTELECategoryList)
-				
+
 			end
 			self:ClearFocus()
 			inputFrame:Hide()
@@ -7135,7 +7165,7 @@ function PhaseToolkit.openTeleCategoryPanel()
 		PhaseToolkit.getTeleCategoryFromPhaseData(PhaseToolkit.updateTELECategoryList)
 	end)
 	PhaseToolkit.RegisterTooltip(fetchCategoryButton, "Fetch Categories")
-	
+
 	-- Create the button
 	local roundButton = CreateFrame("Button", nil, PhaseToolkit.categoryPanelTELE, "UIPanelButtonTemplate")
 	roundButton:SetSize(20, 20) -- Set the size of the button
