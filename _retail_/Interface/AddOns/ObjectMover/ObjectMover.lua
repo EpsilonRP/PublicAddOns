@@ -526,7 +526,7 @@ function OPObjectPreviewerActor_OnModelLoaded(self)
 		OPSelectedObjectDimZ = abs(lz)
 	end
 
-	if tonumber(OPLastSelectedObjectData[12]) ~= 0 then -- if it has a tint set, let's calculate the spell visual kit for it
+	if OPLastSelectedObjectData and tonumber(OPLastSelectedObjectData[12]) ~= 0 then -- if it has a tint set, let's calculate the spell visual kit for it
 		local tintType = OPLastSelectedObjectData[12]
 		local r = OPLastSelectedObjectData[13]
 		local g = OPLastSelectedObjectData[14]
@@ -1959,6 +1959,34 @@ local events = {
 				if sender == self or string.gsub(self, "%s+", "") then
 					updateGroupSelected(false)
 					dprint("isGroupSelected false")
+
+					if objdetails == "" then -- object unselected
+						dprint("Object Unselected")
+						OPLastSelectedObjectData = nil
+
+						local shortname = "No Object Selected"
+						OPPanel2.SelectedObjName:SetText(shortname)
+						OPPanel4Manager.SelectedObjName:SetText(shortname)
+						OPPanel5Shapes.SelectedObjName:SetText(shortname)
+						local fontName, fontHeight, fontFlags = OPPanel4Manager.SelectedObjName:GetFont()
+						OPPanel4Manager.SelectedObjName:SetFont(fontName, 10, fontFlags)
+
+						-- update extended info
+						OPPanelPopout.ObjName.Text:SetText(shortname)
+						local fontName, fontHeight, fontFlags = OPPanelPopout.ObjName.Text:GetFont()
+						OPPanelPopout.ObjName.Text:SetFont(fontName, 10, fontFlags)
+
+						local noDataText = "No Data Available"
+						OPPanelPopout.ObjEntry.Text:SetText(noDataText)
+						OPPanelPopout.ObjScale.Text:SetText(noDataText)
+						OPPanelPopout.ObjType.Text:SetText(noDataText)
+
+						OPPanelPopout.ObjPreview.Scene.Actor:SetModelByFileID(1)
+						OPPanelPopout.ObjPreview.Scene.Actor:Hide()
+						OPPanelPopout.ObjDimensions.Text:SetText(noDataText)
+
+						return
+					end
 
 					OPLastSelectedObjectData = { strsplit(strchar(31), objdetails) } --[[@as SelectedObjectData]]
 
