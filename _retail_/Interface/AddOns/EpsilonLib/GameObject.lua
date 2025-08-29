@@ -208,7 +208,9 @@ end
 
 dimDetectSceneFrame.objActor.onModelLoadedCallback = function(self)
 	local mX1, mY1, mZ1, mX2, mY2, mZ2 = self:GetActiveBoundingBox()
-	local mX = mX1 - mX2; local mY = mY1 - mY2; local mZ = mZ1 - mZ2
+	local mX = (mX1 or 0) - (mX2 or 0)
+	local mY = (mY1 or 0) - (mY2 or 0)
+	local mZ = (mZ1 or 0) - (mZ2 or 0)
 
 	local size = EpsiLib.API.MathU.Vector3.new(abs(mX), abs(mY), abs(mZ))
 
@@ -836,6 +838,7 @@ local events = {
 	CHAT_MSG_ADDON = function(self, event, ...)
 		local prefix = select(1, ...)
 
+		--[[ -- WTF was this doing and why?
 		if prefix == "Command" then
 			local reply = select(2, ...)
 			if reply:find("^m:..:") then
@@ -843,13 +846,22 @@ local events = {
 			end
 			return
 		end
+		--]]
 
 		if prefix == "EPSILON_OBJ_INFO" or prefix == "EPSILON_OBJ_SEL" then -- If OBJ_INFO or OBJ_SEL message, process the data to our 'cache'
 			local objdetails = select(2, ...)
 			local sender = select(4, ...)
-			C_Timer.After(0, function()
-				local playerSelf = table.concat({ UnitFullName("PLAYER") }, "-")
-				if sender == playerSelf or string.gsub(playerSelf, "%s+", "") then
+
+			local playerSelf = table.concat({ UnitFullName("PLAYER") }, "-")
+			if sender == playerSelf or string.gsub(playerSelf, "%s+", "") then
+				C_Timer.After(0, function()
+					if objdetails == "" then
+						-- Clear the selected object
+						EpsiLib.GameObject._log._selected = nil
+						EpsiLib.EventManager:Fire("EPSILON_OBJ_UPDATE", "UNSEL", nil)
+						return
+					end
+
 					--updateGroupSelected(false)
 
 					local objectData = { strsplit(strchar(31), objdetails) } --[[@as SelectedObjectData]]
@@ -858,10 +870,10 @@ local events = {
 					local obj = EpsiLib.GameObject._new(unpack(objectData))
 					EpsiLib.GameObject:_addToLog(obj, true)
 					EpsiLib.EventManager:Fire("EPSILON_OBJ_UPDATE", prefix, obj)
-				else
-					print("EpsiLib GobCMA: Illegal Sender (Got: " .. sender .. " | Expected:" .. playerSelf .. ")")
-				end
-			end)
+				end)
+			else
+				print("EpsiLib GobCMA: Illegal Sender (Got: " .. sender .. " | Expected:" .. playerSelf .. ")")
+			end
 		end
 	end,
 	PLAYER_LOGIN = function(self, event, ...)
