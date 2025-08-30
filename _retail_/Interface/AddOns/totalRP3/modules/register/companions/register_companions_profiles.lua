@@ -23,6 +23,7 @@ local _, TRP3_API = ...;
 local Ellyb = Ellyb(...);
 
 -- imports
+local getCompanionProfileID = TRP3_API.companions.player.getCompanionProfileID;
 local Globals, loc, Utils, Events = TRP3_API.globals, TRP3_API.loc, TRP3_API.utils, TRP3_API.events;
 local tinsert, _G, pairs, type, tostring = tinsert, _G, pairs, type, tostring;
 local tsize = Utils.table.size;
@@ -402,7 +403,7 @@ local function onCompanionProfileSelection(value, companionID, targetType)
 		targetType = TRP3_Enums.UNIT_TYPE.MOUNT;
 	end
 	if value == 0 then
-		openProfile(getCompanionRegisterProfileID(companionID));
+		openProfile(getCompanionProfileID(companionID));
 		openMainFrame();
 	elseif value == 1 then
 		unboundPlayerCompanion(companionID, targetType);
@@ -432,7 +433,7 @@ end
 local function getPlayerCompanionProfilesAsList(companionID)
 	local list = {};
 	for profileID, profile in pairs(getProfiles()) do
-		if getCompanionRegisterProfileID(companionID) == profileID then
+		if getCompanionProfileID(companionID) == profileID then
 			tinsert(list, { profile.profileName, nil });
 		else
 			tinsert(list, { profile.profileName, profileID });

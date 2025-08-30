@@ -45,7 +45,7 @@
 -- @class file
 -- @name LibDDI-1.0
 
-local ddiVersion = 3
+local ddiVersion = 2
 local prototype = LibStub("AceGUI-3.0-DropDown-ItemBase"):GetItemBase()
 local version = ddiVersion + prototype.version
 
@@ -116,8 +116,7 @@ do
 	local widgetType = "DDI-RaidIcon"
 	local function setText(self, text)
 		if icons[text] then
-			-- Texture id list for raid icons 1-8 is 137001-137008. Base texture path is Interface\\TARGETINGFRAME\\UI-RaidTargetingIcon_%d
-			self.icon:SetTexture(icons[text] + 137000)
+			self.icon:SetTexture(icons[text] + 137000) -- Texture id list for raid icons 1-8 is 137001-137008. Base texture path is Interface\\TARGETINGFRAME\\UI-RaidTargetingIcon_%d
 		else
 			self.icon:SetTexture()
 		end
@@ -153,7 +152,7 @@ end
 
 do
 	local widgetType = "DDI-Sound"
-	local function soundOnClick(self)
+	local function onClick(self)
 		local snd = media:Fetch("sound", self.sound:GetText())
 		if snd then PlaySoundFile(snd, "Master") end
 	end
@@ -165,7 +164,7 @@ do
 		sndButton:SetWidth(16)
 		sndButton:SetHeight(16)
 		sndButton:SetPoint("RIGHT", frame, "RIGHT", -3, -1)
-		sndButton:SetScript("OnClick", soundOnClick)
+		sndButton:SetScript("OnClick", onClick)
 		sndButton.sound = frame.obj.text
 
 		local icon = sndButton:CreateTexture(nil, "BACKGROUND")
@@ -188,23 +187,10 @@ end
 
 do
 	local widgetType = "DDI-Font"
-	--local function setText(self, text)
-	--	local _, size, flags = self.text:GetFont()
-	--	local font = media:Fetch("font", text)
-	--	if font then self.text:SetFont(font, size, flags) end
-	--	self.text:SetText(text)
-	--end
-	local function setText(self, text) -- Swap to using a hack to workaround Blizz issues creating blank font dropdowns
+	local function setText(self, text)
 		local _, size, flags = self.text:GetFont()
 		local font = media:Fetch("font", text)
-
-		if font then
-			local objectName = "DDI-Font-" .. text
-			local fontObject = _G[objectName] or CreateFont(objectName)
-			fontObject:SetFont(font, size, flags)
-			self.text:SetFontObject(fontObject)
-		end
-
+		if font then self.text:SetFont(font, size, flags) end
 		self.text:SetText(text)
 	end
 	local function constructor()

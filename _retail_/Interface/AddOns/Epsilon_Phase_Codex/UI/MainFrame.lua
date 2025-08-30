@@ -40,9 +40,8 @@ EpsilonPhasesMainFrame.TitleBgColor = titleBgColor
 EpsilonPhasesMainFrame.TopTileStreaks:SetTexture(EpsilonPhases.ASSETS_PATH .. "/EpsiIndexBG")
 EpsilonPhasesMainFrame.TopTileStreaks:SetVertexColor(0.45, 0.45, 0.45)
 
-local background = EpsilonPhasesMainFrame.Inset.Bg
-background:SetTexture(EpsilonPhases.ASSETS_PATH .. "/ManagerBG")
-background:SetAllPoints()
+EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(EpsilonPhasesMainFrame, EpsilonPhasesMainFrame.Bg)
+EpsilonPhasesMainFrame.Inset.Bg:Hide()
 
 local dragBar = CreateFrame("Frame", nil, EpsilonPhasesMainFrame)
 dragBar:SetPoint("TOPLEFT")

@@ -170,7 +170,7 @@ local Conditions = ns.Actions.ConditionsData
 
 ---@param conditions any
 ---@return boolean
-local function checkConditions(conditions)
+local function checkConditions(conditions, ...)
 	if not conditions then return true end
 	if conditions and #conditions == 0 then return true end -- No Conditions, pass the check!
 
@@ -186,7 +186,14 @@ local function checkConditions(conditions)
 				maxArgs = conditionData.maxArgs
 			end
 
-			local condInputTable, numInputs = parseStringToArgs(rowData.Input, maxArgs)
+			local input = rowData.Input
+
+			-- Parse any Input Substitutions
+			if input:find("@.-@") or input:find("%%") then -- only spend the energy to parse substitutions if we actually see there might be one..
+				input = StringSubs.parseStringForAllSubs(input, ...)
+			end
+
+			local condInputTable, numInputs = parseStringToArgs(input, maxArgs)
 			continueRow = func(unpack(condInputTable, 1, numInputs))
 			if rowData.IsNot then continueRow = not (continueRow) end
 			if not continueRow then break end -- row failed, break the current group
@@ -202,8 +209,9 @@ end
 ---@param isRevert any
 ---@param conditions ConditionDataTable
 ---@param runningActionID any|table Could be the Timer Reference..
-local function executeAction(varTable, actionData, selfOnly, isRevert, conditions, runningActionID)
-	if not checkConditions(conditions) then return dprint(nil, "Execute Action Failed Conditions Check, Action Skipped!") end
+---@param ... any spell inputs
+local function executeAction(varTable, actionData, selfOnly, isRevert, conditions, runningActionID, ...)
+	if not checkConditions(conditions, ...) then return dprint(nil, "Execute Action Failed Conditions Check, Action Skipped!") end
 
 	local comTarget = actionData.comTarget
 	for i = 1, #varTable do
@@ -323,7 +331,8 @@ end
 ---@param selfOnly boolean
 ---@param conditions ConditionDataTable
 ---@param vars any
-local function processAction(delay, actionType, revertDelay, selfOnly, conditions, vars)
+---@param ... any spell inputs
+local function processAction(delay, actionType, revertDelay, selfOnly, conditions, vars, ...)
 	if not actionType then return; end
 	local actionData = actionTypeData[actionType]
 	if not actionData.revert then revertDelay = nil end -- Hard-Force no revertDelay if action does not support it.
@@ -366,15 +375,16 @@ local function processAction(delay, actionType, revertDelay, selfOnly, condition
 			timer = timer,
 		}
 	elseif delay == 0 then
-		executeAction(varTable, actionData, selfOnly, nil, conditions, nil)
+		executeAction(varTable, actionData, selfOnly, nil, conditions, nil, ...)
 		if actionData.revert and revertDelay and revertDelay > 0 then
 			createRevertTimer(revertDelay, function(self) executeAction(varTable, actionData, selfOnly, true, conditions, self) end)
 		end
 	else
+		local spellInputs = { ... }
 		local timer = C_Timer.NewTimer(delay, function(self)
-			executeAction(varTable, actionData, selfOnly, nil, conditions, self)
+			executeAction(varTable, actionData, selfOnly, nil, conditions, self, unpack(spellInputs))
 			if actionData.revert and revertDelay and revertDelay > 0 then
-				createRevertTimer(revertDelay, function(self) executeAction(varTable, actionData, selfOnly, true, conditions, self) end)
+				createRevertTimer(revertDelay, function(self) executeAction(varTable, actionData, selfOnly, true, conditions, self, unpack(spellInputs)) end)
 			end
 		end)
 		runningActions[timer] = {
@@ -419,7 +429,7 @@ local function executeSpellFinal(actionsToCommit, bypassCheck, spellName, spellD
 			if not _actionTypeData.revert then revertDelay = nil end
 
 			-- Send the Action to processing
-			processAction(action.delay, action.actionType, revertDelay, action.selfOnly, action.conditions, vars)
+			processAction(action.delay, action.actionType, revertDelay, action.selfOnly, action.conditions, vars, ...)
 
 			-- Determine if we need to extend the 'spell length' because of this action; used for the Castbar.
 			if action.delay > longestDelay then
@@ -474,7 +484,7 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 
 	if spellData then
 		if spellData.conditions and #spellData.conditions > 0 then
-			if not checkConditions(spellData.conditions) then
+			if not checkConditions(spellData.conditions, ...) then
 				PlayVocalErrorSoundID(48);
 				local conditionsFailedMessage = ("You can't cast that ArcSpell (%s) right now."):format(spellData.fullName or spellName)
 				UIErrorsFrame:AddMessage(conditionsFailedMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())
@@ -516,7 +526,7 @@ local function executePhaseSpell(commID, bypassCD, ...)
 	local currentPhase = C_Epsilon.GetPhaseId()
 	if spell then
 		if spell.conditions and #spell.conditions > 0 then
-			if not checkConditions(spell.conditions) then
+			if not checkConditions(spell.conditions, ...) then
 				PlayVocalErrorSoundID(48);
 				local conditionsFailedMessage = ("You can't cast that ArcSpell (%s) right now."):format(spell.fullName)
 				UIErrorsFrame:AddMessage(conditionsFailedMessage, Constants.ADDON_COLORS.ADDON_COLOR:GetRGBA())

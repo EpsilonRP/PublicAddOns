@@ -1077,17 +1077,9 @@ end
 
 function mod:UpdateBorder()
 	if mod.db.hideBlizzard then
-		if MinimapBorder then
-			MinimapBorder:Hide()
-		else
-			MinimapBackdrop:Hide()
-		end
+		MinimapBorder:Hide()
 	else
-		if MinimapBorder then
-			MinimapBorder:Show()
-		else
-			MinimapBackdrop:Show()
-		end
+		MinimapBorder:Show()
 	end
 end
 

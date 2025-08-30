@@ -27,17 +27,6 @@ local dynamicButtons = {
 	GarrisonLandingPageMinimapButton = L["Garrison Button (When Available)"],
 }
 
-local namesCompatForDF = ExpansionLandingPageMinimapButton and {
-	[ExpansionLandingPageMinimapButton] = "GarrisonLandingPageMinimapButton",
-	[Minimap.ZoomIn] = "MinimapZoomIn",
-	[Minimap.ZoomOut] = "MinimapZoomOut",
-	[MinimapCluster.Tracking] = "MiniMapTracking",
-	[MinimapCluster.InstanceDifficulty] = "MiniMapInstanceDifficulty",
-	[MinimapCluster.MailFrame] = "MiniMapMailFrame",
-	[GameTimeFrame] = "GameTimeFrame", -- Just here to change parent to Minimap in :NewFrame
-	[MinimapCluster.Tracking.Button] = "none", -- Prevent error when being passed to :NewFrame
-} or {}
-
 local options = {
 	type = "group",
 	name = L["Buttons"],
@@ -138,8 +127,7 @@ local options = {
 					if not v then
 						mod:ChangeFrameVisibility(f, "always")
 					else
-						local name = namesCompatForDF[f] or f:GetName()
-						mod:ChangeFrameVisibility(f, mod.db.visibilitySettings[name] or "hover")
+						mod:ChangeFrameVisibility(f, mod.db.visibilitySettings[f:GetName()] or "hover")
 					end
 				end
 			end
@@ -158,16 +146,10 @@ do
 		return (mod.db.visibilitySettings[info[#info]] or "hover") == v
 	end
 
-	local function hideSet(info, value)
+	local function hideSet(info, v)
 		local name = info[#info]
-		mod.db.visibilitySettings[name] = value
-		for k,v in next, namesCompatForDF do
-			if v == name then
-				mod:ChangeFrameVisibility(k, value)
-				return
-			end
-		end
-		mod:ChangeFrameVisibility(_G[name], value)
+		mod.db.visibilitySettings[name] = v
+		mod:ChangeFrameVisibility(_G[name], v)
 	end
 
 	function mod:AddButtonOptions(name)
@@ -224,80 +206,38 @@ function mod:OnEnable()
 	-- MiniMapWorldMapButton:GetRegions():SetTexCoord(0,0,0,0.5,1,0,1,0.5) -- Normal
 	-- MiniMapWorldMapButton:GetRegions():SetTexCoord(0,0.5,0,1,1,0.5,1,1) -- Pushed
 
-	if MiniMapWorldMapButton then
-		local overlay = MiniMapWorldMapButton:CreateTexture(nil, "OVERLAY")
-		overlay:SetSize(53,53)
-		overlay:SetTexture(136430) -- 136430 = Interface\\Minimap\\MiniMap-TrackingBorder
-		overlay:SetPoint("TOPLEFT")
-		local background = MiniMapWorldMapButton:CreateTexture(nil, "BACKGROUND")
-		background:SetSize(25,25)
-		background:SetTexture(136467) -- 136467 = Interface\\Minimap\\UI-Minimap-Background
-		background:SetPoint("TOPLEFT", MiniMapWorldMapButton, "TOPLEFT", 4, -2)
+	local overlay = MiniMapWorldMapButton:CreateTexture(nil, "OVERLAY")
+	overlay:SetSize(53,53)
+	overlay:SetTexture(136430) -- 136430 = Interface\\Minimap\\MiniMap-TrackingBorder
+	overlay:SetPoint("TOPLEFT")
+	local background = MiniMapWorldMapButton:CreateTexture(nil, "BACKGROUND")
+	background:SetSize(25,25)
+	background:SetTexture(136467) -- 136467 = Interface\\Minimap\\UI-Minimap-Background
+	background:SetPoint("TOPLEFT", MiniMapWorldMapButton, "TOPLEFT", 4, -2)
 
-		local icon, pushedIcon, highlight = MiniMapWorldMapButton:GetRegions()
-		icon:SetTexCoord(0.32,0,0.32,0.5,1,0,1,0.5)
-		icon:ClearAllPoints()
-		icon:SetPoint("BOTTOMRIGHT", MiniMapWorldMapButton, "BOTTOMRIGHT", -4, 2)
-		icon:SetSize(20,30)
-		pushedIcon:SetTexCoord(0.32,0.5,0.32,1,1,0.5,1,1)
-		pushedIcon:ClearAllPoints()
-		pushedIcon:SetPoint("BOTTOMRIGHT", MiniMapWorldMapButton, "BOTTOMRIGHT", -4, 2)
-		pushedIcon:SetSize(20,30)
+	local icon, pushedIcon, highlight = MiniMapWorldMapButton:GetRegions()
+	icon:SetTexCoord(0.32,0,0.32,0.5,1,0,1,0.5)
+	icon:ClearAllPoints()
+	icon:SetPoint("BOTTOMRIGHT", MiniMapWorldMapButton, "BOTTOMRIGHT", -4, 2)
+	icon:SetSize(20,30)
+	pushedIcon:SetTexCoord(0.32,0.5,0.32,1,1,0.5,1,1)
+	pushedIcon:ClearAllPoints()
+	pushedIcon:SetPoint("BOTTOMRIGHT", MiniMapWorldMapButton, "BOTTOMRIGHT", -4, 2)
+	pushedIcon:SetSize(20,30)
 
-		MiniMapWorldMapButton:SetHighlightTexture(136477) -- 136477 = Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight
-		highlight:ClearAllPoints()
-		highlight:SetPoint("TOPLEFT", MiniMapWorldMapButton, "TOPLEFT", 2, -2)
-	else
-		local overlay = MinimapCluster.MailFrame:CreateTexture(nil, "OVERLAY")
-		overlay:SetSize(53,53)
-		overlay:SetTexture(136430) -- 136430 = Interface\\Minimap\\MiniMap-TrackingBorder
-		overlay:SetPoint("CENTER", MiniMapMailIcon, "CENTER", 10, -10)
-		local background = MinimapCluster.MailFrame:CreateTexture(nil, "BACKGROUND")
-		background:SetSize(25,25)
-		background:SetTexture(136467) -- 136467 = Interface\\Minimap\\UI-Minimap-Background
-		background:SetPoint("CENTER", MiniMapMailIcon, "CENTER")
+	MiniMapWorldMapButton:SetHighlightTexture(136477) -- 136477 = Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight
+	highlight:ClearAllPoints()
+	highlight:SetPoint("TOPLEFT", MiniMapWorldMapButton, "TOPLEFT", 2, -2)
 
-		local overlay = MinimapCluster.Tracking:CreateTexture(nil, "OVERLAY")
-		overlay:SetSize(53,53)
-		overlay:SetTexture(136430) -- 136430 = Interface\\Minimap\\MiniMap-TrackingBorder
-		overlay:SetPoint("CENTER", MinimapCluster.Tracking.Button, "CENTER", 10, -10)
-		local background = MinimapCluster.Tracking:CreateTexture(nil, "BACKGROUND")
-		background:SetSize(25,25)
-		background:SetTexture(136467) -- 136467 = Interface\\Minimap\\UI-Minimap-Background
-		background:SetPoint("CENTER", MinimapCluster.Tracking.Button, "CENTER")
-
-		local overlay = GameTimeFrame:CreateTexture(nil, "OVERLAY")
-		overlay:SetSize(53,53)
-		overlay:SetTexture(136430) -- 136430 = Interface\\Minimap\\MiniMap-TrackingBorder
-		overlay:SetPoint("CENTER", GameTimeFrame, "CENTER", 10, -10)
-		local background = GameTimeFrame:CreateTexture(nil, "BACKGROUND")
-		background:SetSize(25,25)
-		background:SetTexture(136467) -- 136467 = Interface\\Minimap\\UI-Minimap-Background
-		background:SetPoint("CENTER", GameTimeFrame, "CENTER")
-	end
-
-	if GarrisonLandingPageMinimapButton then
-		GarrisonLandingPageMinimapButton:SetSize(36, 36) -- Shrink the missions button
-		-- Stop Blizz changing the icon size || GarrisonLandingPageMinimapButton_UpdateIcon() >> SetLandingPageIconFromAtlases() >> self:SetSize()
-		hooksecurefunc(GarrisonLandingPageMinimapButton, "SetSize", function()
-			sm.core.button.SetSize(GarrisonLandingPageMinimapButton, 36, 36)
-		end)
-		-- Stop Blizz moving the icon || GarrisonLandingPageMinimapButton_UpdateIcon() >> ApplyGarrisonTypeAnchor() >> anchor:SetPoint()
-		hooksecurefunc("GarrisonLandingPageMinimapButton_UpdateIcon", function()
-			mod:UpdateDraggables(GarrisonLandingPageMinimapButton)
-		end)
-	else
-		sm.core.button.SetParent(ExpansionLandingPageMinimapButton, Minimap)
-		sm.core.button.SetSize(ExpansionLandingPageMinimapButton, 36, 36) -- Shrink the missions button
-		-- Stop Blizz changing the icon size || Minimap.lua ExpansionLandingPageMinimapButtonMixin:UpdateIcon() >> SetLandingPageIconFromAtlases() >> self:SetSize()
-		hooksecurefunc(ExpansionLandingPageMinimapButton, "SetSize", function()
-			sm.core.button.SetSize(ExpansionLandingPageMinimapButton, 36, 36)
-		end)
-		-- Stop Blizz moving the icon || Minimap.lua ExpansionLandingPageMinimapButtonMixin:UpdateIcon()>> self:UpdateIconForGarrison() >> ApplyGarrisonTypeAnchor() >> anchor:SetPoint()
-		hooksecurefunc(ExpansionLandingPageMinimapButton, "UpdateIconForGarrison", function()
-			mod:UpdateDraggables(ExpansionLandingPageMinimapButton)
-		end)
-	end
+	GarrisonLandingPageMinimapButton:SetSize(36, 36) -- Shrink the missions button
+	-- Stop Blizz changing the icon size || GarrisonLandingPageMinimapButton_UpdateIcon() >> SetLandingPageIconFromAtlases() >> self:SetSize()
+	hooksecurefunc(GarrisonLandingPageMinimapButton, "SetSize", function()
+		sm.core.button.SetSize(GarrisonLandingPageMinimapButton, 36, 36)
+	end)
+	-- Stop Blizz moving the icon || GarrisonLandingPageMinimapButton_UpdateIcon() >> ApplyGarrisonTypeAnchor() >> anchor:SetPoint()
+	hooksecurefunc("GarrisonLandingPageMinimapButton_UpdateIcon", function()
+		mod:UpdateDraggables(GarrisonLandingPageMinimapButton)
+	end)
 	sm.core:RegisterModuleOptions("Buttons", options, L["Buttons"])
 
 	C_Timer.After(1, mod.StartFrameGrab)
@@ -344,7 +284,7 @@ do
 
 		for i = 1, #animFrames do
 			local f = animFrames[i]
-			local n = namesCompatForDF[f] or f:GetName()
+			local n = f:GetName()
 			if not mod.db.visibilitySettings[n] or mod.db.visibilitySettings[n] == "hover" then
 				f.sexyMapFadeOut:Stop()
 
@@ -368,7 +308,7 @@ do
 
 		for i = 1, #animFrames do
 			local f = animFrames[i]
-			local n = namesCompatForDF[f] or f:GetName()
+			local n = f:GetName()
 
 			if not mod.db.visibilitySettings[n] or mod.db.visibilitySettings[n] == "hover" then
 				if n ~= "GameTimeFrame" or (n == "GameTimeFrame" and C_Calendar.GetNumPendingInvites() < 1) then
@@ -383,7 +323,7 @@ do
 	local hideFrame = CreateFrame("Frame") -- Dummy frame we use for hiding buttons to prevent other addons re-showing them
 	hideFrame:Hide()
 	function mod:NewFrame(f)
-		local n = namesCompatForDF[f] or f:GetName()
+		local n = f:GetName()
 		-- Only add Blizz buttons & LibDBIcon buttons
 		if blizzButtons[n] or dynamicButtons[n] or n:find("LibDBIcon") then
 			-- Create the animation
@@ -405,8 +345,6 @@ do
 				f:ClearAllPoints()
 				f:SetParent(Minimap)
 				f:SetPoint("CENTER", Minimap, "CENTER", -60, 55)
-			elseif namesCompatForDF[f] then
-				f:SetParent(Minimap)
 			end
 
 			animFrames[#animFrames+1] = f
@@ -436,11 +374,7 @@ do
 
 				-- Configure dragging
 				if n == "MiniMapTracking" then
-					if MiniMapTrackingButton then
-						self:MakeMovable(MiniMapTrackingButton, f)
-					else
-						self:MakeMovable(MinimapCluster.Tracking.Button, f)
-					end
+					self:MakeMovable(MiniMapTrackingButton, f)
 				else
 					self:MakeMovable(f)
 				end
@@ -518,8 +452,7 @@ do
 		local x, y = GetCursorPosition()
 		x, y = x / Minimap:GetEffectiveScale(), y / Minimap:GetEffectiveScale()
 		local angle = getCurrentAngle(Minimap, x, y)
-		local name = namesCompatForDF[moving] or moving:GetName()
-		mod.db.dragPositions[name] = angle
+		mod.db.dragPositions[moving:GetName()] = angle
 		setPosition(moving, angle)
 	end
 
@@ -530,7 +463,7 @@ do
 		fadeStop = true
 		for i = 1, #animFrames do
 			local f = animFrames[i]
-			local n = namesCompatForDF[f] or f:GetName()
+			local n = f:GetName()
 			if not mod.db.visibilitySettings[n] or mod.db.visibilitySettings[n] == "hover" then
 				f.sexyMapFadeOut:Stop()
 
@@ -573,15 +506,14 @@ do
 
 		if frame then
 			local x, y = frame:GetCenter()
-			local name = namesCompatForDF[frame] or frame:GetName()
-			local angle = mod.db.dragPositions[name] or getCurrentAngle(frame:GetParent(), x, y)
+			local angle = mod.db.dragPositions[frame:GetName()] or getCurrentAngle(frame:GetParent(), x, y)
 			if angle then
 				setPosition(frame, angle)
 			end
 		else
 			for i = 1, #animFrames do
 				local f = animFrames[i]
-				local n = namesCompatForDF[f] or f:GetName()
+				local n = f:GetName()
 				-- Don't move the Clock or Zone Text when changing shape/preset
 				if n ~= "SexyMapZoneTextButton" and n ~= "TimeManagerClockButton" then
 					local x, y = f:GetCenter()
@@ -605,11 +537,7 @@ do
 		MinimapZoomIn, MinimapZoomOut, MiniMapWorldMapButton, GuildInstanceDifficulty, MiniMapChallengeMode, MiniMapInstanceDifficulty,
 		MiniMapMailFrame, QueueStatusMinimapButton, GarrisonLandingPageMinimapButton
 	}
-	local tblDF = {
-		Minimap, MinimapCluster.Tracking, MinimapCluster.Tracking.Button, TimeManagerClockButton, GameTimeFrame,
-		Minimap.ZoomIn, Minimap.ZoomOut, MinimapCluster.InstanceDifficulty,
-		MinimapCluster.MailFrame, ExpansionLandingPageMinimapButton
-	}
+
 	function mod:AddButton(_, button)
 		self:NewFrame(button)
 	end
@@ -627,14 +555,8 @@ do
 	end
 
 	function mod:StartFrameGrab()
-		if MiniMapMailFrame then
-			for i = 1, #tbl do
-				mod:NewFrame(tbl[i])
-			end
-		else
-			for i = 1, #tblDF do
-				mod:NewFrame(tblDF[i])
-			end
+		for i = 1, #tbl do
+			mod:NewFrame(tbl[i])
 		end
 
 		local ldbiTbl = ldbi:GetButtonList()

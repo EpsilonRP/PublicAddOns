@@ -34,7 +34,9 @@ end
 
 settingsFrame:SetSize(250, 600)
 settingsFrame:SetPoint("TOPRIGHT", EpsilonPhasesMainFrame, "TOPRIGHT", 251, 0)
-settingsFrame.Inset.Bg:SetTexture(EpsilonPhases.ASSETS_PATH .. "/ManagerBG")
+EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(settingsFrame, settingsFrame.Bg, EpsilonPhases.ASSETS_PATH .. "/ManagerBG")
+settingsFrame.Inset.Bg:Hide()
+
 settingsFrame:SetToplevel(true)
 ButtonFrameTemplate_HidePortrait(settingsFrame)
 ButtonFrameTemplate_HideAttic(settingsFrame)

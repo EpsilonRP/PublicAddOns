@@ -317,6 +317,11 @@ local function genConditionRow(group, index)
 		local conditionInput = conditionInfo.Input
 		if not conditionInput then conditionInput = "" end
 
+		-- handle string subs so it doesn't error at least
+		if conditionInput:find("@.-@") or conditionInput:find("%%") then -- only spend the energy to parse substitutions if we actually see there might be one..
+			conditionInput = ns.Utils.StringSubs.parseStringForAllSubs(conditionInput)
+		end
+
 		-- This disabled section should really be simplified back down to just true & false since resetDisabled is given every type change and that's the only time we care to auto-flip
 		if resetDisabled then
 			isDisplayDisabled = nil

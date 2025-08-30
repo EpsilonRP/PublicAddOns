@@ -410,7 +410,7 @@
 					</Frame>
 				</ScrollChild>
 			</ScrollFrame>
-			<Frame name="EpsilonBookLibraryFrame">
+			<Frame name="EpsilonBookLibraryFrame" hidden="true">
 				<Size x="328" y="360"/>
 				<Anchors>
 					<Anchor point="TOPLEFT"/>

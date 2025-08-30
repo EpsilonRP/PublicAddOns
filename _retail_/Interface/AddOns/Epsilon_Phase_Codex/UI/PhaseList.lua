@@ -127,9 +127,9 @@ EpsilonPhasesPhaseListFrame.TopTileStreaks:SetHeight(42)
 
 EpsilonPhasesPhaseListFrame.Inset:SetPoint("TOPLEFT", 4, -63)
 EpsilonPhasesPhaseListFrame.Inset:SetPoint("BOTTOMRIGHT", -6, 20)
-local phaseListBackground = EpsilonPhasesPhaseListFrame.Inset.Bg
-phaseListBackground:SetTexture(EpsilonPhases.ASSETS_PATH .. "/ManagerBG")
-phaseListBackground:SetAllPoints()
+
+EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(EpsilonPhasesPhaseListFrame, EpsilonPhasesPhaseListFrame.Bg)
+EpsilonPhasesPhaseListFrame.Inset.Bg:Hide()
 
 local phaseListTitleBgColor = EpsilonPhasesPhaseListFrame:CreateTexture(nil, "BACKGROUND")
 phaseListTitleBgColor:SetPoint("TOPLEFT", EpsilonPhasesPhaseListFrame.TitleBg)
