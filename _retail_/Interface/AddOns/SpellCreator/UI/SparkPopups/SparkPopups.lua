@@ -526,12 +526,18 @@ end
 
 local noNotificationPhases = { -- Epsi
 	[169] = true,
+	[170] = true,
 	[201] = true,
 	[224] = true,
 }
 local autoSparksInRange = {}
 local CoordinateListener = CreateFrame("Frame")
 local throttle, counter = 0.5, 0
+
+local function clearAutoSparksInRange()
+	autoSparksInRange = table.wipe(autoSparksInRange)
+end
+
 CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 	counter = counter + elapsed
 	if counter < throttle then
@@ -579,7 +585,10 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 				if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
 					-- was in range, check if it was in the tracker before casting
 					local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
-					shouldShowHiddenSparkIcon = true -- show the hidden spark icon always for auto sparks
+
+					shouldShowHiddenSparkIcon = _sparkOptions.showHSI
+					if shouldShowHiddenSparkIcon == nil then shouldShowHiddenSparkIcon = true end -- default to true if not set
+
 					if not autoSparksInRange[sparkCDNameOverride] then
 						-- spark was not already in range, continue
 						autoSparksInRange[sparkCDNameOverride] = true -- track it
@@ -1019,4 +1028,6 @@ ns.UI.SparkPopups.SparkPopups = {
 	hide_hidden = hideHiddenSparkIfShown,
 
 	checkSparksWithPredicate = checkSparksWithPredicate,
+
+	clearAutoSparksInRange = clearAutoSparksInRange,
 }
