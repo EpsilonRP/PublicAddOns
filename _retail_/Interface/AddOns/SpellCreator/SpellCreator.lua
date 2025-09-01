@@ -1088,6 +1088,7 @@ local function phaseChangeHandler()
 	-- // Load the sparks from the phase
 	SparkPopups.SparkPopups.setSparkLoadingStatus(false)
 	SparkPopups.SparkPopups.getPopupTriggersFromPhase()
+	SparkPopups.SparkPopups.clearAutoSparksInRange()
 
 	-- // Update the basement for permissions
 	Basement.updateExecutePermission()

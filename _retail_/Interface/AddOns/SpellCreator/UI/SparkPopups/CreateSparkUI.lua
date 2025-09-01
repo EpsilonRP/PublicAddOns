@@ -899,7 +899,7 @@ local uiOptionsTable = {
 					set = function(info, val)
 						sparkUI_Helper.showHSI = val
 					end,
-					hidden = requiredSparkTypes(_sparkTypesMap["Chat"], _sparkTypesMap["Emote"], _sparkTypesMap["Jump"]),
+					hidden = requiredSparkTypes(_sparkTypesMap["Chat"], _sparkTypesMap["Emote"], _sparkTypesMap["Jump"], (addonName:find("dev") and _sparkTypesMap["Auto"] or nil)), -- Auto Sparks are only allowed in dev
 					width = 1.5,
 				},
 				spacer = {
