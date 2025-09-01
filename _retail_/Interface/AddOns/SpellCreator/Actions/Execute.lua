@@ -189,7 +189,7 @@ local function checkConditions(conditions, ...)
 			local input = rowData.Input
 
 			-- Parse any Input Substitutions
-			if input:find("@.-@") or input:find("%%") then -- only spend the energy to parse substitutions if we actually see there might be one..
+			if input and (input:find("@.-@") or input:find("%%")) then -- only spend the energy to parse substitutions if we actually see there might be one..
 				input = StringSubs.parseStringForAllSubs(input, ...)
 			end
 
