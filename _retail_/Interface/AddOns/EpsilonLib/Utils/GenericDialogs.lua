@@ -63,7 +63,8 @@ local hardOverrides = {
 	"editBoxWidth",
 	"subText",
 	"noCancelOnEscape",
-	"exclusive"
+	"exclusive",
+	"hideOnEscape",
 }
 local function runOverrides(dialogTemplate, customData)
 	for i = 1, #hardOverrides do
