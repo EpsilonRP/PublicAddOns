@@ -148,7 +148,7 @@ function EpsilonAuraManagerFrame_Update(sort_func)
 		button:SetWidth(width);
 		local info = auraList[index];
 		if (info) then
-			button.guid = info.spellID
+			button.guid = info.spellID;
 			spellID = info.spellID;
 			icon = info.icon;
 			name = info.name;
@@ -159,6 +159,12 @@ function EpsilonAuraManagerFrame_Update(sort_func)
 			buttonText:SetText("|T" .. icon .. ":16|t " .. name)
 			buttonText:SetWidth(width / 3)
 			local buttonText = _G["EpsilonAuraManagerFrameButton" .. i .. "Details"];
+			if not originalIcon then
+				originalIcon = 136243
+			end
+			if not originalName then
+				originalName = "<Unknown Spell>"
+			end
 			buttonText:SetText("|T" .. originalIcon .. ":16|t " .. originalName)
 			buttonText:SetWidth(width / 3)
 		end

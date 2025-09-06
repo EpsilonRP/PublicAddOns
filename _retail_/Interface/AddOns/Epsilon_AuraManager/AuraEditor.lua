@@ -67,7 +67,7 @@ local function SetSearch(text)
 					local tbl = {
 						spellID = ScanPos,
 						name = name,
-						icon = icon or "Interface\\Icons\\INV_Misc_QuestionMark",
+						icon = icon or 136243, -- gear instead of question mark; wow uses that as default for spells w/o icon
 						desc = desc
 					};
 					C_Spell.RequestLoadSpellData(ScanPos)
