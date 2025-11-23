@@ -4,6 +4,7 @@
 
 	<Script file="LibStub\LibStub.lua" />
 	<Include file="LibDeflate\lib.xml" />
+	<Include file="LibSerialize\lib.xml" />
 	<Script file="ChatThrottleLib.lua"/>
 	
 	<Include file="CallbackHandler-1.0\CallbackHandler-1.0.xml" />

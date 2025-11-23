@@ -4,6 +4,7 @@
 ## Author: Gardener
 ## SavedVariables: EpsiLib_DB, EpsiLib_Char_DB
 ## Version: 0.1
+## LoadWith: Blizzard_UIWidgets
 
 Lib\Lib.xml
 

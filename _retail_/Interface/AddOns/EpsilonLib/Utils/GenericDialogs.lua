@@ -459,6 +459,54 @@ local function showGenericDropDown(text, callback, options, hasButtons, defaultO
 	return showCustomGenericDropDown(customData, insertedFrame)
 end
 
+-------------------------------
+---#endregion
+-------------------------------
+
+-------------------------------
+---#region Generic Copy Dialog
+-------------------------------
+
+local GenericCopyDialogName = "EPSILIB_GENERIC_COPY" -- Rename this if you want to hook into your own popup dialog, otherwise this will use a default one
+StaticPopupDialogs[GenericCopyDialogName] = {
+	text = "%s",
+	button1 = CALENDAR_COPY_EVENT,
+	button2 = CLOSE,
+	OnAccept = function(self)
+		local text = self.editBox:GetText():gsub("'", "\\'")
+		local call = "CopyToClipboard('" .. text .. "')"
+		EpsiLib.RunScript.raw(call)
+		UIErrorsFrame:AddMessage("Copied!", 0.4, 0.73, 1, 1)
+		self.editBox:SetText("")
+	end,
+	OnCancel = function(self)
+		self.editBox:SetText("")
+	end,
+	EditBoxOnEscapePressed = standardEditBoxOnEscapePressed,
+	hasEditBox = true,
+	timeout = 0,
+	cancels = GenericCopyDialogName,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
+local copy_to_clipboard = TRANSMOG_OUTFIT_COPY_TO_CLIPBOARD:gsub("|cff.*|r", "")
+local function copyText(text)
+	local popup = StaticPopup_Show(GenericCopyDialogName, text);
+	local width = max(popup.text:GetStringWidth(), 250)
+	width = min((GetScreenWidth() * .8), width) -- clamp to 80% screen width so it's not obnoxiously large..
+	popup.editBox:SetWidth(width);
+	popup:SetWidth(width + 50)
+	popup.text:SetText(copy_to_clipboard)
+	popup.editBox:SetText(text)
+	popup.editBox:SetFocus()
+	popup.editBox:HighlightText()
+end
+
+-------------------------------
+---#endregion
+-------------------------------
 
 
 EpsiLib.Utils.GenericDialogs = {
@@ -470,4 +518,6 @@ EpsiLib.Utils.GenericDialogs = {
 
 	CustomDropDown = showCustomGenericDropDown,
 	GenericDropDown = showGenericDropDown,
+
+	Copy = copyText,
 };
