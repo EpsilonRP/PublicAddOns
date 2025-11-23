@@ -30,8 +30,9 @@ end)
 hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...)
 	local id = select(10, UnitBuff(...))
 
+	local unitID, buffIndex = ...
 	if Epsilon_AuraManager_GetMappedAura then
-		id = select(10, Epsilon_AuraManager_GetMappedAura(...))
+		id = select(10, Epsilon_AuraManager_GetMappedAura(unitID, buffIndex, "HARMFUL"))
 	end
 
 	IDTip:addLine(self, id, IDTip.kinds.spell)
