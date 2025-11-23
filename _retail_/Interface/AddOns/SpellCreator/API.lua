@@ -90,7 +90,7 @@ ARC.COMM = wrapToEvalFinalVal(CMD)
 ---@param text string
 local function COPY(text)
 	if text and text ~= "" then
-		HTML.copyLink(nil, text)
+		EpsilonLib.Utils.GenericDialogs.Copy(text)
 	else
 		cprint('ARC:API SYNTAX - COPY - Opens a Dialog to copy the given text.')
 		print(ADDON_COLOR .. 'Function: ' .. ADDON_COLORS.TOOLTIP_CONTRAST:GenerateHexColorMarkup() .. 'ARC:COPY("text to copy, like a URL")|r')
@@ -328,6 +328,17 @@ ARC.RANDW = wrapToEvalFinalVal(RANDW)
 function ARC:STOPSPELLS()
 	ns.Actions.Execute.stopRunningActions()
 end
+
+-------------------
+--#endregion
+-------------------
+
+-------------------
+--#region ARC TELEPORT
+-------------------
+
+---SYNTAX: ARC.TELEPORT("tele locationName", visualID) -- Runs a command, with a pre-made visual Teleport effect.
+ARC.TELEPORT = wrapToEvalFinalVal(ns.Actions.Data_Scripts.tele.port, ARC)
 
 -------------------
 --#endregion
@@ -698,9 +709,10 @@ ARC.XAPI.Items.UnlinkSpell = wrapToEvalFinalVal(function(commID, itemID, isPhase
 end, ARC.XAPI.Items)
 
 
-ARC.XAPI.GetPosition = ARC.LOCATIONS.GetPosition                                   -- no wrap needed, only returns current position data (x, y, z, mapID)
-ARC.XAPI.HasAuraID = wrapToEvalFinalVal(ns.Utils.Aura.checkPlayerAuraID, ARC.XAPI) -- function checkPlayerAuraID(wantedID: any)
-ARC.XAPI.HasAura = wrapToEvalFinalVal(ns.Utils.Aura.checkPlayerAuraID, ARC.XAPI)   -- function checkPlayerAuraID(wantedID: any)
+ARC.XAPI.GetPosition = ARC.LOCATIONS.GetPosition                                -- no wrap needed, only returns current position data (x, y, z, mapID)
+ARC.XAPI.HasAuraID = wrapToEvalFinalVal(ns.Utils.Aura.checkForAuraID, ARC.XAPI) -- function checkForAuraID(wantedID: any, unit?: UnitId)
+ARC.XAPI.HasAura = wrapToEvalFinalVal(ns.Utils.Aura.checkForAuraID, ARC.XAPI)   -- function checkForAuraID(wantedID: any, unit?: UnitId)
+
 ARC.XAPI.HasItem = wrapToEvalFinalVal(function(itemID)
 	local itemCount = GetItemCount(itemID)
 	return (itemCount > 0 and itemCount or false)
@@ -749,6 +761,34 @@ ARC.XAPI.Quickcast = ns.UI.Quickcast.Quickcast.API
 		function SetBookStyle(book: string|QuickcastBook, styleName: string)
 		function GotoPage(book: string|QuickcastBook, pageNum: integer)
 	--]]
+
+ARC.XAPI.Time = {}
+do
+	ARC.XAPI.Time.GetPhaseTime = wrapToEvalFinalVal(function(format)
+		if format and strbyte(format, 1, 1) ~= 33 then
+			-- if the first character is not "!", add it; we do not adjust for local time zone in phase
+			format = "!" .. format
+		end
+
+		return date(format or "!*t", C_DateAndTime.GetServerTimeLocal())
+	end, ARC.XAPI.Time)
+
+	ARC.XAPI.Time.GetServerTime = wrapToEvalFinalVal(function(format)
+		if format and strbyte(format, 1, 1) ~= 33 then
+			-- if the first character is not "!", add it; we want server time UTC
+			format = "!" .. format
+		end
+		return date(format or "!*t", GetServerTime())
+	end, ARC.XAPI.Time)
+
+	ARC.XAPI.Time.GetLocalTime = wrapToEvalFinalVal(function(format)
+		if format and strbyte(format, 1, 1) == 33 then
+			-- if the first character is "!", remove it - we are explicitly asking for local here.
+			format = strsub(format, 2)
+		end
+		return date(format or "*t", time())
+	end, ARC.XAPI.Time)
+end
 
 ---@param category string
 ---@param key string
