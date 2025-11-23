@@ -1279,6 +1279,15 @@ local function ShowGobBrowser()
             exportEditBox = StdUi:SimpleEditBox(exportWindow, 225, 25, utils.serialize(catalog)); --Well, json is a shitty option for that case, glad I fund something else.
             exportEditBox:SetFrameLevel(21)
             StdUi:GlueBottom(exportEditBox, exportWindow, 0, 40)
+
+	-- Add a Copy All button
+	    local copyAllButton = StdUi:Button(exportWindow, 100, 25, "Copy All")
+	    StdUi:GlueBelow(copyAllButton, exportEditBox, 0, -10)
+	    copyAllButton:SetScript("OnClick", function()
+            exportEditBox:SetFocus()
+    	    exportEditBox:HighlightText()
+    	    print("|cff00ff00[Epsilon_Viewer]|r Export text highlighted — press Ctrl+C to copy.")
+ 		end)
          else
             exportCatalogName = g.db.catalogNameList[exportCatalogValue].text
             exportWindow:SetWindowTitle("Export "..exportCatalogName)
