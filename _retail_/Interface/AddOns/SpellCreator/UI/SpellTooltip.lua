@@ -152,9 +152,9 @@ local function getSpellTooltipLines(context, spell, isPhase, noName, spark)
 	local castTimeString
 	if contextData.showCastTime then
 		local spellDuration = ns.Utils.SpellUtils.GetDuration(spell)
-		if (not spellDuration) or (spellDuration < 0.25) then
+		if spellDuration and (spellDuration < 0.25) then
 			castTimeString = "Instant"
-		else
+		elseif spellDuration then
 			castTimeString = (secondsToMinuteSecondString(spellDuration):gsub("s", " sec"):gsub("m", " min")) .. " cast"
 		end
 	end
@@ -183,11 +183,8 @@ local function getSpellTooltipLines(context, spell, isPhase, noName, spark)
 
 	-- Description Line:
 	if contextData.showDescription and spell.description and (spell.description ~= "") then
-		local desc = spell.description:gsub("||", "|"):gsub("|n", "\a")
-		local descLines = { strsplit("\a", desc) }
-		for _, v in ipairs(descLines) do
-			tinsert(lines, goldText(v))
-		end
+		local desc = ns.Utils.SpellUtils.GetDescriptionForUI(spell)
+		tinsert(lines, goldText(desc))
 		tinsert(lines, " ")
 	end
 

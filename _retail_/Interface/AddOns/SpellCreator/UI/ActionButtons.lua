@@ -35,7 +35,8 @@ end
 
 local function saveActionButtonToRegister(button, commID)
 	local actionButtonName, page = button:GetName(), GetActionBarPage()
-	if button:GetParent():GetName() == "MainMenuBarArtFrame" then
+	local parentFrameName = button:GetParent():GetName()
+	if parentFrameName == "MainMenuBarArtFrame" or string.find(parentFrameName, "Dominos") then
 		actionButtonName = actionButtonName .. string.char(31) .. page
 	end
 	savedActionButtons[actionButtonName] = commID
@@ -43,7 +44,8 @@ end
 
 local function clearActionButtonFromRegister(button)
 	local actionButtonName, page = button:GetName(), GetActionBarPage()
-	if button:GetParent():GetName() == "MainMenuBarArtFrame" then
+	local parentFrameName = button:GetParent():GetName()
+	if parentFrameName == "MainMenuBarArtFrame" or string.find(parentFrameName, "Dominos") then
 		actionButtonName = actionButtonName .. string.char(31) .. page
 	end
 
@@ -506,7 +508,7 @@ pageChangeListener:HookScript("OnEvent", function(self, event)
 			end
 		end
 	end
-	loadActionButtonsFromRegister()
+	C_Timer.After(0, loadActionButtonsFromRegister)
 end)
 pageChangeListener:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
 

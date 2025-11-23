@@ -12,6 +12,9 @@ local HTML = ns.Utils.HTML
 local phaseVault = Vault.phase
 local Logging = ns.Logging
 
+local serializer = ns.Serializer
+
+
 local Libs = ns.Libs
 local AceConfig = Libs.AceConfig
 local AceConfigDialog = Libs.AceConfigDialog
@@ -204,7 +207,7 @@ local itemTag_Scripts = {
 
 	---@param payload itemTag_ScriptPayload
 	copy = function(payload)
-		HTML.copyLink(nil, payload.arg)
+		ARC:COPY(payload.arg)
 		runExtensionChecks(payload)
 	end,
 
@@ -261,6 +264,75 @@ local itemTag_Scripts = {
 		payload.extTags = payload.extTags .. "_del"
 		runExtensionChecks(payload)
 	end,
+
+	remote_cast = function(payload)
+		local phaseId, commId = strsplit(":", payload.arg, 2)
+		assert(phaseId and commId, "Invalid remote_cast tag, must be in format <arc_rcast:phaseID:arcSpellID>")
+
+		local keyFormatBase = "SCFORGE_S%s_"
+		EpsilonLib.PhaseAddonData.Get({
+			key = keyFormatBase .. commId,
+			callback = function(data)
+				if data and data ~= "" then
+					local loaded, spell = pcall(serializer.decompressForAddonMsg, data)
+					if not loaded then
+						eprint(("Failed to load ArcSpell (%s) from phase %s."):format(commId, phaseId))
+						return
+					else
+						-- Migrate Spell on load if needed
+						ns.Actions.Migrations.migrateSpell(spell, false)
+					end
+
+
+					local itemName, itemLink, itemQuality, _, _, _, _, _, _, itemTexture = GetItemInfo(payload.itemID)
+					if ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell, payload.itemID, itemName, itemLink, "|T" .. itemTexture .. ":0|t") then
+						runExtensionChecks(payload)
+					end
+				else
+					eprint(("Could not find ArcSpell (%s) in phase %s."):format(commId, phaseId))
+				end
+			end,
+			phaseId = tonumber(phaseId)
+		})
+	end,
+
+	tele = function(payLoad)
+		local loc, visual = strsplit(":", payLoad, 2)
+		CloseGossip() -- Teleports have a forced close always
+		ns.Actions.Data_Scripts.tele.port("tele " .. loc, visual)
+	end,
+
+	ptele = function(payLoad)
+		local loc, visual = strsplit(":", payLoad, 2)
+		CloseGossip() -- Teleports have a forced close always
+		ns.Actions.Data_Scripts.tele.port("phase tele " .. loc, visual)
+	end,
+
+	phase = function(payLoad)
+		local phase, loc, visual = strsplit(":", payLoad, 3)
+		phase = tonumber(phase)
+		if not phase then
+			eprint("Invalid Phase ID given for phase enter: " .. tostring(payLoad)); return;
+		end
+
+		if not visual and tonumber(loc) then
+			-- if no visual, but loc is a number, it's probably the visual; shift values
+			visual = loc
+			loc = nil
+		end
+
+		local command
+		if tonumber(C_Epsilon.GetPhaseId()) == phase then
+			-- already in phase, do phase tele
+			command = ("phase tele %s"):format(loc)
+		else
+			-- not in phase, do enter + tele
+			command = ("phase enter %s %s"):format(phase, loc)
+		end
+
+		CloseGossip() -- Teleports have a forced close always
+		ns.Actions.Data_Scripts.tele.port(command, visual)
+	end,
 }
 
 local itemTag_Tags = {
@@ -272,12 +344,16 @@ local itemTag_Tags = {
 		macro = { script = itemTag_Scripts.macro },
 		cast = { script = itemTag_Scripts.personal_cast },
 		pcast = { script = itemTag_Scripts.phase_cast },
+		--rcast = { script = itemTag_Scripts.remote_cast },
 		save = { script = itemTag_Scripts.save },
 		copy = { script = itemTag_Scripts.copy },
 		eat = { script = itemTag_Scripts.food },
 		drink = { script = itemTag_Scripts.drink },
 		consume = { script = itemTag_Scripts.generic_consume },
 		togaura = { script = itemTag_Scripts.togaura },
+		tele = { script = itemTag_Scripts.tele },
+		ptele = { script = itemTag_Scripts.ptele },
+		phase = { script = itemTag_Scripts.phase },
 	},
 }
 
@@ -358,7 +434,11 @@ local function testAndReplaceArcLinks(itemID, fontStringObject)
 				local useText = useGreenColor:WrapTextInColorCode("Use: " .. thisTagUseText .. " |T" .. ns.UI.Gems.gemPath("Prismatic") .. ":16|t" .. tagOverride)
 				tinsert(thisItemLines, useText)                 -- Save the line for later use
 				description = description:gsub(itemTag_Tags.default, "", 1) -- Just remove it
-				description = description:gsub(thisTagUseText, "", 1) -- Also remove the description
+				if thisTagUseText and thisTagUseText ~= "" then
+					-- Escape any Lua pattern magic characters in the user-provided text so we remove it literally
+					local escaped = thisTagUseText:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+					description = description:gsub(escaped, "", 1) -- Also remove the description (literal match)
+				end
 			end
 
 			fontStringObject:SetText(description);
@@ -367,7 +447,7 @@ local function testAndReplaceArcLinks(itemID, fontStringObject)
 			description = fontStringObject:GetText()
 		end
 
-		description = description .. '"' -- add back the trailing "
+		description = strtrim(description) .. '"' -- add back the trailing "
 
 		fontStringObject:SetText(description)
 	end
@@ -502,7 +582,7 @@ local itemUseHooks = {
 		if self.GetPagedID == nil then
 			return
 		end
-		
+
 		--local actionID = ActionButton_GetPagedID(self)
 		local actionID = self:GetPagedID()
 		--local actionID = ActionButton_CalculateAction(self)
@@ -549,6 +629,24 @@ for k, v in pairs(itemUseHooks) do
 end
 
 --#endregion
+
+local sourceTagOverride = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("%s: %s")
+local gemTagFormat = "|T%s:16|t"
+local gemTagViolet = gemTagFormat:format(ns.UI.Gems.gemPath("Violet"))
+local gemTagBlue = gemTagFormat:format(ns.UI.Gems.gemPath("Blue"))
+
+local function getSpellUseText(spellData, isPhase, showSource)
+	if not spellData then return end
+	local spellDesc = ns.Utils.SpellUtils.GetDescriptionForUI(spellData)
+	local gemTag = isPhase and gemTagBlue or gemTagViolet
+	local sourceText = (sourceTagOverride):format(isPhase and "Cast (Phase)" or "Cast (Personal)", spellData.fullName)
+
+	if not spellDesc or spellDesc == "" then
+		return ("Use: %s %s"):format(gemTag, sourceText)
+	end
+
+	return ("Use: %s %s %s"):format(spellDesc, gemTag, showSource and sourceText or "")
+end
 
 --#region Hooking Tooltips
 
@@ -613,10 +711,7 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 		end
 	end
 
-	local tagOverride = ""
-	if (IsShiftKeyDown() or IsControlKeyDown()) then
-		tagOverride = Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode(" %s: %s")
-	end
+	local showSource = IsShiftKeyDown() or IsControlKeyDown()
 	-- Add ArcSpell descriptions to Use: text.
 	if itemId and (itemsWithSpellsCache[tonumber(itemId)] or onUseLines[tonumber(itemId)]) then
 		tooltip:ClearLines()
@@ -624,30 +719,24 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 		local missingCommIDs = ""
 		local data = itemsWithSpellsCache[tonumber(itemId)]
 		if data and next(data.personal) then
-			local spells, numSpells, lastSpellCommID = "", 0, ""
+			local spells, numSpells = "", 0
 			local spellDesc
 			for k, commID in ipairs(data.personal) do
 				if not tContains(data.phase, commID) then -- Skip if it exists in both Phase & Personal, Prioritize Phase
 					local spellData = ns.Vault.personal.findSpellByID(commID)
 					if spellData then
-						if spellData.description then
-							spellDesc = spellData.description
+						if spellDesc then
+							spellDesc = spellDesc .. "\n" .. getSpellUseText(spellData, false, showSource)
+						else
+							spellDesc = getSpellUseText(spellData, false, showSource)
 						end
-						spells = spells .. spellData.fullName .. ", "
-						lastSpellCommID = commID
-						numSpells = k
+						numSpells = numSpells + 1
 					else
 						missingCommIDs = missingCommIDs .. commID .. ", "
 					end
 				end
 			end
-			spells = strtrim(spells, " ,")
-			local ttLine = "Use: Cast Personal ArcSpell" .. (numSpells > 1 and "s" or "") .. ": "
-			if numSpells == 1 and spellDesc and spellDesc ~= "" then
-				greenText = "Use: " .. spellDesc .. " |T" .. ns.UI.Gems.gemPath("Violet") .. ":16|t" .. (tagOverride):format("Cast (Personal)", spells);
-			elseif spells ~= "" then
-				greenText = ttLine .. spells .. " |T" .. ns.UI.Gems.gemPath("Violet") .. ":16|t";
-			end
+			greenText = spellDesc
 		end
 		if data and next(data.phase) then
 			local spells, numSpells = "", 0
@@ -655,25 +744,20 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 			for k, commID in ipairs(data.phase) do
 				local spellData = ns.Vault.phase.findSpellByID(commID)
 				if spellData then
-					if spellData.description then
-						spellDesc = spellData.description
+					if spellDesc then
+						spellDesc = spellDesc .. "\n" .. getSpellUseText(spellData, true, showSource)
+					else
+						spellDesc = getSpellUseText(spellData, true, showSource)
 					end
-					spells = spells .. spellData.fullName .. ", "
-					numSpells = k
+					numSpells = numSpells + 1
 				else
-					missingCommIDs = missingCommIDs .. commID .. "*, "
+					missingCommIDs = missingCommIDs .. commID .. (" (P)") .. ", "
 				end
 			end
-			spells = strtrim(spells, " ,")
-			local ttLine = "Use: Cast Phase ArcSpell" .. (numSpells > 1 and "s" or "") .. ": "
-			if numSpells == 1 and spellDesc and spellDesc ~= "" then
-				greenText = "Use: " .. spellDesc .. " |T" .. ns.UI.Gems.gemPath("Blue") .. ":16|t" .. (tagOverride):format("Cast (Phase)", spells);
-			elseif spells ~= "" then
-				greenText = ttLine .. spells .. " |T" .. ns.UI.Gems.gemPath("Blue") .. ":16|t";
-			end
+			greenText = (greenText and (greenText .. "\n") or "") .. spellDesc
 		end
 
-		-- Refill the tooltip with the stored lines plus my added lines.
+		-- Refill the tooltip with the stored lines plus our added lines.
 		local found;
 		for i = 1, numLines do
 			if rightText[i] then
@@ -691,7 +775,7 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
 					tooltip:AddLine(greenText, 0, 1, 0, true)
 				end
 
-				if leftText[i] ~= [[""]] and leftText[i] ~= "" then -- force skip blank description lines if there was one.
+				if leftText[i] ~= [[""]] and leftText[i] ~= "" and (not leftText[i]:match('^"%s*"$')) then -- force skip blank description lines if there was one.
 					tooltip:AddLine(leftText[i], leftTextR[i], leftTextG[i], leftTextB[i], true)
 				end
 

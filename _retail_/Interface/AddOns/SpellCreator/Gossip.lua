@@ -49,69 +49,6 @@ local function isLoaded()
 	return isGossipLoaded
 end
 
-local function CallbackClosure(func, ...)
-	if type(func) ~= "function" then error("newCallback arg #1 must be a function") end
-	local args = { ... }
-	local numArgs = select("#", ...)
-	return function() func(unpack(args, numArgs)) end
-end
-
-local function cast(id, trig, self, revert)
-	if trig == nil then trig = true end
-	if self == nil then self = true end
-	cmd(("cast %s %s %s"):format(id, (trig and "triggered" or ""), (self and "self" or "")))
-
-	if revert then
-		C_Timer.After(tonumber(revert) or 0.25, CallbackClosure(cmd, "unaura " .. id .. " self"))
-	end
-end
-
----@class CastSpellData
----@field [1] number SpellID
----@field [2] boolean? triggered
----@field [3] boolean? self
----@field [4] boolean|number? revert (true, false, or a number to specify the revert time)
-
----@alias TeleVisual CastSpellData[]
-
----@type TeleVisual[]
-local teleVisuals = {
-	{ -- Classic
-		delay = 0.8,
-		{ 41232 },
-	},
-	{ -- Bastion
-		{ 367049 },
-		{ 364475, false, false },
-	},
-	{ -- Arcane
-		-- 361504,361505,355673,367731
-		{ 361504 },
-		{ 361505 },
-	},
-	{ -- Holy
-		{ 253303, nil, nil, true }
-		--317142
-	}
-}
-
-local function tele(comm, visualID)
-	visualID = tonumber(visualID)
-	if not visualID then visualID = 1 end
-
-	for _, v in ipairs(teleVisuals[visualID]) do
-		if v.delay then
-			C_Timer.After(v.delay, function() cast(v[1], v[2], v[3], v[4]) end)
-		else
-			cast(v[1], v[2], v[3], v[4])
-		end
-	end
-
-	local delay = teleVisuals[visualID].delay or 1
-
-	C_Timer.After(delay, CallbackClosure(cmd, comm))
-end
-
 ---@param callbacks { openArcanum: fun(), saveToPersonal: fun(phaseVaultIndex: integer, sendLearnedMessage: boolean), loadPhaseVault: fun(callback: fun()) }
 local function init(callbacks)
 	loadPhaseVault = callbacks.loadPhaseVault
@@ -144,7 +81,7 @@ local function init(callbacks)
 			end
 		end,
 		copy = function(payLoad)
-			HTML.copyLink(nil, payLoad)
+			ARC:COPY(payLoad)
 		end,
 		cmd = function(payLoad)
 			cmdWithDotCheck(payLoad)
@@ -152,12 +89,37 @@ local function init(callbacks)
 		tele = function(payLoad)
 			local loc, visual = strsplit(":", payLoad, 2)
 			CloseGossip() -- Teleports have a forced close always
-			tele("tele " .. loc, visual)
+			ns.Actions.Data_Scripts.tele.port("tele " .. loc, visual)
 		end,
 		ptele = function(payLoad)
 			local loc, visual = strsplit(":", payLoad, 2)
 			CloseGossip() -- Teleports have a forced close always
-			tele("phase tele " .. loc, visual)
+			ns.Actions.Data_Scripts.tele.port("phase tele " .. loc, visual)
+		end,
+		phase = function(payLoad)
+			local phase, loc, visual = strsplit(":", payLoad, 3)
+			phase = tonumber(phase)
+			if not phase then
+				eprint("Invalid Phase ID given for phase enter: " .. tostring(payLoad)); return;
+			end
+
+			if not visual and tonumber(loc) then
+				-- if no visual, but loc is a number, it's probably the visual; shift values
+				visual = loc
+				loc = nil
+			end
+
+			local command
+			if tonumber(C_Epsilon.GetPhaseId()) == phase then
+				-- already in phase, do phase tele
+				command = ("phase tele %s"):format(loc)
+			else
+				-- not in phase, do enter + tele
+				command = ("phase enter %s %s"):format(phase, loc)
+			end
+
+			CloseGossip() -- Teleports have a forced close always
+			ns.Actions.Data_Scripts.tele.port(command, visual)
 		end,
 		hide = CloseGossip,
 	}
@@ -176,6 +138,7 @@ local function init(callbacks)
 			copy = { tag = "copy", script = gossipScript.copy },
 			tele = { tag = "tele", script = gossipScript.tele },
 			ptele = { tag = "ptele", script = gossipScript.ptele },
+			phase = { tag = "phase", script = gossipScript.phase },
 		},
 		extensions = {
 			{ ext = "hide", script = gossipScript.hide },
