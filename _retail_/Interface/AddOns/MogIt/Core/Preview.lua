@@ -1397,19 +1397,34 @@ function mog:PreviewFromOutfit(preview, appearanceSources, mainHandEnchant, offH
 	local mainHandSlotID = GetInventorySlotInfo("MAINHANDSLOT");
 	local secondaryHandSlotID = GetInventorySlotInfo("SECONDARYHANDSLOT");
 	for i, source in pairs(appearanceSources) do
-		if source ~= NO_TRANSMOG_SOURCE_ID and i ~= mainHandSlotID and i ~= secondaryHandSlotID then
-			local _, _, _, _, _, link = C_TransmogCollection.GetAppearanceSourceInfo(source);
+		if source ~= NO_TRANSMOG_SOURCE_ID then
+			local succ, _, _, _, _, _, link = pcall(C_TransmogCollection.GetAppearanceSourceInfo, source.appearanceID)
+
+			-- if there's no appearance source, then it's a raw itemID and let's just get the link directly
+			if not succ then
+				if source and source.appearanceID then
+					link = select(2, GetItemInfo(source.appearanceID))
+				end
+			end
 			appearanceSources[i] = link;
 		end
 	end
 
 	-- remap handheld items into string IDs instead as numerical IDs are not supported
-	appearanceSources["MainHandSlot"] = select(6, C_TransmogCollection.GetAppearanceSourceInfo(appearanceSources[mainHandSlotID]));
-	appearanceSources["SecondaryHandSlot"] = select(6, C_TransmogCollection.GetAppearanceSourceInfo(appearanceSources[secondaryHandSlotID]));
+	appearanceSources["MainHandSlot"] = appearanceSources[mainHandSlotID];
+	appearanceSources["SecondaryHandSlot"] = appearanceSources[secondaryHandSlotID];
 	appearanceSources[mainHandSlotID] = nil;
 	appearanceSources[secondaryHandSlotID] = nil;
 
 	mog:AddToPreview(appearanceSources, preview);
+end
+
+function mog:PreviewFromInspect(preview)
+	local inspectSources = C_TransmogCollection.GetInspectItemTransmogInfoList();
+	if #inspectSources == 0 then
+		return;
+	end
+	mog:PreviewFromOutfit(preview, inspectSources);
 end
 
 --//
