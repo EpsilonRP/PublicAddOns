@@ -991,6 +991,60 @@ end
 
 -- EPSI EDIT / MINIMAL TOOLBAR
 do
+	-- string helpers
+	--- @return number StartPos, number EndPos highlight pos in this editbox.
+	local function GetTextHighlightPos(editbox)
+		local Text, Cursor = editbox:GetText(), editbox:GetCursorPosition();
+		editbox:Insert(""); -- Delete selected text
+		local TextNew, CursorNew = editbox:GetText(), editbox:GetCursorPosition();
+		-- Restore previous text
+		editbox:SetText(Text);
+		editbox:SetCursorPosition(Cursor);
+		local Start, End = CursorNew, #Text - (#TextNew - CursorNew);
+		editbox:HighlightText(Start, End);
+		return Start, End;
+	end
+
+	---Wraps this editbox's selected text with the given tag.
+	---@param editbox any
+	---@param tagSyntax any
+	---@param attributes any?
+	local function WrapSelectionInTag(editbox, tagSyntax)
+		if not editbox or not tagSyntax then return end
+
+		local Start, End = GetTextHighlightPos(editbox);
+		local Text, Cursor = editbox:GetText(), editbox:GetCursorPosition();
+		if (Start == End) then  -- Nothing selected
+			Start, End = Cursor, Cursor; -- Wrap around cursor
+			--return; -- Wrapping the cursor in a color code and hitting backspace crashes the client!
+		end
+
+		local Selection = Text:sub(Start + 1, End);
+		local finalText = tagSyntax
+
+		finalText = finalText:format(Selection)
+
+		editbox:Insert(finalText)
+
+		editbox:SetCursorPosition(Cursor);
+		-- Highlight selection and wrapper
+		editbox:HighlightText(Start, (Start + #finalText));
+	end
+
+	-- Helper: Strip existing color codes from a string
+	local function StripColorCodes(text)
+		if not text then return "" end
+		-- Remove patterns like: |c fRRGGBBX|r
+		text = text:gsub("|c f%x%x%x%x%x%x(.)|r", "%1")
+		-- Just in case: also remove any standard |cXXXXXXXX...|r formatting without capturing anything
+		text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
+		text = text:gsub("|r", "")
+		return text
+	end
+
+	--#endregion
+
+
 	-- WoW-format versions of TRP3’s selection handlers
 	local function onIconTagSelected(icon, frame)
 		if not icon or icon == "" then return end
@@ -1004,10 +1058,9 @@ do
 	local function onColorTagSelected(red, green, blue, frame)
 		if not (red and green and blue) then return end
 
-		local cursorIndex = frame:GetCursorPosition();
 		local tag = ("||cff%s"):format(strconcat(numberToHexa(red), numberToHexa(green), numberToHexa(blue)));
-		insertTag(tag .. "||r", cursorIndex, frame);
-		frame:SetCursorPosition(cursorIndex + tag:len());
+		tag = tag .. "%s" .. "||r"
+		WrapSelectionInTag(frame, tag)
 		frame:SetFocus();
 	end
 
@@ -1026,6 +1079,7 @@ do
 		toolbar.image:SetText(loc.CM_IMAGE)
 		toolbar.icon:SetText(loc.CM_ICON)
 		toolbar.color:SetText(loc.CM_COLOR)
+		toolbar.gradient:SetText("Gradient")
 		toolbar.textFrame = textFrame
 
 		-- ICON button
@@ -1076,6 +1130,36 @@ do
 					TRP3_API.popup.IMAGES,
 					{ parent = parentFrame, point = point, parentPoint = parentPoint },
 					{ function(image) onImageTagSelected(image, toolbar.textFrame) end }
+				)
+			end
+		end)
+
+		-- GRADIENT button
+		toolbar.gradient:SetScript("OnClick", function()
+			if toolbar.textFrame then
+				local frame = toolbar.textFrame
+				local Start, End = GetTextHighlightPos(frame);
+				local Text, Cursor = frame:GetText(), frame:GetCursorPosition();
+				local selectedText = Text:sub(Start + 1, End);
+				if selectedText == "" then
+					-- No selection: apply gradient to a sample text
+					selectedText = "Example Text"
+					Start, End = Cursor, Cursor
+				end
+
+				selectedText = StripColorCodes(selectedText:gsub("||", "|"))
+
+				for _, popup in pairs(TRP3_API.popup.POPUPS) do
+					popup.frame:Hide()
+				end
+				TRP3_API.popup.showPopup(
+					TRP3_API.popup.GRADIENTS,
+					{ parent = parentFrame, point = point, parentPoint = parentPoint },
+					{ function(gradientText)
+						toolbar.textFrame:Insert(gradientText:gsub("|", "||"))
+						toolbar.textFrame:SetCursorPosition(Cursor);
+						toolbar.textFrame:HighlightText(Start, (Start + gradientText:len()));
+					end, selectedText }
 				)
 			end
 		end)
