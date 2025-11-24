@@ -989,6 +989,231 @@ function TRP3_API.ui.text.changeToolbarTextFrame(toolbar, textFrame)
 	toolbar.textFrame = textFrame;
 end
 
+-- EPSI EDIT / MINIMAL TOOLBAR
+do
+	-- WoW-format versions of TRP3’s selection handlers
+	local function onIconTagSelected(icon, frame)
+		if not icon or icon == "" then return end
+		local cursorIndex = frame:GetCursorPosition();
+		local tag = ("|T%s:0|t"):format(icon)
+		insertTag(tag, cursorIndex, frame);
+		frame:SetCursorPosition(cursorIndex + tag:len());
+		frame:SetFocus();
+	end
+
+	local function onColorTagSelected(red, green, blue, frame)
+		if not (red and green and blue) then return end
+
+		local cursorIndex = frame:GetCursorPosition();
+		local tag = ("||cff%s"):format(strconcat(numberToHexa(red), numberToHexa(green), numberToHexa(blue)));
+		insertTag(tag .. "||r", cursorIndex, frame);
+		frame:SetCursorPosition(cursorIndex + tag:len());
+		frame:SetFocus();
+	end
+
+	local function onImageTagSelected(image, frame)
+		if not image or image == "" then return end
+		local cursorIndex = frame:GetCursorPosition();
+		local tag = ("||T%s:0||t"):format(image.url)
+		insertTag(tag, cursorIndex, frame);
+		frame:SetCursorPosition(cursorIndex + tag:len());
+		frame:SetFocus();
+	end
+
+	-- Minimal toolbar setup (uses WoW formatting instead of TRP3 tags)
+	function TRP3_API.ui.text.setupMinimalToolbar(toolbar, textFrame, parentFrame, point, parentPoint)
+		toolbar.title:SetText(loc.REG_PLAYER_ABOUT_TAGS)
+		toolbar.image:SetText(loc.CM_IMAGE)
+		toolbar.icon:SetText(loc.CM_ICON)
+		toolbar.color:SetText(loc.CM_COLOR)
+		toolbar.textFrame = textFrame
+
+		-- ICON button
+		toolbar.icon:SetScript("OnClick", function()
+			if toolbar.textFrame then
+				for _, popup in pairs(TRP3_API.popup.POPUPS) do
+					popup.frame:Hide()
+				end
+				TRP3_API.popup.showPopup(
+					TRP3_API.popup.ICONS,
+					{ parent = parentFrame, point = point, parentPoint = parentPoint },
+					{ function(icon) onIconTagSelected(icon, toolbar.textFrame) end }
+				)
+			end
+		end)
+
+		-- COLOR button
+		toolbar.color:SetScript("OnClick", function()
+			if toolbar.textFrame then
+				for _, popup in pairs(TRP3_API.popup.POPUPS) do
+					popup.frame:Hide()
+				end
+				if shiftDown() or (getConfigValue and getConfigValue("default_color_picker")) then
+					TRP3_API.popup.showDefaultColorPicker({
+						function(red, green, blue)
+							onColorTagSelected(red, green, blue, toolbar.textFrame)
+						end
+					})
+				else
+					TRP3_API.popup.showPopup(
+						TRP3_API.popup.COLORS,
+						{ parent = parentFrame, point = point, parentPoint = parentPoint },
+						{ function(red, green, blue)
+							onColorTagSelected(red, green, blue, toolbar.textFrame)
+						end }
+					)
+				end
+			end
+		end)
+
+		-- IMAGE button
+		toolbar.image:SetScript("OnClick", function()
+			if toolbar.textFrame then
+				for _, popup in pairs(TRP3_API.popup.POPUPS) do
+					popup.frame:Hide()
+				end
+				TRP3_API.popup.showPopup(
+					TRP3_API.popup.IMAGES,
+					{ parent = parentFrame, point = point, parentPoint = parentPoint },
+					{ function(image) onImageTagSelected(image, toolbar.textFrame) end }
+				)
+			end
+		end)
+	end
+
+	------------------------------------------------------------
+	-- Minimal Editor Frame (persistent)
+	------------------------------------------------------------
+	local MinimalEditorFrame
+
+	local function CreateMinimalEditorFrame()
+		local frame = CreateFrame("Frame", "TRP3_MinimalEditor", UIParent, "BackdropTemplate")
+		frame:SetSize(550, 400)
+		frame:SetPoint("CENTER")
+		frame:SetFrameStrata("DIALOG")
+		frame:SetBackdrop({
+			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+			tile = true,
+			tileSize = 16,
+			edgeSize = 16,
+			insets = { left = 4, right = 4, top = 4, bottom = 4 }
+		})
+		frame:EnableMouse(true)
+		frame:SetMovable(true)
+		frame:RegisterForDrag("LeftButton")
+		frame:SetScript("OnDragStart", frame.StartMoving)
+		frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+		frame:Hide()
+
+		-- Toolbar
+		local toolbar = CreateFrame("Frame", nil, frame, "TRP3_TextToolbarMinimal")
+		toolbar:SetPoint("TOP", frame, "TOP", 0, -20)
+		toolbar:SetPoint("LEFT", frame, "LEFT", 10, 0)
+		toolbar:SetPoint("RIGHT", frame, "RIGHT", -10, 0)
+		frame.toolbar = toolbar
+
+		-- Scrollable edit box
+		local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+		scrollFrame:SetPoint("TOPLEFT", 15, -60)
+		scrollFrame:SetPoint("BOTTOMRIGHT", -30, 80)
+
+		local editBox = CreateFrame("EditBox", nil, scrollFrame)
+		editBox:SetMultiLine(true)
+		editBox:SetFontObject(ChatFontNormal)
+		editBox:SetAutoFocus(false)
+		editBox:SetWidth(480)
+		editBox:SetTextInsets(4, 4, 4, 4)
+		scrollFrame:SetScrollChild(editBox)
+		frame.editBox = editBox
+
+		local previewScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+		previewScroll:SetPoint("TOPLEFT", scrollFrame, "BOTTOMLEFT", 0, -10)
+		previewScroll:SetPoint("TOPRIGHT", scrollFrame, "BOTTOMRIGHT", 0, -10)
+		previewScroll:SetPoint("BOTTOM", 0, 50)
+
+		local previewEdit = CreateFrame("EditBox", nil, previewScroll)
+		previewEdit:SetMultiLine(true)
+		previewEdit:SetFontObject(ChatFontNormal)
+		previewEdit:SetAutoFocus(false)
+		previewEdit:SetWidth(480)
+		previewEdit:SetTextInsets(4, 4, 0, 0)
+		previewEdit:SetEnabled(false)
+		previewScroll:SetScrollChild(previewEdit)
+		frame.preview = previewEdit
+		editBox:HookScript("OnTextChanged", function()
+			local text = editBox:GetText() or ""
+			text = text:gsub("||", "|"):gsub("|c f", "|cff"):gsub("||r", "|r"):gsub("||T", "|T"):gsub("||t", "|t") -- unescape
+			previewEdit:SetText(text)
+		end)
+		local previewLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		previewLabel:SetPoint("BOTTOMLEFT", previewScroll, "TOPLEFT", 0, 6)
+		previewLabel:SetText("Preview" .. ":")
+		local previewSeparator = frame:CreateTexture(nil, "ARTWORK")
+		previewSeparator:SetPoint("BOTTOMLEFT", previewLabel, "TOPLEFT", 0, 0)
+		previewSeparator:SetPoint("RIGHT", previewScroll, "RIGHT", 0, 0)
+		previewSeparator:SetHeight(2)
+		previewSeparator:SetColorTexture(1, 1, 1, 0.5)
+
+		-- OK button
+		local okButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+		okButton:SetSize(80, 24)
+		okButton:SetPoint("BOTTOMRIGHT", -20, 15)
+		okButton:SetText(OKAY)
+		frame.okButton = okButton
+
+		-- Cancel button
+		local cancelButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+		cancelButton:SetSize(80, 24)
+		cancelButton:SetPoint("RIGHT", okButton, "LEFT", -10, 0)
+		cancelButton:SetText(CANCEL)
+		frame.cancelButton = cancelButton
+
+		-- Cancel hides frame
+		cancelButton:SetScript("OnClick", function()
+			frame:Hide()
+		end)
+
+		return frame
+	end
+
+	------------------------------------------------------------
+	-- Utility function
+	------------------------------------------------------------
+	function TRP3_API.ui.text.showMinimalEditor(targetEditBox, text)
+		assert(targetEditBox, "showMinimalEditor: requires a target EditBox reference")
+
+		if not MinimalEditorFrame then
+			MinimalEditorFrame = CreateMinimalEditorFrame()
+		end
+
+		local frame = MinimalEditorFrame
+		local editorBox = frame.editBox
+		local toolbar = frame.toolbar
+
+		-- Hook toolbar to editorBox
+		TRP3_API.ui.text.setupMinimalToolbar(toolbar, editorBox, frame, "LEFT", "RIGHT")
+
+		-- Set text: use provided text, or current target text
+		local initialText = text or targetEditBox:GetText() or ""
+		initialText = initialText:gsub("|", "||"):gsub("|c f", "|cff") -- escape
+		editorBox:SetText(initialText)
+		editorBox:SetCursorPosition(strlenutf8(initialText))
+		editorBox:SetFocus()
+
+		-- OK button behavior
+		frame.okButton:SetScript("OnClick", function()
+			local newText = editorBox:GetText() or ""
+			newText = newText:gsub("||", "|"):gsub("|cff", "|c f") -- unescape
+			targetEditBox:SetText(newText)
+			frame:Hide()
+		end)
+
+		-- Show the editor
+		frame:Show()
+	end
+end
+
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 -- Sounds
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
