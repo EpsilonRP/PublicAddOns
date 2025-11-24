@@ -9,8 +9,8 @@
 local Name, Addon = ...;
 local Title = select(2, GetAddOnInfo(Name));
 
-Addon.MaxSpellID = 403865+100000; --	Last known spell (This is the internal limit for this build)
-Addon.MinFPS = 5;          --		Minimal FPS for the scannew command (this will freeze the game if <=0 with FPSThrottle set that low)
+Addon.MaxSpellID = 403865 + 100000; --	Last known spell (This is the internal limit for this build)
+Addon.MinFPS = 5;                   --		Minimal FPS for the scannew command (this will freeze the game if <=0 with FPSThrottle set that low)
 Addon.Options = {
 	MaxSpellID = Addon.MaxSpellID,
 	FPSThrottle = 10,
@@ -197,6 +197,7 @@ Addon.CacheControl:InitScanner();
 --[[	UI Setup	]]
 --------------------------
 UIPanelWindows["SpellListFrame"] = { area = "doublewide", pushable = 0, whiledead = 1 }; --	Register UI Panel
+local fallbackIcon = 136243
 
 function SpellListFrame_OnLoad(self)
 	Addon.ListFrame = self;
@@ -259,7 +260,9 @@ function SpellListFrame_OnLoad(self)
 				self.DetailTooltip[i]:SetHyperlink("spell:" .. dat[i].SpellID);
 
 				local txt1, txt2 = _G[self.DetailTooltip[i]:GetName() .. "TextLeft1"], _G[self.DetailTooltip[i]:GetName() .. "TextRight1"];
-				txt1:SetText(("|T%s:32|t %s"):format(dat[i].Icon, txt1:GetText()));
+				local txt = txt1:GetText() or GetSpellInfo(dat[i].SpellID) or ("SpellID: %d"):format(sid or self.SelID)
+				local icon = dat[i].Icon or (select(3, GetSpellInfo(dat[i].SpellID)) or fallbackIcon)
+				txt1:SetText(("|T%s:32|t %s"):format(icon, txt));
 				self.DetailTooltip[i]:Show();
 
 				local tidx = 1;
