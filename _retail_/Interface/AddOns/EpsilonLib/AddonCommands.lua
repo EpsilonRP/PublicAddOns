@@ -135,7 +135,6 @@ local function handleCallbackAndMessages(success, data, addon)
 		end
 		for k, v in ipairs(data.returnMessages) do
 			SendSystemMessage(v)
-			-- sprint(v) -- SystemMessage? Print? We're gonna use system message so it can be parsed by GLink if needed & looks more like a real SystemMessage reply from the server
 		end
 	end
 end
@@ -259,7 +258,7 @@ C_ChatInfo.RegisterAddonMessagePrefix(EPSI_ADDON_PREFIX)
 ---Base function for sending an addon command, used by both the Register and Send functions.
 ---@param name string AddOn name calling this command, for logging & debug
 ---@param text string The command to run
----@param callbackFn function The callback function called when the replies are complete
+---@param callbackFn fun(success, returnMessages) The callback function called when the replies are complete
 ---@param overrideMessages? boolean|fun(returnMessages):boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax; can be a function with a return of one of those options, to decide how to handle it based on the reply messages (i.e., custom error handling)
 local function sendAddonCommandBase(name, text, callbackFn, overrideMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
@@ -338,8 +337,8 @@ end
 ---Register for AddonCommands, returning a dedicated function for sending commands using our queue & log system for reporting & handling return data.
 ---@param name string Whatever the name of your AddOn is
 ---@param showMessages? boolean If reply messages for your addon should be shown by default. You can overwrite per call also. Default is nil (only error messages shown)
----@return function? SendAddonCommand SendAddonCommand(text, callbackFn, overrideMessages<boolean|fun(success, returnMessages):boolean>) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>, overrideMessages<boolean|fun(success, returnMessages):boolean>)
----@return function? SendAddonCommandChain SendAddonCommandChain(commands, callbackFn, overrideMessages<boolean|fun(success, returnMessages):boolean>) - Callbacks are called with (success <bool>, allReturnMessages <returnMessages[] (array of the returnMessages from each command ran)>, overrideMessages<boolean|fun(success, returnMessages):boolean>)
+---@return function? SendAddonCommand SendAddonCommand(text, callbackFn<success, returnMessages>, overrideMessages<boolean|fun(success, returnMessages):boolean>) - Callbacks are called with (success <bool>, returnMessages <string[] (array of the strings, to account for multiple replies on some commands)>, overrideMessages<boolean|fun(success, returnMessages):boolean>)
+---@return function? SendAddonCommandChain SendAddonCommandChain(commands, callbackFn<success, returnMessages>, overrideMessages<boolean|fun(success, returnMessages):boolean>) - Callbacks are called with (success <bool>, allReturnMessages <returnMessages[] (array of the returnMessages from each command ran)>, overrideMessages<boolean|fun(success, returnMessages):boolean>)
 _commands.Register = function(name, showMessages)
 	if registry[name] then
 		return error(("EpsilonLib.AddonCommands.Register Warning: Name '%s' is already registered. If you need to overwrite.. Add the code support & commit or let MindScape know why and he will add it."):format(name))
@@ -349,7 +348,7 @@ _commands.Register = function(name, showMessages)
 
 
 	---@param text string The command to run
-	---@param callbackFn function The callback function called when the replies are complete
+	---@param callbackFn fun(success, returnMessages) The callback function called when the replies are complete
 	---@param overrideMessages? boolean|fun(success, returnMessages):boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
 	local function SendAddonCommand(text, callbackFn, overrideMessages)
 		sendAddonCommandBase(name, text, callbackFn, overrideMessages)
@@ -357,7 +356,7 @@ _commands.Register = function(name, showMessages)
 
 	---comment
 	---@param commands string[] A list of commands to send in a chain, where each command is a string. The first command will be sent immediately, and the next command will be sent when the previous command has been completed.
-	---@param callbackFn function The callback function called when the replies are complete
+	---@param callbackFn fun(success, returnMessages) The callback function called when the replies are complete
 	---@param overrideMessages? boolean|fun(success, returnMessages):boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax
 	local function SendAddonCommandChain(commands, callbackFn, overrideMessages)
 		-- This is a chain of commands that will be sent in order, with the first command being sent immediately.

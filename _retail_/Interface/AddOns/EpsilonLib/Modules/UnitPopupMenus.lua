@@ -85,6 +85,13 @@ hooksecurefunc("UnitPopup_ShowMenu", function(...) return UnitPopupsModule:OnUni
 -- UnitIsConnected(unit)
 -- UnitIsPlayer(unit)
 
+local function getItemInfoFromHyperlink(link)
+	local strippedItemLink, itemID = link:match("|Hitem:((%d+).-)|h");
+	if itemID then
+		return tonumber(itemID), strippedItemLink;
+	end
+end
+
 Mixin(UnitPopupsModule.MenuButtons, {
 	TitleBar = {
 		text = "Epsilon",
@@ -266,7 +273,94 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				end,
 			},
 		}
-	}
+	},
+	StealMog = {
+		text = "Preview in MogIt",
+		colorCode = "|cff00ccff",
+		notCheckable = true,
+		func = function()
+			local npc_name = UnitName("target")
+			local guid = UnitGUID("target")
+			local phaseID = C_Epsilon.GetPhaseId()
+			local unitType, _, _, _, _, npc_id, _ = strsplit("-", guid)
+
+			EpsiLib.AddonCommands._SendAddonCommand("npc info", function(success, messages)
+				if not success or not messages then
+					print("|cffff0000Error: 'npc info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+					return
+				end
+
+				local outfitInformation = {}
+
+				for _, line in ipairs(messages) do
+					local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+					-- Also clean item links
+					cleanLine = cleanLine:gsub("|H[^|]*|h", ""):gsub("|h", "")
+
+					local slot, itemData = string.match(cleanLine, "^([^:]+):%s*%[(.+)")
+					if slot and itemData then
+						slot = slot:gsub("^%s+", ""):gsub("%s+$", "")
+
+						-- Filter lines that are not really equipment
+						if not (string.find(slot, "NPC") or string.find(slot, "Info")) then
+							-- Use existing function to extract ID from item link
+							local itemID, strippedLink = getItemInfoFromHyperlink(line)
+
+							if itemID then
+								local slotLower = string.lower(slot)
+								if slotLower:find("main") or slotLower:find("off") or slotLower:find("ranged") then
+									-- This is a weapon slot
+									if not outfitInformation["_weapons"] then
+										outfitInformation["_weapons"] = {}
+									end
+									if slotLower:find("main") then
+										outfitInformation["_weapons"]["0"] = itemID
+									elseif slotLower:find("off") then
+										outfitInformation["_weapons"]["1"] = itemID
+									elseif slotLower:find("ranged") then
+										outfitInformation["_weapons"]["2"] = itemID
+									end
+								else
+									-- This is equipment slot
+									if not outfitInformation["_equipment"] then
+										outfitInformation["_equipment"] = {}
+									end
+									outfitInformation["_equipment"][slot] = itemID
+								end
+							end
+						end
+					end
+				end
+
+				local preview = MogIt:GetPreview()
+				local hasItems = false
+
+				if outfitInformation["_equipment"] then
+					for slot, itemID in pairs(outfitInformation["_equipment"] or {}) do
+						MogIt.view.AddItem(itemID, preview, nil, true)
+						hasItems = true
+					end
+				end
+				if outfitInformation["_weapons"] then
+					for slot, itemID in pairs(outfitInformation["_weapons"]) do
+						MogIt.view.AddItem(itemID, preview, nil, true)
+						hasItems = true
+					end
+				end
+
+				local title = ("NPC Equipment - %s (%s-%s)"):format(npc_name or "Unknown", phaseID or "Unknown Phase", npc_id or "Unknown ID")
+				preview.TitleText:SetText(title);
+				preview.data.title = title;
+
+				if not hasItems then
+					print("|cffff0000Error: No valid equipment found on target NPC to open in MogIt. They may be using a default NPC Display ID instead of custom forged outfit.|r")
+					return
+				end
+				ShowUIPanel(MogIt.view);
+			end, false)
+		end,
+		ShouldShow = function(unit) return (not UnitIsPlayer(unit)) and C_Epsilon.IsOfficer() end,
+	},
 	--[[
 	CharacterStatus = {
 		text = L.DB_STATUS_RP_OOC,
@@ -291,7 +385,7 @@ Mixin(UnitPopupsModule.MenuEntries, {
 	ENEMY_PLAYER   = { "Appear", "Summon", "Epsilon_Phase", },
 	RAID           = { "Appear", "Summon", "Epsilon_Phase", },
 	RAID_PLAYER    = { "Appear", "Summon", "Epsilon_Phase", },
-	TARGET         = { "Appear", "Summon", "Epsilon_Phase", },
+	TARGET         = { "Appear", "Summon", "Epsilon_Phase", "StealMog" },
 	FOCUS          = { "Appear", "Summon", "Epsilon_Phase", },
 
 
