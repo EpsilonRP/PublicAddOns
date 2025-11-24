@@ -242,19 +242,18 @@
 					<Anchor point="BOTTOMLEFT" relativeKey="$parent" relativePoint="BOTTOMRIGHT" x="-1"/>
 				</Anchors>
 				<Frames>
-					<!--Button name="NarciBridge_SaveToMogItButton" inherits="NarciDressingRoomOptionButtonTemplate" hidden="true" parentKey="MogItButton">
+					<Button name="NarciBridge_SaveToMogItButton" inherits="NarciDressingRoomOptionButtonTemplate" parentKey="MogItButton">
 						<Anchors>
 							<Anchor point="CENTER" relativeKey="$parent" relativePoint="BOTTOMLEFT" x="0" y="24"/>
 						</Anchors>
 						<Scripts>
 							<OnLoad>
 								self:OnLoad();
-								self:SetHeight(1);
 								self.Label:SetText(Narci.L["Add to MogIt Wishlist"]);
 								self.Icon:SetTexCoord(0.5, 0.75, 0, 0.25);
 							</OnLoad>
 						</Scripts>
-					</Button-->
+					</Button>
 
 					<Button parentKey="ShareButton" inherits="NarciDressingRoomOptionButtonTemplate">
 						<Anchors>
@@ -446,9 +445,43 @@
 						</Scripts>
 					</Button>
 
-					<Button parentKey="SpinButton" inherits="NarciDressingRoomOptionButtonTemplate">
+					<Button parentKey="UndressButton" inherits="NarciDressingRoomOptionButtonTemplate">
 						<Anchors>
 							<Anchor point="BOTTOM" relativeKey="$parent.ShareButton" relativePoint="TOP" x="0" y="48"/>
+						</Anchors>
+						<Scripts>
+							<OnLoad>
+								self:OnLoad();
+								self.Label:SetText(Narci.L["Undress"] .. " / " .. CreateAtlasMarkup("NPE_RightClick") .. Narci.L["Refresh Model"]);
+								self.Icon:SetTexture("Interface\\AddOns\\Narcissus\\Art\\Modules\\DressingRoom\\UndressButton");
+								self.Icon:SetTexCoord(0, 0.5, 0, 0.5);
+							</OnLoad>
+						</Scripts>
+						<Layers>
+							<Layer level="OVERLAY" textureSubLevel="1">
+								<Texture parentKey="Arrow">
+									<TexCoords left="0.5" right="1" top="0" bottom="0.5"/>
+									<Size x="36" y="36"/>
+									<Anchors>
+										<Anchor point="CENTER" relativeKey="$parent.Icon" relativePoint="RIGHT" x="-4"/>
+									</Anchors>
+									<Animations>
+										<AnimationGroup parentKey="AnimDrop">
+											<Translation order="1" smoothing="OUT" duration="0.25" offsetY="-4"/>
+											<Alpha order="1" fromAlpha="1" toAlpha="0" duration="0.25"/>
+											<Translation order="2" duration="0" offsetY="14"/>
+											<Alpha order="3" fromAlpha="0" toAlpha="1" duration="0.25"/>
+											<Translation smoothing="OUT" order="3" duration="0.5" offsetY="-10"/>
+										</AnimationGroup>
+									</Animations>
+								</Texture>
+							</Layer>
+						</Layers>
+					</Button>
+
+					<Button parentKey="SpinButton" inherits="NarciDressingRoomOptionButtonTemplate">
+						<Anchors>
+							<Anchor point="BOTTOM" relativeKey="$parent.ShareButton" relativePoint="TOP" x="0" y="72"/>
 						</Anchors>
 					</Button>
 				</Frames>

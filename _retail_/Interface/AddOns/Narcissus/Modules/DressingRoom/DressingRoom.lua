@@ -342,8 +342,22 @@ local function RefreshFavoriteState(visualID)
 end
 
 local function NarciBridge_MogIt_SaveButton_OnClick(self)
+    local mog = MogIt;
+    local preview = mog:GetPreview();
+
+   	local playerActor = DressUpFrame.ModelScene:GetPlayerActor();
+	local itemTransmogInfoList = playerActor and playerActor:GetItemTransmogInfoList();
+
+    mog:PreviewFromOutfit(preview, itemTransmogInfoList);
+
+    wipe(newSet.items)
+	newSet.name = preview.data.title or ("Set " .. (#mog.wishlist:GetSets() + 1))
+	newSet.previewFrame = preview
+	for slot, v in pairs(preview.slots) do
+		newSet.items[slot] = v.item
+	end
     StaticPopup_Show("MOGIT_WISHLIST_CREATE_SET", nil, nil, newSet);    --Create a new whishlist
-    MogIt.view:Show();  --Open a view window
+
 end
 
 local function ShareButton_OnClick(self)
@@ -671,6 +685,7 @@ local function DressingRoomOverlayFrame_Initialize()
 
     frame.OptionFrame.ShareButton:SetScript("OnClick", ShareButton_OnClick);
     frame.OptionFrame.InspectButton:SetScript("OnClick", InspectButton_OnClick);
+    frame.OptionFrame.MogItButton:SetScript("OnClick", NarciBridge_MogIt_SaveButton_OnClick);
 
     local spinButton = frame.OptionFrame.SpinButton;
     spinButton.Icon:SetTexCoord(0.5, 0.75, 0.5, 0.75);
@@ -680,6 +695,8 @@ local function DressingRoomOverlayFrame_Initialize()
         NarciOutfitShowcase:Open();
     end);
 
+    local optionsUndressButton = frame.OptionFrame.UndressButton;
+    optionsUndressButton.Arrow:SetTexture("Interface\\AddOns\\Narcissus\\Art\\Modules\\DressingRoom\\UndressButton", nil, nil, "TRILINEAR");
 
     local undressButton = frame.UndressButton;
     local function UB_OnEnter(f)
@@ -706,6 +723,18 @@ local function DressingRoomOverlayFrame_Initialize()
             playerActor:Undress();
         end
     end
+    optionsUndressButton:SetScript("OnClick", function(self, button)
+        if button == "RightButton" then
+            -- refresh 
+            local unit = "player";
+            if UnitExists("target") then unit = "target" end;
+            UpdateDressingRoomModelByUnit(unit);
+        else
+            -- undress
+            UB_OnClick(self);
+        end
+    end);
+    optionsUndressButton:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 
     local function UB_OnMouseDown(f)
         f.Shirt:SetPoint("CENTER", f, "CENTER", 2, -2);
