@@ -145,6 +145,22 @@
 						PlaySoundFile("igMainMenuOptionCheckBoxOn");
 					end
 				</OnClick>
+				<OnLoad>
+					if self.label then self.text:SetText(self.label) end
+				</OnLoad>
+				<OnEnter>
+					if self.tooltipTitle then
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -16, -4)
+						GameTooltip_SetTitle(GameTooltip, self.tooltipTitle)
+						if self.tooltipText then
+							GameTooltip_AddLine(GameTooltip, self.tooltipText)
+						end
+						GameTooltip:Show();
+					end
+				</OnEnter>
+				<OnLeave>
+					GameTooltip_Hide()
+				</OnLeave>
 			</Scripts>
 			<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
 			<PushedTexture file="Interface\Buttons\UI-CheckBox-Down"/>
@@ -244,7 +260,7 @@
 							</OnTabPressed>
 							<OnTextChanged>
 								ScrollingEdit_OnTextChanged(self, self:GetParent());
-							</OnTextChanged> 
+							</OnTextChanged>
 							<OnCursorChanged function="ScrollingEdit_OnCursorChanged"/>
 							<OnUpdate>
 								local parent = self:GetParent()
