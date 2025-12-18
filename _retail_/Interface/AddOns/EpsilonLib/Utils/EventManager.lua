@@ -118,6 +118,10 @@ function EventManager:Fire(event, ...)
 	end
 end
 
+--#endregion
+--#region Custom Epsilon Events
+--- Custom Events for the Epsilon Systems - could just be renamed events that are easier to recognize the name
+
 local customEvents = {
 	SCENARIO_UPDATE = {
 		{ event = "EPSILON_PHASE_CHANGE", data = function(...) return C_Epsilon.GetPhaseId() end },
@@ -154,8 +158,6 @@ end)
 
 --#endregion
 
---#region Custom Epsilon Events
---- Custom Events for the Epsilon Systems - could just be renamed events that are easier to recognize the name
 
 --#region Command Event Manager
 --- Watching for Command Replies & handling if needed - Mostly for static capture of data & logging

@@ -496,7 +496,7 @@ local function executeSpell(actionsToCommit, bypassCheck, spellName, spellData, 
 						eprint("Failed to find spell with ArcSpell ID " .. spellData.castOnFail .. " to cast on failed conditions.")
 						return false
 					end
-					ns.Actions.Execute.executeSpell(onFailSpell.actions, nil, onFailSpell.fullName, onFailSpell)
+					executeSpell(onFailSpell.actions, nil, onFailSpell.fullName, onFailSpell)
 				end
 				return false
 			end
@@ -539,7 +539,7 @@ local function executePhaseSpell(commID, bypassCD, ...)
 						eprint("Failed to find spell with ArcSpell ID " .. spell.castOnFail .. " to cast on failed conditions.")
 						return false
 					end
-					ns.Actions.Execute.executeSpell(onFailSpell.actions, nil, onFailSpell.fullName, onFailSpell)
+					executePhaseSpell(onFailSpell.commID, bypassCD, ...)
 				end
 
 				return false
