@@ -114,7 +114,15 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 		if data.inputText then
 			self.editBox:SetText(data.inputText)
 			self.editBox:HighlightText()
+		else
+			self.editBox:SetText('') -- reset
 		end
+
+		local justifyH = data.editJustifyH or "LEFT"
+		self.editBox:SetJustifyH(justifyH)
+
+		local justifyV = data.editJustifyV or "TOP"
+		self.editBox:SetJustifyV(justifyV)
 
 		standardNonEmptyTextHandler(self.editBox)
 	end,
@@ -165,10 +173,12 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field inputText? string default text for the input box
 ---@field editBoxWidth? number override width of input box
 ---@field isNumeric? boolean force the editbox to be numeric only
+---@field editJustifyH? "LEFT"|"CENTER"|"RIGHT" modify editBox justifyH - default is LEFT
+---@field editJustifyV? "TOP"|"MIDDLE"|"BOTTOM" modify editBox justifyV - default is TOP
 
 
 ---@param customData GenericInputCustomData
----@param insertedFrame frame?
+---@param insertedFrame? frame
 local function showCustomGenericInputBox(customData, insertedFrame)
 	local template = "EPSILIB_GENERIC_INPUT_BOX"
 	runOverrides(StaticPopupDialogs[template], customData)
@@ -214,7 +224,15 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 		if data.inputText then
 			self.insertedFrame.EditBox:SetText(data.inputText)
 			self.insertedFrame.EditBox:HighlightText()
+		else
+			self.insertedFrame.EditBox:SetText('')
 		end
+
+		local justifyH = data.editJustifyH or "LEFT"
+		self.insertedFrame.EditBox:SetJustifyH(justifyH)
+
+		local justifyV = data.editJustifyV or "TOP"
+		self.insertedFrame.EditBox:SetJustifyV(justifyV)
 
 		self.insertedFrame.EditBox:SetScript("OnTextChanged", multiLineNonEmptyTextHandler)
 		--self.insertedFrame.EditBox:SetScript("OnEscapePressed", multiLineEditBoxOnEscapePressed) -- nah
