@@ -389,7 +389,7 @@ end
 local function createTechnicalButton(BlueprintToLoad)
     BlueprintManager.editionPanel.SpawnButton= CreateFrame("Button", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.SpawnButton:SetSize(25, 25)
-    BlueprintManager.editionPanel.SpawnButton:SetPoint("TOPLEFT",-5,29)
+    BlueprintManager.editionPanel.SpawnButton:SetPoint("TOPLEFT",5,24)
     BlueprintManager.editionPanel.SpawnButton.icon = BlueprintManager.editionPanel.SpawnButton:CreateTexture(nil, "OVERLAY")
 
     BlueprintManager.editionPanel.SpawnButton.icon:SetTexture("Interface\\AddOns\\BlueprintManager\\assets\\buttons\\BPMAddButton.blp")
@@ -427,7 +427,7 @@ local function createTechnicalButton(BlueprintToLoad)
 
     BlueprintManager.editionPanel.deleteButton = CreateFrame("Button", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.deleteButton:SetSize(25, 25)
-    BlueprintManager.editionPanel.deleteButton:SetPoint("TOPLEFT",20,29)
+    BlueprintManager.editionPanel.deleteButton:SetPoint("TOPLEFT",30,24)
     BlueprintManager.editionPanel.deleteButton.icon = BlueprintManager.editionPanel.deleteButton:CreateTexture(nil, "OVERLAY")
     BlueprintManager.editionPanel.deleteButton.icon:SetTexture("Interface\\AddOns\\BlueprintManager\\assets\\buttons\\BPMXButton.blp")
     BlueprintManager.editionPanel.deleteButton.icon:SetSize(25,25)
@@ -467,7 +467,7 @@ local function createTechnicalButton(BlueprintToLoad)
 
     BlueprintManager.editionPanel.resetButton = CreateFrame("Button", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.resetButton:SetSize(25, 25)
-    BlueprintManager.editionPanel.resetButton:SetPoint("TOPLEFT", -30, 29)
+    BlueprintManager.editionPanel.resetButton:SetPoint("TOPLEFT", 55, 24)
     BlueprintManager.editionPanel.resetButton.texture = BlueprintManager.editionPanel.resetButton:CreateTexture(nil, "BORDER")
     BlueprintManager.editionPanel.resetButton.texture:SetTexture("Interface\\AddOns\\BlueprintManager\\assets\\buttons\\BPMBackButton.blp")
     BlueprintManager.editionPanel.resetButton.texture:SetSize(25,25)
@@ -510,7 +510,7 @@ local function createTechnicalButton(BlueprintToLoad)
 
     BlueprintManager.editionPanel.updateButton = CreateFrame("Button", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.updateButton:SetSize(25, 25)
-    BlueprintManager.editionPanel.updateButton:SetPoint("TOPLEFT",45,29)
+    BlueprintManager.editionPanel.updateButton:SetPoint("TOPLEFT",80,24)
     BlueprintManager.editionPanel.updateButton.texture = BlueprintManager.editionPanel.updateButton:CreateTexture(nil, "OVERLAY")
     BlueprintManager.editionPanel.updateButton.texture:SetTexture("Interface\\AddOns\\BlueprintManager\\assets\\buttons\\BPMUpButton.blp")
     BlueprintManager.editionPanel.updateButton.texture:SetSize(25,25)
@@ -548,7 +548,7 @@ local function createTechnicalButton(BlueprintToLoad)
 
     BlueprintManager.editionPanel.validationButton = CreateFrame("Button", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.validationButton:SetSize(25, 25)
-    BlueprintManager.editionPanel.validationButton:SetPoint("TOPRIGHT",BlueprintManager.editionPanel,"TOPRIGHT",15,29)
+    BlueprintManager.editionPanel.validationButton:SetPoint("TOPRIGHT",BlueprintManager.editionPanel,"TOPRIGHT",-5,24)
     BlueprintManager.editionPanel.validationButton.texture = BlueprintManager.editionPanel.validationButton:CreateTexture(nil, "OVERLAY")
     BlueprintManager.editionPanel.validationButton.texture:SetTexture("Interface/AddOns/"..addonName.."/assets/buttons/BPMTickButton.blp")
     BlueprintManager.editionPanel.validationButton.texture:SetSize(25,25)
@@ -596,10 +596,10 @@ local function createTagListForRightPanel(lineTexture,BlueprintToLoad)
     
     BlueprintManager.editionPanel.tagSection = CreateFrame("Frame", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.tagSection:SetSize(200, 100)
-    BlueprintManager.editionPanel.tagSection:SetPoint("TOP", lineTexture, "BOTTOM", 0, -10)
+    BlueprintManager.editionPanel.tagSection:SetPoint("TOP", lineTexture, "BOTTOM",-25, -10)
 
     BlueprintManager.editionPanel.tagSection.title = BlueprintManager.editionPanel.tagSection:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    BlueprintManager.editionPanel.tagSection.title:SetPoint("TOP", BlueprintManager.editionPanel.tagSection, "TOP", -70, 5)
+    BlueprintManager.editionPanel.tagSection.title:SetPoint("TOP", BlueprintManager.editionPanel.tagSection, "TOP", -60, 5)
     BlueprintManager.editionPanel.tagSection.title:SetText("Tags")
 
     BlueprintManager.editionPanel.tagSection.tagList = CreateFrame("Frame", nil, BlueprintManager.editionPanel.tagSection)
@@ -798,7 +798,7 @@ local function createTagAddingThing(lineTexture,BlueprintToLoad)
     -- Create a search-enabled tag selector
     local tagSelector = CreateFrame("Frame", nil, BlueprintManager.editionPanel)
     tagSelector:SetSize(150, 140)
-    tagSelector:SetPoint("TOP", lineTexture, "BOTTOM", 70, -20)
+    tagSelector:SetPoint("TOP", lineTexture, "BOTTOM", 55, -20)
     
     -- Title
     tagSelector.title = tagSelector:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -1053,8 +1053,8 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
     end
 
     BlueprintManager.editionPanel= CreateFrame("Frame", nil, BlueprintManager.mainFrame);
-    BlueprintManager.editionPanel:SetSize(230, 370)
-    BlueprintManager.editionPanel:SetPoint("RIGHT",BlueprintManager.mainFrame, "RIGHT", -20, -10)
+    BlueprintManager.editionPanel:SetSize(285,400)
+    BlueprintManager.editionPanel:SetPoint("RIGHT",BlueprintManager.mainFrame, "RIGHT", 0, -20)
 
     if(BlueprintManager.editionPanel.champDeNom ==nil) then 
         BlueprintManager.editionPanel.champDeNom = CreateFrame("EditBox", nil, BlueprintManager.editionPanel )
@@ -1065,10 +1065,11 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
         enableInteraction(BlueprintManager.editionPanel.champDeNom);
     end
 
-    BlueprintManager.editionPanel.champDeNom:SetSize(200, 30);
-    BlueprintManager.editionPanel.champDeNom:SetPoint("TOPLEFT", 0, -15);
+    BlueprintManager.editionPanel.champDeNom:SetSize(210, 30);
+    BlueprintManager.editionPanel.champDeNom:SetPoint("CENTER", 0, 170);
     BlueprintManager.editionPanel.champDeNom:SetAutoFocus(false);
-    BlueprintManager.editionPanel.champDeNom:SetFontObject("GameFontNormalLarge2");
+    BlueprintManager.editionPanel.champDeNom:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE");
+    BlueprintManager.editionPanel.champDeNom:SetTextColor(1, 1, 1, 1); -- Blanc
 
 
     BlueprintManager.editionPanel.champDeNom:SetMaxLetters(50);
@@ -1098,13 +1099,13 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
     
     BlueprintManager.editionPanel.descriptionField = CreateFrame("EditBox", nil, BlueprintManager.editionPanel)
     BlueprintManager.editionPanel.descriptionField:SetSize(220, 100)
-    BlueprintManager.editionPanel.descriptionField:SetPoint("TOP",BlueprintManager.editionPanel.champDeNom,"BOTTOM",5, -25)
+    BlueprintManager.editionPanel.descriptionField:SetPoint("TOP",BlueprintManager.editionPanel.champDeNom,"BOTTOM",0, -32.5)
     BlueprintManager.editionPanel.descriptionField:SetAutoFocus(false)
     BlueprintManager.editionPanel.descriptionField:SetFontObject("GameFontHighlight")
     BlueprintManager.editionPanel.descriptionField.texture= BlueprintManager.editionPanel.descriptionField:CreateTexture(nil, "BACKGROUND")
 
     BlueprintManager.editionPanel.descriptionField.interactionOverlay = CreateFrame("Frame", nil, BlueprintManager.editionPanel.descriptionField)
-    BlueprintManager.editionPanel.descriptionField.interactionOverlay:SetPoint("TOPLEFT", BlueprintManager.editionPanel.descriptionField, "TOPLEFT", 0, 0)
+    BlueprintManager.editionPanel.descriptionField.interactionOverlay:SetPoint("TOPLEFT", BlueprintManager.editionPanel.descriptionField, "TOPLEFT", 0, -5)
     BlueprintManager.editionPanel.descriptionField.interactionOverlay:SetSize(BlueprintManager.editionPanel.descriptionField:GetWidth(), BlueprintManager.editionPanel.descriptionField:GetHeight())
     BlueprintManager.editionPanel.descriptionField.interactionOverlay:EnableMouse(true)
 
@@ -1132,7 +1133,7 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
     BlueprintManager.editionPanel.descriptionField:SetCursorPosition(0) -- set initial cursor position
 
     BlueprintManager.editionPanel.descriptionField.title = BlueprintManager.editionPanel.descriptionField:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    BlueprintManager.editionPanel.descriptionField.title:SetPoint("BOTTOM",BlueprintManager.editionPanel.descriptionField,"TOP", -5, 10)
+    BlueprintManager.editionPanel.descriptionField.title:SetPoint("BOTTOM",BlueprintManager.editionPanel.descriptionField,"TOP", 0, 15)
     BlueprintManager.editionPanel.descriptionField.title:SetText("Description")
 
     if(BlueprintToLoad and BlueprintToLoad.description~="") then
@@ -1166,7 +1167,7 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
 
         BlueprintManager.editionPanel.iconPickerButton = CreateFrame("Button", nil, BlueprintManager.editionPanel, "UIPanelButtonTemplate")
         BlueprintManager.editionPanel.iconPickerButton:SetSize(40, 40)
-        BlueprintManager.editionPanel.iconPickerButton:SetPoint("CENTER", -20, -30)
+        BlueprintManager.editionPanel.iconPickerButton:SetPoint("CENTER", 0, -10)
         BlueprintManager.editionPanel.iconPickerButton.texture = BlueprintManager.editionPanel.iconPickerButton:CreateTexture(nil, "OVERLAY")
         if(BlueprintToLoad.icon=="") then
             BlueprintManager.editionPanel.iconPickerButton.texture:SetTexture("Interface\\Icons\\inv_mechagon_blueprints")
@@ -1196,7 +1197,7 @@ function BlueprintManager.createRightPanelForMainFrame(BlueprintToLoad)
         local lineTexture = BlueprintManager.editionPanel:CreateTexture(nil, "ARTWORK")
         lineTexture:SetColorTexture(0.25, 0.25, 0.25, 0.75) -- White color with 50% opacity
         lineTexture:SetSize(200, 2)
-        lineTexture:SetPoint("TOP", BlueprintManager.editionPanel.iconPickerButton, "BOTTOM", 0, -10)
+        lineTexture:SetPoint("TOP", BlueprintManager.editionPanel.iconPickerButton, "BOTTOM", 0, -12.5)
 
         createTagListForRightPanel(lineTexture,BlueprintToLoad)
         createTagAddingThing(lineTexture,BlueprintToLoad)
@@ -1265,7 +1266,7 @@ function BlueprintManager.createLeftPanelForMainFrame(regen,fetchAgain,Updating,
         BlueprintManager.mainFrame.leftPannel.scrollFrame.ScrollBar:SetWidth(16)
 
         BlueprintManager.mainFrame.leftPannel.scrollFrame.ScrollBar:SetScript("OnValueChanged", function(self, value)
-            FauxScrollFrame_OnVerticalScroll(self:GetParent(), value, 78.5, function()
+            FauxScrollFrame_OnVerticalScroll(self:GetParent(), value, 80, function()
                 BlueprintManager.mainFrame.leftPannel.UpdateScrollFrame(filtering)
             end)
         end)
@@ -1290,7 +1291,7 @@ function BlueprintManager.createLeftPanelForMainFrame(regen,fetchAgain,Updating,
                 if not blueprintFrame then
                     blueprintFrame = CreateFrame("Frame", "BlueprintFrame"..i, content)
                     blueprintFrame:SetSize(295, 75)
-                    blueprintFrame:SetPoint("TOPLEFT", 15, -((i - 1) * 78.5))
+                    blueprintFrame:SetPoint("TOPLEFT", 15, -((i - 1) * 80))
 
                     blueprintFrame.background = blueprintFrame:CreateTexture(nil, "BACKGROUND");
                     blueprintFrame.background:SetTexture("Interface/AddOns/"..addonName.."/assets/BlueprintManagerFrameBackground.blp");
