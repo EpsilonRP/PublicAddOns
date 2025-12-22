@@ -22,6 +22,19 @@
 
 	<!-- Please note that the loading order matters a lot -->
 	<GameTooltip name="TRP3_MainTooltip" frameStrata="TOOLTIP" hidden="false" parent="UIParent" inherits="TRP3_TooltipTemplate"/>
+	<GameTooltip name="TRP3_FirstGlanceTooltip"  frameStrata="TOOLTIP" hidden="false" inherits="TRP3_TooltipTemplate" parent="UIParent" virtual="true">
+	<Scripts>
+			<OnHide>
+				self.isFading = nil;
+			</OnHide>
+		</Scripts>
+	</GameTooltip>
+
+	<GameTooltip name="TRP3_FirstGlanceTooltip1" inherits="TRP3_FirstGlanceTooltip" />
+	<GameTooltip name="TRP3_FirstGlanceTooltip2" inherits="TRP3_FirstGlanceTooltip" />
+	<GameTooltip name="TRP3_FirstGlanceTooltip3" inherits="TRP3_FirstGlanceTooltip" />
+	<GameTooltip name="TRP3_FirstGlanceTooltip4" inherits="TRP3_FirstGlanceTooltip" />
+	<GameTooltip name="TRP3_FirstGlanceTooltip5" inherits="TRP3_FirstGlanceTooltip" />
 	<GameTooltip name="TRP3_Toast" frameStrata="TOOLTIP" hidden="false" parent="UIParent" inherits="TRP3_TooltipTemplate">
 		<Scripts>
 			<OnHide>

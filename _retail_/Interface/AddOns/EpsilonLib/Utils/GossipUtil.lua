@@ -65,6 +65,8 @@ local lastGossipText
 local lastGossipNPC
 local lastGossipName
 local lastGossipDupeText
+local lastGossipNumOptions
+local lastGossipOptions
 
 local curGossipData = {
 	original = {
@@ -122,14 +124,72 @@ function _gossip:RemoveGreetingHook(hookData)
 	tDeleteItem(_greetingHooks, hookData)
 end
 
-local function dupeCheck()
+local function areTablesFunctionallyEquivalent(a, b, deep, seen)
+	-- If they are literally the same table, they are equivalent
+	if a == b then return true end
+
+	-- Must both be tables
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return false
+	end
+
+	-- For deep mode: avoid circular-reference loops
+	seen = seen or {}
+	if deep then
+		if seen[a] and seen[a] == b then
+			return true
+		end
+		seen[a] = b
+	end
+
+	-- Compare all keys in A
+	for key, valA in pairs(a) do
+		local valB = b[key]
+		if valB == nil then
+			return false
+		end
+
+		if deep and type(valA) == "table" and type(valB) == "table" then
+			if not areTablesFunctionallyEquivalent(valA, valB, true, seen) then
+				return false
+			end
+		elseif valA ~= valB then
+			return false
+		end
+	end
+
+	-- Ensure B has no extra keys
+	for key in pairs(b) do
+		if a[key] == nil then
+			return false
+		end
+	end
+
+	return true
+end
+
+
+local function dupeCheck(options)
 	--print("dupeCheck", UnitGUID('npc'), UnitGUID('target'), UnitName('npc'), UnitName('target'))
 
-	if lastGossipDupeText == '' then return false end           -- Can't detect no text; unreliable.
-	if UnitGUID('target') == lastGossipNPC then return false end -- Same NPC GUID, not a dupe
-	if UnitName('target') == lastGossipName then return false end -- Same NPC name, probably not a dupe, just double spawned NPC
+	if not lastGossipDupeText then return false end                                          -- no last text, exit (unreliable or we never had a text before)
+	if lastGossipDupeText:find("Gossip forge - no text found") then lastGossipDupeText = '' end -- debug message for no text - just remove it.
 
-	if lastGossipDupeText == _GetGossipText() then return true end -- Different NPC, same text. Dupe.
+	if (lastGossipDupeText == '' and _GetNumGossipOptions() == 0) then return false end      -- Can't detect no text / no options; unreliable.
+	if lastGossipDupeText ~= _GetGossipText() then return false end                          -- Different text, not a dupe
+	if UnitGUID('target') == lastGossipNPC then return false end                             -- Same NPC GUID, not a dupe
+	if UnitName('target') == lastGossipName then return false end                            -- Same NPC name, probably not a dupe, just double spawned NPC
+
+	if _GetNumGossipOptions() ~= lastGossipNumOptions then                                   -- Different number of options, not a dupe
+		return false
+	else                                                                                     -- same number of options.. check if they are the same
+		if not areTablesFunctionallyEquivalent(options, lastGossipOptions, true) then        -- not the same, exit
+			return false
+		end
+	end
+
+	-- we made it past all checks. I guess it's probably a dupe?
+	return true
 end
 
 local function badGossipCheck()
@@ -168,6 +228,8 @@ function GetGossipText()
 
 	lastGossipText = originalText
 	lastGossipDupeText = originalText
+	lastGossipNumOptions = _GetNumGossipOptions()
+	lastGossipOptions = _GetGossipOptions
 	lastGossipNPC = UnitGUID('target')
 	lastGossipName = UnitName('target')
 
@@ -260,7 +322,7 @@ local function GetGossipOptions(onlyPredCheck)
 	local options = _GetGossipOptions()
 	local newOptions = {}
 
-	if dupeCheck() then return {} end -- dupeCheck calls a cancel in the greeting anyways
+	if dupeCheck(options) then return {} end -- dupeCheck calls a cancel in the greeting anyways
 
 	for index, option in ipairs(options) do
 		local originalText = option.name

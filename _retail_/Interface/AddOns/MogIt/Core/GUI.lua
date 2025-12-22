@@ -900,7 +900,7 @@ mog.menu.catalogue = mog.menu:CreateMenu(L["Catalogue"], function(self, tier)
 		elseif tier == 3 then
 			for i, enchant in ipairs(self.tier[3]) do
 				local info = UIDropDownMenu_CreateInfo();
-				info.text = enchant.name;
+				info.text = enchant.name .. " (" .. enchant.id .. ")";
 				info.func = setWeaponEnchant;
 				info.arg1 = enchant.id;
 				info.checked = mog.weaponEnchant == enchant.id;

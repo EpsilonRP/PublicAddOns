@@ -189,7 +189,11 @@ end
 ---@param sparkData SparkTriggerData
 ---@return boolean
 function SC_ExtraActionButtonMixin:SetSpell(spell, sparkData)
-	if not spell then return false end -- No Spell, wtf
+	if not spell then
+		-- need to gracefully show a fallback icon if no spell is found, as this can happen if a spark is misconfigured or the spell was deleted, and it's in a multi-spark
+		self.icon:SetTexture(Icons.FALLBACK_ICON)
+		return false
+	end
 
 	local icon = Icons.getFinalIcon(spell.icon)
 	self.icon:SetTexture(icon)
@@ -306,14 +310,25 @@ function SC_ExtraActionButtonMixin:OnClick(button)
 end
 
 function SC_ExtraActionButtonMixin:OnLoad()
+	local button = self
 	Tooltip.set(self,
 		function(self)
-			return ns.UI.SpellTooltip.getTitle("spark", self.spell, true) or self.spell.fullName
+			local spell = self and self.spell
+			local isOfficer = isOfficerPlus()
+			if not spell then
+				if isOfficer then return "<No Spell with ArcID '%s' Found in Phase Vault>" end
+				return nil
+			end
+			return ns.UI.SpellTooltip.getTitle("spark", spell, true) or (spell and spell.fullName)
 		end,
 		function(self)
-			local spell = self.spell
+			local spell = self and self.spell
 			local strings = ns.UI.SpellTooltip.getLines("spark", spell, true, true, self)
-			if not strings then return "<Error Loading Spell Tooltip>" end
+			local isOfficer = isOfficerPlus()
+			if not strings then
+				if isOfficer then return { " ", "{right-click-text-icon} to Open " .. Tooltip.genContrastText("Sparks Manager") } end
+				return "<Error: Spell Not Found in Phase Vault (). Report to a Phase Officer>"
+			end
 
 			if isOfficerPlus() then
 				if strings[#strings] ~= " " then

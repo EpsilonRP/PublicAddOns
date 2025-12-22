@@ -236,3 +236,39 @@ utils.SquareButton = function (parent, width, height, icon)
 
     return frame
 end
+
+local cmd, cmdChain
+if EpsilonLib and EpsilonLib.AddonCommands then
+	cmd, cmdChain = EpsilonLib.AddonCommands.Register("Epsilon_Viewer")
+else
+	-- command, callbackFn, forceShowMessages
+	function cmd(command, callbackFn, forceShowMessages)
+		if EpsilonLib and EpsilonLib.AddonCommands then
+			-- Reassign it.
+			cmd, cmdChain = EpsilonLib.AddonCommands.Register("Epsilon_Viewer")
+            utils.SendAddonCommand, utils.SendAddonCommandChain = cmd, cmdChain
+			cmd(command, callbackFn, forceShowMessages)
+			return
+		end
+
+		-- Fallback ...
+		print("Warning: Epsilon_Viewer had to fallback to standard chat commands. Is your EpsilonLib okay?")
+		SendChatMessage("." .. command, "GUILD")
+	end
+    function cmdChain(commands, callbackFn, forceShowMessages)
+		if EpsilonLib and EpsilonLib.AddonCommands then
+			-- Reassign it.
+			cmd, cmdChain = EpsilonLib.AddonCommands.Register("Epsilon_Viewer")
+            utils.SendAddonCommand, utils.SendAddonCommandChain = cmd, cmdChain
+			cmdChain(commands, callbackFn, forceShowMessages)
+			return
+		end
+
+		-- Fallback to sending each on a 1s delay
+		print("Warning: Epsilon_Viewer had to fallback to standard chat commands. Is your EpsilonLib okay?")
+        for k,v in ipairs(commands) do
+            C_Timer.After(k-1, function() SendChatMessage("." .. v, "GUILD") end)
+        end
+	end
+end
+utils.SendAddonCommand, utils.SendAddonCommandChain = cmd, cmdChain

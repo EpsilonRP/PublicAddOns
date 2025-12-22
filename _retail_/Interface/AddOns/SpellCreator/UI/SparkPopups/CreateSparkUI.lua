@@ -249,6 +249,38 @@ local sparkPopupStyles = { -- You can still use one not listed here technically,
 
 	{ tex = SPARK_ASSETS_PATH .. "Multi/MultiSpark-Aether-1",           name = "Aether (Tint)" },
 
+	-- Round Pack 2
+	{ tex = SPARK_ASSETS_PATH .. "round/Splash",                        name = "Arc Round - Splash",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Timeswept",                     name = "Arc Round - Timeswept",    circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Wooden",                        name = "Arc Round - Wooden",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Afterlife",                     name = "Arc Round - Afterlife",    circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Auroral",                       name = "Arc Round - Auroral",      circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Azure",                         name = "Arc Round - Azure",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Books",                         name = "Arc Round - Books",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Breeze",                        name = "Arc Round - Breeze",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Chaos",                         name = "Arc Round - Chaos",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Charged",                       name = "Arc Round - Charged",      circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Conflux",                       name = "Arc Round - Conflux",      circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Cosmic",                        name = "Arc Round - Cosmic",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Dream",                         name = "Arc Round - Dream",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Earth",                         name = "Arc Round - Earth",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Engulfed",                      name = "Arc Round - Engulfed",     circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Essence",                       name = "Arc Round - Essence",      circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Felled",                        name = "Arc Round - Felled",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Frost",                         name = "Arc Round - Frost",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Grass",                         name = "Arc Round - Grass",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Masonry",                       name = "Arc Round - Masonry",      circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Necromantic",                   name = "Arc Round - Necromantic",  circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Obsidian",                      name = "Arc Round - Obsidian",     circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Occult",                        name = "Arc Round - Occult",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Order",                         name = "Arc Round - Order",        circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Prismatic",                     name = "Arc Round - Prismatic",    circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Ruby",                          name = "Arc Round - Ruby",         circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Sacred",                        name = "Arc Round - Sacred",       circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Sand",                          name = "Arc Round - Sand",         circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Snow",                          name = "Arc Round - Snow",         circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+	{ tex = SPARK_ASSETS_PATH .. "round/Song",                          name = "Arc Round - Song",         circular = true, width = 2, scale = 0.75, offsetY = 2, offsetX = 3 },
+
 	-- always last
 	{ tex = addNewSparkPopupStyleTex,                                   name = "Add Other/Custom" },
 	-- 	{ tex = SPARK_ASSETS_PATH .. "CustomFrameFile", name = "Custom Frame 1", requirement = func -> bool (true: Show, false: Hide) },
@@ -833,6 +865,8 @@ local uiOptionsTable = {
 						if sparkUI_Helper.color then vR, vG, vB = CreateColorFromHexString(sparkUI_Helper.color):GetRGBAsBytes() end
 
 						local style = sparkUI_Helper.style
+						local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[style]
+						local width = styleData and styleData.width or 1
 
 						if type(style) == "string" then
 							-- Ensure our FilePath works on -dev addons
@@ -847,9 +881,9 @@ local uiOptionsTable = {
 						local texString
 						local isAtlas = (type(style) == "string") and C_Texture.GetAtlasInfo(style)
 						if isAtlas then
-							texString = CreateAtlasMarkup(style, 64 * 2, 32 * 2, 0, 0, vR, vG, vB)
+							texString = CreateAtlasMarkup(style, 64 * 2 * width, 32 * 2, 0, 0, vR, vG, vB)
 						else
-							texString = ns.Utils.UIHelpers.CreateTextureMarkupWithColor(style, 64 * 2, 32 * 2, 64 * 2, 32 * 2, 0, 1, 0, 1, 0, 0, vR, vG, vB)
+							texString = ns.Utils.UIHelpers.CreateTextureMarkupWithColor(style, 64 * 2 * width, 32 * 2, 64 * 2 * width, 32 * 2, 0, 1, 0, 1, 0, 0, vR, vG, vB)
 						end
 
 						return texString

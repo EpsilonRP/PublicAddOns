@@ -47,3 +47,19 @@ end
 
 EpsiLib.EventManager:RegisterSimpleCommandWatcher("You have joined phase |cff", joinedPhaseListener)
 EpsiLib.EventManager:RegisterSimpleCommandWatcher("You have been returned to the main world from phase |cff", leftPhaseListener)
+
+-- Add Server time to Minimap Clock Widget
+function GameTime_GetServerTime(wantAMPM)
+	local dT = date("!*t", GetServerTime());
+	local hour, minute = tonumber(dT.hour), tonumber(dT.min);
+	return GameTime_GetFormattedTime(hour, minute, wantAMPM), hour, minute;
+end
+
+TIMEMANAGER_TOOLTIP_REALMTIME = "Phase time:"
+hooksecurefunc("GameTime_UpdateTooltip", function()
+	GameTooltip:AddDoubleLine(
+		"Server time:",
+		GameTime_GetServerTime(true),
+		NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b,
+		HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
+end)

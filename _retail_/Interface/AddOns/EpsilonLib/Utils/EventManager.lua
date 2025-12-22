@@ -102,6 +102,7 @@ end
 ---@param event FrameEvent|string
 ---@param ... unknown
 function EventManager:Fire(event, ...)
+	if EventTrace then EventTrace:LogEvent(event, ...) end
 	if not _events[event] then return end -- No events registered for this, just exit out
 	local _callbacks = CopyTable(_events[event])
 	if _callbacks then
@@ -117,9 +118,39 @@ function EventManager:Fire(event, ...)
 	end
 end
 
+--#endregion
+--#region Custom Epsilon Events
+--- Custom Events for the Epsilon Systems - could just be renamed events that are easier to recognize the name
+
+local customEvents = {
+	SCENARIO_UPDATE = {
+		{ event = "EPSILON_PHASE_CHANGE", data = function(...) return C_Epsilon.GetPhaseId() end },
+	},
+	PLAYER_ENTERING_WORLD = {
+		{ event = "EPSILON_PHASE_CHANGE", data = function(...) return C_Epsilon.GetPhaseId() end, delay = 0 },
+	}
+}
+
 eventFrame:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" and select(1, ...) == EpsilonLib then
 		addonLoadedAlreadyRan = { ... }
+	end
+
+	if customEvents[event] then
+		for i = 1, #customEvents[event] do
+			local data = customEvents[event][i]
+			local returns = { ... }
+
+			local modifiedReturns = data.data(...)
+
+			if data.delay then
+				C_Timer.After(data.delay, function()
+					EventManager:Fire(data.event, modifiedReturns)
+				end)
+				return
+			end
+			EventManager:Fire(data.event, modifiedReturns)
+		end
 	end
 
 	EventManager:Fire(event, ...)
@@ -127,9 +158,13 @@ end)
 
 --#endregion
 
+
 --#region Command Event Manager
 --- Watching for Command Replies & handling if needed - Mostly for static capture of data & logging
 
+local myName = UnitNameUnmodified("player")
+local realmKey = GetRealmName()
+local charKey = myName .. "-" .. realmKey
 
 local filter_events = {
 	"CHAT_MSG_ADDON",
@@ -147,20 +182,101 @@ local filter_events = {
 	"CHAT_MSG_BG_SYSTEM_ALLIANCE",
 	"CHAT_MSG_BG_SYSTEM_NEUTRAL",
 	"CHAT_MSG_TARGETICONS",
-	"CHAT_MSG_BN_CONVERSATION_NOTICE",
+	--"CHAT_MSG_BN_CONVERSATION_NOTICE", -- This was removed in SL
 }
+
+local listener = CreateFrame("Frame")
+for i = 1, #filter_events do
+	listener:RegisterEvent(filter_events[i])
+end
+listener:SetScript("OnEvent", function(_, event, ...)
+	EventManager:HandleChatEvent(event, ...)
+end)
+
+local function doesAnyChatFrameHandleEvent(event)
+	-- Loop every chat window
+	for i = 1, NUM_CHAT_WINDOWS do
+		local frame = _G["ChatFrame" .. i]
+		local list = frame and frame.messageTypeList
+		if list then
+			-- Iterate the categories this frame listens to
+			for _, category in pairs(list) do
+				local events = ChatTypeGroup[category]
+				if events then
+					-- Now scan through actual event names
+					for j = 1, #events do
+						if events[j] == event then
+							return true -- Found a frame that handles this event
+						end
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
+local basicDataMap = { msg = 1, name = 2 }
+local criticalDataMap = {
+	CHAT_MSG_ADDON = { msg = 2, name = 4 },
+}
+local function getCriticalDataFromEvent(event, ...)
+	if criticalDataMap[event] then
+		local msg = select(criticalDataMap[event].msg, ...)
+		local name = select(criticalDataMap[event].name, ...)
+		return msg, name, ...
+	else
+		local msg = select(basicDataMap.msg, ...)
+		local name = select(basicDataMap.name, ...)
+		return msg, name, ...
+	end
+end
+
+local function isAuthorPlayer(author)
+	if author == "" then return true end
+	return author == charKey
+end
+
+function EventManager:HandleChatEvent(event, ...)
+	local message, author = getCriticalDataFromEvent(event, ...)
+	if not isAuthorPlayer(author) then return end -- Not us, so can't be a command reply, skipping. This is faster than checking the events later, so do it first.
+
+	-- If any ChatFrame is already listening for this event,
+	-- your ChatFrame filter wrapper will handle it.
+	if doesAnyChatFrameHandleEvent(event) then
+		return
+	end
+
+	if event == "CHAT_MSG_ADDON" then
+		message = message:sub(6) -- strip the addonCommand prefix
+	end
+
+	-- Otherwise process it yourself
+	local callbacks = ChatFrame_GetMessageEventFilters(event)
+	if not callbacks then return end
+
+	for _, callback in ipairs(callbacks) do
+		callback(nil, event, ...)
+	end
+end
 
 ---Helper Util to quickly create a command reply filter through all the possible command reply channels, with proper handling of AddOn Commands
 ---@param callback function The callback function to run on reply. You should pattern match first to make sure it's the reply you want.
 ---@return function reference The callback provided in the input is wrapped, so is no longer valid for using in removal - This reference is the new, wrapped callback
 function EventManager:AddCommandFilter(callback)
 	if not callback then error("AddCommandFilter Syntax Error: No Callback given. Are you calling with a : ?") end
-	local function wrapper(self, event, message)
+
+	local function wrapper(self, event, ...)
+		local message, author = getCriticalDataFromEvent(event, ...)
+		if not isAuthorPlayer(author) then return end -- Not us, so can't be a command reply, skipping
 		if event == "CHAT_MSG_ADDON" then
-			message = message:sub(5) -- remove the addon command part
+			if message:sub(1, 1) ~= "m" then return end -- skip non-message replies for CHAT_MSG_ADDON, as these are AK/OK/FAIL OP Codes
+			message = message:sub(6)            -- remove the addon command part
 		end
-		return callback(nil, event, message)
+		if message == "" then return end        -- skip blank replies. wtf are these.
+		return callback(nil, event, message, ...)
 	end
+
 	for i = 1, #filter_events do
 		ChatFrame_AddMessageEventFilter(filter_events[i], wrapper)
 	end

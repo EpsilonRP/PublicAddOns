@@ -1,3 +1,61 @@
+------------------------------------------------------------------
+--- LibScrollableDropdown
+---
+--- Utility Library for handling dropdown menus that supports
+--- scrollable content when there's a large number of entries
+--- in the menu.
+---
+--- Usage:
+--- LibScrollableDropdown is exposed as a global, or retrieve
+--- via LibStub:GetLibrary("LibScrollableDropdown")
+---
+--- Opening a Context Menu:
+--- lib:Open(parent, menuData, anchor, anchor2, x, y)
+--- 	parent: Frame to attach to
+--- 	menuData: Table following UIDropDownMenu info table format. See below for expanded features unique to the library.
+--- 	anchor: The anchor of the menu to attach using
+--- 	anchor2: The anchor on the button/frame to attach to
+--- 	x: X-Offset
+--- 	y: Y-Offset
+---
+---
+--- Attaching To a Button (Button -> Dropdown / Context Menu):
+--- lib:AttachToButton(button, menuData, anchor, anchor2, x, y, mouseButton)
+--- 	button: Frame to attach to
+--- 	menuData: Table following UIDropDownMenu info table format. See below for expanded features unique to the library.
+--- 	anchor: The anchor of the menu to attach using SetPosition
+--- 	anchor2: The anchor on the button/frame to attach to
+--- 	x: X-Offset for SetPosition
+--- 	y: Y-Offset for SetPosition
+--- 	mouseButton: The mouse button to bind the click to (i.e., "RightButton" to make it right-click only)
+---
+--- menuData table support - Note that all entries are able to be a function that returns the value for dynamic calling
+--- { -- https://warcraft.wiki.gg/wiki/UI_Object_UIDropDownMenu#The_info_table
+---		isDivider = true; 		 -- Custom implementation that overrides it to show as a divider line
+---		hidden = bool; 			 -- If this line should be hidden or not (for static lists with dynamic entries)
+---		subMenu = menuDataTable; -- Another menuDataTable that acts as the sub-menu to this entry.
+---		height = number;		 -- Height override for this entry
+---		customFrame = frame;	 -- Custom frame to use as the entry line instead of using a standard generated button line
+---		fontObject = font 		 --
+---		colorCode = hex			 --
+---		disabled = bool
+---		notClickable = bool
+---		isTitle	= text
+---		registerForRightClick = bool
+---		checked = bool
+---		notCheckable = bool
+---		text = string
+---		icon = string|number
+---		tooltipText = text
+---		tooltipTitle = text
+---		keepShownOnClick = bool
+---		ignoreAsMenuSelection = bool
+---		func = func
+---		notClickable = bool
+---		justifyH = bool
+--- }
+------------------------------------------------------------------
+
 local LibScrollableDropdown = {}
 LibScrollableDropdown.__index = LibScrollableDropdown
 
@@ -407,20 +465,26 @@ hooksecurefunc("UIDropDownMenu_HandleGlobalMouseEvent", function(button, event)
 end)
 
 -- API Helpers
-function lib:CreateTitle(text)
-	return { text = text, isTitle = true, notCheckable = true }
+function lib:CreateTitle(text, extraData)
+	local data = { text = text, isTitle = true, notCheckable = true }
+	if extraData then for k, v in pairs(extraData) do data[k] = v end end
+	return data
 end
 
 function lib:CreateDivider()
 	return { isDivider = true, notCheckable = true }
 end
 
-function lib:CreateButton(text, func, checked)
-	return { text = text, func = func, checked = checked }
+function lib:CreateButton(text, func, checked, extraData)
+	local data = { text = text, func = func, checked = checked }
+	if extraData then for k, v in pairs(extraData) do data[k] = v end end
+	return data
 end
 
-function lib:CreateSubMenu(text, items)
-	return { text = text, subMenu = items }
+function lib:CreateSubMenu(text, items, extraData)
+	local data = { text = text, subMenu = items }
+	if extraData then for k, v in pairs(extraData) do data[k] = v end end
+	return data
 end
 
 _G.LibScrollableDropdown = lib

@@ -979,6 +979,84 @@ local conditions = {
 		}
 	},
 
+	{
+		catName = "Cheats",
+		catItems = {
+			{
+				key = "cheatFly",
+				name = "Cheat Fly Enabled",
+				description = "Returns true if Cheat Fly is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("fly")
+				end,
+			},
+			{
+				key = "cheatCast",
+				name = "Cheat Casttime Enabled",
+				description = "Returns true if Cheat Casttime is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("casttime")
+				end,
+			},
+			{
+				key = "cheatCooldown",
+				name = "Cheat Cooldown Enabled",
+				description = "Returns true if Cheat Cooldown is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("cooldown")
+				end,
+			},
+			{
+				key = "cheatDuration",
+				name = "Cheat Duration Enabled",
+				description = "Returns true if Cheat Duration is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("duration")
+				end,
+			},
+			{
+				key = "cheatGod",
+				name = "Cheat God Enabled",
+				description = "Returns true if Cheat God is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("god")
+				end,
+			},
+			{
+				key = "cheatPower",
+				name = "Cheat Power Enabled",
+				description = "Returns true if Cheat Power is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("power")
+				end,
+			},
+			{
+				key = "cheatSlowcast",
+				name = "Cheat Slowcast Enabled",
+				description = "Returns true if Cheat Slowcast is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("slowcast")
+				end,
+			},
+			{
+				key = "cheatWaterwalk",
+				name = "Cheat Waterwalk Enabled",
+				description = "Returns true if Cheat Waterwalk is enabled.",
+				--inputs = { input("cheat name", "string"), },
+				script = function()
+					return EpsilonLib.Cheat.GetCheatStatus("waterwalk")
+				end,
+			},
+		}
+	},
+
 	-- Random Roll
 	-- Macro Script
 	{

@@ -63,7 +63,8 @@ local hardOverrides = {
 	"editBoxWidth",
 	"subText",
 	"noCancelOnEscape",
-	"exclusive"
+	"exclusive",
+	"hideOnEscape",
 }
 local function runOverrides(dialogTemplate, customData)
 	for i = 1, #hardOverrides do
@@ -113,7 +114,15 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 		if data.inputText then
 			self.editBox:SetText(data.inputText)
 			self.editBox:HighlightText()
+		else
+			self.editBox:SetText('') -- reset
 		end
+
+		local justifyH = data.editJustifyH or "LEFT"
+		self.editBox:SetJustifyH(justifyH)
+
+		local justifyV = data.editJustifyV or "TOP"
+		self.editBox:SetJustifyV(justifyV)
 
 		standardNonEmptyTextHandler(self.editBox)
 	end,
@@ -164,10 +173,12 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field inputText? string default text for the input box
 ---@field editBoxWidth? number override width of input box
 ---@field isNumeric? boolean force the editbox to be numeric only
+---@field editJustifyH? "LEFT"|"CENTER"|"RIGHT" modify editBox justifyH - default is LEFT
+---@field editJustifyV? "TOP"|"MIDDLE"|"BOTTOM" modify editBox justifyV - default is TOP
 
 
 ---@param customData GenericInputCustomData
----@param insertedFrame frame?
+---@param insertedFrame? frame
 local function showCustomGenericInputBox(customData, insertedFrame)
 	local template = "EPSILIB_GENERIC_INPUT_BOX"
 	runOverrides(StaticPopupDialogs[template], customData)
@@ -213,7 +224,15 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 		if data.inputText then
 			self.insertedFrame.EditBox:SetText(data.inputText)
 			self.insertedFrame.EditBox:HighlightText()
+		else
+			self.insertedFrame.EditBox:SetText('')
 		end
+
+		local justifyH = data.editJustifyH or "LEFT"
+		self.insertedFrame.EditBox:SetJustifyH(justifyH)
+
+		local justifyV = data.editJustifyV or "TOP"
+		self.insertedFrame.EditBox:SetJustifyV(justifyV)
 
 		self.insertedFrame.EditBox:SetScript("OnTextChanged", multiLineNonEmptyTextHandler)
 		--self.insertedFrame.EditBox:SetScript("OnEscapePressed", multiLineEditBoxOnEscapePressed) -- nah
@@ -458,6 +477,54 @@ local function showGenericDropDown(text, callback, options, hasButtons, defaultO
 	return showCustomGenericDropDown(customData, insertedFrame)
 end
 
+-------------------------------
+---#endregion
+-------------------------------
+
+-------------------------------
+---#region Generic Copy Dialog
+-------------------------------
+
+local GenericCopyDialogName = "EPSILIB_GENERIC_COPY" -- Rename this if you want to hook into your own popup dialog, otherwise this will use a default one
+StaticPopupDialogs[GenericCopyDialogName] = {
+	text = "%s",
+	button1 = CALENDAR_COPY_EVENT,
+	button2 = CLOSE,
+	OnAccept = function(self)
+		local text = self.editBox:GetText():gsub("'", "\\'")
+		local call = "CopyToClipboard('" .. text .. "')"
+		EpsiLib.RunScript.raw(call)
+		UIErrorsFrame:AddMessage("Copied!", 0.4, 0.73, 1, 1)
+		self.editBox:SetText("")
+	end,
+	OnCancel = function(self)
+		self.editBox:SetText("")
+	end,
+	EditBoxOnEscapePressed = standardEditBoxOnEscapePressed,
+	hasEditBox = true,
+	timeout = 0,
+	cancels = GenericCopyDialogName,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
+local copy_to_clipboard = TRANSMOG_OUTFIT_COPY_TO_CLIPBOARD:gsub("|cff.*|r", "")
+local function copyText(text)
+	local popup = StaticPopup_Show(GenericCopyDialogName, text);
+	local width = max(popup.text:GetStringWidth(), 250)
+	width = min((GetScreenWidth() * .8), width) -- clamp to 80% screen width so it's not obnoxiously large..
+	popup.editBox:SetWidth(width);
+	popup:SetWidth(width + 50)
+	popup.text:SetText(copy_to_clipboard)
+	popup.editBox:SetText(text)
+	popup.editBox:SetFocus()
+	popup.editBox:HighlightText()
+end
+
+-------------------------------
+---#endregion
+-------------------------------
 
 
 EpsiLib.Utils.GenericDialogs = {
@@ -469,4 +536,6 @@ EpsiLib.Utils.GenericDialogs = {
 
 	CustomDropDown = showCustomGenericDropDown,
 	GenericDropDown = showGenericDropDown,
+
+	Copy = copyText,
 };

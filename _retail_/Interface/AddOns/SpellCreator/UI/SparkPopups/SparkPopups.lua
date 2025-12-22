@@ -210,6 +210,8 @@ function multiSparkFrame:SetSpells(spells)
 	for _, commID in ipairs(spells) do
 		commID = strtrim(commID) -- just incase our split had a space left
 		local spell = Vault.phase.findSpellByID(commID)
+		if not spell then spell = Vault.genMissingSpell(commID) end
+
 		local sparkData = multiSparkFrame.sparkData
 		tinsert(spellsToContent, { spell = spell, spark = sparkData })
 	end
@@ -456,9 +458,7 @@ local function showSparkPopup(commID, barTex, index, colorHex, sparkData)
 	if not spell then return false end -- spell not found in vault, return false which will hide the sparkPopup
 
 	local sparkButton = bar.button
-
 	sparkButton:SetSpell(spell, sparkData)
-
 
 	local texture = barTex or defaultSparkPopupStyle;
 	local isAtlas = (type(texture) == "string") and C_Texture.GetAtlasInfo(texture)
@@ -479,6 +479,13 @@ local function showSparkPopup(commID, barTex, index, colorHex, sparkData)
 	else
 		sparkButton:SetSquare()
 	end
+
+	bar.Border.style:SetWidth(256 * (styleData and styleData.width or 1))
+	bar.Border.style:SetScale(styleData and styleData.scale or 1)
+
+	local offsetX = styleData and styleData.offsetX or 0
+	local offsetY = styleData and styleData.offsetY or 0
+	bar.Border.style:SetPoint("CENTER", offsetX, offsetY)
 
 	if colorHex then
 		bar.Border.style:SetVertexColor(CreateColorFromHexString(colorHex):GetRGB())
@@ -754,8 +761,13 @@ local function getPopupTriggersFromPhase(callback, iter)
 			loaded, phaseSparkTriggers = pcall(serializer.decompressForAddonMsg_SparkCopy, sparkText)
 
 			if not loaded then
-				message("Arcanum Failed to Load Phase Sparks Data. Report this.")
+				message("Arcanum Failed to Load Phase Sparks Data. Please open a Phase Rollback Ticket in Discord & Ping MindScape.")
+				Logging.eprint(("Failed to Load Phase Sparks Data: %s"):format(tostring(loaded)))
 				return
+			end
+			if type(phaseSparkTriggers) ~= "table" then
+				message("Arcanum Failed to Load Phase Sparks Data. Please open a Phase Rollback Ticket in Discord & Ping MindScape.")
+				Logging.eprint(("Failed to Load Phase Sparks Data: %s"):format(tostring(phaseSparkTriggers)))
 			end
 			if next(phaseSparkTriggers) then
 				--Logging.dprint("Phase Spark Triggers: ")

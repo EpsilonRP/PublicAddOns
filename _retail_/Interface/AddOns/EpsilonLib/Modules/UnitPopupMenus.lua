@@ -81,53 +81,16 @@ end
 
 hooksecurefunc("UnitPopup_ShowMenu", function(...) return UnitPopupsModule:OnUnitPopupShown(...); end);
 
-local cheatStatus = {
-	God       = { msg = "Godmode is (...?)", status = true, on = "|cff00CCFF[Cheat] Godmode|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] Godmode|r cheat has been |cff00CCFFdisabled|r" },
-	Cooldown  = { msg = "No cooldown is (...?)", status = false, on = "|cff00CCFF[Cheat] No cooldown|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] No cooldown|r cheat has been |cff00CCFFdisabled|r" },
-	Casttime  = { msg = "Instant cast time is (...?)", status = false, on = "|cff00CCFF[Cheat] Instant cast time|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] Instant cast time|r cheat has been |cff00CCFFdisabled|r" },
-	Power     = { msg = "No mana/rage/energy spell cost is (...?)", status = false, on = "|cff00CCFF[Cheat] No mana/rage/energy spell cost|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] No mana/rage/energy spell cost|r cheat has been |cff00CCFFdisabled|r" },
-	Waterwalk = { msg = "Walking on water is (...?)", status = false, on = "|cff00CCFF[Cheat] Walking on water|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] Walking on water|r cheat has been |cff00CCFFdisabled|r" },
-	Duration  = { msg = "Infinite aura duration is (...?)", status = true, on = "|cff00CCFF[Cheat] Infinite aura duration|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] Infinite aura duration|r cheat has been |cff00CCFFdisabled|r" },
-	Slowcast  = { msg = "Long spell cast & channel time is (...?)", status = false, on = "|cff00CCFF[Cheat] Long spell cast & channel time|r cheat has been |cff00CCFFenabled|r", off = "|cff00CCFF[Cheat] Long spell cast & channel time|r cheat has been |cff00CCFFdisabled|r" },
-}
-
-local function cheatStatusCallback(success, messages)
-	if not success then return end
-	for i = 1, #messages do
-		local msg = messages[i]:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
-		for k, v in pairs(cheatStatus) do
-			local matchStr = msg:match(v.msg)
-			if matchStr then
-				v.status = ((matchStr == "on") and true or false)
-			end
-		end
-	end
-end
-
-EpsiLib.EventManager:Register("ADDON_LOADED", function(_, event, addon)
-	if addon == EpsilonLib then
-		EpsiLib.AddonCommands.Send("EpsiLib_UPM", "cheat status", cheatStatusCallback, false)
-	end
-end)
-
-local cheatMessages = {}
-for k, v in pairs(cheatStatus) do
-	cheatMessages[v.on] = { type = true, ref = k }
-	cheatMessages[v.off] = { type = false, ref = k }
-end
-
-local function cheatToggleListener(self, event, message)
-	if cheatMessages[message] then
-		local table = cheatMessages[message]
-		cheatStatus[table.ref].status = table.type
-		return false
-	end
-end
-EpsiLib.EventManager:AddCommandFilter(cheatToggleListener)
-
 -- util references:
 -- UnitIsConnected(unit)
 -- UnitIsPlayer(unit)
+
+local function getItemInfoFromHyperlink(link)
+	local strippedItemLink, itemID = link:match("|Hitem:((%d+).-)|h");
+	if itemID then
+		return tonumber(itemID), strippedItemLink;
+	end
+end
 
 Mixin(UnitPopupsModule.MenuButtons, {
 	TitleBar = {
@@ -223,11 +186,11 @@ Mixin(UnitPopupsModule.MenuButtons, {
 			{
 				text = "Toggle Fly",
 				isNotRadio = true,
-				notCheckable = true,
+				--notCheckable = true,
 				func = function()
 					cmd("cheat fly")
 				end,
-				checked = function() return true end,
+				checked = function() return EpsiLib.Cheat.Status.fly end,
 			},
 			{
 				text = "Casttime",
@@ -235,7 +198,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat casttime")
 				end,
-				checked = function() return cheatStatus.Casttime.status end,
+				checked = function() return EpsiLib.Cheat.Status.casttime end,
 			},
 			{
 				text = "Cooldown",
@@ -243,7 +206,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat cooldown")
 				end,
-				checked = function() return cheatStatus.Cooldown.status end,
+				checked = function() return EpsiLib.Cheat.Status.cooldown end,
 			},
 			{
 				text = "Duration",
@@ -251,7 +214,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat duration")
 				end,
-				checked = function() return cheatStatus.Duration.status end,
+				checked = function() return EpsiLib.Cheat.Status.duration end,
 			},
 			{
 				text = "God",
@@ -259,7 +222,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat god")
 				end,
-				checked = function() return cheatStatus.God.status end,
+				checked = function() return EpsiLib.Cheat.Status.god end,
 			},
 			{
 				text = "Power",
@@ -267,7 +230,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat power")
 				end,
-				checked = function() return cheatStatus.Power.status end,
+				checked = function() return EpsiLib.Cheat.Status.power end,
 			},
 			{
 				text = "Slowcast",
@@ -275,7 +238,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat slowcast")
 				end,
-				checked = function() return cheatStatus.Slowcast.status end,
+				checked = function() return EpsiLib.Cheat.Status.slowcast end,
 			},
 			{
 				text = "Waterwalk",
@@ -283,7 +246,7 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				func = function()
 					cmd("cheat waterwalk")
 				end,
-				checked = function() return cheatStatus.Waterwalk.status end,
+				checked = function() return EpsiLib.Cheat.Status.waterwalk end,
 			},
 			{
 				text = " ",
@@ -310,7 +273,94 @@ Mixin(UnitPopupsModule.MenuButtons, {
 				end,
 			},
 		}
-	}
+	},
+	StealMog = {
+		text = "Preview in MogIt",
+		colorCode = "|cff00ccff",
+		notCheckable = true,
+		func = function()
+			local npc_name = UnitName("target")
+			local guid = UnitGUID("target")
+			local phaseID = C_Epsilon.GetPhaseId()
+			local unitType, _, _, _, _, npc_id, _ = strsplit("-", guid)
+
+			EpsiLib.AddonCommands._SendAddonCommand("npc info", function(success, messages)
+				if not success or not messages then
+					print("|cffff0000Error: 'npc info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+					return
+				end
+
+				local outfitInformation = {}
+
+				for _, line in ipairs(messages) do
+					local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+					-- Also clean item links
+					cleanLine = cleanLine:gsub("|H[^|]*|h", ""):gsub("|h", "")
+
+					local slot, itemData = string.match(cleanLine, "^([^:]+):%s*%[(.+)")
+					if slot and itemData then
+						slot = slot:gsub("^%s+", ""):gsub("%s+$", "")
+
+						-- Filter lines that are not really equipment
+						if not (string.find(slot, "NPC") or string.find(slot, "Info")) then
+							-- Use existing function to extract ID from item link
+							local itemID, strippedLink = getItemInfoFromHyperlink(line)
+
+							if itemID then
+								local slotLower = string.lower(slot)
+								if slotLower:find("main") or slotLower:find("off") or slotLower:find("ranged") then
+									-- This is a weapon slot
+									if not outfitInformation["_weapons"] then
+										outfitInformation["_weapons"] = {}
+									end
+									if slotLower:find("main") then
+										outfitInformation["_weapons"]["0"] = itemID
+									elseif slotLower:find("off") then
+										outfitInformation["_weapons"]["1"] = itemID
+									elseif slotLower:find("ranged") then
+										outfitInformation["_weapons"]["2"] = itemID
+									end
+								else
+									-- This is equipment slot
+									if not outfitInformation["_equipment"] then
+										outfitInformation["_equipment"] = {}
+									end
+									outfitInformation["_equipment"][slot] = itemID
+								end
+							end
+						end
+					end
+				end
+
+				local preview = MogIt:GetPreview()
+				local hasItems = false
+
+				if outfitInformation["_equipment"] then
+					for slot, itemID in pairs(outfitInformation["_equipment"] or {}) do
+						MogIt.view.AddItem(itemID, preview, nil, true)
+						hasItems = true
+					end
+				end
+				if outfitInformation["_weapons"] then
+					for slot, itemID in pairs(outfitInformation["_weapons"]) do
+						MogIt.view.AddItem(itemID, preview, nil, true)
+						hasItems = true
+					end
+				end
+
+				local title = ("NPC Equipment - %s (%s-%s)"):format(npc_name or "Unknown", phaseID or "Unknown Phase", npc_id or "Unknown ID")
+				preview.TitleText:SetText(title);
+				preview.data.title = title;
+
+				if not hasItems then
+					print("|cffff0000Error: No valid equipment found on target NPC to open in MogIt. They may be using a default NPC Display ID instead of custom forged outfit.|r")
+					return
+				end
+				ShowUIPanel(MogIt.view);
+			end, false)
+		end,
+		ShouldShow = function(unit) return (not UnitIsPlayer(unit)) and C_Epsilon.IsOfficer() end,
+	},
 	--[[
 	CharacterStatus = {
 		text = L.DB_STATUS_RP_OOC,
@@ -335,7 +385,7 @@ Mixin(UnitPopupsModule.MenuEntries, {
 	ENEMY_PLAYER   = { "Appear", "Summon", "Epsilon_Phase", },
 	RAID           = { "Appear", "Summon", "Epsilon_Phase", },
 	RAID_PLAYER    = { "Appear", "Summon", "Epsilon_Phase", },
-	TARGET         = { "Appear", "Summon", "Epsilon_Phase", },
+	TARGET         = { "Appear", "Summon", "Epsilon_Phase", "StealMog" },
 	FOCUS          = { "Appear", "Summon", "Epsilon_Phase", },
 
 

@@ -29,6 +29,7 @@ local loc = TRP3_API.loc;
 local getUnitIDCurrentProfile, isIDIgnored = TRP3_API.register.getUnitIDCurrentProfile, TRP3_API.register.isIDIgnored;
 local getIgnoreReason = TRP3_API.register.getIgnoreReason;
 local ui_CharacterTT, ui_CompanionTT = TRP3_CharacterTooltip, TRP3_CompanionTooltip;
+local ui_GlanceTTs = { TRP3_FirstGlanceTooltip1, TRP3_FirstGlanceTooltip2, TRP3_FirstGlanceTooltip3, TRP3_FirstGlanceTooltip4, TRP3_FirstGlanceTooltip5, }
 local getCharacterUnitID = Utils.str.getUnitID;
 local get = TRP3_API.profile.getData;
 local getConfigValue = TRP3_API.configuration.getValue;
@@ -95,6 +96,7 @@ local CONFIG_CHARACT_HEALTH = "tooltip_char_health";
 local CONFIG_CHARACT_CURRENT_SIZE = "tooltip_char_current_size";
 local CONFIG_CHARACT_RELATION = "tooltip_char_relation";
 local CONFIG_CHARACT_SPACING = "tooltip_char_spacing";
+local CONFIG_DISPLAY_GLANCE = "tooltip_display_glance";
 local CONFIG_NO_FADE_OUT = "tooltip_no_fade_out";
 local CONFIG_PREFER_OOC_ICON = "tooltip_prefere_ooc_icon";
 local CONFIG_CHARACT_CURRENT_LINES = "tooltip_char_current_lines";
@@ -208,6 +210,10 @@ local function showSpacing()
 	return getConfigValue(CONFIG_CHARACT_SPACING);
 end
 
+local function displayGlance()
+	return getConfigValue(CONFIG_DISPLAY_GLANCE);
+end
+
 local function fadeOutEnabled()
 	return true; -- TEMPORARY WORKAROUND
 	--return not getConfigValue(CONFIG_NO_FADE_OUT);
@@ -243,7 +249,7 @@ TRP3_API.ui.tooltip.getTooltipTextColors = getTooltipTextColors;
 local function getGameTooltipTexts(tooltip)
 	local tab = {};
 	for j = 1, tooltip:NumLines() do
-		tab[j] = _G[tooltip:GetName() .. "TextLeft" ..  j]:GetText();
+		tab[j] = _G[tooltip:GetName() .. "TextLeft" .. j]:GetText();
 	end
 	return tab;
 end
@@ -251,14 +257,14 @@ TRP3_API.ui.tooltip.getGameTooltipTexts = getGameTooltipTexts;
 
 local function setLineFont(tooltip, lineIndex, fontSize)
 	local line = _G[strconcat(tooltip:GetName(), "TextLeft", lineIndex)];
-	local font, _ , flag = line:GetFont();
+	local font, _, flag = line:GetFont();
 	line:SetFont(font, fontSize, flag);
 end
 
 local function setDoubleLineFont(tooltip, lineIndex, fontSize)
 	setLineFont(tooltip, lineIndex, fontSize);
 	local line = _G[strconcat(tooltip:GetName(), "TextRight", lineIndex)];
-	local font, _ , flag = line:GetFont();
+	local font, _, flag = line:GetFont();
 	line:SetFont(font, fontSize, flag);
 end
 
@@ -304,7 +310,7 @@ local BUILDER_TYPE_DOUBLELINE = 2;
 local BUILDER_TYPE_SPACE = 3;
 
 local function AddLine(self, text, color, lineSize, lineWrap)
-    local lineStructure = getTempTable();
+	local lineStructure = getTempTable();
 	lineStructure.type = BUILDER_TYPE_LINE;
 	lineStructure.text = text;
 	lineStructure.red = color.r;
@@ -399,6 +405,13 @@ TRP3_API.ui.tooltip.createTooltipBuilder = createTooltipBuilder;
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 local tooltipBuilder = createTooltipBuilder(ui_CharacterTT);
+local glanceTooltipBuilders = (function()
+	local builders = {}
+	for i, tt in ipairs(ui_GlanceTTs) do
+		builders[i] = createTooltipBuilder(tt)
+	end
+	return builders
+end)()
 
 local hiddenTooltip = CreateFrame("GameTooltip", "HiddenTooltip", UIParent, "GameTooltipTemplate")
 hiddenTooltip:SetOwner(UIParent, "ANCHOR_NONE")
@@ -409,9 +422,9 @@ local function getUnitID(targetType)
 	local currentTargetType = originalGetTargetType(targetType);
 	if currentTargetType == TRP3_Enums.UNIT_TYPE.CHARACTER then
 		return getCharacterUnitID(targetType), currentTargetType;
-    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.PET then
+	elseif currentTargetType == TRP3_Enums.UNIT_TYPE.BATTLE_PET or currentTargetType == TRP3_Enums.UNIT_TYPE.PET then
 		return getCompanionFullID(targetType, currentTargetType), currentTargetType;
-    elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
+	elseif currentTargetType == TRP3_Enums.UNIT_TYPE.NPC then
 		return getNPCFullID(targetType, currentTargetType), currentTargetType;
 	end
 end
@@ -458,6 +471,32 @@ end
 local TOOLTIP_BLOCKED_IGNORED_COLOR = Ellyb.ColorManager.RED;
 local TOOLTIP_BLOCKED_MATURE_COLOR = Ellyb.Color.CreateFromRGBA(1.00, 0.75, 0.86, 1.00);
 local TOOLTIP_BLOCKED_MAIN_COLOR = Ellyb.Color.CreateFromRGBA(1.00, 0.75, 0.00, 1.00);
+
+
+local function writeTooltipsforGlances(info, colors)
+	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+	-- Show Glance Tooltips
+	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+	if not checkGlanceActivation(info) then return end
+
+	local n = 1;
+	for i = 1, 5, 1 do
+		if info and info[tostring(i)] and info[tostring(i)].AC then
+			local glanceInfo = info[tostring(i)]
+			if glanceInfo then
+				-- build glance on next available glance builder
+				local builder = glanceTooltipBuilders[n];
+				local titleText = "|TInterface\\Icons\\" .. glanceInfo.IC .. ":30:30|t " .. (glanceInfo.TI or "")
+				builder:AddLine(titleText, colors.MAIN, getMainLineFontSize() - 2, true)
+				builder:AddLine(strsub(glanceInfo.TX or "", 1, 100), colors.TITLE, getSubLineFontSize() - 2, true);
+				builder:Build();
+				n = n + 1;
+			end
+		end
+	end
+end
+
 
 --- The complete character's tooltip writing sequence.
 local function writeTooltipForCharacter(targetID, _, targetType)
@@ -809,6 +848,10 @@ local function writeTooltipForCharacter(targetID, _, targetType)
 	-- Build tooltip
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
+	if displayGlance() and info and info.misc and info.misc.PE then
+		writeTooltipsforGlances(info.misc.PE, colors);
+	end
+
 	tooltipBuilder:Build();
 end
 
@@ -847,10 +890,10 @@ local function showCompanionWoWInfo()
 end
 
 local function getCompanionInfo(owner, companionID)
-    local profile;
+	local profile;
 	if owner == Globals.player_id then
 		profile = getCompanionProfile(companionID) or EMPTY;
-    else
+	else
 		profile = getCompanionRegisterProfile(owner .. "_" .. companionID) or EMPTY;
 	end
 	return profile or EMPTY;
@@ -867,12 +910,12 @@ local function writeCompanionTooltip(companionFullID, originalTexts, targetType,
 	local info = data.data or EMPTY;
 	local PE = data.PE or EMPTY;
 	local targetName = UnitName(targetType);
-    local colors = getTooltipTextColors();
-    local text = info.TX or '';
+	local colors = getTooltipTextColors();
+	local text = info.TX or '';
 	local FIELDS_TO_CROP = {
 		TITLE = 150,
 		NAME  = 100
-    }
+	}
 
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- BLOCKED
@@ -921,7 +964,6 @@ local function writeCompanionTooltip(companionFullID, originalTexts, targetType,
 			fullTitle = strconcat("< ", info.TI, " >");
 		end
 		if fullTitle and fullTitle ~= "" then
-
 			if getConfigValue(CONFIG_CROP_TEXT) then
 				fullTitle = crop(fullTitle, FIELDS_TO_CROP.TITLE);
 			end
@@ -933,21 +975,21 @@ local function writeCompanionTooltip(companionFullID, originalTexts, targetType,
 
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- Owner
-    --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-    if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
-		if text ~= ""  then
-            text = limitText(text, getShortDescriptionMaxSize(), getShortDescriptionMaxLines());
+	if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
+		if text ~= "" then
+			text = limitText(text, getShortDescriptionMaxSize(), getShortDescriptionMaxLines());
 			tooltipBuilder:AddLine(loc.REG_COMPANIONS_SHORTDESCRIPTION, colors.MAIN, getSubLineFontSize());
 			tooltipBuilder:AddLine(text, colors.SECONDARY, getSmallLineFontSize(), true);
 		end
 	end
 
-    if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
+	if targetMode == TRP3_Enums.UNIT_TYPE.NPC then
 		local level = TOOLTIP_UNIT_LEVEL_TYPE:format(UnitLevel(targetType) or "??", targetMode);
-        local _, npcId = companionFullID:match("(%d+)_(%d+)");
-		local npcId = 'ID ' .. npcId; 
-        tooltipBuilder:AddDoubleLine(level, npcId, colors.MAIN,colors.MAIN, getSubLineFontSize()-3);
+		local _, npcId = companionFullID:match("(%d+)_(%d+)");
+		local npcId = 'ID ' .. npcId;
+		tooltipBuilder:AddDoubleLine(level, npcId, colors.MAIN, colors.MAIN, getSubLineFontSize() - 3);
 	end
 
 	if showCompanionOwner() and not (targetMode == TRP3_Enums.UNIT_TYPE.NPC) then
@@ -965,9 +1007,9 @@ local function writeCompanionTooltip(companionFullID, originalTexts, targetType,
 				if getConfigValue(CONFIG_CHARACT_COLOR) and ownerInfo.characteristics.CH then
 					local customColor = Utils.color.getColorFromHexadecimalCode(ownerInfo.characteristics.CH);
 
-						if AddOn_TotalRP3.Configuration.shouldDisplayIncreasedColorContrast() then
-							customColor:LightenColorUntilItIsReadable();
-						end
+					if AddOn_TotalRP3.Configuration.shouldDisplayIncreasedColorContrast() then
+						customColor:LightenColorUntilItIsReadable();
+					end
 
 					ownerColor = customColor or ownerColor;
 				end
@@ -1025,21 +1067,25 @@ local function writeCompanionTooltip(companionFullID, originalTexts, targetType,
 	-- Quick peek & new description notifications
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-    if showCompanionNotifications() then
-        local notifText = "";
-        if PE and checkGlanceActivation(PE) then
-            notifText = GLANCE_ICON;
-        end
-        if ownerID ~= Globals.player_id and info.read == false then
-            notifText = notifText .. " " .. NEW_ABOUT_ICON;
-        end
-        if notifText and notifText ~= "" then
-            tooltipBuilder:AddLine(notifText, colors.MAIN, getSmallLineFontSize());
-        end
-    end
+	if showCompanionNotifications() then
+		local notifText = "";
+		if PE and checkGlanceActivation(PE) then
+			notifText = GLANCE_ICON;
+		end
+		if ownerID ~= Globals.player_id and info.read == false then
+			notifText = notifText .. " " .. NEW_ABOUT_ICON;
+		end
+		if notifText and notifText ~= "" then
+			tooltipBuilder:AddLine(notifText, colors.MAIN, getSmallLineFontSize());
+		end
+	end
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- Build tooltip
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+	if displayGlance() then
+		writeTooltipsforGlances(PE, colors);
+	end
 
 	tooltipBuilder:Build();
 end
@@ -1157,9 +1203,44 @@ end
 
 local GameTooltip_SetDefaultAnchor, UIParent = GameTooltip_SetDefaultAnchor, UIParent;
 
+local function setupGlanceAnchor()
+	local anchorPosition = getAnchoredPosition()
+	if anchorPosition == "ANCHOR_CURSOR" then
+		for i, tt in ipairs(ui_GlanceTTs) do
+			tt:SetOwner(ui_CharacterTT, "ANCHOR_NONE");
+			if i == 1 then
+				tt:SetPoint("TOPLEFT", ui_CharacterTT, "TOPRIGHT")
+			elseif i <= 3 then
+				tt:SetPoint("TOP", ui_GlanceTTs[i - 1], "BOTTOM")
+				tt:SetPoint("LEFT", ui_CharacterTT, "RIGHT")
+			elseif i == 4 then
+				tt:SetPoint("LEFT", ui_GlanceTTs[1], "RIGHT")
+			else
+				tt:SetPoint("TOP", ui_GlanceTTs[i - 1], "BOTTOM")
+				tt:SetPoint("LEFT", ui_GlanceTTs[2], "RIGHT")
+			end
+			tt:SetWidth(50)
+		end
+	elseif anchorPosition == "ANCHOR_BOTTOMRIGHT" then
+		for i, tt in ipairs(ui_GlanceTTs) do
+			tt:SetOwner(ui_CharacterTT, "ANCHOR_NONE");
+			if i == 1 then
+				tt:SetPoint("BOTTOMRIGHT", ui_CharacterTT, "TOPRIGHT")
+			else
+				tt:SetPoint("BOTTOM", ui_GlanceTTs[i - 1], "TOP")
+			end
+			tt:SetWidth(50)
+		end
+	end
+end
+
 local function show(targetType, targetID, targetMode)
 	ui_CharacterTT:Hide();
 	ui_CompanionTT:Hide();
+
+	for _, tt in pairs(ui_GlanceTTs) do
+		tt:Hide();
+	end
 
 	-- If option is to only show tooltips when player is in character and player is out of character, stop here
 	if getConfigValue(CONFIG_IN_CHARACTER_ONLY) and not isPlayerIC() then return end
@@ -1176,6 +1257,12 @@ local function show(targetType, targetID, targetMode)
 			ui_CompanionTT.targetType = targetType;
 			ui_CompanionTT.targetMode = targetMode;
 
+			for _, tt in pairs(ui_GlanceTTs) do
+				tt.target = targetID;
+				tt.targetType = targetType;
+				tt.targetMode = targetMode;
+			end
+
 			-- Check if has a profile
 			if getConfigValue(CONFIG_PROFILE_ONLY) then
 				if targetMode == TRP3_Enums.UNIT_TYPE.CHARACTER and targetID ~= Globals.player_id and (not IsUnitIDKnown(targetID) or not hasProfile(targetID)) then
@@ -1188,7 +1275,6 @@ local function show(targetType, targetID, targetMode)
 
 			-- We have a target
 			if targetMode then
-
 				-- Stock all the current text from the GameTooltip
 				local originalTexts = getGameTooltipTexts(GameTooltip);
 				local isMatureFlagged = unitIDIsFilteredForMatureContent(targetID);
@@ -1209,6 +1295,8 @@ local function show(targetType, targetID, targetMode)
 					end
 				end
 
+				setupGlanceAnchor()
+
 				ui_CharacterTT:SetBorderColor(1, 1, 1);
 				if targetMode == TRP3_Enums.UNIT_TYPE.CHARACTER then
 					writeTooltipForCharacter(targetID, originalTexts, targetType);
@@ -1219,21 +1307,21 @@ local function show(targetType, targetID, targetMode)
 						GameTooltip:Hide();
 					end
 					-- Mounts
-                    if targetID == Globals.player_id and getCurrentMountProfile() then
-                        local mountSpellID = getCurrentMountSpellID();
-                        local mountName = getCompanionNameFromSpellID(mountSpellID);
-                        ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
-                        writeTooltipForMount(Globals.player_id, nil, mountName);
-                    else
-                        local companionFullID, profileID, mountSpellID = TRP3_API.companions.register.getUnitMount(
-                        targetID, "mouseover");
-                        if profileID then
-                            local mountName = getCompanionNameFromSpellID(mountSpellID);
-                            ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
-                            writeTooltipForMount(targetID, companionFullID, mountName);
-                        end
-                    end
-                elseif targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET or (targetMode == TRP3_Enums.UNIT_TYPE.NPC) then
+					if targetID == Globals.player_id and getCurrentMountProfile() then
+						local mountSpellID = getCurrentMountSpellID();
+						local mountName = getCompanionNameFromSpellID(mountSpellID);
+						ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
+						writeTooltipForMount(Globals.player_id, nil, mountName);
+					else
+						local companionFullID, profileID, mountSpellID = TRP3_API.companions.register.getUnitMount(
+							targetID, "mouseover");
+						if profileID then
+							local mountName = getCompanionNameFromSpellID(mountSpellID);
+							ui_CompanionTT:SetOwner(ui_CharacterTT, "ANCHOR_TOPLEFT");
+							writeTooltipForMount(targetID, companionFullID, mountName);
+						end
+					end
+				elseif targetMode == TRP3_Enums.UNIT_TYPE.BATTLE_PET or targetMode == TRP3_Enums.UNIT_TYPE.PET or (targetMode == TRP3_Enums.UNIT_TYPE.NPC) then
 					writeCompanionTooltip(targetID, originalTexts, targetType, targetMode);
 					if shouldHideGameTooltip() and not (ownerIsIgnored(targetID) or unitIDIsFilteredForMatureContent(targetID)) then
 						GameTooltip:Hide();
@@ -1249,6 +1337,7 @@ end
 local function getFadeTime()
 	return (getAnchoredPosition() == "ANCHOR_CURSOR" or not fadeOutEnabled()) and 0 or 0.5;
 end
+
 
 local function onUpdate(self, elapsed)
 	self.TimeSinceLastUpdate = self.TimeSinceLastUpdate + elapsed;
@@ -1321,6 +1410,18 @@ TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOAD, function()
 	end);
 end);
 
+local function initTooltips()
+	ui_CharacterTT.TimeSinceLastUpdate = 0;
+	ui_CharacterTT:SetScript("OnUpdate", onUpdate);
+	ui_CompanionTT.TimeSinceLastUpdate = 0;
+	ui_CompanionTT:SetScript("OnUpdate", onUpdateCompanion);
+
+	for _, tt in ipairs(ui_GlanceTTs) do
+		tt.TimeSinceLastUpdate = 0;
+		tt:SetScript("OnUpdate", onUpdate);
+	end
+end
+
 local function onModuleInit()
 	registerTooltipModuleIsEnabled = true;
 	getCompanionProfile = TRP3_API.companions.player.getCompanionProfile;
@@ -1338,10 +1439,7 @@ local function onModuleInit()
 		end
 	end);
 
-	ui_CharacterTT.TimeSinceLastUpdate = 0;
-	ui_CharacterTT:SetScript("OnUpdate", onUpdate);
-	ui_CompanionTT.TimeSinceLastUpdate = 0;
-	ui_CompanionTT:SetScript("OnUpdate", onUpdateCompanion);
+	initTooltips();
 
 	IC_GUILD = " |cff00ff00(" .. loc.REG_TT_GUILD_IC .. ")";
 	OOC_GUILD = " |cffff0000(" .. loc.REG_TT_GUILD_OOC .. ")";
@@ -1375,6 +1473,7 @@ local function onModuleInit()
 	registerConfigKey(CONFIG_CHARACT_CURRENT_SIZE, 140);
 	registerConfigKey(CONFIG_CHARACT_RELATION, true);
 	registerConfigKey(CONFIG_CHARACT_SPACING, true);
+	registerConfigKey(CONFIG_DISPLAY_GLANCE, true);
 	registerConfigKey(CONFIG_NO_FADE_OUT, false);
 	registerConfigKey(CONFIG_PREFER_OOC_ICON, "TEXT");
 	registerConfigKey(CONFIG_PETS_ICON, true);
@@ -1382,35 +1481,35 @@ local function onModuleInit()
 	registerConfigKey(CONFIG_PETS_OWNER, true);
 	registerConfigKey(CONFIG_PETS_NOTIF, true);
 	registerConfigKey(CONFIG_PETS_INFO, true);
-    registerConfigKey(CONFIG_CHARACT_CURRENT_LINES, 4);
-    registerConfigKey("tooltip_char_shortdescription_size", 280);
+	registerConfigKey(CONFIG_CHARACT_CURRENT_LINES, 4);
+	registerConfigKey("tooltip_char_shortdescription_size", 280);
 	registerConfigKey("tooltip_char_shortdescription_lines", 8);
 	registerConfigKey(CONFIG_TOOLTIP_TITLE_COLOR, "ff8000");
 	registerConfigKey(CONFIG_TOOLTIP_MAIN_COLOR, "ffffff");
 	registerConfigKey(CONFIG_TOOLTIP_SECONDARY_COLOR, "ffc000");
 
 	ANCHOR_TAB = {
-		{loc.CO_ANCHOR_TOP_LEFT, "ANCHOR_TOPLEFT"},
-		{loc.CO_ANCHOR_TOP, "ANCHOR_TOP"},
-		{loc.CO_ANCHOR_TOP_RIGHT, "ANCHOR_TOPRIGHT"},
-		{loc.CO_ANCHOR_RIGHT, "ANCHOR_RIGHT"},
-		{loc.CO_ANCHOR_BOTTOM_RIGHT, "ANCHOR_BOTTOMRIGHT"},
-		{loc.CO_ANCHOR_BOTTOM, "ANCHOR_BOTTOM"},
-		{loc.CO_ANCHOR_BOTTOM_LEFT, "ANCHOR_BOTTOMLEFT"},
-		{loc.CO_ANCHOR_LEFT, "ANCHOR_LEFT"},
-		{loc.CO_ANCHOR_CURSOR, "ANCHOR_CURSOR"},
+		{ loc.CO_ANCHOR_TOP_LEFT,     "ANCHOR_TOPLEFT" },
+		{ loc.CO_ANCHOR_TOP,          "ANCHOR_TOP" },
+		{ loc.CO_ANCHOR_TOP_RIGHT,    "ANCHOR_TOPRIGHT" },
+		{ loc.CO_ANCHOR_RIGHT,        "ANCHOR_RIGHT" },
+		{ loc.CO_ANCHOR_BOTTOM_RIGHT, "ANCHOR_BOTTOMRIGHT" },
+		{ loc.CO_ANCHOR_BOTTOM,       "ANCHOR_BOTTOM" },
+		{ loc.CO_ANCHOR_BOTTOM_LEFT,  "ANCHOR_BOTTOMLEFT" },
+		{ loc.CO_ANCHOR_LEFT,         "ANCHOR_LEFT" },
+		{ loc.CO_ANCHOR_CURSOR,       "ANCHOR_CURSOR" },
 	};
 
 	local OOC_INDICATOR_TYPES = {
-		{loc.CO_TOOLTIP_PREFERRED_OOC_INDICATOR_TEXT .. ColorManager.RED("[" .. loc.CM_OOC .. "] "), "TEXT"},
-		{loc.CO_TOOLTIP_PREFERRED_OOC_INDICATOR_ICON .. OOC_ICON, "ICON"}
+		{ loc.CO_TOOLTIP_PREFERRED_OOC_INDICATOR_TEXT .. ColorManager.RED("[" .. loc.CM_OOC .. "] "), "TEXT" },
+		{ loc.CO_TOOLTIP_PREFERRED_OOC_INDICATOR_ICON .. OOC_ICON,                                    "ICON" }
 	};
 
 	local HEALTH_FORMAT_TAB = {
-		{loc.CO_TOOLTIP_HEALTH_DISABLED, 0},
-		{loc.CO_TOOLTIP_HEALTH_NUMBER, 1},
-		{loc.CO_TOOLTIP_HEALTH_PERCENT, 2},
-		{loc.CO_TOOLTIP_HEALTH_BOTH, 3},
+		{ loc.CO_TOOLTIP_HEALTH_DISABLED, 0 },
+		{ loc.CO_TOOLTIP_HEALTH_NUMBER,   1 },
+		{ loc.CO_TOOLTIP_HEALTH_PERCENT,  2 },
+		{ loc.CO_TOOLTIP_HEALTH_BOTH,     3 },
 	};
 
 	-- Build configuration page
@@ -1528,6 +1627,11 @@ local function onModuleInit()
 				inherit = "TRP3_ConfigCheck",
 				title = loc.CO_TOOLTIP_NO_FADE_OUT,
 				configKey = CONFIG_NO_FADE_OUT,
+			},
+			{
+				inherit = "TRP3_ConfigCheck",
+				title = loc.CO_DISPLAY_GLANCE_TOOLTIPS,
+				configKey = CONFIG_DISPLAY_GLANCE,
 			},
 			{
 				inherit = "TRP3_ConfigH1",

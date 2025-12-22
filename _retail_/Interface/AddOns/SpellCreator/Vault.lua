@@ -129,6 +129,20 @@ local function uploadSingleSpellAndNotifyUsers(commID, spell)
 	notifyPhaseOfSpellUpdate(commID)
 end
 
+local function genMissingSpell(commID)
+	local spell = {}
+	spell.commID = commID
+	spell.fullName = ns.Constants.ADDON_COLORS.TOOLTIP_WARNINGRED:WrapTextInColorCode("Missing Spell (ArcID: " .. commID .. ")")
+	spell.icon = ns.UI.Icons.FALLBACK_ICON
+	if ns.Permissions.isOfficerPlus() then
+		spell.description = ns.Constants.ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode(
+			"This spell is missing from the Phase Vault. Please check for a typo in the ArcID or check your Phase Vault.")
+	else
+		spell.description = ns.Constants.ADDON_COLORS.TOOLTIP_CONTRAST:WrapTextInColorCode("Please report this to a Phase Officer.")
+	end
+	return spell
+end
+
 ns.Vault = {
 	personal = {
 		getSpells = getPersonalSpells,
@@ -149,6 +163,8 @@ ns.Vault = {
 		addSpell = addPhaseSpell,
 		clearSpells = clearPhaseSpells,
 
+
 		uploadSingleSpellAndNotifyUsers = uploadSingleSpellAndNotifyUsers,
 	},
+	genMissingSpell = genMissingSpell,
 }

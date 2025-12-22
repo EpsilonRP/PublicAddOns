@@ -1,5 +1,41 @@
 local EpsilonLib, EpsiLib   = ...;
 
+-------------------------------------------
+--- Phase AddOn Data Module
+--- Handles saving & loading data to/from Phase AddOn Data storage
+---
+--- Documentation:
+---
+--- **SAVING DATA TO THE PHASE / SERVER:
+--- SetAddonData
+---	Saves the string 'str' to the Phase AddOn Data storage under the key 'key'.
+--- Handles splitting the data into multiple parts if it exceeds the max size automatically.
+---    USAGE: EpsilonLib.PhaseAddonData.SetAddonData(key, str)
+---    ALIAS: ...SetPhaseAddonData(key, str)
+---    ALIAS: ...Set(key, str)
+---
+---    UTILITY: ...SaveTable(key, table) -- saves a table after serializing & compressing it into a string for you
+---
+---
+--- **LOADING DATA FROM THE PHASE / SERVER:
+--- RequestAddonData
+---	Requests the string data stored under 'key' from the Phase AddOn Data storage.
+--- Automatically handles multi-part data retrieval if the data is split into multiple parts.
+--- Follows a throttling / queue system to avoid overloading requests that would cause the server to disconnect you.
+--- ASYNC: Calls the 'callback' function once the data is retrieved, passing the final string as the first argument.
+--- Returns a 'ticket' string that is the message prefix the server will reply with, or if the request was stashed due to throttling, returns false and the stashed table reference.
+---    USAGE: EpsilonLib.PhaseAddonData.RequestAddonData(key, callback)
+---    ALIAS: ...GetPhaseAddonData(key, callback)
+---    ALIAS: ...Get(key, callback)
+---    ALIAS: ...Request(key, callback)
+---
+---    UTILITY: ...LoadTable(key, callback) -- loads the key & then decompressing & deserializing into a table first before passing to the callback.
+-----------------------------------------------
+
+-- Libs
+local LibSerialize          = LibStub("LibSerialize")
+local LibDeflate            = LibStub("LibDeflate")
+
 -- Module Table
 EpsiLib.PhaseAddonData      = EpsiLib.PhaseAddonData or {}
 
@@ -10,8 +46,8 @@ local CopyTable             = CopyTable
 local wipe                  = wipe
 local tinsert               = tinsert
 
-local getAddonData          = C_Epsilon.GetPhaseAddonData --[[@as fun(key)]]
-local setAddonData          = C_Epsilon.SetPhaseAddonData --[[@as fun(key,str)]]
+local getAddonData          = C_Epsilon.GetPhaseAddonData --[[@as fun(key:string, phaseId?:integer)]]
+local setAddonData          = C_Epsilon.SetPhaseAddonData --[[@as fun(key:string, str:string)]]
 
 local MSG_MULTI_FIRST       = "\001"
 local MSG_MULTI_NEXT        = "\002"
@@ -22,15 +58,38 @@ local MAX_CHARS_PER_SEGMENT = 3000
 local throttle_max_calls    = 45
 local throttle_interval     = 1.5
 
+--#region Serialize & Deserialize Utils
+
+local function compressAndSerialize(data)
+	local serialized = LibSerialize:Serialize(data)
+	local compressed = LibDeflate:CompressDeflate(serialized)
+	local encoded = LibDeflate:EncodeForPrint(compressed)
+	return encoded
+end
+
+
+local function deserializeAndDecompress(data)
+	local decoded = LibDeflate:DecodeForPrint(data)
+	if not decoded then return nil, "Error: Fail Decode" end
+	local decompressed = LibDeflate:DecompressDeflate(decoded)
+	if not decompressed then return nil, "Error: Fail DecompressDeflate" end
+	local success, data = LibSerialize:Deserialize(decompressed)
+	if not success then return success, data end
+
+	return data
+end
+
+--#endregion
+
 --#region Internal Systems
 
 -- Create our Listener Frame for listening to incoming PhaseAddonData messages
-local listenerFrame         = CreateFrame("Frame")
+local listenerFrame = CreateFrame("Frame")
 listenerFrame:RegisterEvent("CHAT_MSG_ADDON")
 
--- Create our Queue & Pending system
-EpsiLib.PhaseAddonData.queue = {}
-EpsiLib.PhaseAddonData.pending = {}
+-- Create our Queue & Pending system // Accessible in EpsiLib.PhaseAddonData for debugging if needed
+EpsiLib.PhaseAddonData._queue = {}
+EpsiLib.PhaseAddonData._pending = {}
 local callCount = 0
 
 ---Transforms a key into it's iteration variant, handling %s as a placement marker if present, or just appending it as _# if not; If 1st iter or no iter, then just remove marker if present.
@@ -61,18 +120,18 @@ end
 local function stashRequest(keyOrTable, callback, strs)
 	if type(keyOrTable) == "table" then
 		-- prioritize table calls as they are likely internal calls for 2nd data pieces
-		tinsert(EpsiLib.PhaseAddonData.pending, 1, keyOrTable)
+		tinsert(EpsiLib.PhaseAddonData._pending, 1, keyOrTable)
 		return keyOrTable
 	end
 
 	local dataTable = { key = keyOrTable, callback = callback, strs = (strs or {}) }
-	tinsert(EpsiLib.PhaseAddonData.pending, dataTable)
+	tinsert(EpsiLib.PhaseAddonData._pending, dataTable)
 	return dataTable
 end
 
 local function resumePending()
-	local pending = CopyTable(EpsiLib.PhaseAddonData.pending)
-	wipe(EpsiLib.PhaseAddonData.pending)
+	local pending = CopyTable(EpsiLib.PhaseAddonData._pending)
+	wipe(EpsiLib.PhaseAddonData._pending)
 	for i = 1, #pending do
 		local pendingData = pending[i]
 
@@ -96,11 +155,14 @@ function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
 		return false, stashRequest(keyOrTable, callback, strTable)
 	end
 
+	local phaseId = nil
 	local key = keyOrTable
 	if type(keyOrTable) == "table" then
 		callback = keyOrTable.callback
 		strTable = keyOrTable.strs
 		key = keyOrTable.key
+
+		phaseId = keyOrTable.phaseId
 
 		if keyOrTable.cancelled then return false end -- passed with a cancelled request.. dunno how, but don't do it!
 	end
@@ -115,17 +177,32 @@ function EpsiLib.PhaseAddonData.RequestAddonData(keyOrTable, callback, strTable)
 
 	local iter = strTable and #strTable or nil
 	if iter == 0 then iter = nil end -- in the case it's stashed with no strs yet, iter should be nil still
-	local dataKey = getIterKey(key, (iter and iter+1))
+	local dataKey = getIterKey(key, (iter and iter + 1))
 
 	dprint("Requested: " .. dataKey)
-	local ticket = getAddonData(dataKey)
-	EpsiLib.PhaseAddonData.queue[ticket] = { callback = callback, key = key, strs = (strTable or {}) }
+	local ticket = getAddonData(dataKey, phaseId)
+	EpsiLib.PhaseAddonData._queue[ticket] = { callback = callback, key = key, strs = (strTable or {}), phaseId = phaseId }
 	return ticket
 end
 
 EpsiLib.PhaseAddonData.GetPhaseAddonData = EpsiLib.PhaseAddonData.RequestAddonData
 EpsiLib.PhaseAddonData.Get = EpsiLib.PhaseAddonData.RequestAddonData
 EpsiLib.PhaseAddonData.Request = EpsiLib.PhaseAddonData.RequestAddonData
+
+---Utility Function for Requesting PhaseAddonData specifically as table, without needing additional handlers / libs
+---@param key string
+---@param callback function
+---@return string|boolean ticket The Message Ticket the server will reply using as the prefix, or the false if it was stashed.
+---@return table? stashedTable The reference table in the pending queue if the request was stashed
+EpsiLib.PhaseAddonData.LoadTable = function(key, callback)
+	return EpsiLib.PhaseAddonData.RequestAddonData(key, function(str)
+		-- turn string to table
+		local tab, err = deserializeAndDecompress(str)
+
+		-- run callback with that table instead of string
+		callback(tab)
+	end)
+end
 
 
 ---Set PhaseAddonData but with automatic handling of over-sized data
@@ -166,12 +243,23 @@ end
 EpsiLib.PhaseAddonData.SetPhaseAddonData = EpsiLib.PhaseAddonData.SetAddonData
 EpsiLib.PhaseAddonData.Set = EpsiLib.PhaseAddonData.SetAddonData
 
+---Utility Function for Saving a table to PhaseAddonData, without needing additional handlers / libs
+---@param key string
+---@param tab table
+EpsiLib.PhaseAddonData.SaveTable = function(key, tab)
+	-- turn table into string
+	local str = compressAndSerialize(tab)
+
+	-- save that string via SetAddonData
+	EpsiLib.PhaseAddonData.SetAddonData(key, str)
+end
+
 --#endregion
 --#region Handler for Server Replies
 
 listenerFrame:SetScript("OnEvent", function(self, event, prefix, text, channel, sender, ...)
-	if event == "CHAT_MSG_ADDON" and EpsiLib.PhaseAddonData.queue[prefix] then
-		local dataTable = EpsiLib.PhaseAddonData.queue[prefix]
+	if event == "CHAT_MSG_ADDON" and EpsiLib.PhaseAddonData._queue[prefix] then
+		local dataTable = EpsiLib.PhaseAddonData._queue[prefix]
 
 		local iter = #dataTable.strs
 		dprint("Received: " .. getIterKey(dataTable.key, iter + 1))
@@ -187,7 +275,7 @@ listenerFrame:SetScript("OnEvent", function(self, event, prefix, text, channel, 
 			local ticket, stashed = EpsiLib.PhaseAddonData.RequestAddonData(dataTable)
 
 			-- Remove the previous queue, already handled
-			EpsiLib.PhaseAddonData.queue[prefix] = nil
+			EpsiLib.PhaseAddonData._queue[prefix] = nil
 
 			-- And exit this call
 			return ticket
@@ -206,8 +294,8 @@ listenerFrame:SetScript("OnEvent", function(self, event, prefix, text, channel, 
 		-- continue to passing the text result to the callback
 		-- and remove from the queue
 
-		EpsiLib.PhaseAddonData.queue[prefix].callback(text)
-		EpsiLib.PhaseAddonData.queue[prefix] = nil
+		EpsiLib.PhaseAddonData._queue[prefix].callback(text)
+		EpsiLib.PhaseAddonData._queue[prefix] = nil
 	end
 end)
 

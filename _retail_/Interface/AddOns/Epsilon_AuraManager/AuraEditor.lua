@@ -9,9 +9,9 @@
 local filteredList;
 local FPSThrottle = 30;
 local MinFPS = 5;
-local maxSpellID = 403865 + 100000; --	Last known spell (This is the internal limit for this build)
-local extraRangeStart = 100001;     -- For skybox spells
-local extraRangeEnd = 1003865;
+local maxSpellID = 403865;       --	Last known spell (This is the internal limit for this build)
+local extraRangeStart = 1000001; -- For Epsilon custom spells (i.e., skyboxes)
+local extraRangeEnd = 1010010;
 
 local searchCache = {};
 local Scanner = CreateFrame("Frame");
@@ -51,6 +51,10 @@ local function SetSearch(text)
 				local match = false
 
 				for _, token in ipairs(tokens) do
+					if lowerName and tonumber(token) and tonumber(token) == ScanPos then
+						match = true
+						break
+					end
 					if lowerName and lowerName:find(token, 1, true) then
 						match = true
 					elseif lowerName and not lowerName:find(token, 1, true) then
@@ -63,7 +67,7 @@ local function SetSearch(text)
 					local tbl = {
 						spellID = ScanPos,
 						name = name,
-						icon = icon or "Interface\\Icons\\INV_Misc_QuestionMark",
+						icon = icon or 136243, -- gear instead of question mark; wow uses that as default for spells w/o icon
 						desc = desc
 					};
 					C_Spell.RequestLoadSpellData(ScanPos)

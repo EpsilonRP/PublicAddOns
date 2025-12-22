@@ -75,8 +75,10 @@ local function setupSpellTooltip(spellName, spellDesc, spellComm, numActions, ch
 
 	GameTooltip_SetTitle(tooltip, tooltipTitle)
 
-	tooltip:AddLine(spellDesc, nil, nil, nil, true)
-	tooltip:AddLine(" ")
+	if spellDesc then
+		tooltip:AddLine(ns.Utils.SpellUtils.GetDescriptionForUI({ description = spellDesc }), nil, nil, nil, true)
+		tooltip:AddLine(" ")
+	end
 	tooltip:AddDoubleLine("Command: " .. spellComm, "Actions: " .. numActions, 1, 1, 1, 1, 1, 1)
 	tooltip:AddDoubleLine("Arcanum Spell", charOrPhase, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
 

@@ -1,0 +1,9 @@
+## Interface: 90207
+## Title: BlueprintManager
+## Notes: A simple addon to manage blueprints in World of Warcraft.
+## Version: 1.0.0
+## Author: Naponico
+## RequiredDeps: EpsilonLib
+## SavedVariables: BlueprintManagerData, BlueprintManagerSavedVars
+## Load the main Lua file
+BlueprintManager.lua

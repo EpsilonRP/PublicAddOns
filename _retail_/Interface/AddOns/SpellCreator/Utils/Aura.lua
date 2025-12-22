@@ -1,13 +1,25 @@
 ---@class ns
 local ns = select(2, ...)
 
+local GetPlayerAuraBySpellID = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID or GetPlayerAuraBySpellID
+
 local checkForAuraIDPredicate = function(wantedID, _, _, ...)
 	local spellID = select(10, ...)
 	return spellID == wantedID
 end
 
--- SL 927 TODO: Convert to GetPlayerAuraBySpellID(id) for player.
+---@param wantedID number|string The Spell ID to check
+---@param unit? UnitId The unit to check; defaults to "player" if not given
+---@return AuraData?
 local function checkForAuraID(wantedID, unit)
+	if not unit then unit = "player" end
+	unit = unit:lower()
+
+	-- SL Shortcut for Player Auras
+	if unit == "player" then
+		return GetPlayerAuraBySpellID(tonumber(wantedID))
+	end
+
 	local helpful = { AuraUtil.FindAura(checkForAuraIDPredicate, unit, nil, tonumber(wantedID)) }
 	if #helpful > 0 then
 		return unpack(helpful)

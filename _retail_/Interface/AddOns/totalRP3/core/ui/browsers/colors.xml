@@ -19,6 +19,250 @@
 	limitations under the License.
 -->
 
+	<!-- Gradient Creator -->
+	<Frame name="TRP3_GradientCreator" parent="TRP3_PopupsFrame" hidden="true" inherits="BackdropTemplate">
+		<KeyValues>
+			<KeyValue key="backdropInfo" value="TRP3_BACKDROP_MIXED_ACHIEVEMENT_TOOLTIP_415_24_5555" type="global"/>
+		</KeyValues>
+		<Size x="440" y="285"/>
+		<Anchors>
+			<Anchor point="CENTER" x="0" y="0"/>
+		</Anchors>
+		<Layers>
+			<Layer level="OVERLAY">
+				<FontString name="$parentTitle" text="Gradient Creator" inherits="GameFontNormalLarge">
+					<Size x="0" y="10"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="-17"/>
+						<Anchor point="TOPRIGHT" x="0" y="-17"/>
+					</Anchors>
+					<Color b="0.95" r="0.95" g="0.95"/>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button inherits="UIPanelCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-5" y="-5"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						TRP3_GradientCreator:Hide();
+						TRP3_API.popup.hidePopups();
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Frame name="$parentColorRegion1" inherits="BackdropTemplate" parentKey="leftColor">
+				<KeyValues>
+					<KeyValue key="backdropInfo" value="TRP3_BACKDROP_MIXED_DIALOG_TOOLTIP_415_24_5555" type="global"/>
+				</KeyValues>
+				<Size x="0" y="120"/>
+				<Anchors>
+					<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$parentTitle" x="0" y="-10"/>
+					<Anchor point="BOTTOMLEFT" x="10" y="40"/>
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOM" x="-10" y="40"/>
+				</Anchors>
+				<Frames>
+
+					<ColorSelect name="$parentColor" enableMouse="true" enableKeyboard="true" parentKey="color">
+						<Size x="186" y="128"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" x="0" y="-30"/>
+						</Anchors>
+						<ColorWheelTexture name="$parentColorWheel">
+							<Size x="128" y="128"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="16" y="0"/>
+							</Anchors>
+						</ColorWheelTexture>
+						<ColorWheelThumbTexture file="Interface\Buttons\UI-ColorPicker-Buttons">
+							<Size x="10" y="10"/>
+							<TexCoords left="0" right="0.15625" top="0" bottom="0.625"/>
+						</ColorWheelThumbTexture>
+						<ColorValueTexture>
+							<Size x="32" y="128"/>
+							<Anchors>
+								<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$parentColorWheel" x="10" y="0"/>
+							</Anchors>
+						</ColorValueTexture>
+						<ColorValueThumbTexture file="Interface\Buttons\UI-ColorPicker-Buttons">
+							<Size x="48" y="14"/>
+							<TexCoords left="0.25" right="1.0" top="0" bottom="0.875"/>
+						</ColorValueThumbTexture>
+						<Layers>
+							<Layer level="OVERLAY">
+								<Texture file="Interface\MINIMAP\UI-MINIMAP-BORDER">
+									<Size x="253" y="226"/>
+									<Anchors>
+										<Anchor x="-86" y="13"/>
+									</Anchors>
+									<TexCoords left="0" right="1" top="0.11" bottom="1" />
+								</Texture>
+								<Texture file="Interface\BUTTONS/UI-Quickslot2" name="$parentDecoration">
+									<Size x="60" y="60"/>
+									<Anchors>
+										<Anchor x="140" y="-120"/>
+									</Anchors>
+								</Texture>
+							</Layer>
+						</Layers>
+					</ColorSelect>
+
+					<EditBox name="$parentEditBox" inherits="TRP3_TitledHelpEditBox" letters="7">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" x="30" y="15"/>
+						</Anchors>
+					</EditBox>
+
+					<!--
+					<Button name="$parentPresets" inherits="TRP3_CommonButton" text="Presets">
+						<Size x="100" y="20"/>
+						<Anchors>
+							<Anchor point="BOTTOM" relativeTo="$parentEditBox" relativePoint="TOP" y="10" />
+						</Anchors>
+					</Button>
+					-->
+
+				</Frames>
+
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture name="$parentSwatch">
+							<Size><AbsDimension x="32" y="32"/></Size>
+							<Anchors>
+								<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$parentColorColorWheel" x="10" y="-84"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0" a="1.0"/>
+						</Texture>
+					</Layer>
+
+					<Layer level="OVERLAY">
+						<FontString name="$parentTitle" text="Left Color" inherits="GameFontNormalLeft">
+							<Size x="0" y="10"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="10" y="-8"/>
+								<Anchor point="TOPRIGHT" x="-10" y="-8"/>
+							</Anchors>
+							<Color b="0.95" r="0.95" g="0.95"/>
+						</FontString>
+					</Layer>
+				</Layers>
+
+			</Frame>
+
+			<Frame name="$parentColorRegion2" inherits="BackdropTemplate" parentKey="rightColor">
+				<KeyValues>
+					<KeyValue key="backdropInfo" value="TRP3_BACKDROP_MIXED_DIALOG_TOOLTIP_415_24_5555" type="global"/>
+				</KeyValues>
+				<Size x="0" y="120"/>
+				<Anchors>
+					<Anchor point="TOP" relativePoint="BOTTOM" relativeTo="$parentTitle" x="0" y="-10"/>
+					<Anchor point="BOTTOMRIGHT" x="-10" y="40"/>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOM" x="10" y="40"/>
+				</Anchors>
+				<Frames>
+
+					<ColorSelect name="$parentColor" enableMouse="true" enableKeyboard="true" parentKey="color">
+						<Size x="186" y="128"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" x="0" y="-30"/>
+						</Anchors>
+						<ColorWheelTexture name="$parentColorWheel">
+							<Size x="128" y="128"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="16" y="0"/>
+							</Anchors>
+						</ColorWheelTexture>
+						<ColorWheelThumbTexture file="Interface\Buttons\UI-ColorPicker-Buttons">
+							<Size x="10" y="10"/>
+							<TexCoords left="0" right="0.15625" top="0" bottom="0.625"/>
+						</ColorWheelThumbTexture>
+						<ColorValueTexture>
+							<Size x="32" y="128"/>
+							<Anchors>
+								<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$parentColorWheel" x="10" y="0"/>
+							</Anchors>
+						</ColorValueTexture>
+						<ColorValueThumbTexture file="Interface\Buttons\UI-ColorPicker-Buttons">
+							<Size x="48" y="14"/>
+							<TexCoords left="0.25" right="1.0" top="0" bottom="0.875"/>
+						</ColorValueThumbTexture>
+						<Layers>
+							<Layer level="OVERLAY">
+								<Texture file="Interface\MINIMAP\UI-MINIMAP-BORDER">
+									<Size x="253" y="226"/>
+									<Anchors>
+										<Anchor x="-86" y="13"/>
+									</Anchors>
+									<TexCoords left="0" right="1" top="0.11" bottom="1" />
+								</Texture>
+								<Texture file="Interface\BUTTONS/UI-Quickslot2" name="$parentDecoration">
+									<Size x="60" y="60"/>
+									<Anchors>
+										<Anchor x="140" y="-120"/>
+									</Anchors>
+								</Texture>
+							</Layer>
+						</Layers>
+					</ColorSelect>
+
+					<EditBox name="$parentEditBox" inherits="TRP3_TitledHelpEditBox" letters="7">
+						<Anchors>
+							<Anchor point="BOTTOMLEFT" x="30" y="15"/>
+						</Anchors>
+					</EditBox>
+
+					<!--
+					<Button name="$parentPresets" inherits="TRP3_CommonButton" text="Presets">
+						<Size x="100" y="20"/>
+						<Anchors>
+							<Anchor point="BOTTOM" relativeTo="$parentEditBox" relativePoint="TOP" y="10" />
+						</Anchors>
+					</Button>
+					-->
+
+				</Frames>
+
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture name="$parentSwatch">
+							<Size><AbsDimension x="32" y="32"/></Size>
+							<Anchors>
+								<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$parentColorColorWheel" x="10" y="-84"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0" a="1.0"/>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString name="$parentTitle" text="Right Color" inherits="GameFontNormalRight">
+							<Size x="0" y="10"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="10" y="-8"/>
+								<Anchor point="TOPRIGHT" x="-10" y="-8"/>
+							</Anchors>
+							<Color b="0.95" r="0.95" g="0.95"/>
+						</FontString>
+					</Layer>
+				</Layers>
+
+			</Frame>
+
+			<EditBox name="$parentEditBox" inherits="TRP3_TitledHelpEditBox">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="12" y="15"/>
+					<Anchor point="BOTTOMRIGHT" x="-100" y="15"/>
+				</Anchors>
+			</EditBox>
+
+			<Button name ="$parentConfirmButton" inherits="TRP3_CommonButton" text="Confirm">
+				<Size x="80" y="20"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-12" y="15"/>
+				</Anchors>
+			</Button>
+		</Frames>
+	</Frame>
+
 	<!-- Color browser  -->
 	<Frame name="TRP3_ColorBrowser" parent="TRP3_PopupsFrame" hidden="true" inherits="BackdropTemplate">
 		<KeyValues>

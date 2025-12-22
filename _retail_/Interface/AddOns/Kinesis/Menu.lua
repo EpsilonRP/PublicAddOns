@@ -94,6 +94,18 @@ local function genGenericSetFunction(key, subTable, table, callback)
 	return func
 end
 
+local unsavedPhaseChanges = false
+local function markChangesDirty_Phase()
+	unsavedPhaseChanges = true
+end
+
+local function set(func)
+	return function(info, val)
+		markChangesDirty_Phase()
+		func(val)
+	end
+end
+
 local orderGroup = 0
 local orderItem = 0
 local function autoOrder(isGroup)
@@ -107,13 +119,17 @@ local function autoOrder(isGroup)
 	end
 end
 
-local function spacer(width)
+local function spacer(width, height)
 	local item = {
 		name = "",
 		type = "description",
 		order = autoOrder(),
 		width = width or nil
 	}
+	if height then
+		item.name = string.rep("\n", height)
+	end
+
 	return item
 end
 
@@ -121,13 +137,26 @@ local function divider(order)
 	local item = {
 		name = "",
 		type = "header",
-		order = order,
+		order = order or autoOrder(),
 	}
 	return item
 end
 
-local function inlineHeader(text)
+local function g(text)
 	return WrapTextInColorCode(text, "ffFFD700")
+end
+
+local function w(text)
+	return WrapTextInColorCode(text, "ffFFFFFF")
+end
+
+local function drDefault(key)
+	local defaults = ns.DRSettings.GetDefaults()
+	local val = defaults[key]
+	if type(val) == "table" then
+		val = table.concat(val, ", ")
+	end
+	return "\n\rDefault: " .. val
 end
 
 local function caseInsensitiveCompare(a, b)
@@ -460,6 +489,318 @@ local options = {
 				},
 			},
 		},
+		dragonriding = {
+			type = "group",
+			name = "GLIDE",
+			order = autoOrder(),
+			args = {
+				dragonRidingTitle = {
+					type = "header",
+					name = g("GLIDE - Immersive Flying") .. w(" (BETA)"),
+					order = autoOrder(),
+					dialogControl = "SFX-Header-II",
+				},
+				dragonRidingInfo = {
+					type = "description",
+					name =
+					"GLIDE - Immersive Flying is a lite recreation of Skyriding / Dragonriding from retail, where speed is a dynamic response to your current flight angle, such as diving & climbing, and caries momentum.\n\rGLIDE is customizable per-phase; only Officer+ may adjust the settings below.\nNOTE: You must click 'Save Phase Settings' to save. This allows you to test changes before saving.\r",
+					order = autoOrder(),
+				},
+
+				drSettingsGroup = {
+					type = "group",
+					name = "GLIDE Phase Settings",
+					inline = true,
+					order = autoOrder(),
+					disabled = function()
+						if not C_Epsilon.IsOfficer() then return true end
+						return not ns.DR_API.IsEnabled()
+					end,
+					args = {
+						dragonRidingToggle = {
+							type = "toggle",
+							name = "Enable Immersive Flying in this Phase",
+							desc = "When enabled, a recreation of Dragon Riding systems are enabled in the phase for everyone. You may customize the settings further below.\n\rOnly an Officer+ may toggle or adjust Dragon Riding in the phase.",
+							get = ns.DR_API.IsEnabled,
+							set = set(ns.DR_API.SetEnabled),
+							order = autoOrder(),
+							width = 2,
+							disabled = function() return not C_Epsilon.IsOfficer() end,
+						},
+						dragonRidingSaveSettings = {
+							type = "execute",
+							name = "Save Phase Settings",
+							desc = "Save the current GLIDE settings to the phase, applying to all members in phase.",
+							order = autoOrder(),
+							func = function()
+								ns.DRSettings.SaveToServer()
+								unsavedPhaseChanges = false
+							end,
+							disabled = function()
+								if not C_Epsilon.IsOfficer() then return true end
+								return not unsavedPhaseChanges
+							end,
+							width = 1,
+						},
+						dragonRidingReqMounted = {
+							type = "toggle",
+							name = "Require Mount",
+							desc = "When enabled, you must be mounted (or have a spell active from the Require Spell/Aura Whitelist) to activate Immersive Flying in this phase. Otherwise, traditional flying will be used.",
+							get = ns.DR_API.GetRequireMounted,
+							set = set(ns.DR_API.SetRequireMounted),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingReqSpellWhitelist = {
+							type = "input",
+							dialogControl = "MAW-Editbox",
+							name = "Require Spell/Aura Whitelist",
+							desc =
+							"When set, you must have one of the spells listed here as an active aura in order to activate Immersive Flying in this phase. Otherwise, traditional flying will be used. You may add multiple spells, separated by commas.\n\rIf Require Mounted is also enabled, this acts as an OR, meaning they must be mounted OR have one of these auras.",
+							usage = "spellID1, spellID2, ...\nExample: Players using a flying morph instead of a mount may apply an aura (i.e., 356465) to enable Immersive Flying instead.",
+							get = ns.DR_API.GetRequireSpellsString,
+							set = set(ns.DR_API.SetRequireSpellsString),
+							order = autoOrder(),
+							width = 2,
+						},
+						speedSection = {
+							type = "header",
+							name = g("Speed"),
+							order = autoOrder(),
+							dialogControl = "SFX-Header-II",
+						},
+						dragonRidingMinSpeed = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0.1,
+							softMax = 5,
+							max = 10,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Minimum Speed (Climb)",
+							desc = g "Adjust the minimum speed. This is the slowest speed you can reach when climbing." .. drDefault("MIN_SPEED"),
+							get = ns.DR_API.GetMinSpeed,
+							set = set(ns.DR_API.SetMinSpeed),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingBaseSpeed = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 1,
+							softMax = 10,
+							max = 50,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Base Flight Speed",
+							desc = g "Adjust the base flight speed. This is the speed you fly when flying completely level / flat." .. drDefault("BASE_SPEED"),
+							get = ns.DR_API.GetBaseSpeed,
+							set = set(ns.DR_API.SetBaseSpeed),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingMaxSpeed = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 1,
+							softMax = 25,
+							max = 50,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Max Speed (Dive)",
+							desc = g "Adjust the maximum speed. This is the fastest you can reach, without boosting, while diving. Higher values allow for greater top speeds, making flight feel more exhilarating." .. drDefault("MAX_SPEED"),
+							get = ns.DR_API.GetMaxSpeed,
+							set = set(ns.DR_API.SetMaxSpeed),
+							order = autoOrder(),
+							width = 1,
+						},
+						spacer1 = spacer(nil, 2),
+						accelSection = {
+							type = "header",
+							name = g("Acceleration"),
+							order = autoOrder(),
+							dialogControl = "SFX-Header-II",
+						},
+						dragonRidingAccelRate = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0.1,
+							softMax = 5,
+							max = 10,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Acceleration Rate",
+							desc = g "Adjust how quickly you accelerate to your target speed. Higher values result in faster acceleration, making flight feel more responsive." .. drDefault("ACCEL_RATE"),
+							get = ns.DR_API.GetAccelRate,
+							set = set(ns.DR_API.SetAccelRate),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingDecelRate = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0.1,
+							softMax = 5,
+							max = 10,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Deceleration Rate",
+							desc = g "Adjust how quickly you decelerate when reducing speed. Higher values result in faster deceleration, reducing your overall ability to retain speed." .. drDefault("DECEL_RATE"),
+							get = ns.DR_API.GetDecelRate,
+							set = set(ns.DR_API.SetDecelRate),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingDecelDiveRate = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0,
+							softMax = 5,
+							max = 10,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Deceleration (Dive Grace)",
+							desc = g "Alternative Deceleration Rate when exiting a Dive. Lower values than standard decel allow you to retain speed longer." .. drDefault("DECEL_RATE_DIVE"),
+							get = ns.DR_API.GetDecelDiveRate,
+							set = set(ns.DR_API.SetDecelDiveRate),
+							order = autoOrder(),
+							width = 1,
+						},
+						dragonRidingAngleScalePowDsc = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0.1,
+							softMax = 3,
+							max = 5,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Angle Power (Dive)",
+							desc = g "Adjusts how much your angle affects accel/deceleration when diving. Recommend values between 0-1 for a quicker response to diving / easier to gain speed." .. drDefault("ANGLE_SCALE_POW_DSC"),
+							get = ns.DR_API.GetAngleScalePowDsc,
+							set = set(ns.DR_API.SetAngleScalePowDsc),
+							order = autoOrder(),
+							width = 1.5,
+						},
+						dragonRidingAngleScalePowAsc = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0.1,
+							softMax = 3,
+							max = 5,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Angle Power (Climb)",
+							desc = g "Adjusts how much your angle affects accel/deceleration when climbing. Recommend values >1 for a slower response to diving / less penalty for gradual climbs." .. drDefault("ANGLE_SCALE_POW_ASC"),
+							get = ns.DR_API.GetAngleScalePowAsc,
+							set = set(ns.DR_API.SetAngleScalePowAsc),
+							order = autoOrder(),
+							width = 1.5,
+						},
+						spacer2 = spacer(nil, 2),
+						boostSection = {
+							type = "header",
+							name = g("Boost"),
+							order = autoOrder(),
+							dialogControl = "SFX-Header-II",
+						},
+						dragonRidingBoostSpeed = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 1,
+							softMax = 5,
+							max = 10,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Boost: Speed Gain",
+							desc = g "Adjust the speed gained when using boost. This determines how much speed is added when boosting during flight." .. drDefault("BOOST_SPEED_GAIN"),
+							get = ns.DR_API.GetBoostSpeed,
+							set = set(ns.DR_API.SetBoostSpeed),
+							order = autoOrder(),
+							width = 1.5,
+						},
+						dragonRidingBoostMax = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 1,
+							softMax = 20,
+							max = 50,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "Boost: Max Speed",
+							desc = g "Adjust the maximum speed achievable through boosting. This sets the upper limit for your boosted flight speed." .. drDefault("BOOST_SPEED_MAX"),
+							get = ns.DR_API.GetBoostMax,
+							set = set(ns.DR_API.SetBoostMax),
+							order = autoOrder(),
+							width = 1.5,
+						},
+						spacer3 = spacer(nil, 2),
+						visualSection = {
+							type = "header",
+							name = g("Visuals"),
+							order = autoOrder(),
+							dialogControl = "SFX-Header-II",
+						},
+						highSpeedThreshold = {
+							type = "range",
+							dialogControl = "MAW-Slider",
+							min = 0,
+							softMax = 20,
+							max = 50,
+							step = 0.01,
+							bigStep = 0.1,
+							name = w "High Speed Threshold",
+							desc = g "The speed in which you must be going faster than to activate the high-speed auras.\n\r0 Disables this system." .. drDefault("HIGH_SPEED_THRESHOLD"),
+							get = ns.DR_API.GetHSThreshold,
+							set = set(ns.DR_API.SetHSThreshold),
+							order = autoOrder(),
+							width = 1.5,
+						},
+						highSpeedAuras = {
+							type = "input",
+							dialogControl = "MAW-Editbox",
+							name = w "High Speed Auras",
+							desc = g "Auras to apply when your speed is higher than the high speed threshold. You may add multiple, separated by commas." .. drDefault("HIGH_SPEED_AURAS"),
+							usage = "Aura1, Aura2, ...",
+							get = ns.DR_API.GetHSAurasString,
+							set = set(ns.DR_API.SetHSAurasString),
+							order = autoOrder(),
+							width = 1.5,
+						},
+					},
+				},
+				drPersonalSettings = {
+					type = "group",
+					name = "GLIDE Player Settings",
+					inline = true,
+					order = autoOrder(),
+					args = {
+						personalDRInfo = {
+							type = "description",
+							name = "These settings allow you to customize your personal experience with GLIDE - Immersive Flying, independent of the phase settings. Adjust these to suit your preferences!",
+							order = autoOrder(),
+						},
+						disableGlideGlobal = {
+							type = "toggle",
+							name = "Disable GLIDE",
+							desc = "Disable GLIDE, even in phases that have enabled it.",
+							get = ns.DR_API.GetPersonalDisableOverride,
+							set = set(ns.DR_API.SetPersonalDisableOverride),
+							order = autoOrder(),
+							width = "full",
+						},
+						boostKeybind = {
+							type = "keybinding",
+							name = "Boost Hotkey",
+							desc = "Set the hotkey used to activate boost while flying with GLIDE.",
+							get = ns.DR_API.GetBoostKeybind,
+							set = set(ns.DR_API.SetBoostKeybind),
+							order = autoOrder(),
+							width = 1.5,
+						},
+					},
+				},
+			},
+		},
 		flightOptions = {
 			name = "Flight Settings",
 			handler = menuFrame.flight,
@@ -618,6 +959,7 @@ local options = {
 						},
 						arcFlyStart = {
 							type = "input",
+							dialogControl = "MAW-Editbox",
 							name = "Arcanum - Flight Start",
 							desc = "Enter an Arcanum ArcSpell ID here to cast that Arcanum when you start flying.",
 							usage = "Arcanum ArcSpell ID",
@@ -628,6 +970,7 @@ local options = {
 						},
 						arcFlyStop = {
 							type = "input",
+							dialogControl = "MAW-Editbox",
 							name = "Arcanum - Flight Stop",
 							desc = "Enter an Arcanum ArcSpell ID here to cast that Arcanum when you stop flying.",
 							usage = "Arcanum ArcSpell ID",
@@ -984,6 +1327,7 @@ local options = {
 						},
 						emoteMessage = {
 							type = "input",
+							dialogControl = "MAW-Editbox",
 							name = "Set the emote to use:",
 							desc = "When you start sprinting, the provided emote will be sent.",
 							arg = "emoteMessage",

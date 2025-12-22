@@ -162,7 +162,8 @@ local function createInfoDescBox(mainFrame)
 		if userInput then markEditorUnsaved() end
 	end)
 
-	Tooltip.set(descBox, "Description", "A description of the spell. This will show up in tooltips.")
+	Tooltip.set(descBox, "Description",
+		"A description of the spell. This will show up in tooltips. Support ||n for new lines, and ||cffRRGGBB ||r for colors, along with all other standard WoW UI Escape Sequences.")
 
 	return descBox
 end

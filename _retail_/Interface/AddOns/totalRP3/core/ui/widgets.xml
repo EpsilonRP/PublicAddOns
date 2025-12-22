@@ -282,6 +282,25 @@
 		</Scripts>
 	</Button>
 
+	<!-- Advanced Edit Button  -->
+	<Button name="TRP3_AdvancedEditButton" virtual="true">
+		<Size x="16" y="16"/>
+		<NormalTexture atlas="Mobile-Inscription"/>
+		<HighlightTexture atlas="128-RedButton-Highlight"/>
+		<Scripts>
+
+			<OnEnter>
+				TRP3_RefreshTooltipForFrame(self);
+			</OnEnter>
+			<OnLeave>
+				TRP3_MainTooltip:Hide();
+			</OnLeave>
+			<OnLoad>
+				TRP3_API.ui.tooltip.setTooltipForFrame(self, self:GetParent(), "RIGHT", 0, 0, "Advanced Edit", "Open the advanced text editor for this field to easily add colors, icons, etc. Supports nearly all WoW UI Escape Codes.");
+			</OnLoad>
+		</Scripts>
+	</Button>
+
 	<!-- Invisible button  -->
 	<Button name="TRP3_InvisibleButton" virtual="true">
 		<Size x="90" y="20"/>
@@ -495,6 +514,41 @@
 			</OnEditFocusGained>
 			<OnEditFocusLost>
 				self:HighlightText(0,0);
+				self.help:Hide();
+			</OnEditFocusLost>
+		</Scripts>
+	</EditBox>
+
+	<!-- Titled help edit box, with advanced edit button -->
+	<EditBox name="TRP3_TitledHelpEditBoxWithAdvancedEdit" inherits="TRP3_TitledHelpEditBox" virtual="true">
+		<Frames>
+			<Button name="$parentAdvancedEdit" parentKey="advancedEdit" inherits="TRP3_AdvancedEditButton" hidden="true">
+				<Size x="16" y="16"/>
+				<Anchors>
+					<Anchor point="RIGHT" x="-12" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnMouseDown>
+						TRP3_API.ui.text.showMinimalEditor(self:GetParent());
+					</OnMouseDown>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnEditFocusGained>
+				if self.disabled then
+					self:ClearFocus();
+				else
+					self:HighlightText();
+				end
+				if self.help.titleText then
+					self.help:Show();
+				end
+				self.advancedEdit:Show();
+			</OnEditFocusGained>
+			<OnEditFocusLost>
+				self:HighlightText(0,0);
+				C_Timer.After(0, function() self.advancedEdit:Hide(); end);
 				self.help:Hide();
 			</OnEditFocusLost>
 		</Scripts>

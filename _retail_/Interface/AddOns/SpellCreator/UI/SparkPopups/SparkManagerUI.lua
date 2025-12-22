@@ -303,9 +303,14 @@ local function drawMapGroup(group, mapID, callback)
 		do
 			local styleBorder = AceGUI:Create("Label") --[[@as AceGUILabel]]
 			local styleBorderImage = triggerData[6]
+
 			if not styleBorderImage then
 				styleBorderImage = SPARK_ASSETS_PATH .. "1Simple"
 			end
+
+			local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[styleBorderImage]
+			local width = styleData and styleData.width or 1
+
 			if type(styleBorderImage) == "string" then
 				-- Ensure our FilePath works on -dev addons
 				styleBorderImage = styleBorderImage:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
@@ -325,7 +330,7 @@ local function drawMapGroup(group, mapID, callback)
 				styleBorder:SetImage(styleBorderImage)
 			end
 
-			styleBorder:SetImageSize(128, 64)
+			styleBorder:SetImageSize(128 * width, 64)
 			styleBorder:SetRelativeWidth(1)
 			if triggerData[7] then -- if there's a color hex code
 				styleBorder.image:SetVertexColor(CreateColorFromHexString(triggerData[7]):GetRGB())

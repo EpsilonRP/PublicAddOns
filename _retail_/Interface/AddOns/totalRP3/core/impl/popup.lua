@@ -106,13 +106,13 @@ StaticPopupDialogs["TRP3_INPUT_TEXT"] = {
 	button1 = ACCEPT,
 	button2 = CANCEL,
 	OnShow = function(self)
-		_G[self:GetName().."EditBox"]:SetNumeric(false);
+		_G[self:GetName() .. "EditBox"]:SetNumeric(false);
 		-- Remove letters limit that other add-ons might have added but not cleaned
-		_G[self:GetName().."EditBox"]:SetMaxLetters(0);
+		_G[self:GetName() .. "EditBox"]:SetMaxLetters(0);
 	end,
 	OnAccept = function(self)
 		if StaticPopupDialogs["TRP3_INPUT_TEXT"].trp3onAccept then
-			StaticPopupDialogs["TRP3_INPUT_TEXT"].trp3onAccept(_G[self:GetName().."EditBox"]:GetText());
+			StaticPopupDialogs["TRP3_INPUT_TEXT"].trp3onAccept(_G[self:GetName() .. "EditBox"]:GetText());
 		end
 	end,
 	OnCancel = function()
@@ -136,15 +136,15 @@ StaticPopupDialogs["TRP3_INPUT_NUMBER"] = {
 	button1 = ACCEPT,
 	button2 = CANCEL,
 	OnShow = function(self)
-		_G[self:GetName().."EditBox"]:SetNumeric(true);
+		_G[self:GetName() .. "EditBox"]:SetNumeric(true);
 	end,
 	OnAccept = function(self)
 		if StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onAccept then
-			StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onAccept(_G[self:GetName().."EditBox"]:GetNumber());
+			StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onAccept(_G[self:GetName() .. "EditBox"]:GetNumber());
 		end
 	end,
 	OnHide = function(self)
-		_G[self:GetName().."EditBox"]:SetNumeric(false);
+		_G[self:GetName() .. "EditBox"]:SetNumeric(false);
 	end,
 	OnCancel = function()
 		if StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onCancel then
@@ -173,7 +173,7 @@ Ellyb.EditBoxes.looseFocusOnEscape(CopyTextPopup.CopyText);
 -- Clear global variable
 _G["TRP3_StaticPopUpCopyDropdown"] = nil;
 
-CopyTextPopup.CopyText:HookScript("OnEnterPressed",	function() CopyTextPopup:Hide() end);
+CopyTextPopup.CopyText:HookScript("OnEnterPressed", function() CopyTextPopup:Hide() end);
 CopyTextPopup.CopyText:HookScript("OnEscapePressed", function() CopyTextPopup:Hide() end);
 CopyTextPopup.CopyText:HookScript("OnKeyDown", function(_, key)
 	if key == "C" and IsControlKeyDown() then
@@ -193,7 +193,7 @@ local POPUP_HEAD = "Total RP 3\n \n";
 
 -- Show a simple alert with a OK button.
 function TRP3_API.popup.showAlertPopup(text)
-	StaticPopupDialogs["TRP3_INFO"].text = POPUP_HEAD..text;
+	StaticPopupDialogs["TRP3_INFO"].text = POPUP_HEAD .. text;
 	local dialog = StaticPopup_Show("TRP3_INFO");
 	if dialog then
 		dialog:ClearAllPoints();
@@ -203,7 +203,7 @@ end
 
 function TRP3_API.popup.showConfirmPopup(text, onAccept, onCancel)
 	text = string.gsub(text, "%%", "%%%%");
-	StaticPopupDialogs["TRP3_CONFIRM"].text = POPUP_HEAD..text.."\n\n";
+	StaticPopupDialogs["TRP3_CONFIRM"].text = POPUP_HEAD .. text .. "\n\n";
 	StaticPopupDialogs["TRP3_CONFIRM"].trp3onAccept = onAccept;
 	StaticPopupDialogs["TRP3_CONFIRM"].trp3onCancel = onCancel;
 	local dialog = StaticPopup_Show("TRP3_CONFIRM");
@@ -215,7 +215,7 @@ end
 
 function TRP3_API.popup.showYesNoPopup(text, onAccept, onCancel)
 	text = string.gsub(text, "%%", "%%%%");
-	StaticPopupDialogs["TRP3_YES_NO"].text = POPUP_HEAD..text.."\n\n";
+	StaticPopupDialogs["TRP3_YES_NO"].text = POPUP_HEAD .. text .. "\n\n";
 	StaticPopupDialogs["TRP3_YES_NO"].trp3onAccept = onAccept;
 	StaticPopupDialogs["TRP3_YES_NO"].trp3onCancel = onCancel;
 	local dialog = StaticPopup_Show("TRP3_YES_NO");
@@ -241,29 +241,29 @@ end
 
 function TRP3_API.popup.showTextInputPopup(text, onAccept, onCancel, default)
 	text = string.gsub(text, "%%", "%%%%");
-	StaticPopupDialogs["TRP3_INPUT_TEXT"].text = POPUP_HEAD..text.."\n\n";
+	StaticPopupDialogs["TRP3_INPUT_TEXT"].text = POPUP_HEAD .. text .. "\n\n";
 	StaticPopupDialogs["TRP3_INPUT_TEXT"].trp3onAccept = onAccept;
 	StaticPopupDialogs["TRP3_INPUT_TEXT"].trp3onCancel = onCancel;
 	local dialog = StaticPopup_Show("TRP3_INPUT_TEXT");
 	if dialog then
 		dialog:ClearAllPoints();
 		dialog:SetPoint("CENTER", UIParent, "CENTER");
-		_G[dialog:GetName().."EditBox"]:SetText(default or "");
-		_G[dialog:GetName().."EditBox"]:HighlightText();
+		_G[dialog:GetName() .. "EditBox"]:SetText(default or "");
+		_G[dialog:GetName() .. "EditBox"]:HighlightText();
 	end
 end
 
 function TRP3_API.popup.showNumberInputPopup(text, onAccept, onCancel, default)
 	text = string.gsub(text, "%%", "%%%%");
-	StaticPopupDialogs["TRP3_INPUT_NUMBER"].text = POPUP_HEAD..text.."\n\n";
+	StaticPopupDialogs["TRP3_INPUT_NUMBER"].text = POPUP_HEAD .. text .. "\n\n";
 	StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onAccept = onAccept;
 	StaticPopupDialogs["TRP3_INPUT_NUMBER"].trp3onCancel = onCancel;
 	local dialog = StaticPopup_Show("TRP3_INPUT_NUMBER");
 	if dialog then
 		dialog:ClearAllPoints();
 		dialog:SetPoint("CENTER", UIParent, "CENTER");
-		_G[dialog:GetName().."EditBox"]:SetNumber(default or false);
-		_G[dialog:GetName().."EditBox"]:HighlightText();
+		_G[dialog:GetName() .. "EditBox"]:SetNumber(default or false);
+		_G[dialog:GetName() .. "EditBox"]:HighlightText();
 	end
 end
 
@@ -286,7 +286,7 @@ function TRP3_API.popup.showCopyDropdownPopup(copyTexts, customText, customShort
 		CopyTextPopup.DropdownButton:Show();
 		local copyTextsTable = {};
 		for i, text in ipairs(copyTexts) do
-			copyTextsTable[i] = {text, text};
+			copyTextsTable[i] = { text, text };
 		end
 		TRP3_API.ui.listbox.setupDropDownMenu(CopyTextPopup.DropdownButton, copyTextsTable, function(copyText)
 			CopyTextPopup.CopyText:SetText(copyText);
@@ -308,7 +308,7 @@ end
 local TRP3_PopupsFrame = TRP3_PopupsFrame;
 
 local function showPopup(popup)
-	for _, frame in pairs({TRP3_PopupsFrame:GetChildren()}) do
+	for _, frame in pairs({ TRP3_PopupsFrame:GetChildren() }) do
 		frame:Hide();
 	end
 	TRP3_PopupsFrame:Show();
@@ -339,11 +339,11 @@ local function decorateMusic(lineFrame, musicID)
 		tooltipContent = ("|cff00ff00%s: %ss\n\n|cffff9900%s: |cffffffff%s\n|cffff9900%s: |cffffffff%s"):format(loc.UI_MUSIC_DURATION, floor(musicDuration + 0.5), loc.CM_L_CLICK, loc.REG_PLAYER_ABOUT_MUSIC_SELECT2, loc.CM_R_CLICK, loc.REG_PLAYER_ABOUT_MUSIC_LISTEN);
 	else
 		tooltipContent = ("|cffffff00%s: %s\n|cff00ff00%s: %ss\n\n|cffff9900%s: |cffffffff%s\n|cffff9900%s: |cffffffff%s"):format(loc.UI_MUSIC_ALTTITLE, musicDefaultName, loc.UI_MUSIC_DURATION, floor(musicDuration + 0.5), loc.CM_L_CLICK, loc.REG_PLAYER_ABOUT_MUSIC_SELECT2, loc.CM_R_CLICK, loc.REG_PLAYER_ABOUT_MUSIC_LISTEN);
-		musicName = musicName.."|cffffff00*";
+		musicName = musicName .. "|cffffff00*";
 	end
 
 	setTooltipForFrame(lineFrame, lineFrame, "RIGHT", 0, -30, musicShortName, tooltipContent);
-	_G[lineFrame:GetName().."Text"]:SetText(musicName);
+	_G[lineFrame:GetName() .. "Text"]:SetText(musicName);
 
 	lineFrame.musicURL = musicFile;
 end
@@ -362,13 +362,13 @@ end
 
 local function filteredMusicBrowser()
 	local filter = TRP3_MusicBrowserFilterBox:GetText();
-	if filteredMusicList and filteredMusicList ~= getMusicList() then  -- Remove previous filtering if is not full list
+	if filteredMusicList and filteredMusicList ~= getMusicList() then -- Remove previous filtering if is not full list
 		wipe(filteredMusicList);
 		filteredMusicList = nil;
 	end
 	filteredMusicList = getMusicList(filter); -- Music tab is unfiltered
 
-	TRP3_MusicBrowserTotal:SetText( (#filteredMusicList) .. " / " .. getMusicListSize() );
+	TRP3_MusicBrowserTotal:SetText((#filteredMusicList) .. " / " .. getMusicListSize());
 	initList(
 		{
 			widgetTab = musicWidgetTab,
@@ -384,7 +384,7 @@ local function initMusicBrowser()
 	TRP3_MusicBrowserContentSlider:SetValue(0);
 	-- Create lines
 	for line = 0, 8 do
-		local lineFrame = CreateFrame("Button", "TRP3_MusicBrowserButton_"..line, TRP3_MusicBrowserContent, "TRP3_MusicBrowserLine");
+		local lineFrame = CreateFrame("Button", "TRP3_MusicBrowserButton_" .. line, TRP3_MusicBrowserContent, "TRP3_MusicBrowserLine");
 		lineFrame:SetPoint("TOP", TRP3_MusicBrowserContent, "TOP", 0, -10 + (line * (-31)));
 		lineFrame:SetScript("OnClick", onMusicClick);
 		tinsert(musicWidgetTab, lineFrame);
@@ -414,8 +414,8 @@ local filteredIconList;
 local ui_IconBrowserContent = TRP3_IconBrowserContent;
 
 local function decorateIcon(icon, index)
-	icon:SetNormalTexture("Interface\\ICONS\\"..filteredIconList[index]);
-	icon:SetPushedTexture("Interface\\ICONS\\"..filteredIconList[index]);
+	icon:SetNormalTexture("Interface\\ICONS\\" .. filteredIconList[index]);
+	icon:SetPushedTexture("Interface\\ICONS\\" .. filteredIconList[index]);
 	setTooltipForFrame(icon, TRP3_IconBrowser, "RIGHT", 0, -100, Utils.str.icon(filteredIconList[index], 75), filteredIconList[index]);
 	icon.index = index;
 end
@@ -441,7 +441,7 @@ local function filteredIconBrowser()
 		filteredIconList = nil;
 	end
 	filteredIconList = getIconList(filter);
-	TRP3_IconBrowserTotal:SetText( (#filteredIconList) .. " / " .. getIconListSize() );
+	TRP3_IconBrowserTotal:SetText((#filteredIconList) .. " / " .. getIconListSize());
 	initList(
 		{
 			widgetTab = iconWidgetTab,
@@ -458,7 +458,7 @@ local function initIconBrowser()
 	-- Create icons
 	for row = 0, 5 do
 		for column = 0, 7 do
-			local button = CreateFrame("Button", "TRP3_IconBrowserButton_"..row.."_"..column, ui_IconBrowserContent, "TRP3_IconBrowserButton");
+			local button = CreateFrame("Button", "TRP3_IconBrowserButton_" .. row .. "_" .. column, ui_IconBrowserContent, "TRP3_IconBrowserButton");
 			button:ClearAllPoints();
 			button:SetPoint("TOPLEFT", ui_IconBrowserContent, "TOPLEFT", 15 + (column * 45), -15 + (row * (-45)));
 			button:SetScript("OnClick", onIconClick);
@@ -698,7 +698,7 @@ local function getWoWCompanionFilteredList(filter)
 			local creatureName, spellID, icon, _, _, _, _, _, _, _, isCollected = GetMountInfoByID(id);
 			if isCollected and SearchFilterPredicate(creatureName, filter) then
 				local _, description = GetMountInfoExtraByID(id);
-				tinsert(filteredCompanionList, {creatureName, icon, description, loc.PR_CO_MOUNT, spellID, id});
+				tinsert(filteredCompanionList, { creatureName, icon, description, loc.PR_CO_MOUNT, spellID, id });
 				count = count + 1;
 			end
 		end
@@ -712,7 +712,7 @@ end
 local function filteredCompanionBrowser()
 	local filter = TRP3_CompanionBrowserFilterBox:GetText();
 	local totalCompanionCount = getWoWCompanionFilteredList(filter);
-	TRP3_CompanionBrowserTotal:SetText( (#filteredCompanionList) .. " / " .. totalCompanionCount );
+	TRP3_CompanionBrowserTotal:SetText((#filteredCompanionList) .. " / " .. totalCompanionCount);
 	initList(
 		{
 			widgetTab = companionWidgetTab,
@@ -730,7 +730,7 @@ local function initCompanionBrowser()
 
 	for row = 0, 5 do
 		for column = 0, 7 do
-			local button = CreateFrame("Button", "TRP3_CompanionBrowserButton_"..row.."_"..column, ui_CompanionBrowserContent, "TRP3_IconBrowserButton");
+			local button = CreateFrame("Button", "TRP3_CompanionBrowserButton_" .. row .. "_" .. column, ui_CompanionBrowserContent, "TRP3_IconBrowserButton");
 			button:ClearAllPoints();
 			button:SetPoint("TOPLEFT", ui_CompanionBrowserContent, "TOPLEFT", 15 + (column * 45), -15 + (row * (-45)));
 			button:SetScript("OnClick", onCompanionClick);
@@ -740,7 +740,7 @@ local function initCompanionBrowser()
 
 	TRP3_CompanionBrowserFilterBox:SetScript("OnTextChanged", filteredCompanionBrowser);
 	TRP3_CompanionBrowserClose:SetScript("OnClick", onCompanionClose);
-	setTooltipForSameFrame(TRP3_CompanionBrowserFilterHelp, "TOPLEFT", 0, 0, loc.UI_COMPANION_BROWSER_HELP ,loc.UI_COMPANION_BROWSER_HELP_TT);
+	setTooltipForSameFrame(TRP3_CompanionBrowserFilterHelp, "TOPLEFT", 0, 0, loc.UI_COMPANION_BROWSER_HELP, loc.UI_COMPANION_BROWSER_HELP_TT);
 
 	TRP3_CompanionBrowserFilterBoxText:SetText(loc.UI_FILTER);
 end
@@ -807,69 +807,69 @@ local toast = TRP3_API.ui.tooltip.toast;
 local Color, ColorManager = TRP3_API.Ellyb.Color, TRP3_API.Ellyb.ColorManager;
 
 local COLOR_PRESETS_BASIC = {
-	{ CO = ColorManager.RED, TX = loc.CM_RED},
-	{ CO = ColorManager.ORANGE, TX = loc.CM_ORANGE},
-	{ CO = ColorManager.YELLOW, TX = loc.CM_YELLOW},
-	{ CO = ColorManager.GREEN, TX = loc.CM_GREEN},
-	{ CO = ColorManager.CYAN, TX = loc.CM_CYAN},
-	{ CO = ColorManager.BLUE, TX = loc.CM_BLUE},
-	{ CO = ColorManager.PURPLE, TX = loc.CM_PURPLE},
-	{ CO = ColorManager.PINK, TX = loc.CM_PINK},
-	{ CO = ColorManager.WHITE, TX = loc.CM_WHITE},
-	{ CO = ColorManager.GREY, TX = loc.CM_GREY},
-	{ CO = ColorManager.BLACK, TX = loc.CM_BLACK},
+	{ CO = ColorManager.RED,    TX = loc.CM_RED },
+	{ CO = ColorManager.ORANGE, TX = loc.CM_ORANGE },
+	{ CO = ColorManager.YELLOW, TX = loc.CM_YELLOW },
+	{ CO = ColorManager.GREEN,  TX = loc.CM_GREEN },
+	{ CO = ColorManager.CYAN,   TX = loc.CM_CYAN },
+	{ CO = ColorManager.BLUE,   TX = loc.CM_BLUE },
+	{ CO = ColorManager.PURPLE, TX = loc.CM_PURPLE },
+	{ CO = ColorManager.PINK,   TX = loc.CM_PINK },
+	{ CO = ColorManager.WHITE,  TX = loc.CM_WHITE },
+	{ CO = ColorManager.GREY,   TX = loc.CM_GREY },
+	{ CO = ColorManager.BLACK,  TX = loc.CM_BLACK },
 }
 
 local COLOR_PRESETS_CLASS = {
-	{ CO = ColorManager.HUNTER, TX = LOCALIZED_CLASS_NAMES_MALE.HUNTER },
-	{ CO = ColorManager.WARLOCK, TX = LOCALIZED_CLASS_NAMES_MALE.WARLOCK },
-	{ CO = ColorManager.PRIEST, TX = LOCALIZED_CLASS_NAMES_MALE.PRIEST },
-	{ CO = ColorManager.PALADIN, TX = LOCALIZED_CLASS_NAMES_MALE.PALADIN },
-	{ CO = ColorManager.MAGE, TX = LOCALIZED_CLASS_NAMES_MALE.MAGE },
-	{ CO = ColorManager.ROGUE, TX = LOCALIZED_CLASS_NAMES_MALE.ROGUE },
-	{ CO = ColorManager.DRUID, TX = LOCALIZED_CLASS_NAMES_MALE.DRUID },
-	{ CO = ColorManager.SHAMAN, TX = LOCALIZED_CLASS_NAMES_MALE.SHAMAN },
-	{ CO = ColorManager.WARRIOR, TX = LOCALIZED_CLASS_NAMES_MALE.WARRIOR },
+	{ CO = ColorManager.HUNTER,      TX = LOCALIZED_CLASS_NAMES_MALE.HUNTER },
+	{ CO = ColorManager.WARLOCK,     TX = LOCALIZED_CLASS_NAMES_MALE.WARLOCK },
+	{ CO = ColorManager.PRIEST,      TX = LOCALIZED_CLASS_NAMES_MALE.PRIEST },
+	{ CO = ColorManager.PALADIN,     TX = LOCALIZED_CLASS_NAMES_MALE.PALADIN },
+	{ CO = ColorManager.MAGE,        TX = LOCALIZED_CLASS_NAMES_MALE.MAGE },
+	{ CO = ColorManager.ROGUE,       TX = LOCALIZED_CLASS_NAMES_MALE.ROGUE },
+	{ CO = ColorManager.DRUID,       TX = LOCALIZED_CLASS_NAMES_MALE.DRUID },
+	{ CO = ColorManager.SHAMAN,      TX = LOCALIZED_CLASS_NAMES_MALE.SHAMAN },
+	{ CO = ColorManager.WARRIOR,     TX = LOCALIZED_CLASS_NAMES_MALE.WARRIOR },
 	{ CO = ColorManager.DEATHKNIGHT, TX = LOCALIZED_CLASS_NAMES_MALE.DEATHKNIGHT or loc.CM_CLASS_DEATHKNIGHT },
-	{ CO = ColorManager.MONK, TX = LOCALIZED_CLASS_NAMES_MALE.MONK or loc.CM_CLASS_MONK },
+	{ CO = ColorManager.MONK,        TX = LOCALIZED_CLASS_NAMES_MALE.MONK or loc.CM_CLASS_MONK },
 	{ CO = ColorManager.DEMONHUNTER, TX = LOCALIZED_CLASS_NAMES_MALE.DEMONHUNTER or loc.CM_CLASS_DEMONHUNTER },
-	{ CO = ColorManager.EVOKER, TX = LOCALIZED_CLASS_NAMES_MALE.EVOKER or loc.CM_CLASS_EVOKER },
+	{ CO = ColorManager.EVOKER,      TX = LOCALIZED_CLASS_NAMES_MALE.EVOKER or loc.CM_CLASS_EVOKER },
 }
-table.sort(COLOR_PRESETS_CLASS, function(a,b) return a.TX<b.TX end)
+table.sort(COLOR_PRESETS_CLASS, function(a, b) return a.TX < b.TX end)
 
 local COLOR_PRESETS_RESOURCES = {
-	{ CO = ColorManager.POWER_MANA, TX = POWER_TYPE_MANA },
-	{ CO = ColorManager.POWER_RAGE, TX = RAGE },
-	{ CO = ColorManager.POWER_FOCUS, TX = POWER_TYPE_FOCUS },
-	{ CO = ColorManager.POWER_ENERGY, TX = POWER_TYPE_ENERGY },
-	{ CO = ColorManager.POWER_COMBO_POINTS, TX = COMBO_POINTS },
-	{ CO = ColorManager.POWER_RUNES, TX = RUNES },
-	{ CO = ColorManager.POWER_RUNIC_POWER, TX = POWER_TYPE_RUNIC_POWER or RUNIC_POWER },
-	{ CO = ColorManager.POWER_SOUL_SHARDS, TX = SOUL_SHARDS },
-	{ CO = ColorManager.POWER_LUNAR_POWER, TX = POWER_TYPE_LUNAR_POWER },
-	{ CO = ColorManager.POWER_HOLY_POWER, TX = HOLY_POWER },
-	{ CO = ColorManager.POWER_MAELSTROM, TX = POWER_TYPE_MAELSTROM },
-	{ CO = ColorManager.POWER_INSANITY, TX = POWER_TYPE_INSANITY },
-	{ CO = ColorManager.POWER_CHI, TX = CHI },
+	{ CO = ColorManager.POWER_MANA,           TX = POWER_TYPE_MANA },
+	{ CO = ColorManager.POWER_RAGE,           TX = RAGE },
+	{ CO = ColorManager.POWER_FOCUS,          TX = POWER_TYPE_FOCUS },
+	{ CO = ColorManager.POWER_ENERGY,         TX = POWER_TYPE_ENERGY },
+	{ CO = ColorManager.POWER_COMBO_POINTS,   TX = COMBO_POINTS },
+	{ CO = ColorManager.POWER_RUNES,          TX = RUNES },
+	{ CO = ColorManager.POWER_RUNIC_POWER,    TX = POWER_TYPE_RUNIC_POWER or RUNIC_POWER },
+	{ CO = ColorManager.POWER_SOUL_SHARDS,    TX = SOUL_SHARDS },
+	{ CO = ColorManager.POWER_LUNAR_POWER,    TX = POWER_TYPE_LUNAR_POWER },
+	{ CO = ColorManager.POWER_HOLY_POWER,     TX = HOLY_POWER },
+	{ CO = ColorManager.POWER_MAELSTROM,      TX = POWER_TYPE_MAELSTROM },
+	{ CO = ColorManager.POWER_INSANITY,       TX = POWER_TYPE_INSANITY },
+	{ CO = ColorManager.POWER_CHI,            TX = CHI },
 	{ CO = ColorManager.POWER_ARCANE_CHARGES, TX = POWER_TYPE_ARCANE_CHARGES },
-	{ CO = ColorManager.POWER_FURY, TX = POWER_TYPE_FURY },
-	{ CO = ColorManager.POWER_PAIN, TX = POWER_TYPE_PAIN },
-	{ CO = ColorManager.POWER_AMMOSLOT, TX = AMMOSLOT },
-	{ CO = ColorManager.POWER_FUEL, TX = POWER_TYPE_FUEL },
+	{ CO = ColorManager.POWER_FURY,           TX = POWER_TYPE_FURY },
+	{ CO = ColorManager.POWER_PAIN,           TX = POWER_TYPE_PAIN },
+	{ CO = ColorManager.POWER_AMMOSLOT,       TX = AMMOSLOT },
+	{ CO = ColorManager.POWER_FUEL,           TX = POWER_TYPE_FUEL },
 }
 
-table.sort(COLOR_PRESETS_RESOURCES, function(a,b) return a.TX<b.TX end)
+table.sort(COLOR_PRESETS_RESOURCES, function(a, b) return a.TX < b.TX end)
 
 local COLOR_PRESETS_ITEMS = {
-	{ CO = ColorManager.ITEM_POOR, TX = ITEM_QUALITY0_DESC},
-	{ CO = ColorManager.ITEM_COMMON, TX = ITEM_QUALITY1_DESC},
-	{ CO = ColorManager.ITEM_UNCOMMON, TX = ITEM_QUALITY2_DESC},
-	{ CO = ColorManager.ITEM_RARE, TX = ITEM_QUALITY3_DESC},
-	{ CO = ColorManager.ITEM_EPIC, TX = ITEM_QUALITY4_DESC},
-	{ CO = ColorManager.ITEM_LEGENDARY, TX = ITEM_QUALITY5_DESC},
-	{ CO = ColorManager.ITEM_ARTIFACT, TX = ITEM_QUALITY6_DESC},
-	{ CO = ColorManager.ITEM_HEIRLOOM, TX = ITEM_QUALITY7_DESC},
-	{ CO = ColorManager.ITEM_WOW_TOKEN, TX = ITEM_QUALITY8_DESC},
+	{ CO = ColorManager.ITEM_POOR,      TX = ITEM_QUALITY0_DESC },
+	{ CO = ColorManager.ITEM_COMMON,    TX = ITEM_QUALITY1_DESC },
+	{ CO = ColorManager.ITEM_UNCOMMON,  TX = ITEM_QUALITY2_DESC },
+	{ CO = ColorManager.ITEM_RARE,      TX = ITEM_QUALITY3_DESC },
+	{ CO = ColorManager.ITEM_EPIC,      TX = ITEM_QUALITY4_DESC },
+	{ CO = ColorManager.ITEM_LEGENDARY, TX = ITEM_QUALITY5_DESC },
+	{ CO = ColorManager.ITEM_ARTIFACT,  TX = ITEM_QUALITY6_DESC },
+	{ CO = ColorManager.ITEM_HEIRLOOM,  TX = ITEM_QUALITY7_DESC },
+	{ CO = ColorManager.ITEM_WOW_TOKEN, TX = ITEM_QUALITY8_DESC },
 }
 
 ---@param color Color
@@ -944,7 +944,7 @@ local function colorPresetsDropDown()
 
 	local values_basic = {};
 
-	tinsert(values, { Ellyb.ColorManager.YELLOW(loc.BW_COLOR_PRESET_TITLE)});
+	tinsert(values, { Ellyb.ColorManager.YELLOW(loc.BW_COLOR_PRESET_TITLE) });
 
 	local existingPreset = getPresetForColor(Color(TRP3_ColorBrowser.red, TRP3_ColorBrowser.green, TRP3_ColorBrowser.blue));
 	if existingPreset then
@@ -959,31 +959,31 @@ local function colorPresetsDropDown()
 	for _, preset in pairs(COLOR_PRESETS_BASIC) do
 		tinsert(values_basic, { preset.CO:WrapTextInColorCode(preset.TX), preset.CO:GenerateHexadecimalColor() });
 	end
-	tinsert(values, {loc.UI_COLOR_BROWSER_PRESETS_BASIC, values_basic});
+	tinsert(values, { loc.UI_COLOR_BROWSER_PRESETS_BASIC, values_basic });
 
 	local values_classes = {};
 	for _, preset in pairs(COLOR_PRESETS_CLASS) do
 		tinsert(values_classes, { preset.CO:WrapTextInColorCode(preset.TX), preset.CO:GenerateHexadecimalColor() });
 	end
-	tinsert(values, {loc.UI_COLOR_BROWSER_PRESETS_CLASSES, values_classes});
+	tinsert(values, { loc.UI_COLOR_BROWSER_PRESETS_CLASSES, values_classes });
 
 	local values_resources = {};
 	for _, preset in pairs(COLOR_PRESETS_RESOURCES) do
 		tinsert(values_resources, { preset.CO:WrapTextInColorCode(preset.TX), preset.CO:GenerateHexadecimalColor() });
 	end
-	tinsert(values, {loc.UI_COLOR_BROWSER_PRESETS_RESOURCES, values_resources});
+	tinsert(values, { loc.UI_COLOR_BROWSER_PRESETS_RESOURCES, values_resources });
 
 	local values_items = {};
 	for _, preset in pairs(COLOR_PRESETS_ITEMS) do
 		tinsert(values_items, { preset.CO:WrapTextInColorCode(preset.TX), preset.CO:GenerateHexadecimalColor() });
 	end
-	tinsert(values, {loc.UI_COLOR_BROWSER_PRESETS_ITEMS, values_items});
+	tinsert(values, { loc.UI_COLOR_BROWSER_PRESETS_ITEMS, values_items });
 
 	local values_custom = {};
 	for _, preset in pairs(TRP3_Colors) do
 		tinsert(values_custom, { Color(preset.CO):WrapTextInColorCode(preset.TX), preset.CO });
 	end
-	tinsert(values, {loc.UI_COLOR_BROWSER_PRESETS_CUSTOM, values_custom});
+	tinsert(values, { loc.UI_COLOR_BROWSER_PRESETS_CUSTOM, values_custom });
 
 	displayDropDown(TRP3_ColorBrowserPresets, values, colorPresetsDropDownSelection, 0, true);
 end
@@ -1039,6 +1039,205 @@ local function showColorBrowser(callback, red, green, blue)
 	TRP3_ColorBrowserColor:SetColorRGB((red or 255) / 255, (green or 255) / 255, (blue or 255) / 255);
 	TRP3_ColorBrowser.callback = callback;
 end
+
+
+local function initGradientCreator()
+	-- color code
+
+	-- Helper: Convert RRGGBB to RGB using WoW API
+	local function hexToRGB(hex)
+		local color = CreateColorFromHexString("FF" .. hex)
+		return color.r, color.g, color.b
+	end
+
+	-- Helper: Smooth (cosine) interpolation for RGB values
+	local function smoothColorInterpolate(r1, g1, b1, r2, g2, b2, t)
+		local t2 = (1 - math.cos(t * math.pi)) / 2
+		local r = r1 * (1 - t2) + r2 * t2
+		local g = g1 * (1 - t2) + g2 * t2
+		local b = b1 * (1 - t2) + b2 * t2
+		return r, g, b
+	end
+
+	-- Helper: Convert RGB 0-1 to RRGGBB hex string
+	local function rgbToHex(r, g, b)
+		return string.format("%02X%02X%02X", r * 255, g * 255, b * 255)
+	end
+
+	-- Helper: Strip existing color codes from a string
+	local function StripColorCodes(text)
+		if not text then return "" end
+		-- Remove patterns like: |c fRRGGBBX|r
+		text = text:gsub("|c f%x%x%x%x%x%x(.)|r", "%1")
+		-- Just in case: also remove any standard |cXXXXXXXX...|r formatting without capturing anything
+		text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
+		text = text:gsub("|r", "")
+		return text
+	end
+
+	-- Main function: Applies a gradient to a string using two RRGGBB hex colors
+	local function ColorGradientStringHex(text, hexStart, hexEnd)
+		if not text or text == "" then return "" end
+		if not hexStart or not hexEnd then return text end
+
+		text = StripColorCodes(text)
+
+		if hexStart:lower() == "ffffff" and hexEnd:lower() == "ffffff" then
+			return text -- No gradient needed
+		end
+
+		local r1, g1, b1 = hexToRGB(hexStart)
+		local r2, g2, b2 = hexToRGB(hexEnd)
+		local len = #text
+
+		local result = {}
+		for i = 1, len do
+			local char = text:sub(i, i)
+			local t = (i - 1) / math.max(1, len - 1) -- avoids division by zero for 1-char input
+
+			local r, g, b = smoothColorInterpolate(r1, g1, b1, r2, g2, b2, t)
+			local hex = rgbToHex(r, g, b)
+			table.insert(result, string.format("|c f%s%s|r", hex, char))
+		end
+
+		return table.concat(result)
+	end
+
+	--/color code
+
+	if not TRP3_Colors then
+		TRP3_Colors = {};
+	end
+
+	local mainFrame = TRP3_GradientCreator;
+	local colorRegion1 = mainFrame.leftColor;
+	local colorRegion2 = mainFrame.rightColor;
+	local frameName = colorRegion1:GetName();
+
+	colorRegion1.red = 1;
+	colorRegion1.green = 1;
+	colorRegion1.blue = 1;
+	colorRegion2.red = 1;
+	colorRegion2.green = 1;
+	colorRegion2.blue = 1;
+
+	local previewBox = TRP3_GradientCreatorEditBox
+	function previewBox:SetGradient(hex1, hex2)
+		local text = self:GetText()
+		self:SetText(ColorGradientStringHex(text, hex1, hex2))
+	end
+
+	_G[frameName .. "EditBoxText"]:SetText("Code");
+	setTooltipForSameFrame(_G[frameName .. "EditBoxHelp"], "RIGHT", 0, 5, loc.BW_COLOR_CODE, loc.BW_COLOR_CODE_TT);
+
+	_G[frameName .. "EditBox"]:SetScript("OnEnterPressed", function(self)
+		if self:GetText():match("^%x%x%x%x%x%x$") or self:GetText():match("^#%x%x%x%x%x%x$") then -- Checks that it is a 6 figures hexadecimal number (with or without a #)
+			local r, g, b = ColorManager.hexaToNumber(self:GetText());
+			colorRegion1.red = r;
+			colorRegion1.green = g;
+			colorRegion1.blue = b;
+			colorRegion1.color:SetColorRGB(r, g, b);
+			_G[frameName .. "Swatch"]:SetColorTexture(r, g, b);
+			self:ClearFocus();
+
+			previewBox:SetGradient(
+				("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+				("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255))
+		else
+			toast(loc.BW_COLOR_CODE_ALERT, 1);
+		end
+	end);
+
+	_G[frameName .. "Color"]:SetScript("OnColorSelect", function(_, r, g, b)
+		_G[frameName .. "EditBox"]:ClearFocus();
+
+		_G[frameName .. "Swatch"]:SetColorTexture(r, g, b);
+		colorRegion1.red = r;
+		colorRegion1.green = g;
+		colorRegion1.blue = b;
+		_G[frameName .. "EditBox"]:SetText(("#%.2x%.2x%.2x"):format(r * 255, g * 255, b * 255):upper());
+
+		previewBox:SetGradient(
+			("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+			("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255)
+		)
+	end);
+
+	--_G[frameName .. "Presets"]:SetScript("OnClick", colorPresetsDropDown);
+
+	local frameName = colorRegion2:GetName();
+
+	_G[frameName .. "EditBoxText"]:SetText("Code");
+	setTooltipForSameFrame(_G[frameName .. "EditBoxHelp"], "RIGHT", 0, 5, loc.BW_COLOR_CODE, loc.BW_COLOR_CODE_TT);
+
+	_G[frameName .. "EditBox"]:SetScript("OnEnterPressed", function(self)
+		if self:GetText():match("^%x%x%x%x%x%x$") or self:GetText():match("^#%x%x%x%x%x%x$") then -- Checks that it is a 6 figures hexadecimal number (with or without a #)
+			local r, g, b = ColorManager.hexaToNumber(self:GetText());
+			colorRegion2.red = r;
+			colorRegion2.green = g;
+			colorRegion2.blue = b;
+			colorRegion2.color:SetColorRGB(r, g, b);
+			_G[frameName .. "Swatch"]:SetColorTexture(r, g, b);
+			self:ClearFocus();
+
+			previewBox:SetGradient(
+				("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+				("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255)
+			)
+		else
+			toast(loc.BW_COLOR_CODE_ALERT, 1);
+		end
+	end);
+
+	_G[frameName .. "Color"]:SetScript("OnColorSelect", function(_, r, g, b)
+		_G[frameName .. "EditBox"]:ClearFocus();
+
+		_G[frameName .. "Swatch"]:SetColorTexture(r, g, b);
+		colorRegion2.red = r;
+		colorRegion2.green = g;
+		colorRegion2.blue = b;
+		_G[frameName .. "EditBox"]:SetText(("#%.2x%.2x%.2x"):format(r * 255, g * 255, b * 255):upper());
+
+		previewBox:SetGradient(
+			("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+			("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255)
+		)
+	end);
+
+	TRP3_GradientCreatorEditBoxText:SetText("Edit Text & Preview");
+	TRP3_GradientCreatorEditBox:HookScript("OnEditFocusGained", function(self)
+		self:SetText(StripColorCodes(self:GetText()))
+	end)
+	TRP3_GradientCreatorEditBox:HookScript("OnEditFocusLost", function(self)
+		self:SetGradient(
+			("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+			("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255)
+		)
+	end)
+
+	TRP3_GradientCreatorConfirmButton:SetScript("OnClick", function()
+		hidePopups();
+		TRP3_GradientCreator:Hide();
+		if TRP3_GradientCreator.callback ~= nil then
+			TRP3_GradientCreator.callback(ColorGradientStringHex(
+				TRP3_GradientCreatorEditBox:GetText(),
+				("%.2x%.2x%.2x"):format(colorRegion1.red * 255, colorRegion1.green * 255, colorRegion1.blue * 255),
+				("%.2x%.2x%.2x"):format(colorRegion2.red * 255, colorRegion2.green * 255, colorRegion2.blue * 255)
+			));
+		end
+	end);
+	--_G[frameName .. "Presets"]:SetScript("OnClick", colorPresetsDropDown);
+end
+
+
+local function showGradientCreator(callback, text)
+	if not text then return end
+	TRP3_GradientCreator.leftColor.color:SetColorRGB(1, 1, 1, 1);
+	TRP3_GradientCreator.rightColor.color:SetColorRGB(1, 1, 1, 1);
+	TRP3_GradientCreator.callback = callback;
+	TRP3_GradientCreatorEditBox:SetText(text);
+end
+
 
 function TRP3_ColorButtonLoad(self)
 	self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
@@ -1123,7 +1322,7 @@ local function filteredImageBrowser()
 	local filter = TRP3_ImageBrowserFilterBox:GetText();
 	filteredImageList = getImageList(filter);
 	local size = #filteredImageList;
-	TRP3_ImageBrowserTotal:SetText( size .. " / " .. getImageListSize() );
+	TRP3_ImageBrowserTotal:SetText(size .. " / " .. getImageListSize());
 	if size > 0 then
 		TRP3_ImageBrowserSelect:Enable();
 	else
@@ -1171,6 +1370,7 @@ function TRP3_API.popup.init()
 	initMusicBrowser();
 	initColorBrowser();
 	initImageBrowser();
+	initGradientCreator();
 end
 
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -1185,6 +1385,7 @@ TRP3_API.popup.COLORS = "colors";
 TRP3_API.popup.MUSICS = "musics";
 TRP3_API.popup.COMPANIONS = "companions";
 TRP3_API.popup.PETS = "pets";
+TRP3_API.popup.GRADIENTS = "gradients";
 
 local POPUP_STRUCTURE = {
 	[TRP3_API.popup.IMAGES] = {
@@ -1194,6 +1395,10 @@ local POPUP_STRUCTURE = {
 	[TRP3_API.popup.COLORS] = {
 		frame = TRP3_ColorBrowser,
 		showMethod = showColorBrowser,
+	},
+	[TRP3_API.popup.GRADIENTS] = {
+		frame = TRP3_GradientCreator,
+		showMethod = showGradientCreator,
 	},
 	[TRP3_API.popup.ICONS] = {
 		frame = TRP3_IconBrowser,
@@ -1231,7 +1436,7 @@ function TRP3_API.popup.showPopup(popupID, popupPosition, popupArgs)
 	else
 		popup.frame:SetParent(TRP3_PopupsFrame);
 		popup.frame:SetPoint("CENTER", 0, 0);
-		for _, frame in pairs({TRP3_PopupsFrame:GetChildren()}) do
+		for _, frame in pairs({ TRP3_PopupsFrame:GetChildren() }) do
 			frame:Hide();
 		end
 		TRP3_PopupsFrame:Show();
@@ -1241,5 +1446,4 @@ function TRP3_API.popup.showPopup(popupID, popupPosition, popupArgs)
 	if popup.showMethod then
 		popup.showMethod(unpack(popupArgs));
 	end
-
 end

@@ -57,7 +57,8 @@ TRP3_API.loc = {
 	REG_PLAYER_ICON = "Character's icon",
 	REG_PLAYER_ICON_TT = "Select a graphic representation for your character.",
 	REG_PLAYER_TITLE = "Title",
-	REG_PLAYER_TITLE_TT = "Your character's title is the title by which your character is usually called. Avoid long titles, as for those you should use the Full title attribute below.\n\nExample of |c0000ff00appropriate titles |r:\n|c0000ff00- Countess,\n- Marquis,\n- Magus,\n- Lord,\n- etc.\n|rExample of |cffff0000inappropriate titles|r:\n|cffff0000- Countess of the North Marshes,\n- Magus of the Stormwind Tower,\n- Diplomat for the Draenei Government,\n- etc.",
+	REG_PLAYER_TITLE_TT =
+	"Your character's title is the title by which your character is usually called. Avoid long titles, as for those you should use the Full title attribute below.\n\nExample of |c0000ff00appropriate titles |r:\n|c0000ff00- Countess,\n- Marquis,\n- Magus,\n- Lord,\n- etc.\n|rExample of |cffff0000inappropriate titles|r:\n|cffff0000- Countess of the North Marshes,\n- Magus of the Stormwind Tower,\n- Diplomat for the Draenei Government,\n- etc.",
 	REG_PLAYER_FIRSTNAME = "First name",
 	REG_PLAYER_FIRSTNAME_TT = "This is your character's first name. This is a mandatory field, so if you don't specify a name, the default character's name (|cffffff00%s|r) will be used.\n\nYou can use a |c0000ff00nickname |r!",
 	REG_PLAYER_LASTNAME = "Last name",
@@ -91,7 +92,8 @@ TRP3_API.loc = {
 	REG_PLAYER_BIRTHPLACE = "Birthplace",
 	REG_PLAYER_BIRTHPLACE_TT = "Here you can indicate the birthplace of your character. This can either be a region, a zone, or even a continent. It's for you to decide how accurate you want to be.\n\n|c00ffff00You can use the button to the right to easily set your current location as Birthplace.",
 	REG_PLAYER_RESIDENCE = "Residence",
-	REG_PLAYER_RESIDENCE_TT = "Here you can indicate where your character normally lives. This could be their personal address (their home) or a place they can crash.\nNote that if your character is a wanderer or even homeless, you will need to change the information accordingly.\n\n|c00ffff00You can use the button to the right to easily set your current location as Residence.",
+	REG_PLAYER_RESIDENCE_TT =
+	"Here you can indicate where your character normally lives. This could be their personal address (their home) or a place they can crash.\nNote that if your character is a wanderer or even homeless, you will need to change the information accordingly.\n\n|c00ffff00You can use the button to the right to easily set your current location as Residence.",
 	REG_PLAYER_MSP_MOTTO = "Motto",
 	REG_PLAYER_MSP_HOUSE = "House name",
 	REG_PLAYER_MSP_NICK = "Nickname",
@@ -114,28 +116,28 @@ TRP3_API.loc = {
 	REG_PLAYER_PSYCHO_LEFTICON_TT = "Set the left attribute icon.",
 	REG_PLAYER_PSYCHO_SOCIAL = "Social traits",
 	REG_PLAYER_PSYCHO_PERSONAL = "Personal traits",
-	REG_PLAYER_PSYCHO_CHAOTIC = "Chaotic";
-	REG_PLAYER_PSYCHO_Loyal = "Lawful";
-	REG_PLAYER_PSYCHO_Chaste = "Chaste";
-	REG_PLAYER_PSYCHO_Luxurieux = "Lustful";
-	REG_PLAYER_PSYCHO_Indulgent = "Forgiving";
-	REG_PLAYER_PSYCHO_Rencunier = "Vindictive";
-	REG_PLAYER_PSYCHO_Genereux = "Altruistic";
-	REG_PLAYER_PSYCHO_Egoiste = "Selfish";
-	REG_PLAYER_PSYCHO_Sincere = "Truthful";
-	REG_PLAYER_PSYCHO_Trompeur = "Deceitful";
-	REG_PLAYER_PSYCHO_Misericordieux = "Gentle ";
-	REG_PLAYER_PSYCHO_Cruel = "Brutal";
-	REG_PLAYER_PSYCHO_Pieux = "Superstitious";
-	REG_PLAYER_PSYCHO_Pragmatique = "Renegade";
-	REG_PLAYER_PSYCHO_Conciliant = "Paragon";
-	REG_PLAYER_PSYCHO_Rationnel = "Rational";
-	REG_PLAYER_PSYCHO_Reflechi = "Cautious";
-	REG_PLAYER_PSYCHO_Impulsif = "Impulsive";
-	REG_PLAYER_PSYCHO_Acete = "Ascetic";
-	REG_PLAYER_PSYCHO_Bonvivant = "Bon vivant";
-	REG_PLAYER_PSYCHO_Valeureux = "Valorous";
-	REG_PLAYER_PSYCHO_Couard = "Spineless";
+	REG_PLAYER_PSYCHO_CHAOTIC = "Chaotic",
+	REG_PLAYER_PSYCHO_Loyal = "Lawful",
+	REG_PLAYER_PSYCHO_Chaste = "Chaste",
+	REG_PLAYER_PSYCHO_Luxurieux = "Lustful",
+	REG_PLAYER_PSYCHO_Indulgent = "Forgiving",
+	REG_PLAYER_PSYCHO_Rencunier = "Vindictive",
+	REG_PLAYER_PSYCHO_Genereux = "Altruistic",
+	REG_PLAYER_PSYCHO_Egoiste = "Selfish",
+	REG_PLAYER_PSYCHO_Sincere = "Truthful",
+	REG_PLAYER_PSYCHO_Trompeur = "Deceitful",
+	REG_PLAYER_PSYCHO_Misericordieux = "Gentle ",
+	REG_PLAYER_PSYCHO_Cruel = "Brutal",
+	REG_PLAYER_PSYCHO_Pieux = "Superstitious",
+	REG_PLAYER_PSYCHO_Pragmatique = "Renegade",
+	REG_PLAYER_PSYCHO_Conciliant = "Paragon",
+	REG_PLAYER_PSYCHO_Rationnel = "Rational",
+	REG_PLAYER_PSYCHO_Reflechi = "Cautious",
+	REG_PLAYER_PSYCHO_Impulsif = "Impulsive",
+	REG_PLAYER_PSYCHO_Acete = "Ascetic",
+	REG_PLAYER_PSYCHO_Bonvivant = "Bon vivant",
+	REG_PLAYER_PSYCHO_Valeureux = "Valorous",
+	REG_PLAYER_PSYCHO_Couard = "Spineless",
 	REG_PLAYER_PSYCHO_CUSTOM = "Custom trait",
 	REG_PLAYER_PSYCHO_CREATENEW = "Create a trait",
 	REG_PLAYER_PSYCHO_CUSTOMCOLOR = "Select attribute color",
@@ -206,7 +208,7 @@ The codes you have inserted in your profile have been removed to prevent you fro
 	REG_PLAYER_PEEK = "Miscellaneous",
 	REG_PLAYER_CURRENT = "Currently",
 	REG_PLAYER_CURRENTOOC = "Currently (OOC)",
-    REG_PLAYER_CURRENT_OOC = "This is OOC information",
+	REG_PLAYER_CURRENT_OOC = "This is OOC information",
 	REG_COMPANIONS_SHORTDESCRIPTION = "Short description",
 	REG_PLAYER_GLANCE = "At first glance",
 	REG_PLAYER_GLANCE_USE = "Activate this slot",
@@ -229,8 +231,8 @@ The codes you have inserted in your profile have been removed to prevent you fro
 	REG_PLAYER_GLANCE_PRESET_CATEGORY = "Preset category",
 	REG_PLAYER_GLANCE_PRESET_NAME = "Preset name",
 	REG_PLAYER_GLANCE_PRESET_CREATE = "Create preset",
-	REG_PLAYER_GLANCE_PRESET_REMOVE = "Removed preset |cff00ff00%s|r.";
-	REG_PLAYER_GLANCE_PRESET_ADD = "Created preset |cff00ff00%s|r.";
+	REG_PLAYER_GLANCE_PRESET_REMOVE = "Removed preset |cff00ff00%s|r.",
+	REG_PLAYER_GLANCE_PRESET_ADD = "Created preset |cff00ff00%s|r.",
 	REG_PLAYER_GLANCE_PRESET_ALERT1 = "You must enter a preset category.",
 	REG_PLAYER_GLANCE_PRESET_GET_CAT = "%s\n\nPlease enter the category name for this preset.",
 	REG_PLAYER_GLANCE_MENU_COPY = "Copy slot",
@@ -382,7 +384,7 @@ The |cff00ff00realm only filter|r will show only profiles bound to a WoW charact
 	REG_COMPANION_BROWSER_MOUNT = "Mount browser",
 	REG_COMPANION_PROFILES = "Companions profiles",
 	REG_COMPANION_TF_PROFILE = "Companion profile",
-    REG_COMPANION_TF_PROFILE_MOUNT = "Mount profile",
+	REG_COMPANION_TF_PROFILE_MOUNT = "Mount profile",
 	REG_NPC_PROFILE = "NPC profile",
 	REG_COMPANION_TF_NO = "No profile",
 	REG_COMPANION_TF_CREATE = "Create new profile",
@@ -461,6 +463,7 @@ Class: 50 characters|r]],
 	CO_TOOLTIP_SPACING = "Show spacing",
 	CO_TOOLTIP_SPACING_TT = "Place spaces to lighten the tooltip, in the style of MyRoleplay tooltip.",
 	CO_TOOLTIP_NO_FADE_OUT = "Hide immediately instead of fading",
+	CO_DISPLAY_GLANCE_TOOLTIPS = "Display First Glance Tooltips on Hover",
 	CO_TOOLTIP_PETS = "Companions tooltip",
 	CO_TOOLTIP_OWNER = "Show owner",
 	CO_TOOLTIP_PETS_INFO = "Show companion info",
@@ -508,7 +511,8 @@ Class: 50 characters|r]],
 	CO_REGISTER_ABOUT_P_SIZE = "Paragraph text size",
 	CO_REGISTER_ABOUT_P_SIZE_TT = "Size of the text outside of header tags. Default: %s",
 	CO_REGISTER_AUTO_PURGE = "Auto purge directory",
-	CO_REGISTER_AUTO_PURGE_TT = "Automatically remove from directory the profiles of characters you haven't crossed for a certain time. You can choose the delay before deletion.\n\n|cff00ff00Note that profiles with a relation toward one of your characters will never be purged.\n\n|cffff9900There is a bug in WoW losing all the saved data when it reaches a certain threshold. We strongly recommend to avoid disabling the purge system.",
+	CO_REGISTER_AUTO_PURGE_TT =
+	"Automatically remove from directory the profiles of characters you haven't crossed for a certain time. You can choose the delay before deletion.\n\n|cff00ff00Note that profiles with a relation toward one of your characters will never be purged.\n\n|cffff9900There is a bug in WoW losing all the saved data when it reaches a certain threshold. We strongly recommend to avoid disabling the purge system.",
 	CO_REGISTER_AUTO_PURGE_0 = "Disable purge",
 	CO_REGISTER_AUTO_PURGE_1 = "After %s day(s)",
 	CO_CURSOR_TITLE = "Cursor interactions",
@@ -532,11 +536,11 @@ Class: 50 characters|r]],
 	CO_MODULES_STATUS_3 = "Total RP 3 update required",
 	CO_MODULES_STATUS_4 = "Error on initialization",
 	CO_MODULES_STATUS_5 = "Error on startup",
-	CO_MODULES_TT_NONE = "No dependencies";
-	CO_MODULES_TT_DEPS = "Dependencies";
+	CO_MODULES_TT_NONE = "No dependencies",
+	CO_MODULES_TT_DEPS = "Dependencies",
 	CO_MODULES_TT_TRP = "%sFor Total RP 3 build %s minimum.|r",
 	CO_MODULES_TT_DEP = "\n%s- %s (version %s)|r",
-	CO_MODULES_TT_ERROR = "\n\n|cffff0000Error:|r\n%s";
+	CO_MODULES_TT_ERROR = "\n\n|cffff0000Error:|r\n%s",
 	CO_MODULES_TUTO = [[A module is a independent feature that can be enabled or disabled.
 
 Possible status:
@@ -673,7 +677,7 @@ Possible status:
 	TB_RPSTATUS_TO_OFF = "Go |cffff0000out of character",
 	TB_SWITCH_PROFILE = "Switch to another profile",
 	TF_OPEN_CHARACTER = "Show character page",
-    TF_OPEN_COMPANION = "Show companion page",
+	TF_OPEN_COMPANION = "Show companion page",
 	TF_OPEN_NPC = "Show npc page",
 	TF_OPEN_DM_NOTES = "Open DM notes",
 	TF_OPEN_MOUNT = "Show mount page",
@@ -965,8 +969,8 @@ Total RP is not responsible for links leading to harmful content.]],
 	-- Bindings
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-	BINDING_NAME_TRP3_TOGGLE = "Toggle main frame";
-	BINDING_NAME_TRP3_TOOLBAR_TOGGLE = "Toggle toolbar";
+	BINDING_NAME_TRP3_TOGGLE = "Toggle main frame",
+	BINDING_NAME_TRP3_TOOLBAR_TOGGLE = "Toggle toolbar",
 
 	--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 	-- About TRP3
@@ -1420,14 +1424,14 @@ We are aware of a current issue on Retail causing **quest item usage from the ob
 - Fixed an issue with the residence button on Classic.
 
 ]],
-	WHATS_NEW_23_13 =  [[# Changelog version 1.6.13
+	WHATS_NEW_23_13 = [[# Changelog version 1.6.13
 
 ## Fixed
 
 - Fixed an issue with upgrade patches that would happen only for people with a clean install of the add-on. - #407
 
 ]],
-	WHATS_NEW_24_1 =  [[# Changelog version 2.0
+	WHATS_NEW_24_1 = [[# Changelog version 2.0
 
 ## Added
 
@@ -1453,7 +1457,7 @@ We are aware of a current issue on Retail causing **quest item usage from the ob
 
 	BINDING_NAME_TRP3_OPEN_TARGET_PROFILE = "Open target profile",
 	BINDING_NAME_TRP3_TOGGLE_CHARACTER_STATUS = "Toggle character status",
-	WHATS_NEW_24_2 =  [[# Changelog version 2.1
+	WHATS_NEW_24_2 = [[# Changelog version 2.1
 
 ## Added
 
@@ -1480,7 +1484,7 @@ We are aware of a current issue on Retail causing **quest item usage from the ob
 	UI_PET_BROWSER_BOUND_WARNING = "|cffff0000Warning: |rThis pet is currently assigned to the profile |cff00ff00%1$s|r. Assigning a profile to this pet will replace the current profile.",
 	UI_PET_BROWSER_NAME_WARNING = "|cffff0000Warning: |rThis pet has not been renamed. We recommend renaming the pet to prevent showing this profile on other pets you own with the same name.",
 	REG_PLAYER_MISC_PRESET_PRONOUNS = "Pronouns",
-	WHATS_NEW_24_3 =  [[# Changelog version 2.2
+	WHATS_NEW_24_3 = [[# Changelog version 2.2
 
 ## Added
 
@@ -1563,7 +1567,7 @@ We are aware of a current issue on Retail causing **quest item usage from the ob
 	UNIT_POPUPS_MODULE_NAME = "Unit Popups",
 	UNIT_POPUPS_MODULE_DESCRIPTION = "Adds integration with right-click menus on unit frames and player names in chat frames.",
 	UNIT_POPUPS_ROLEPLAY_OPTIONS_HEADER = "Roleplay Options",
-    UNIT_POPUPS_OPEN_PROFILE = "Open Profile",
+	UNIT_POPUPS_OPEN_PROFILE = "Open Profile",
 	UNIT_POPUPS_ASSIGN_FLAG = "Assign Profile",
 	UNIT_POPUPS_CURRENT_PROFILE = "Current Profile",
 	UNIT_POPUPS_CURRENT_PROFILE_NAME = "Current Profile: %1$s",
@@ -2420,7 +2424,8 @@ The Kui |cff9966ffNameplates|r module adds several Total RP 3 customizations to 
 	["NAMEPLATES_CONFIG_VISIBILITY_HEADER"] = "Visibility settings",
 	["NAMEPLATES_MODULE_ACTIVE_STATUS"] = "Module |cff00ff00active|r (%1$s|r)",
 	["NAMEPLATES_MODULE_DESCRIPTION"] = "Enables the customization of nameplates with information obtained from roleplay profiles.",
-	["NAMEPLATES_MODULE_DISABLE_WARNING"] = "Disabling the nameplates module will prevent any nameplate customizations from being made. A user interface reload is required for this to take effect.|n|n|cffff0000Warning: |rOnce disabled, this module can only be re-enabled from the |cffffcc00Modules status|r page.|n|nAre you sure you want to disable this module?",
+	["NAMEPLATES_MODULE_DISABLE_WARNING"] =
+	"Disabling the nameplates module will prevent any nameplate customizations from being made. A user interface reload is required for this to take effect.|n|n|cffff0000Warning: |rOnce disabled, this module can only be re-enabled from the |cffffcc00Modules status|r page.|n|nAre you sure you want to disable this module?",
 	["NAMEPLATES_MODULE_DISABLED_BY_DEPENDENCY"] = "This module was disabled automatically due to a missing dependency.",
 	["NAMEPLATES_MODULE_DISABLED_BY_EXTERNAL"] = "This module was disabled automatically due to a conflict with another module or addon.",
 	["NAMEPLATES_MODULE_INACTIVE_STATUS"] = "Module |cffff9900inactive|r (no addon found)",
@@ -3632,7 +3637,7 @@ localeContent = {
 	["BINDING_NAME_TRP3_TOOLBAR_TOGGLE"] = "Werkzeugleiste umschalten",
 	["BROADCAST_10"] = "|cffff9900Du bist bereits in zehn Channels. TRP3 wird nicht mehr versuchen sich mit dem Broadcast-Kanal zu verbinden, aber du wirst nicht in der LAge sein einige Funktionen, wie die Spielersuche auf der Karte, zu verwenden.",
 	["BROADCAST_OFFLINE_DISABLED"] = "Broadcast wurde deaktiviert.",
-	["BROADCAST_PASSWORD"] = [=[|cffff0000Der Übertragungs-Channel (%s) ist passwortgeschützt. 
+	["BROADCAST_PASSWORD"] = [=[|cffff0000Der Übertragungs-Channel (%s) ist passwortgeschützt.
 |cffff9900TRP3 wird nicht versuchen, sich zu verbinden, kann jedoch auch keine Features wie die Standortbestimmung von Spielern auf der Karte für dich bereitstellen.
 |cff00ff00Du kannst den Übertragungs-Channel in den Allgemeinen Einstellungen von TRP3 ausschalten oder ändern.]=],
 	["BROADCAST_PASSWORDED"] = [=[|cffff0000Der Benutzer |r%s|cffff0000 hat gerade ein Passwort für den Übertragungs-Channel (%s) festgelegt.
@@ -4200,9 +4205,11 @@ Benutze die |cffffff00Profil importieren|r Option um Daten aus einem früheren E
 
 Profilgröße: %0.2f kB
 Max: 20 kB]=],
-	["PR_EXPORT_WARNING_MAC"] = "Bitte achte darauf, dass manche Textverarbeitungsprogramme  wie Text Edit oder Discord manche Zeichen (wie z.B. Anführungszeichen) besonders behandeln und damit den Inhalt verändern. Wenn du vor hast den unteren Text in ein Dokument zu kopieren, benutze bitte ein einfaches Textverarbeitungsprogramme, das keine automatische Zeichenerkennung benutzt. (In Text Edit gehe zu  Format > Nur Text erstellen, vor dem Einfügen.)",
+	["PR_EXPORT_WARNING_MAC"] =
+	"Bitte achte darauf, dass manche Textverarbeitungsprogramme  wie Text Edit oder Discord manche Zeichen (wie z.B. Anführungszeichen) besonders behandeln und damit den Inhalt verändern. Wenn du vor hast den unteren Text in ein Dokument zu kopieren, benutze bitte ein einfaches Textverarbeitungsprogramme, das keine automatische Zeichenerkennung benutzt. (In Text Edit gehe zu  Format > Nur Text erstellen, vor dem Einfügen.)",
 	["PR_EXPORT_WARNING_TITLE"] = "Warnung:",
-	["PR_EXPORT_WARNING_WINDOWS"] = "Bitte achte darauf, dass manche Textverarbeitungsprogramme  wie Microsoft Word oder Discord manche Zeichen (wie z.B. Anführungszeichen) besonders behandeln und damit den Inhalt verändern. Wenn du vor hast den unteren Text in ein Dokument zu kopieren, benutze bitte ein einfaches Textverarbeitungsprogramme, das keine automatische Zeichenerkennung benutzt, wie zum Beispiel den normalen Windows Editor.",
+	["PR_EXPORT_WARNING_WINDOWS"] =
+	"Bitte achte darauf, dass manche Textverarbeitungsprogramme  wie Microsoft Word oder Discord manche Zeichen (wie z.B. Anführungszeichen) besonders behandeln und damit den Inhalt verändern. Wenn du vor hast den unteren Text in ein Dokument zu kopieren, benutze bitte ein einfaches Textverarbeitungsprogramme, das keine automatische Zeichenerkennung benutzt, wie zum Beispiel den normalen Windows Editor.",
 	["PR_IMPORT"] = "Importieren",
 	["PR_IMPORT_CHAR_TAB"] = "Charakterimporteur",
 	["PR_IMPORT_EMPTY"] = "Kein importierbares Profil",
@@ -4465,7 +4472,7 @@ Ritter, Pyromane, Nekromant, Eliteschütze, Arkanwirker, Magd ...]=],
 	["REG_PLAYER_CURRENT"] = "Aktuelles",
 	["REG_PLAYER_CURRENT_OOC"] = "Dies ist eine OOC Information.",
 	["REG_PLAYER_CURRENTOOC"] = "Aktuelles (OOC)",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Kurzbeschreibung",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Kurzbeschreibung",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "Musikthema",
 	["REG_PLAYER_EYE"] = "Augenfarbe",
 	["REG_PLAYER_EYE_TT"] = [=[Hier kannst du die Augenfarbe eintragen.
@@ -4719,7 +4726,8 @@ Zum Beispiel kann du folgendes angeben: |c0000ff00schlank, dick or muskulös...|
 	["REG_REPORT_PLAYER_OPEN_URL"] = "Du kannst Spieler nur direkt im Spiel melden, wenn du sie anvisieren kannst (benutze dafür den Button im TRP3 Ankerfenster) Wenn du %s's Profil melden möchtest, aber nicht anvisieren kannst, musst du ein normales Kundendienstticket bei Blizzard über den folgenden Link öffnen.",
 	["REG_REPORT_PLAYER_OPEN_URL_160"] = "Wenn du %s's Profil melden möchtest, musst du ein normales Kundendienstticket bei Blizzard über den folgenden Link öffnen.",
 	["REG_REPORT_PLAYER_PROFILE"] = "Profil an |cff449fe0Blizzard|r melden.",
-	["REG_REPORT_PLAYER_PROFILE_TT"] = "Du kannst ein Profil melden, welches die Nutzungsbedingungen von Blizzard verletzt. Dies können Belästigungen, Hasssprache, anstößige Inhalte, der Missbrauch persönlicher Daten oder andere Formen von störenden Inhalten sein.  |cffff0000Bitte beachte, dass diese Option NICHT dafür gedacht ist Profile von subjektiv schlechter Qualität oder Griefing zu melden.",
+	["REG_REPORT_PLAYER_PROFILE_TT"] =
+	"Du kannst ein Profil melden, welches die Nutzungsbedingungen von Blizzard verletzt. Dies können Belästigungen, Hasssprache, anstößige Inhalte, der Missbrauch persönlicher Daten oder andere Formen von störenden Inhalten sein.  |cffff0000Bitte beachte, dass diese Option NICHT dafür gedacht ist Profile von subjektiv schlechter Qualität oder Griefing zu melden.",
 	["REG_REPORT_PLAYER_TEMPLATE"] = "Dieser Spieler benutzt das RP Profil Addon %s um Inhalte zu verbreiten, die die Nutzungsbedingungen verletzen.. ",
 	["REG_REPORT_PLAYER_TEMPLATE_DATE"] = "Die Addon Daten wurden am %s über aufgezeichnete Addon Nachrichten übermittelt. ",
 	["REG_REPORT_PLAYER_TEMPLATE_TRIAL_ACCOUNT"] = "Dieser Spieler benutze einen Starter Edition Account.",
@@ -4736,7 +4744,8 @@ Zum Beispiel kann du folgendes angeben: |c0000ff00schlank, dick or muskulös...|
 	["REG_TT_TARGET"] = "Ziel: |cffff9900%s",
 	["SCRIPT_ERROR"] = "Fehler im Script.",
 	["SCRIPT_UNKNOWN_EFFECT"] = "Scriptfehler, unbekannte FX",
-	["SLASH_CMD_STATUS_HELP"] = "Benutzung: |cff00ff00/trp3 status ic || ooc || toggle|r Wechselt deinen Charakter Status zu der entsprechenden Option: |cffff9900/trp3 status ic|r setzt deinen Status auf |cff00ff00in character|r. |cffff9900/trp3 status ooc|r setzt deinen Status auf  |cffff0000out of character|r. |cffff9900/trp3 status toggle|r wechselt deinen Status von ic zu ooc und vice versa.",
+	["SLASH_CMD_STATUS_HELP"] =
+	"Benutzung: |cff00ff00/trp3 status ic || ooc || toggle|r Wechselt deinen Charakter Status zu der entsprechenden Option: |cffff9900/trp3 status ic|r setzt deinen Status auf |cff00ff00in character|r. |cffff9900/trp3 status ooc|r setzt deinen Status auf  |cffff0000out of character|r. |cffff9900/trp3 status toggle|r wechselt deinen Status von ic zu ooc und vice versa.",
 	["SLASH_CMD_STATUS_USAGE"] = "ic || ooc || toggle",
 	["TB_AFK_MODE"] = "AFK",
 	["TB_DND_MODE"] = "Nicht stören (DnD)",
@@ -4763,7 +4772,7 @@ Zum Beispiel kann du folgendes angeben: |c0000ff00schlank, dick or muskulös...|
 	["TF_IGNORE"] = "Spieler ignorieren",
 	["TF_IGNORE_CONFIRM"] = [=[Bist du sicher das du die folgende ID ignorieren willst?
 
-|cffffff00%s|r 
+|cffffff00%s|r
 
 |cffff7700Du kannst optional angeben, warum die diesen Spieler ignorierst. Dies ist eine persönliche Notiz und kann nicht von anderen Spielern eingesehen werden.]=],
 	["TF_IGNORE_NO_REASON"] = "Kein Grund",
@@ -5434,7 +5443,8 @@ Ajoute un bouton à votre barre d'outils pour activer ou désactiver votre affic
 	["NAMEPLATES_CONFIG_ACTIVE_QUERY"] = "Récupérer automatiquement les profils",
 	["NAMEPLATES_CONFIG_ACTIVE_QUERY_HELP"] = "Si coché, récupère automatiquement les profils RP des unités avec des barres d'infos visibles.",
 	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY"] = "Cacher les barres de vie |cff449fe0Blizzard|r",
-	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY_HELP"] = "Si coché, ceci active le mode \"nom uniquement\" des barres d'info |cff449fe0Blizzard|r.|n|nDans ce mode, toutes les barres d'info ont les barres de vie cachées, y compris celles des unités ennemies et des autres joueurs avec ou sans profil RP.|n|nCette option requiert de recharger l'interface pour prendre effet.",
+	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY_HELP"] =
+	"Si coché, ceci active le mode \"nom uniquement\" des barres d'info |cff449fe0Blizzard|r.|n|nDans ce mode, toutes les barres d'info ont les barres de vie cachées, y compris celles des unités ennemies et des autres joueurs avec ou sans profil RP.|n|nCette option requiert de recharger l'interface pour prendre effet.",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_FULL_TITLES"] = "Afficher les titres complets",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_FULL_TITLES_HELP"] = "Si coché, affiche le titre complet d'une unité sur sa barre d'info.|n|nPour les barres d'info |cff449fe0Blizzard|r et |cff9966ffKui|r, les titres complets ne sont affichés qu'en mode \"nom uniquement\".",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_HEALTH_COLORS"] = "Barres de vie avec couleur personnalisée",
@@ -5470,7 +5480,8 @@ Ajoute un bouton à votre barre d'outils pour activer ou désactiver votre affic
 	["NAMEPLATES_CONFIG_VISIBILITY_HEADER"] = "Paramètres de visibilité",
 	["NAMEPLATES_MODULE_ACTIVE_STATUS"] = "Module |cff00ff00actif|r (%1$s|r)",
 	["NAMEPLATES_MODULE_DESCRIPTION"] = "Active la personnalisation des barres d'info avec les informations contenues dans les profils RP.",
-	["NAMEPLATES_MODULE_DISABLE_WARNING"] = "Désactiver le module de barres d'info bloquera toute personnalisation des barres d'info. L'interface devra être rechargée pour que ce changement prenne effet.|n|n|cffff0000Attention: |rUne fois désactivé, ce module ne peut être réactivé que via l'onglet de |cffffcc00Statut des modules|r.|n|nVoulez-vous vraiment désactiver ce module ?",
+	["NAMEPLATES_MODULE_DISABLE_WARNING"] =
+	"Désactiver le module de barres d'info bloquera toute personnalisation des barres d'info. L'interface devra être rechargée pour que ce changement prenne effet.|n|n|cffff0000Attention: |rUne fois désactivé, ce module ne peut être réactivé que via l'onglet de |cffffcc00Statut des modules|r.|n|nVoulez-vous vraiment désactiver ce module ?",
 	["NAMEPLATES_MODULE_DISABLED_BY_DEPENDENCY"] = "Ce module a été automatiquement désactivé dû à une dépendance manquante.",
 	["NAMEPLATES_MODULE_DISABLED_BY_EXTERNAL"] = "Ce module a été automatiquement désactivé dû à un conflit avec un autre module ou addon.",
 	["NAMEPLATES_MODULE_INACTIVE_STATUS"] = "Module |cffff9900inactif|r (pas d'addon détecté)",
@@ -5827,7 +5838,7 @@ Chevalier, Pyrotechnicien, Nécromant, Tireur d'élite, Arcaniste ...]=],
 	["REG_PLAYER_COLOR_TT"] = [=[|cffffff00Clic gauche:|r Sélectionner une couleur
 |cffffff00Clic droit:|r Effacer la couleur]=],
 	["REG_PLAYER_CURRENT"] = "Actuellement",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Brève description",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Brève description",
 	["REG_PLAYER_CURRENT_OOC"] = "Ceci est une information hors du personnage",
 	["REG_PLAYER_CURRENTOOC"] = "Actuellement (HRP)",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "Thème musical",
@@ -6774,10 +6785,10 @@ Posibles estados:
 	["CO_TOOLTIP_CROP_TEXT"] = "Trunca textos excesivamente largos",
 	["CO_TOOLTIP_CROP_TEXT_TT"] = [=[Limita el número de caracteres que pueden ser expuestos por cada campo en información para prevenir textos excesivamente largos y posibles problemas en el diseño.
 
-|cfffff569Detalles de límites: 
-Nombre: 100 caracteres 
-Título: 150 caracteres 
-Raza: 50 caracteres 
+|cfffff569Detalles de límites:
+Nombre: 100 caracteres
+Título: 150 caracteres
+Raza: 50 caracteres
 Clase: 50 caracteres|r]=],
 	["CO_TOOLTIP_CURRENT"] = "Mostrar información \"actual\"",
 	["CO_TOOLTIP_CURRENT_LINES"] = "Saltos de línea máximos en información \"Actualmente\"",
@@ -7143,11 +7154,11 @@ Puede causar incompatibilidades.
 	["PR_SLASH_OPEN_WAITING"] = "|cffffff00Solicitando perfil, por favor espera...|r",
 	["PR_SLASH_SWITCH_HELP"] = "Cambiar a otro perfil usando su nombre.",
 	["PR_UNUSED_PROFILE"] = "Este perfil actualmente no está vinculado a ningún personaje de WoW.",
-	["REG_CODE_INSERTION_WARNING"] = [=[|TInterface\AddOns\totalRP3\resources\policegar.tga:50:50|t ¡Espera un momento! 
+	["REG_CODE_INSERTION_WARNING"] = [=[|TInterface\AddOns\totalRP3\resources\policegar.tga:50:50|t ¡Espera un momento!
 
-Hemos descubierto que has insertado códigos inválidos en tu perfil de Total RP 3. 
+Hemos descubierto que has insertado códigos inválidos en tu perfil de Total RP 3.
 No compartimos este comportamiento y desaconsejamos hacerlo.
-Puede conducir a inestabilidades y bugs en el add-on, corrupción de datos/pérdia de perfiles y también crea problemas de compatibilidad con otros add-ons (como MRP). 
+Puede conducir a inestabilidades y bugs en el add-on, corrupción de datos/pérdia de perfiles y también crea problemas de compatibilidad con otros add-ons (como MRP).
 
 Los códigos que has introducido en tu perfil han sido eliminados para prevenir mal funcionamiento del add-on.]=],
 	["REG_COMPANION"] = "Compañero",
@@ -7342,7 +7353,7 @@ Puedes hacerlo de distintas maneras:|c0000ff00
 
 |cff00ff00Por ejemplo :|r
 Caballero, pirotécnico, nigromante, arcanista...]=],
-	["REG_PLAYER_COLOR_ALWAYS_DEFAULT_TT"] = [=[|cffffff00Clic:|r Selecciona un color 
+	["REG_PLAYER_COLOR_ALWAYS_DEFAULT_TT"] = [=[|cffffff00Clic:|r Selecciona un color
 |cffffff00Clic derecho:|r Descarta un color]=],
 	["REG_PLAYER_COLOR_CLASS"] = "Color de clase",
 	["REG_PLAYER_COLOR_CLASS_TT"] = [=[Esto determina el color en que se visualizará la clase.
@@ -7350,7 +7361,7 @@ Caballero, pirotécnico, nigromante, arcanista...]=],
 	["REG_PLAYER_COLOR_TT"] = [=[|cffffff00Clic:|r Seleccionar color
 |cffffff00Clic derecho:|r Descartar color]=],
 	["REG_PLAYER_CURRENT"] = "Actualmente",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Breve descripción",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Breve descripción",
 	["REG_PLAYER_CURRENT_OOC"] = "Esta es información Fuera de Rol",
 	["REG_PLAYER_CURRENTOOC"] = "Actualmente (FdR)",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "Tema musical",
@@ -8277,7 +8288,7 @@ Caballero, pirotécnico, nigromante, arcanista...]=],
 	["REG_PLAYER_COLOR_TT"] = [=[|cffffff00Clic:|r Seleccionar color
 |cffffff00Clic derecho:|r Descartar color]=],
 	["REG_PLAYER_CURRENT"] = "Actualmente",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Breve descripción",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Breve descripción",
 	["REG_PLAYER_CURRENT_OOC"] = "Esta es información Fuera de Rol",
 	["REG_PLAYER_CURRENTOOC"] = "Actualmente (FdR)",
 	["REG_PLAYER_EYE"] = "Color de ojos",
@@ -8832,7 +8843,7 @@ Max: 20 kB]=],
 	["REG_PLAYER_CLASS"] = "Classe",
 	["REG_PLAYER_COLOR_CLASS"] = "Colore classe",
 	["REG_PLAYER_CURRENT"] = "Attualmente",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Breve descrizione",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Breve descrizione",
 	["REG_PLAYER_CURRENT_OOC"] = "Questa informazione è OOC",
 	["REG_PLAYER_CURRENTOOC"] = "Attualmente (OOC)",
 	["REG_PLAYER_EYE"] = "Colore degli occhi",
@@ -9316,7 +9327,7 @@ Status possíveis:
 	["CO_REGISTER_ABOUT_H3_SIZE"] = "Tamanho de texto do cabeçalho 3",
 	["CO_REGISTER_ABOUT_H3_SIZE_TT"] = "Tamanho do texto entre marcadores {h3}. Padrão: %s ",
 	["CO_REGISTER_ABOUT_P_SIZE"] = "Tamanho do parágrafo no texto ",
-	["CO_REGISTER_ABOUT_P_SIZE_TT"] = [=[Tamanho do texto fora dos marcadores do cabeçalho. Padrão: %s 
+	["CO_REGISTER_ABOUT_P_SIZE_TT"] = [=[Tamanho do texto fora dos marcadores do cabeçalho. Padrão: %s
 ]=],
 	["CO_REGISTER_ABOUT_SETTINGS"] = "Configurações \"Sobre\"",
 	["CO_REGISTER_ABOUT_VOTE"] = "Habilitar sistema de votação",
@@ -9417,7 +9428,8 @@ Seus perfis, perfis de companheiro e configurações serão temporariamente depo
 |cff00ff00Use o mesmo comando novamente (|cff999999/trp3 stash|cff00ff00) para restaurar seus dados.|r]=],
 	["COM_SWITCH_USAGE"] = "Uso: |cff00ff00/trp3 switch main|r para mudar para tela principal ou |cff00ff00/trp3 switch toolbar|r para mudar a barra de ferramentas.",
 	["CONFIG_COMMS_QUEUE_POOL_COUNT"] = "Tamanho da fila de espera ",
-	["CONFIG_COMMS_QUEUE_POOL_COUNT_DESCRIPTION"] = "Controla o tamanho da fila de espera utilizada para as comunicações de perfil.|n|n Valores mais baixos reduzirão a latência de comunicações adicionais para dados de perfil não-RP, mas podem aumentar o tempo antes de outros jogadores começarem a receber quaisquer dados de perfil em cenários de carga elevada. ",
+	["CONFIG_COMMS_QUEUE_POOL_COUNT_DESCRIPTION"] =
+	"Controla o tamanho da fila de espera utilizada para as comunicações de perfil.|n|n Valores mais baixos reduzirão a latência de comunicações adicionais para dados de perfil não-RP, mas podem aumentar o tempo antes de outros jogadores começarem a receber quaisquer dados de perfil em cenários de carga elevada. ",
 	["CONFIG_COMMS_QUEUE_POOL_WEIGHT_THRESHOLD"] = "Limiar de peso dos dados da fila de espera ",
 	["CONFIG_COMMS_QUEUE_POOL_WEIGHT_THRESHOLD_DESCRIPTION"] = "Controla o peso mínimo que os dados do seu perfil RP devem ter antes de se utilizarem as filas de espera.|n|nPara perfis maiores, o aumento deste valor pode |cffff0000severamente deteriorar| o desempenho de todos addons. ",
 	["CONFIG_COMMS_SETTINGS_HEADER"] = "Configuração de comunicações ",
@@ -9580,7 +9592,8 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["NAMEPLATES_CONFIG_ACTIVE_QUERY"] = "Busca automática de perfis ",
 	["NAMEPLATES_CONFIG_ACTIVE_QUERY_HELP"] = "Se marcado, procura automaticamente perfis de roleplay  com placas de nome anexadas.",
 	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY"] = "Esconder barras em placas de nome da  |cff449fe0Blizzard|r ",
-	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY_HELP"] = "Se Marcado, isto permite o uso do modo só de nome para as placas da  |cff449fe0Blizzard|r .|n|n|n Deste modo, todas as placas de nome terão as suas barras de saúde escondidas, incluindo os de personagens inimigos e outros jogadores com ou sem perfis de roleplay.|n|n Esta opção requer uma recarga UI para ter efeito.",
+	["NAMEPLATES_CONFIG_BLIZZARD_NAME_ONLY_HELP"] =
+	"Se Marcado, isto permite o uso do modo só de nome para as placas da  |cff449fe0Blizzard|r .|n|n|n Deste modo, todas as placas de nome terão as suas barras de saúde escondidas, incluindo os de personagens inimigos e outros jogadores com ou sem perfis de roleplay.|n|n Esta opção requer uma recarga UI para ter efeito.",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_FULL_TITLES"] = "Mostrar títulos Completos ",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_FULL_TITLES_HELP"] = "Se marcado mostrará o título inteiro das placas de nome da |n|nFor |cff449fe0Blizzard| e placas |cff9966ffKui|r, Títulos completos apenas serão mostrados no modo \"somente nome\".",
 	["NAMEPLATES_CONFIG_CUSTOMIZE_HEALTH_COLORS"] = "Mostrar cores customizadas da saúde.",
@@ -9604,7 +9617,8 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["NAMEPLATES_CONFIG_DISABLE_OUT_OF_CHARACTER_UNITS_HELP"] = "Se marcado, desativa customizações nas placa de nomes em personagens que estão em OOC (fora do personagem).",
 	["NAMEPLATES_CONFIG_ELEMENT_HEADER"] = "Configurações de customização.",
 	["NAMEPLATES_CONFIG_ENABLE_CLASS_COLOR_FALLBACK"] = "Usar cor de classe por padrão",
-	["NAMEPLATES_CONFIG_ENABLE_CLASS_COLOR_FALLBACK_HELP"] = "Se marcado, isto permite a utilização de cores de classe para os nomes e barras de saúde como uma alternativa para as unidades que não têm uma cor de classe personalizada em seu perfil.|n|npersonagens que não têm perfis de roleplay não são afetadas por esta configuração e não serão de cor de classe.",
+	["NAMEPLATES_CONFIG_ENABLE_CLASS_COLOR_FALLBACK_HELP"] =
+	"Se marcado, isto permite a utilização de cores de classe para os nomes e barras de saúde como uma alternativa para as unidades que não têm uma cor de classe personalizada em seu perfil.|n|npersonagens que não têm perfis de roleplay não são afetadas por esta configuração e não serão de cor de classe.",
 	["NAMEPLATES_CONFIG_HIDE_NON_ROLEPLAY_UNITS"] = "Esconder personagens não roleplay.",
 	["NAMEPLATES_CONFIG_HIDE_NON_ROLEPLAY_UNITS_HELP"] = "Se marcado. esconde placas de nome do jogador e companion que não tem perfis de roleplay",
 	["NAMEPLATES_CONFIG_HIDE_OUT_OF_CHARACTER_UNITS"] = "Esconder personagens \"Fora do personagem\" (OOC)",
@@ -9617,7 +9631,8 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["NAMEPLATES_CONFIG_VISIBILITY_HEADER"] = "Configurações de exibição",
 	["NAMEPLATES_MODULE_ACTIVE_STATUS"] = "Módulo |cff00ff00Ativo|r (%1$s|r)",
 	["NAMEPLATES_MODULE_DESCRIPTION"] = "Ativa a customização das placas de nome com informação obtida nos perfis de roleplay",
-	["NAMEPLATES_MODULE_DISABLE_WARNING"] = "A desativação do módulo de placas de nome impedirá a realização de qualquer personalização de placas de nome. É necessário fazer a recarga da interface do jogador para que isto tenha efeito.|n|n|cffff0000Aviso: |r uma vez desativado, este módulo só pode ser reativado a partir da página |cffffcc00status do módulo|r.|n|n Tem certeza que quer desativar este módulo??",
+	["NAMEPLATES_MODULE_DISABLE_WARNING"] =
+	"A desativação do módulo de placas de nome impedirá a realização de qualquer personalização de placas de nome. É necessário fazer a recarga da interface do jogador para que isto tenha efeito.|n|n|cffff0000Aviso: |r uma vez desativado, este módulo só pode ser reativado a partir da página |cffffcc00status do módulo|r.|n|n Tem certeza que quer desativar este módulo??",
 	["NAMEPLATES_MODULE_DISABLED_BY_DEPENDENCY"] = "Este módulo foi desativado automaticamente devido a falta de alguma dependência.",
 	["NAMEPLATES_MODULE_DISABLED_BY_EXTERNAL"] = "Este módulo foi desativado automaticamente devido a um conflito com outro módulo ou Addon!!",
 	["NAMEPLATES_MODULE_INACTIVE_STATUS"] = "módulo |cffff9900Inativo|r (Addon não encontrado)",
@@ -9688,7 +9703,7 @@ Mudar o nome não afetará qualquer conexão entre este perfil e suas mascotes/m
 Conectá-la assim mesmo?]=],
 	["PR_CREATE_PROFILE"] = "Criar perfil",
 	["PR_DEFAULT_PROFILE_NAME"] = "Perfil padrão",
-	["PR_DEFAULT_PROFILE_WARNING"] = [=[Criar um novo perfil ou link para um que já existe nos perfis para editar as informações do 
+	["PR_DEFAULT_PROFILE_WARNING"] = [=[Criar um novo perfil ou link para um que já existe nos perfis para editar as informações do
  seu personagem.]=],
 	["PR_DELETE_PROFILE"] = "Deletar perfil",
 	["PR_DUPLICATE_PROFILE"] = "Duplicar perfil",
@@ -9705,9 +9720,11 @@ Use a opção |cffffff00Importar perfil|r para colar dados de uma exportação p
 
 Tamanho do perfil: %0.2f kB
 Máximo: 20 kB]=],
-	["PR_EXPORT_WARNING_MAC"] = "Note por favor que algumas ferramentas avançadas de edição de texto como Text Edit ou Discord reformatarão caracteres especiais como citações, alterando o conteúdo dos dados. Se estiver planejando copiar o texto abaixo dentro de um documento, utilize ferramentas de edição de texto mais simples que não alterem automaticamente os caracteres (em Text Edit vá para Format > Fazer texto simples antes de colar).",
+	["PR_EXPORT_WARNING_MAC"] =
+	"Note por favor que algumas ferramentas avançadas de edição de texto como Text Edit ou Discord reformatarão caracteres especiais como citações, alterando o conteúdo dos dados. Se estiver planejando copiar o texto abaixo dentro de um documento, utilize ferramentas de edição de texto mais simples que não alterem automaticamente os caracteres (em Text Edit vá para Format > Fazer texto simples antes de colar).",
 	["PR_EXPORT_WARNING_TITLE"] = "Aviso!! :",
-	["PR_EXPORT_WARNING_WINDOWS"] = "Note que algumas ferramentas avançadas de edição de texto como o Microsoft Word ou Discord reformatarão caracteres especiais como citações, alterando o conteúdo dos dados. Se estiver planejando copiar o texto abaixo dentro de um documento, utilize por favor ferramentas de edição de texto mais simples que não alterem automaticamente os caracteres, como o Bloco de Notas.",
+	["PR_EXPORT_WARNING_WINDOWS"] =
+	"Note que algumas ferramentas avançadas de edição de texto como o Microsoft Word ou Discord reformatarão caracteres especiais como citações, alterando o conteúdo dos dados. Se estiver planejando copiar o texto abaixo dentro de um documento, utilize por favor ferramentas de edição de texto mais simples que não alterem automaticamente os caracteres, como o Bloco de Notas.",
 	["PR_IMPORT"] = "Importar",
 	["PR_IMPORT_CHAR_TAB"] = "Importador de personagens",
 	["PR_IMPORT_EMPTY"] = "Nenhum perfil importável",
@@ -9762,7 +9779,8 @@ Substituir todo o conteúdo do perfil %s por estes dados importados?]=],
 	["PR_SLASH_OPEN_WAITING"] = "|cffffff00Requisitando perfil, Espere por favor...|r",
 	["PR_SLASH_SWITCH_HELP"] = "Trocar para outro perfil usando seu nome.",
 	["PR_UNUSED_PROFILE"] = "Este perfil não está atualmente conectado a nenhum personagem do WoW.",
-	["REG_CODE_INSERTION_WARNING"] = "|Typolicegar.tga:50:50|t Espere um minuto! Descobrimos que você inseriu manualmente códigos inválidos dentro do seu perfil do Total RP 3. Este comportamento não é de todo apoiado e desencorajamos fortemente qualquer pessoa fazer. Pode levar a instabilidades e bugs dentro do addon, corrupção/perda de dados de perfis e também cria problemas de incompatibilidade com outros addons (tais como MRP). Os códigos que inseriu no seu perfil foram removidos para o impedir o addon de parar de funcionar.",
+	["REG_CODE_INSERTION_WARNING"] =
+	"|Typolicegar.tga:50:50|t Espere um minuto! Descobrimos que você inseriu manualmente códigos inválidos dentro do seu perfil do Total RP 3. Este comportamento não é de todo apoiado e desencorajamos fortemente qualquer pessoa fazer. Pode levar a instabilidades e bugs dentro do addon, corrupção/perda de dados de perfis e também cria problemas de incompatibilidade com outros addons (tais como MRP). Os códigos que inseriu no seu perfil foram removidos para o impedir o addon de parar de funcionar.",
 	["REG_COMPANION"] = "Companheiro",
 	["REG_COMPANION_BIND_TO_PET"] = "Mascote",
 	["REG_COMPANION_BOUND_TO"] = "Vinculado a ...",
@@ -9963,7 +9981,7 @@ Cavaleiro, Pirotecnista, Necromante, Atirador de elite, Arcanista ...]=],
 	["REG_PLAYER_COLOR_TT"] = [=[|cffffff00Clique:|r Selecionar uma cor
 |cffffff00Clique-direito:|r Descartar cor]=],
 	["REG_PLAYER_CURRENT"] = "Atualmente",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Breve descrição",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Breve descrição",
 	["REG_PLAYER_CURRENT_OOC"] = "Esta é uma informação OOC",
 	["REG_PLAYER_CURRENTOOC"] = "Atualmente (OOC)",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "Música tema",
@@ -10224,7 +10242,8 @@ Por exemplo, ele pode ser |c0000ff00esbelto, gordo ou musculoso...|r. Ou ele pod
 	["REG_REPORT_PLAYER_OPEN_URL"] = "Você somente pode reportar jogadores diretamente de dentro do jogo se os puder Marcar (usando o botão de frame alvo do TRP3). Se desejar reportar o perfil do %s e você não puder os marcar, terá de abrir um ticket com o apoio da Blizzard, utilizando o link abaixo.",
 	["REG_REPORT_PLAYER_OPEN_URL_160"] = "Se você deseja reportar o perfil %s, você precisar abrir um ticket com o suporte da blizzard usando o link abaixo:",
 	["REG_REPORT_PLAYER_PROFILE"] = "Reportar perfil para |cff449fe0Blizzard|r",
-	["REG_REPORT_PLAYER_PROFILE_TT"] = "Você pode denunciar um perfil que infrinja os Termos de Serviço da Blizzard. Isto pode incluir assédio, doxxing, discurso de ódio, conteúdo obsceno ou outra forma de conteúdo perturbador. |cffff0000Por favor note que esta opção NÃO é denunciar perfis RP de qualidade contestável ou de luto. Os abusos desta característica são puníveis!",
+	["REG_REPORT_PLAYER_PROFILE_TT"] =
+	"Você pode denunciar um perfil que infrinja os Termos de Serviço da Blizzard. Isto pode incluir assédio, doxxing, discurso de ódio, conteúdo obsceno ou outra forma de conteúdo perturbador. |cffff0000Por favor note que esta opção NÃO é denunciar perfis RP de qualidade contestável ou de luto. Os abusos desta característica são puníveis!",
 	["REG_REPORT_PLAYER_TEMPLATE"] = "Este jogador esta usando o Addon de perfil RP %s para compartilhar conteúdo que vai contra os termos de serviço",
 	["REG_REPORT_PLAYER_TEMPLATE_DATE"] = "Os Arquivos do addon foi transferido através do addon de mensagem logado em %s",
 	["REG_REPORT_PLAYER_TEMPLATE_TRIAL_ACCOUNT"] = "Este jogador está em uma conta de teste.",
@@ -10242,7 +10261,8 @@ Por exemplo, ele pode ser |c0000ff00esbelto, gordo ou musculoso...|r. Ou ele pod
 	["REG_TT_ZONE"] = "Área",
 	["SCRIPT_ERROR"] = "Error no script.",
 	["SCRIPT_UNKNOWN_EFFECT"] = "Erro de script, FX desconhecido",
-	["SLASH_CMD_STATUS_HELP"] = "Utilização: |cff00ff00/trp3 Status ic ||| ooc ||| trocar|r Altera o seu status de personagem para a opção especificada: |cffff9900/trp3 status Ic|r definirá o seu estado para |cff00ff00 No Personagem |r. |cffff9900/trp3 status ooc|r definirá o seu status para |cffffff0000Fora do Personagem|r. |cffff9900/trp3 status Alterar|r irá mudar o seu estado para o estado oposto.",
+	["SLASH_CMD_STATUS_HELP"] =
+	"Utilização: |cff00ff00/trp3 Status ic ||| ooc ||| trocar|r Altera o seu status de personagem para a opção especificada: |cffff9900/trp3 status Ic|r definirá o seu estado para |cff00ff00 No Personagem |r. |cffff9900/trp3 status ooc|r definirá o seu status para |cffffff0000Fora do Personagem|r. |cffff9900/trp3 status Alterar|r irá mudar o seu estado para o estado oposto.",
 	["SLASH_CMD_STATUS_USAGE"] = "ic || ooc || Alterar",
 	["TB_AFK_MODE"] = "Ausente",
 	["TB_DND_MODE"] = "Não perturbe",
@@ -10395,26 +10415,43 @@ O Total RP não é responsável por links que levem a conteúdo nocivo.
 	["UNIT_POPUPS_OPEN_PROFILE"] = "Abrir perfil",
 	["UNIT_POPUPS_ASSIGN_FLAG"] = "Atribuir perfil",
 	["UNIT_POPUPS_ROLEPLAY_OPTIONS_HEADER"] = "Opções de Roleplay",
-	["WHATS_NEW_23"] = "# Changelog versão 1.6.0 ## Notas pessoais, você Pode agora escrever notas pessoais dentro do addon ! Estas notas podem ser escritas ou no seu próprio perfil (se desejar tomar notas genéricas para o seu personagem), ou no perfil de outra pessoa (o campo superior sendo ligado ao seu perfil atual, sendo o campo inferior comum a todos os seus perfis). Estas notas são obviamente privadas, ninguém mais, a não ser você, pode vê-las. {img:Interface\\AddOns\\totalRP3\\resources\\160-1.tga:480:480} Para acessar as notas pessoais, basta clicar no novo botão de Notas na moldura do personagem, ou abrir um perfil e clicar no separador Notas. {img:Interface\\AddOns\\totalRP3\\resources\\160-2.tga:240:120} O registo também recebeu uma caixa de verificação para exibir apenas perfis nos quais escreveu notas. {img:Interface\\AddOns\\totalRP3\\resources\\160-3.tga:480:120} ## Adicionado - Adicionado suporte HTML para About templates 2 e 3. Pode agora usar a gama completa de etiquetas HTML enquanto usa esses templates para formatar os seus campos, usando a barra de ferramentas que é agora visível para todos os templates. Adicionado compatibilidade com outros addons de RP para traços de personalidade e tags HTML. ## Alterado - Os botões \"Reportar perfil\" irão agora ambos ligar-se à página [de suporte do website sobre assédio via addons](https://battle.net/support/help/product/wow/197/1501/solution), uma vez que a funcionalidade de relatório no jogo anteriormente adicionada era um método inválido para reportar abuso de addons. O popup mostrará ainda um carimbo de data/hora para a recepção do perfil, que poderá fornecer ao CS da Blizzard para os ajudar a localizar a ofensa. ## Corrigido - Corrigido um erro que poderia impedir o carregamento do addon. - Corrigido um problema de compatibilidade para o modelo 3, se o local do addon não fosse inglês. ## Removido - Removida a iluminação automática do texto completo ao entrar no foco de uma área de texto (Sobre campos, Atualmente, OOC Info...) - Removido o código dos tolos de Abril (incluindo os nomes esquecidos do companheiro arco-íris).",
-	["WHATS_NEW_23_1"] = "# versão Changelog 1.6.1 ## retrabalho do sistema musical - Alterações técnicas no patch 8.2 obrigaram-nos a alterar a forma como a música é tratada pelo addon. ## Isto significa que a actualização é necessária para que as músicas funcionem.** Esta alteração deve ser sem problemas e compatível com o passado (temas musicais de perfis provenientes de versões desactualizadas devem continuar a tocar bem). - Isto permitiu a adição de músicas anteriormente indisponíveis (olhando para si, músicas de elfos vazias). - A duração de todas as músicas deve agora ser visível nas pontas de ferramentas da linha do navegador de música. ## Alterado - As definições para aumentar o contraste de cor nas pontas de ferramentas e no chat foram consolidadas numa única definição para ambas, que pode ser encontrada nas definições Gerais. Também se aplica em mais lugares, como as dicas de ferramentas de digitalização de mapas. ## Fixo - A âncora para o botão de digitalização do mapa pode agora ser devidamente definida. - Corrigida uma mudança nos títulos de cabeçalhos/parágrafos - Corrigida uma mensagem de erro que podia ser causada por outros addons que utilizavam indevidamente funções API oficiais.",
+	["WHATS_NEW_23"] =
+	"# Changelog versão 1.6.0 ## Notas pessoais, você Pode agora escrever notas pessoais dentro do addon ! Estas notas podem ser escritas ou no seu próprio perfil (se desejar tomar notas genéricas para o seu personagem), ou no perfil de outra pessoa (o campo superior sendo ligado ao seu perfil atual, sendo o campo inferior comum a todos os seus perfis). Estas notas são obviamente privadas, ninguém mais, a não ser você, pode vê-las. {img:Interface\\AddOns\\totalRP3\\resources\\160-1.tga:480:480} Para acessar as notas pessoais, basta clicar no novo botão de Notas na moldura do personagem, ou abrir um perfil e clicar no separador Notas. {img:Interface\\AddOns\\totalRP3\\resources\\160-2.tga:240:120} O registo também recebeu uma caixa de verificação para exibir apenas perfis nos quais escreveu notas. {img:Interface\\AddOns\\totalRP3\\resources\\160-3.tga:480:120} ## Adicionado - Adicionado suporte HTML para About templates 2 e 3. Pode agora usar a gama completa de etiquetas HTML enquanto usa esses templates para formatar os seus campos, usando a barra de ferramentas que é agora visível para todos os templates. Adicionado compatibilidade com outros addons de RP para traços de personalidade e tags HTML. ## Alterado - Os botões \"Reportar perfil\" irão agora ambos ligar-se à página [de suporte do website sobre assédio via addons](https://battle.net/support/help/product/wow/197/1501/solution), uma vez que a funcionalidade de relatório no jogo anteriormente adicionada era um método inválido para reportar abuso de addons. O popup mostrará ainda um carimbo de data/hora para a recepção do perfil, que poderá fornecer ao CS da Blizzard para os ajudar a localizar a ofensa. ## Corrigido - Corrigido um erro que poderia impedir o carregamento do addon. - Corrigido um problema de compatibilidade para o modelo 3, se o local do addon não fosse inglês. ## Removido - Removida a iluminação automática do texto completo ao entrar no foco de uma área de texto (Sobre campos, Atualmente, OOC Info...) - Removido o código dos tolos de Abril (incluindo os nomes esquecidos do companheiro arco-íris).",
+	["WHATS_NEW_23_1"] =
+	"# versão Changelog 1.6.1 ## retrabalho do sistema musical - Alterações técnicas no patch 8.2 obrigaram-nos a alterar a forma como a música é tratada pelo addon. ## Isto significa que a actualização é necessária para que as músicas funcionem.** Esta alteração deve ser sem problemas e compatível com o passado (temas musicais de perfis provenientes de versões desactualizadas devem continuar a tocar bem). - Isto permitiu a adição de músicas anteriormente indisponíveis (olhando para si, músicas de elfos vazias). - A duração de todas as músicas deve agora ser visível nas pontas de ferramentas da linha do navegador de música. ## Alterado - As definições para aumentar o contraste de cor nas pontas de ferramentas e no chat foram consolidadas numa única definição para ambas, que pode ser encontrada nas definições Gerais. Também se aplica em mais lugares, como as dicas de ferramentas de digitalização de mapas. ## Fixo - A âncora para o botão de digitalização do mapa pode agora ser devidamente definida. - Corrigida uma mudança nos títulos de cabeçalhos/parágrafos - Corrigida uma mensagem de erro que podia ser causada por outros addons que utilizavam indevidamente funções API oficiais.",
 	["WHATS_NEW_23_10"] = "# Changelog versão 1.6.10 ## Adicionado - Adicionado %xt e %xf fichas de chat. Estes serão automaticamente substituídos pelo nome RP do seu alvo e foco, respectivamente, quando enviar uma mensagem. - Adicionadas definições para ajustar os tamanhos das fontes About font.",
-	["WHATS_NEW_23_11"] = "# Versão Changelog 1.6.11 ## Adicionada - Adicionadas novas fichas de chat para primeiro e último nomes: %xtf (primeiro nome do Alvo), %xtl (último nome do Alvo), %xff (primeiro nome do Focus), %xfl (último nome do Focus). ## Corrigido - Corrigido um problema ao tentar adicionar um link de chat a uma caixa de chat vazia. - Corrigido um problema de compatibilidade com o PallyPower.",
+	["WHATS_NEW_23_11"] =
+	"# Versão Changelog 1.6.11 ## Adicionada - Adicionadas novas fichas de chat para primeiro e último nomes: %xtf (primeiro nome do Alvo), %xtl (último nome do Alvo), %xff (primeiro nome do Focus), %xfl (último nome do Focus). ## Corrigido - Corrigido um problema ao tentar adicionar um link de chat a uma caixa de chat vazia. - Corrigido um problema de compatibilidade com o PallyPower.",
 	["WHATS_NEW_23_12"] = "# Versão Changelog 1.6.12 ## Corrigido - Tentativamente corrigido um problema com linhas de ponta de ferramenta. - Corrigido um problema com o botão de residência em Classic.",
-	["WHATS_NEW_23_2"] = "# versão Changelog 1.6.2 ## Adicionado - Adicionados 328 ícones e 20 imagens do patch 8.2. - Adicionado um indicador ao navegador de música quando o nome por defeito de uma música difere do que corresponde ao filtro atual. ## Corrigido - Fixados os problemas na transferência de dados musicais entre o TRP e o MRP. - Corrigido um problema com linhas duplicadas na ponta do botão de digitalização do mapa. - Mais correções especulativas para o problema do mapa no início de sessão.",
-	["WHATS_NEW_23_3"] = "# Versão Changelog 1.6.3 ## Alterada - As pontas de ferramentas do companheiro irão agora ajustar o contraste para a cor personalizada se a configuração estiver ativada. ## Corrigido - Corrigido um erro de dica de ferramenta de companhia quando o API não devolve o tipo de animal de estimação. - Corrigido um problema que podia fazer aparecer a barra de ferramentas acima do mapa mundial. - Corrigido um erro de ancoragem com a moldura de destino.",
-	["WHATS_NEW_23_4"] = "# versão Changelog 1.6.4 Estamos cientes de um problema atual no Comércio a Retalho que faz com que ** o uso do item do rastreador objetivo** falhe por vezes. Embora ainda não tenhamos uma solução para o problema, **tipagem/recarga após a recepção da mensagem de erro** corrige temporariamente o problema. Lamentamos o inconveniente. ## WoW: Suporte clássico - Total RP 3: Clássico está agora disponível como um download separado em CurseForge e WoWInterface! Não se esqueça de o instalar em vez da versão de retalho do Total RP 3 se planeia jogar na WoW: Clássico. - Pontos importantes a ter em conta para a versão Classic: - Alguns ícones foram alterados em todo o addon para substituir ícones em falta no Classic. - Os perfis dos companheiros foram desativados para montagens e animais de estimação não-combatentes, uma vez que a Blizzard não nos forneceu acesso beta. Trabalharemos na sua implementação de volta o mais rapidamente possível. - Total RP 3: Extensão não será portada para Classic no lançamento. Estaremos a avaliar se um porto Clássico faz sentido para nós fazer mais tarde. ## Alterado - Ao utilizar o scaneamento do mapa de caracteres, os caracteres com os quais estabeleceu uma relação aparecerão agora em cima dos outros.",
-	["WHATS_NEW_23_5"] = "# Changelog versão 1.6.5 ## Adicionado - Adicionado Total RP 3: Número da versão ampliada ao lado do número da versão Total RP 3 na parte inferior da ponta da ferramenta. ## Corrigido - Corrigido um erro quando alguém executa um scaneamento na sua zona. (Apenas clássico) - Corrigido um erro potencial quando se guarda um slot de visualização. ",
-	["WHATS_NEW_23_6"] = "# Changeelog version 1.6.6 ## Adicionado - Adicionados comandos slash para alterar o seu estado de roleplay, que pode usar em macros. Agora pode utilizar `/trp3 status ic` para entrar no personagem, `/trp3 status ooc` para sair do personagem, ou `/trp3 alternar status` para mudar de status. - Foi adicionada uma configuração de chat para exibir o indicador OOC ao lado do nome no chat. - Adicionada uma configuração para ocultar o botão de scan do mapa se não houver scan disponível. - Adicionado um campo de linguagem de roleplay no painel de instrumentos principal. - Esta configuração é baseada no perfil, por defeito na língua do seu addon, e permite-lhe indicar a língua em que está a desempenhar as suas funções. - Se a linguagem do seu addon não corresponder à linguagem de roleplaying de um jogador, verá uma bandeira na parte inferior da sua ponta de ferramentas indicando a sua linguagem de roleplaying. - Esta alteração destina-se principalmente aos RPs clássicos, uma vez que apenas foram feitos os reinos de RP em inglês. - Foram adicionados botões para trás para alternar a exibição de capacete e capacete de Clássico. ## Alterado - Renomeado o modo de guerra para modo PvP para Clássico. ## Corrigido - Corrigido problemas quando o módulo de barra de alvo foi desativado. - Corrigido - Corrigido um problema que fazia com que perfis duplicados do Protocolo Mary-Sue aparecessem no registo ao desmarcar \"Este reino apenas\". - Corrigido alguns ícones em falta para Clássico (ícones padrão de modelo 3 e ícones `/trp3 roll`) - Corrigido um problema ao utilizar a definição \"Clique com o botão direito do rato para abrir perfil\" em Clássico.",
-	["WHATS_NEW_23_7"] = "# Versão Changelog 1.6.7 ## Adicionada - Adicionada uma configuração para detectar a fala em notas e colori-la automaticamente. - Adicionados 7 ícones e 1 música do patch 8.2.5. ## Alterado - A lista de perfis complementares acedidos através da moldura alvo está agora ordenada alfabeticamente, e \"Criar novo perfil\" foi movido para fora dela.",
-	["WHATS_NEW_23_8"] = "# Changeelog version 1.6.8 ## Changeed - **Classic:** Devido a 1.13.3 mudanças de API, o escaneamento do mapa foi modificado para encontrar caracteres apenas no intervalo de gritos. Só será mostrado no mapa em que se encontra. **Apenas os caracteres que utilizem o Total RP 3 versão 1.6.8 serão visíveis no scaneamento.** *Lembrete : Pode desativar a sua aparência de escaneamento desmarcando \"Configurações de registro > Configurações locais > Ativar localização do personagem. Por favor, não se detenha na atualização por razões de visibilidade.* - A detecção de voz só se aplicará agora às emotes (incluindo as emotes NPC). ## Corrigido - Corrigido um problema raro em que o processo de carregamento do addon seria interrompido por uma chave de definição que não podia ser lida.",
-	["WHATS_NEW_23_9"] = "# Versão Changelog 1.6.9 ## Adicionada - Adicionadas 61 músicas, 5 imagens e 223 ícones no retalho a partir do patch 8.3. - Adicionadas 177 imagens sobre Retalho a partir de adesivos anteriores. - Adicionado 1 ícone em Clássico a partir do patch 1.13.3. - Adicionados ícones padrão para Vulperas e Mechagnomes. ## Alterado - Alterado ícone Kul Tiran padrão feminino. ## Corrigido - Adicionado o trabalho de scan de mapa clássico para lidar com a falta de testes da Blizzard. - Corrigido um problema ao tentar usar ícones com um apóstrofo no seu nome. - O filtro do navegador de imagens agora lida corretamente com alguns caracteres especiais.",
-	["WHATS_NEW_24_1"] = "# Changelog versão 2.0 ### Adicionado - Adicionado um perfil padrão. - Este perfil não pode ser modificado e contém apenas informação básica de carácter (nome, raça, classe). - Novos caracteres serão agora vinculados ao perfil padrão em vez de criar automaticamente um novo perfil. - Um novo perfil é ainda necessário para adicionar informação personalizada. - Adicionada uma barra de pesquisa nas listas de perfis de caracteres e de acompanhantes. ## Fixo - Corrigido um conflito entre a detecção de OOC e as declinações russas. - Corrigido um problema relacionado com o histórico de chat Prat + WIM. ## Alterado - Removido um traço de personalidade pré-definido. - Melhorado o protocolo de comunicação para reduzir o tamanho da transferência de perfil. - Várias alterações de compatibilidade relacionadas com as modificações da API 9.0.",
+	["WHATS_NEW_23_2"] =
+	"# versão Changelog 1.6.2 ## Adicionado - Adicionados 328 ícones e 20 imagens do patch 8.2. - Adicionado um indicador ao navegador de música quando o nome por defeito de uma música difere do que corresponde ao filtro atual. ## Corrigido - Fixados os problemas na transferência de dados musicais entre o TRP e o MRP. - Corrigido um problema com linhas duplicadas na ponta do botão de digitalização do mapa. - Mais correções especulativas para o problema do mapa no início de sessão.",
+	["WHATS_NEW_23_3"] =
+	"# Versão Changelog 1.6.3 ## Alterada - As pontas de ferramentas do companheiro irão agora ajustar o contraste para a cor personalizada se a configuração estiver ativada. ## Corrigido - Corrigido um erro de dica de ferramenta de companhia quando o API não devolve o tipo de animal de estimação. - Corrigido um problema que podia fazer aparecer a barra de ferramentas acima do mapa mundial. - Corrigido um erro de ancoragem com a moldura de destino.",
+	["WHATS_NEW_23_4"] =
+	"# versão Changelog 1.6.4 Estamos cientes de um problema atual no Comércio a Retalho que faz com que ** o uso do item do rastreador objetivo** falhe por vezes. Embora ainda não tenhamos uma solução para o problema, **tipagem/recarga após a recepção da mensagem de erro** corrige temporariamente o problema. Lamentamos o inconveniente. ## WoW: Suporte clássico - Total RP 3: Clássico está agora disponível como um download separado em CurseForge e WoWInterface! Não se esqueça de o instalar em vez da versão de retalho do Total RP 3 se planeia jogar na WoW: Clássico. - Pontos importantes a ter em conta para a versão Classic: - Alguns ícones foram alterados em todo o addon para substituir ícones em falta no Classic. - Os perfis dos companheiros foram desativados para montagens e animais de estimação não-combatentes, uma vez que a Blizzard não nos forneceu acesso beta. Trabalharemos na sua implementação de volta o mais rapidamente possível. - Total RP 3: Extensão não será portada para Classic no lançamento. Estaremos a avaliar se um porto Clássico faz sentido para nós fazer mais tarde. ## Alterado - Ao utilizar o scaneamento do mapa de caracteres, os caracteres com os quais estabeleceu uma relação aparecerão agora em cima dos outros.",
+	["WHATS_NEW_23_5"] =
+	"# Changelog versão 1.6.5 ## Adicionado - Adicionado Total RP 3: Número da versão ampliada ao lado do número da versão Total RP 3 na parte inferior da ponta da ferramenta. ## Corrigido - Corrigido um erro quando alguém executa um scaneamento na sua zona. (Apenas clássico) - Corrigido um erro potencial quando se guarda um slot de visualização. ",
+	["WHATS_NEW_23_6"] =
+	"# Changeelog version 1.6.6 ## Adicionado - Adicionados comandos slash para alterar o seu estado de roleplay, que pode usar em macros. Agora pode utilizar `/trp3 status ic` para entrar no personagem, `/trp3 status ooc` para sair do personagem, ou `/trp3 alternar status` para mudar de status. - Foi adicionada uma configuração de chat para exibir o indicador OOC ao lado do nome no chat. - Adicionada uma configuração para ocultar o botão de scan do mapa se não houver scan disponível. - Adicionado um campo de linguagem de roleplay no painel de instrumentos principal. - Esta configuração é baseada no perfil, por defeito na língua do seu addon, e permite-lhe indicar a língua em que está a desempenhar as suas funções. - Se a linguagem do seu addon não corresponder à linguagem de roleplaying de um jogador, verá uma bandeira na parte inferior da sua ponta de ferramentas indicando a sua linguagem de roleplaying. - Esta alteração destina-se principalmente aos RPs clássicos, uma vez que apenas foram feitos os reinos de RP em inglês. - Foram adicionados botões para trás para alternar a exibição de capacete e capacete de Clássico. ## Alterado - Renomeado o modo de guerra para modo PvP para Clássico. ## Corrigido - Corrigido problemas quando o módulo de barra de alvo foi desativado. - Corrigido - Corrigido um problema que fazia com que perfis duplicados do Protocolo Mary-Sue aparecessem no registo ao desmarcar \"Este reino apenas\". - Corrigido alguns ícones em falta para Clássico (ícones padrão de modelo 3 e ícones `/trp3 roll`) - Corrigido um problema ao utilizar a definição \"Clique com o botão direito do rato para abrir perfil\" em Clássico.",
+	["WHATS_NEW_23_7"] =
+	"# Versão Changelog 1.6.7 ## Adicionada - Adicionada uma configuração para detectar a fala em notas e colori-la automaticamente. - Adicionados 7 ícones e 1 música do patch 8.2.5. ## Alterado - A lista de perfis complementares acedidos através da moldura alvo está agora ordenada alfabeticamente, e \"Criar novo perfil\" foi movido para fora dela.",
+	["WHATS_NEW_23_8"] =
+	"# Changeelog version 1.6.8 ## Changeed - **Classic:** Devido a 1.13.3 mudanças de API, o escaneamento do mapa foi modificado para encontrar caracteres apenas no intervalo de gritos. Só será mostrado no mapa em que se encontra. **Apenas os caracteres que utilizem o Total RP 3 versão 1.6.8 serão visíveis no scaneamento.** *Lembrete : Pode desativar a sua aparência de escaneamento desmarcando \"Configurações de registro > Configurações locais > Ativar localização do personagem. Por favor, não se detenha na atualização por razões de visibilidade.* - A detecção de voz só se aplicará agora às emotes (incluindo as emotes NPC). ## Corrigido - Corrigido um problema raro em que o processo de carregamento do addon seria interrompido por uma chave de definição que não podia ser lida.",
+	["WHATS_NEW_23_9"] =
+	"# Versão Changelog 1.6.9 ## Adicionada - Adicionadas 61 músicas, 5 imagens e 223 ícones no retalho a partir do patch 8.3. - Adicionadas 177 imagens sobre Retalho a partir de adesivos anteriores. - Adicionado 1 ícone em Clássico a partir do patch 1.13.3. - Adicionados ícones padrão para Vulperas e Mechagnomes. ## Alterado - Alterado ícone Kul Tiran padrão feminino. ## Corrigido - Adicionado o trabalho de scan de mapa clássico para lidar com a falta de testes da Blizzard. - Corrigido um problema ao tentar usar ícones com um apóstrofo no seu nome. - O filtro do navegador de imagens agora lida corretamente com alguns caracteres especiais.",
+	["WHATS_NEW_24_1"] =
+	"# Changelog versão 2.0 ### Adicionado - Adicionado um perfil padrão. - Este perfil não pode ser modificado e contém apenas informação básica de carácter (nome, raça, classe). - Novos caracteres serão agora vinculados ao perfil padrão em vez de criar automaticamente um novo perfil. - Um novo perfil é ainda necessário para adicionar informação personalizada. - Adicionada uma barra de pesquisa nas listas de perfis de caracteres e de acompanhantes. ## Fixo - Corrigido um conflito entre a detecção de OOC e as declinações russas. - Corrigido um problema relacionado com o histórico de chat Prat + WIM. ## Alterado - Removido um traço de personalidade pré-definido. - Melhorado o protocolo de comunicação para reduzir o tamanho da transferência de perfil. - Várias alterações de compatibilidade relacionadas com as modificações da API 9.0.",
 	["WHATS_NEW_24_10"] = "# versão Changelog 2.3.7 Esta versão é atualizada para TBC Classic 2.5.2. # Fixo - 9.1 ícones e músicas foram devidamente adicionados para o retalho. - Corrigido um problema com o TRP3: Falha na troca de criação extensiva em casos muito específicos.",
-	["WHATS_NEW_24_2"] = "# Versão Changelog 2.1 ## Adicionada - Adicionadas 113 imagens, 1437 ícones e 613 músicas do patch 9.0. - Adicionado o modificador ao texto de saída do rolo de dados. - Adicionadas opções de encadernação de teclas para abrir o perfil alvo e alternar o estado de RP. ## Corrigido - Corrigido um problema com a dica de ferramenta padrão aparecendo por vezes apesar da definição de \"Esconder dica de ferramenta original\" ter sido verificada. - Corrigido um problema com a dica de ferramenta TRP3 a ser deslocada enquanto a dica de ferramenta padrão está oculta. - Corrigido um problema com a dica de ferramenta TRP3 sobrepondo-se brevemente à dica de ferramenta predefinida se rapidamente passar de um jogador para um feitiço/item. - Corrigido um problema quando se tentava abrir a janela de módulos Prat enquanto o TRP3 estava a correr. - Corrigido um problema de visualização com o fundo da moldura de fala NPC. - Corrigida a ordenação alfabética ao pairar um grupo de jogadores no scaneamento do mapa. - Correção potencial para o canal guia ser trocado com o canal xtensionxtooltip2.",
-	["WHATS_NEW_24_3"] = "# Versão Changelog 2.2 ## Adicionado - Adicionado Pronouns pré-definidos em Informação adicional. Ao utilizar esta predefinição, os pronomes serão mostrados na sua ponta de ferramenta. - Adicionado suporte para perfis de companheiros no animal de estimação secundário convocado com o talento de caçador Animal Companheiro. - Adicionado um browser de caçador de animais de estimação quando se liga um perfil de companheiro através da lista de perfis. ## Fixo - Dicas de ligação de chat fixas sendo invisíveis quando se abre um pela primeira vez. - Corrigidos os problemas de formatação com ligações de chat. - Corrigido um problema que fazia com que o browser de batalha de animais de estimação mostrasse uma lista incompleta se a colecção de animais de batalha tivesse filtros de pesquisa aplicados. - Corrigidos os ícones inválidos no separador Sobre ao receber um perfil de outros addons de RP no Classic. - Corrigida a informação incorrecta na dica de ferramenta da definição do prefixo de discurso NPC. - Corrigido um problema com o histórico do chat Tukui.",
-	["WHATS_NEW_24_4"] = "# Changelog versão 2.3 ## Adicionado - Adicionado um módulo para personalizar placas de nome com informação RP. Atualmente, **só são suportadas placas de identificação padrão da Blizzard e placas de nome Kui**. *Como agora é redundante, o módulo TRP3: As placas de nome Kui irão agora desativar-se e deverá ser desinstalado.* - Adicionado suporte para perfis de companheiros em Classic. - Adicionadas entradas nas molduras das unidades, clicando no menu do botão direito do rato para abrir o perfil + alterar o estado do roleplay. - Adicionada uma janela para copiar nomes de caracteres ligados a um perfil quando se clica com o botão direito do rato na lista de diretórios. - Adicionada uma opção para desativar as pontas de ferramentas do perfil em instâncias. ## Alterado - A janela de cópia URL fecha-se agora depois de premir o atalho de cópia. - O perfil padrão já não mostra a quantidade de caracteres a ele vinculados. - Os campos de características cortados irão agora mostrar uma dica de ferramenta em pairar com o conteúdo completo do campo. - O editor de descrição irá agora receber o foco de entrada após clicar em qualquer botão de ferramenta de formatação. - Nomes personalizados em quadros de chat com comprimentos excessivamente grandes serão agora recortados. - As cores personalizadas para traços de personalidade aplicam-se agora aos nomes de atributos. ## Corrigido - Corrigido um problema com a personalização do chat que não se registava corretamente no início de sessão enquanto se usava o Prat. - Corrigido o sinal sonoro em falta ao abrir/fechar a janela principal. - Corrigido um problema que podia fazer com que os jogadores marcados com PvP mostrassem a sua localização nas varreduras de mapa em Classic. - Corrigido o ícone de língua vulpera em falta.",
-	["WHATS_NEW_24_5"] = "# Versão Changelog 2.3.2 ## Adicionada - Adicionadas configurações para opções de clique com o botão direito do rato em molduras de unidades e nomes de chat. ## Corrigido - Corrigido nomes incorretos que aparecem nas placas de nomes NPC da Blizzard. - Corrigido o problema de exibição com o modo de tanque  nas placas de nome Kui . - Corrigido um problema de dependência que impedia a personalização do chat de funcionar quando se usava Prat e Listener. - Corrigida a localização não sendo devidamente aplicada a várias configurações.",
-	["WHATS_NEW_24_6"] = "# Versão Changelog 2.3.3 ## Adicionada - Adicionados campos de dica de ferramentas para zona de caracteres e saúde. Estes campos podem ser alternados em definições de dica de ferramenta. - O campo de zona só será mostrado quando o carácter estiver noutra zona (se olhar para um membro do partido, por exemplo). - O campo de saúde só será mostrado se o carácter não for de saúde total. É desativado por defeito. ## Fixado - Fixou alguns problemas com transferência de perfil. - Fixo - Corrigido as placas de nome RP apenas com o nome Kui que não eram atualizadas quando o texto do nível e a saúde estavam ambos desativados. - Corrigida a incapacidade de definir um perfil de animal de estimação quando o animal é convocado pela primeira vez. - Fixada a sobreposição da ponta de ferramenta TRP com a ponta de ferramenta principal, se o perfil tiver sido apanhado pelo filtro Adulto. - Fixada a quebra de ligações de chat TRP a partir da detecção de emoções/OOC/speech. - Corrigidos os campos atualmente/OOC que não se escondem corretamente nas pontas das ferramentas se contiverem apenas espaços em branco.",
+	["WHATS_NEW_24_2"] =
+	"# Versão Changelog 2.1 ## Adicionada - Adicionadas 113 imagens, 1437 ícones e 613 músicas do patch 9.0. - Adicionado o modificador ao texto de saída do rolo de dados. - Adicionadas opções de encadernação de teclas para abrir o perfil alvo e alternar o estado de RP. ## Corrigido - Corrigido um problema com a dica de ferramenta padrão aparecendo por vezes apesar da definição de \"Esconder dica de ferramenta original\" ter sido verificada. - Corrigido um problema com a dica de ferramenta TRP3 a ser deslocada enquanto a dica de ferramenta padrão está oculta. - Corrigido um problema com a dica de ferramenta TRP3 sobrepondo-se brevemente à dica de ferramenta predefinida se rapidamente passar de um jogador para um feitiço/item. - Corrigido um problema quando se tentava abrir a janela de módulos Prat enquanto o TRP3 estava a correr. - Corrigido um problema de visualização com o fundo da moldura de fala NPC. - Corrigida a ordenação alfabética ao pairar um grupo de jogadores no scaneamento do mapa. - Correção potencial para o canal guia ser trocado com o canal xtensionxtooltip2.",
+	["WHATS_NEW_24_3"] =
+	"# Versão Changelog 2.2 ## Adicionado - Adicionado Pronouns pré-definidos em Informação adicional. Ao utilizar esta predefinição, os pronomes serão mostrados na sua ponta de ferramenta. - Adicionado suporte para perfis de companheiros no animal de estimação secundário convocado com o talento de caçador Animal Companheiro. - Adicionado um browser de caçador de animais de estimação quando se liga um perfil de companheiro através da lista de perfis. ## Fixo - Dicas de ligação de chat fixas sendo invisíveis quando se abre um pela primeira vez. - Corrigidos os problemas de formatação com ligações de chat. - Corrigido um problema que fazia com que o browser de batalha de animais de estimação mostrasse uma lista incompleta se a colecção de animais de batalha tivesse filtros de pesquisa aplicados. - Corrigidos os ícones inválidos no separador Sobre ao receber um perfil de outros addons de RP no Classic. - Corrigida a informação incorrecta na dica de ferramenta da definição do prefixo de discurso NPC. - Corrigido um problema com o histórico do chat Tukui.",
+	["WHATS_NEW_24_4"] =
+	"# Changelog versão 2.3 ## Adicionado - Adicionado um módulo para personalizar placas de nome com informação RP. Atualmente, **só são suportadas placas de identificação padrão da Blizzard e placas de nome Kui**. *Como agora é redundante, o módulo TRP3: As placas de nome Kui irão agora desativar-se e deverá ser desinstalado.* - Adicionado suporte para perfis de companheiros em Classic. - Adicionadas entradas nas molduras das unidades, clicando no menu do botão direito do rato para abrir o perfil + alterar o estado do roleplay. - Adicionada uma janela para copiar nomes de caracteres ligados a um perfil quando se clica com o botão direito do rato na lista de diretórios. - Adicionada uma opção para desativar as pontas de ferramentas do perfil em instâncias. ## Alterado - A janela de cópia URL fecha-se agora depois de premir o atalho de cópia. - O perfil padrão já não mostra a quantidade de caracteres a ele vinculados. - Os campos de características cortados irão agora mostrar uma dica de ferramenta em pairar com o conteúdo completo do campo. - O editor de descrição irá agora receber o foco de entrada após clicar em qualquer botão de ferramenta de formatação. - Nomes personalizados em quadros de chat com comprimentos excessivamente grandes serão agora recortados. - As cores personalizadas para traços de personalidade aplicam-se agora aos nomes de atributos. ## Corrigido - Corrigido um problema com a personalização do chat que não se registava corretamente no início de sessão enquanto se usava o Prat. - Corrigido o sinal sonoro em falta ao abrir/fechar a janela principal. - Corrigido um problema que podia fazer com que os jogadores marcados com PvP mostrassem a sua localização nas varreduras de mapa em Classic. - Corrigido o ícone de língua vulpera em falta.",
+	["WHATS_NEW_24_5"] =
+	"# Versão Changelog 2.3.2 ## Adicionada - Adicionadas configurações para opções de clique com o botão direito do rato em molduras de unidades e nomes de chat. ## Corrigido - Corrigido nomes incorretos que aparecem nas placas de nomes NPC da Blizzard. - Corrigido o problema de exibição com o modo de tanque  nas placas de nome Kui . - Corrigido um problema de dependência que impedia a personalização do chat de funcionar quando se usava Prat e Listener. - Corrigida a localização não sendo devidamente aplicada a várias configurações.",
+	["WHATS_NEW_24_6"] =
+	"# Versão Changelog 2.3.3 ## Adicionada - Adicionados campos de dica de ferramentas para zona de caracteres e saúde. Estes campos podem ser alternados em definições de dica de ferramenta. - O campo de zona só será mostrado quando o carácter estiver noutra zona (se olhar para um membro do partido, por exemplo). - O campo de saúde só será mostrado se o carácter não for de saúde total. É desativado por defeito. ## Fixado - Fixou alguns problemas com transferência de perfil. - Fixo - Corrigido as placas de nome RP apenas com o nome Kui que não eram atualizadas quando o texto do nível e a saúde estavam ambos desativados. - Corrigida a incapacidade de definir um perfil de animal de estimação quando o animal é convocado pela primeira vez. - Fixada a sobreposição da ponta de ferramenta TRP com a ponta de ferramenta principal, se o perfil tiver sido apanhado pelo filtro Adulto. - Fixada a quebra de ligações de chat TRP a partir da detecção de emoções/OOC/speech. - Corrigidos os campos atualmente/OOC que não se escondem corretamente nas pontas das ferramentas se contiverem apenas espaços em branco.",
 	["WHATS_NEW_24_8"] = "# Versão Changelog 2.3.5 ## Adicionado - Adicionado suporte para Burning Crusade Classic. ## Corrigido - Corrigido vários problemas de desempenho ao solicitar perfis de caracteres.",
 	["WHATS_NEW_24_9"] = "# Changelog versão 2.3.6 ## Adicionado - Adicionados 323 novos ícones, 7 imagens e 138 novos ficheiros de música do patch 9.1.0. ## Removido - Removida a bandeira da linguagem do roleplay. - Corrigido um bug com canais de chat no Classic."
 }
@@ -10564,7 +10601,7 @@ localeContent = {
 	["CO_CHAT_DISABLE_OOC_TT"] = "Отключить всю кастомизацию чата Total RP 3 (имена, обнаружение эмоций, речь НИП и прочее) когда персонаж находится вне отыгрыша.",
 	["CO_CHAT_INCREASE_CONTRAST"] = "Увеличить цветовой контраст",
 	["CO_CHAT_INSERT_FULL_RP_NAME"] = "Вставить ролевые имена при шифт+клик",
-	["CO_CHAT_INSERT_FULL_RP_NAME_TT"] = [=[Вставка полного ролевого имени персонажа при нажатии shift+клик на его имени в чате. 
+	["CO_CHAT_INSERT_FULL_RP_NAME_TT"] = [=[Вставка полного ролевого имени персонажа при нажатии shift+клик на его имени в чате.
 
 (Когда эта функция включена, вы можете нажать alt+shift+клик на имени персонажа и вставить его стандартное имя вместо ролевого.)]=],
 	["CO_CHAT_MAIN"] = "Основные настройки чата",
@@ -10655,7 +10692,7 @@ localeContent = {
 	["CO_LOCATION_DISABLE_OOC"] = "Отключить местоположение персонажа вне отыгрыша",
 	["CO_LOCATION_DISABLE_OOC_TT"] = "Другие игроки не смогут отследить Ваше местоположение с помощью сканирования карты, пока активен статус \"Вне отыгрыша\".",
 	["CO_LOCATION_DISABLE_PVP"] = "Отключить местоположение персонажа пока активен режим PvP",
-	["CO_LOCATION_DISABLE_PVP_TT"] = [=[Другие игроки не смогут отследить Ваше местоположение с помощью сканирования карты, пока активен режим PvP. 
+	["CO_LOCATION_DISABLE_PVP_TT"] = [=[Другие игроки не смогут отследить Ваше местоположение с помощью сканирования карты, пока активен режим PvP.
 
 Эта опция будет полезна для PvP-серверов, где игроки из другой фракции могут злоупотреблять системой определения местоположения, чтобы отслеживать Вас.]=],
 	["CO_LOCATION_DISABLE_WAR_MODE"] = "Не делиться местоположением в Режиме Войны",
@@ -10670,7 +10707,7 @@ localeContent = {
 	["CO_MINIMAP_BUTTON_FRAME"] = "Рамка для закрепления",
 	["CO_MINIMAP_BUTTON_RESET"] = "Сбросить позицию",
 	["CO_MINIMAP_BUTTON_RESET_BUTTON"] = "Сбросить",
-	["CO_MINIMAP_BUTTON_SHOW_HELP"] = [=[Если вы используете другой аддон для того, чтобы выводить кнопку Total RP3 на миникарту (например, FuBar, Titan, Bazooka), вы можете убрать кнопку с миникарты. 
+	["CO_MINIMAP_BUTTON_SHOW_HELP"] = [=[Если вы используете другой аддон для того, чтобы выводить кнопку Total RP3 на миникарту (например, FuBar, Titan, Bazooka), вы можете убрать кнопку с миникарты.
 
 |cff00ff00Помните: Вы всегда можете открыть Total RP3 используя /trp3 |r]=],
 	["CO_MINIMAP_BUTTON_SHOW_TITLE"] = "Показать кнопку на мини-карте",
@@ -10688,7 +10725,7 @@ localeContent = {
 	["CO_MODULES_STATUS_5"] = "Ошибка запуска",
 	["CO_MODULES_TT_DEP"] = "%s- %s (версия %s)|r",
 	["CO_MODULES_TT_DEPS"] = "Зависимости",
-	["CO_MODULES_TT_ERROR"] = [=[ 	
+	["CO_MODULES_TT_ERROR"] = [=[
 
 |cffff0000Ошибка:|r
 %s]=],
@@ -10764,10 +10801,10 @@ localeContent = {
 	["CO_TOOLTIP_CROP_TEXT"] = "Обрезать необоснованно длинные тексты",
 	["CO_TOOLTIP_CROP_TEXT_TT"] = [=[Ограничивает количество символов в каждом поле всплывающего окна, дабы избежать излишне длинных текстов и возможных неполадок при отображении.
 
-|cfffff569Детали ограничения: 
-Имя: 100 символов 
-Звание: 150 символов 
-Раса: 50 символов 
+|cfffff569Детали ограничения:
+Имя: 100 символов
+Звание: 150 символов
+Раса: 50 символов
 Класс: 50 символов|r]=],
 	["CO_TOOLTIP_CURRENT"] = "Показывать текст \"текущее\"",
 	["CO_TOOLTIP_CURRENT_LINES"] = "Максимальное количество разрывов строки в \"Текущее\"",
@@ -11022,7 +11059,8 @@ Link it anyway ?]=],
 Размер профиля: %0.2f кб
 Максимальный размер: 20 кб]=],
 	["PR_EXPORT_WARNING_TITLE"] = "Предупреждение:",
-	["PR_EXPORT_WARNING_WINDOWS"] = "Пожалуйста, обратите внимание что некоторые продвинутые инструменты редактирования текста вроде Microsoft Word или Discord реформатируют особые символы вроде цитат, изменяя контент информации. Если вы планируете скопировать текст внизу в документб пожалуйста используйте более простые инструменты редактирования текста которые не заменяют символы автоматически, вроде Блокнота.",
+	["PR_EXPORT_WARNING_WINDOWS"] =
+	"Пожалуйста, обратите внимание что некоторые продвинутые инструменты редактирования текста вроде Microsoft Word или Discord реформатируют особые символы вроде цитат, изменяя контент информации. Если вы планируете скопировать текст внизу в документб пожалуйста используйте более простые инструменты редактирования текста которые не заменяют символы автоматически, вроде Блокнота.",
 	["PR_IMPORT"] = "Импортировать",
 	["PR_IMPORT_CHAR_TAB"] = "Импорт персонажей",
 	["PR_IMPORT_EMPTY"] = "Нет импортируемых профилей",
@@ -11280,7 +11318,7 @@ Link it anyway ?]=],
 |cffffff00Shift+ПКМ:|r Использовать стандартный выбор цвета
 ]=],
 	["REG_PLAYER_CURRENT"] = "На данный момент",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "Краткое описание",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "Краткое описание",
 	["REG_PLAYER_CURRENT_OOC"] = "Это информация вне отыгрыша",
 	["REG_PLAYER_CURRENTOOC"] = "На данный момент (Вне отыгрыша)",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "Музыкальная тема",
@@ -11497,9 +11535,12 @@ Link it anyway ?]=],
 |cff00ff00Совет: Вы можете drag & drop позиции для изменения сортировки.|r
 Так же работает в |cffffff00"На первый взгляд" блоке|r!]=],
 	["REG_PLAYER_TUTO_ABOUT_MISC_3"] = "Эта секция содержит |cffffff00список переключателей,|r чтобы ответить на |cffffff00часто задаваемые вопросы о вас, вашем персонаже иособенностях игры за него/нее|r.",
-	["REG_PLAYER_TUTO_ABOUT_T1"] = "Данный шаблон позволяет вам |cff00ff00свободно обустраивать своё описание|r. Описание не обязано быть ограниченным |cffff9900физическим описанием|r вашего персонажа. Не стесняйтесь отмечать части его |cffff9900биографии|r или детали его |cffff9900характера|r. С этим шаблоном вы можете использовать инструменты форматирования для доступка к некоторым параметрам отображения вроде |cffffff00размеов текста, цветов и выравнивания|r. Эти инструменты так же позволяет вам вставлять |cffffff00изображения, иконки или ссылки на внешние веб сайты|r.",
-	["REG_PLAYER_TUTO_ABOUT_T2"] = "Этот шаблон более структурированный и состоит из |cff00ff00списка независимых окон|r. Каждое окно характеризуется |cffffff00иконкой, фоном и текстом|r. Заметьте что вы можете использовать некоторые текстовые ярлыки в этих окнах, вроде текстовых ярлыков цвета и иконок. Описание не должно быть ограниченным |cffff9900физическим описанием|r вашего персонажа. Не стесняйтесь отмечать части его |cffff9900биографии|r или детали про его |cffff9900характер|r.",
-	["REG_PLAYER_TUTO_ABOUT_T3"] = "Этот шаблон разделён на 3 секции:  |cff00ff00Физическое описание, характер и история|r. Вы не обязаны заполнять все окна, |cffff9900если вы оставите окно пустым оно не будет отображаться в вашем описании|r. Каждое окно характеризуется |cffffff00иконкой, фоном и текстом|r. Заметьте что вы можете использовать некоторые текстовые ярлыки в этих окнах, вроде текстовых ярлыков цвета и иконок.",
+	["REG_PLAYER_TUTO_ABOUT_T1"] =
+	"Данный шаблон позволяет вам |cff00ff00свободно обустраивать своё описание|r. Описание не обязано быть ограниченным |cffff9900физическим описанием|r вашего персонажа. Не стесняйтесь отмечать части его |cffff9900биографии|r или детали его |cffff9900характера|r. С этим шаблоном вы можете использовать инструменты форматирования для доступка к некоторым параметрам отображения вроде |cffffff00размеов текста, цветов и выравнивания|r. Эти инструменты так же позволяет вам вставлять |cffffff00изображения, иконки или ссылки на внешние веб сайты|r.",
+	["REG_PLAYER_TUTO_ABOUT_T2"] =
+	"Этот шаблон более структурированный и состоит из |cff00ff00списка независимых окон|r. Каждое окно характеризуется |cffffff00иконкой, фоном и текстом|r. Заметьте что вы можете использовать некоторые текстовые ярлыки в этих окнах, вроде текстовых ярлыков цвета и иконок. Описание не должно быть ограниченным |cffff9900физическим описанием|r вашего персонажа. Не стесняйтесь отмечать части его |cffff9900биографии|r или детали про его |cffff9900характер|r.",
+	["REG_PLAYER_TUTO_ABOUT_T3"] =
+	"Этот шаблон разделён на 3 секции:  |cff00ff00Физическое описание, характер и история|r. Вы не обязаны заполнять все окна, |cffff9900если вы оставите окно пустым оно не будет отображаться в вашем описании|r. Каждое окно характеризуется |cffffff00иконкой, фоном и текстом|r. Заметьте что вы можете использовать некоторые текстовые ярлыки в этих окнах, вроде текстовых ярлыков цвета и иконок.",
 	["REG_PLAYER_WEIGHT"] = "Телосложение",
 	["REG_PLAYER_WEIGHT_TT"] = [=[Это форма тела вашего персонажа.
 К примеру, она может быть |c0000ff00slim, толстый или мускулистый...|r Или она просто может быть обычной!]=],
@@ -11542,7 +11583,8 @@ Link it anyway ?]=],
 	["REG_TT_ZONE"] = "Игровая зона",
 	["SCRIPT_ERROR"] = "Ошибка в скрипте.",
 	["SCRIPT_UNKNOWN_EFFECT"] = "Ошибка скрипта, неизвестный FX",
-	["SLASH_CMD_STATUS_HELP"] = "Использование:  |cff00ff00/trp3 status ic || ooc || toggle|r Меняет ваш статус персонажа на выбранную опцию:  |cffff9900/trp3 status ic|r установит ваш статус на |cff00ff00в роли|r.  |cffff9900/trp3 status ooc|r установит ваш статус на |cffff0000вне роли|r. |cffff9900/trp3 status toggle|r поменяет ваш статус на противоположное состояние.",
+	["SLASH_CMD_STATUS_HELP"] =
+	"Использование:  |cff00ff00/trp3 status ic || ooc || toggle|r Меняет ваш статус персонажа на выбранную опцию:  |cffff9900/trp3 status ic|r установит ваш статус на |cff00ff00в роли|r.  |cffff9900/trp3 status ooc|r установит ваш статус на |cffff0000вне роли|r. |cffff9900/trp3 status toggle|r поменяет ваш статус на противоположное состояние.",
 	["SLASH_CMD_STATUS_USAGE"] = "ic || ooc || toggle",
 	["TB_AFK_MODE"] = "Отсутствует",
 	["TB_DND_MODE"] = "Не беспокоить",
@@ -11654,7 +11696,7 @@ localeContent = {
 	["BLIZZARD_NAMEPLATES_MODULE_NAME"] = "暴雪姓名版",
 	["BROADCAST_10"] = "|cffff9900 你已经拥有10个频道。TRP3 不会再次试图连接广播频道，但你将无法使用类似搜索玩家位置这样的功能。",
 	["BROADCAST_OFFLINE_DISABLED"] = "广播频道已经被禁用。",
-	["BROADCAST_PASSWORD"] = [=[|cffff0000 这是一个带密码的广播频道(%s). 
+	["BROADCAST_PASSWORD"] = [=[|cffff0000 这是一个带密码的广播频道(%s).
 |cffff9900 TRP3 不会再次试图连接广播频道，但你将无法使用类似搜索玩家位置这样的功能。
 |cff00ff00 您可以在TRP3常规设置中禁用或更改广播频道。]=],
 	["BROADCAST_PASSWORDED"] = "|cffff0000用户|r%s|cffff0000 给频道加了密 (%s). |cffff9900 如果你不知道密码,您将无法使用类似搜索玩家位置这样的功能。",
@@ -12081,7 +12123,7 @@ localeContent = {
 	["DB_STATUS_RP_OOC_TT"] = [=[你不在扮演你的角色.
 你的言行和你的角色没有必然联系.]=],
 	["DB_STATUS_RP_VOLUNTEER"] = "RP玩家志愿者",
-	["DB_STATUS_RP_VOLUNTEER_TT"] = [=[这个选择将在你的工具提示上显示一个图标, 
+	["DB_STATUS_RP_VOLUNTEER_TT"] = [=[这个选择将在你的工具提示上显示一个图标,
 表示你愿意帮助他们中的角色扮演新手.]=],
 	["DB_STATUS_XP"] = "玩家状态",
 	["DB_STATUS_XP_BEGINNER"] = "RP新人",
@@ -12242,7 +12284,7 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["NEW_VERSION"] = [=[|cff00ff00TRP3的一个新版本(v %s)已可用。
 
 	|cffffff00我们强烈建议你升级插件。|r
-	
+
 	本消息每次游戏只会显示一次并可在设置中关闭(通用设置=>杂项)。]=],
 	["NEW_VERSION_BEHIND"] = "你当前落后%s个版本因而缺少bug修复和新功能，其他玩家可能无法正确看到你的人物卡。请考虑升级插件。",
 	["NEW_VERSION_TITLE"] = "新的更新可用",
@@ -12592,7 +12634,7 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["REG_PLAYER_COLOR_TT"] = [=[|cffffff00Click:|r 选择一种颜色
 |cffffff00Right-click:|r 放弃颜色]=],
 	["REG_PLAYER_CURRENT"] = "目前",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "简要说明",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "简要说明",
 	["REG_PLAYER_CURRENT_OOC"] = "这是一个 OOC 信息",
 	["REG_PLAYER_CURRENTOOC"] = "目前 (OOC)",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "主题音乐",
@@ -12859,7 +12901,7 @@ Adds a simple button to the toolbar to toggle on and off the map scan location f
 	["REG_REPORT_PLAYER_OPEN_URL_160"] = "如果你想举报%s的人物卡，你需要你通过下面的链接向暴雪提交表单。",
 	["REG_REPORT_PLAYER_PROFILE"] = "向 |cff449fe0暴雪|r举报玩家",
 	["REG_REPORT_PLAYER_PROFILE_TT"] = [=[你可以举报违反暴雪游戏条款的行为，包括但不限于骚扰，不当言论, 淫秽内容等。
-	
+
 	|cffff0000请注意，本功能并非是用来举报不严谨的RP设定，滥用此功能将遭到惩罚！]=],
 	["REG_REPORT_PLAYER_TEMPLATE"] = "此玩家通过分享 %s 的RP插件信息违反了暴雪的游戏条款。",
 	["REG_REPORT_PLAYER_TEMPLATE_DATE"] = "插件数据是通过 %s 的信息传输的。",
@@ -13513,7 +13555,7 @@ localeContent = {
 |cffffff00Right-click:|r 放棄顏色
 |cffffff00Shift-Click:|r 直接使用調色盤]=],
 	["REG_PLAYER_CURRENT"] = "目前狀況",
-	["REG_COMPANIONS_SHORTDESCRIPTION"]= "简要说明",
+	["REG_COMPANIONS_SHORTDESCRIPTION"] = "简要说明",
 	["REG_PLAYER_CURRENT_OOC"] = "這裡是ＯＯＣ資訊",
 	["REG_PLAYER_CURRENTOOC"] = "當前狀況（ＯＯＣ）",
 	["REG_PLAYER_EDIT_MUSIC_THEME"] = "主題音樂",
@@ -13633,7 +13675,7 @@ localeContent = {
 	["REG_PLAYER_RELATIONSHIP_STATUS_WIDOWED"] = "喪偶",
 	["REG_PLAYER_RESIDENCE"] = "居住地",
 	["REG_PLAYER_RESIDENCE_SHOW"] = "居住地地圖座標",
-	["REG_PLAYER_RESIDENCE_SHOW_TT"] = [=[|cff00ff00%s 
+	["REG_PLAYER_RESIDENCE_SHOW_TT"] = [=[|cff00ff00%s
 
 |r點擊以在地圖上顯示]=],
 	["REG_PLAYER_RIGHTTRAIT"] = "右側屬性",
@@ -13809,7 +13851,7 @@ localeContent = {
 	["UI_COLOR_BROWSER_PRESETS_CUSTOM"] = "自訂",
 	["UI_COLOR_BROWSER_SELECT"] = "選擇顏色",
 	["UI_COMPANION_BROWSER_HELP"] = "請選擇一隻戰寵",
-	["UI_COMPANION_BROWSER_HELP_TT"] = [=[|cffffff00警告: |r只有已經被重新命名的戰寵才能與簡介連結。 
+	["UI_COMPANION_BROWSER_HELP_TT"] = [=[|cffffff00警告: |r只有已經被重新命名的戰寵才能與簡介連結。
 |cff00ff00此處僅列出符合此條件的戰寵。]=],
 	["UI_FILTER"] = "過濾器",
 	["UI_ICON_BROWSER"] = "圖示瀏覽器",

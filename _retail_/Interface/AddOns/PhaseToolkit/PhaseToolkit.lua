@@ -70,7 +70,7 @@ function PhaseToolkit.getCategoryByIdGENERIC(categoryId,type)
 	end
 end
 
--- ============================== VARIABLES GLOBALES ============================== --
+-- ============================== GLOBAL VARIABLES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
 PhaseToolkit.OpenedCustomFrame = nil
@@ -95,6 +95,10 @@ PhaseToolkit.currentWhitelistType=""
 
 PhaseToolkit.ModifyItemData=false
 PhaseToolkit.npcCurrentPage=nil
+
+-- Variables pour sauvegarder la taille des frames
+PhaseToolkit.TELEFrameWidth=nil
+PhaseToolkit.TELEFrameHeight=nil
 
 PhaseToolkit.itemCreatorData.whitelistedChar={}
 PhaseToolkit.itemCreatorData.whitelistedPhaseForMember={}
@@ -1630,16 +1634,16 @@ PhaseToolkit.npcToDeletePrompt=""
 PhaseToolkit.teleToDelete=nil
 
 -- // EpsilonLib for AddOnCommands:
-local sendAddonCmd
+local sendAddonCmd, sendAddonCommandChain
 
 if EpsilonLib and EpsilonLib.AddonCommands then
-	sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseToolkit")
+	sendAddonCmd, sendAddonCommandChain = EpsilonLib.AddonCommands.Register("PhaseToolkit")
 else
 	-- command, callbackFn, forceShowMessages
 	function sendAddonCmd(command, callbackFn, forceShowMessages)
 		if EpsilonLib and EpsilonLib.AddonCommands then
 			-- Reassign it.
-			sendAddonCmd = EpsilonLib.AddonCommands.Register("PhaseToolkit")
+			sendAddonCmd, sendAddonCommandChain = EpsilonLib.AddonCommands.Register("PhaseToolkit")
 			sendAddonCmd(command, callbackFn, forceShowMessages)
 			return
 		end
@@ -1647,6 +1651,30 @@ else
 		-- Fallback ...
 		print("Something went wrong with epsilib... report this please")
 		SendChatMessage("." .. command, "GUILD")
+	end
+	
+	-- Fallback function for sendAddonCommandChain if EpsilonLib is not available
+	function sendAddonCommandChain(commands, callbackFn, forceShowMessages)
+		if EpsilonLib and EpsilonLib.AddonCommands then
+			-- Reassign it.
+			sendAddonCmd, sendAddonCommandChain = EpsilonLib.AddonCommands.Register("PhaseToolkit")
+			sendAddonCommandChain(commands, callbackFn, forceShowMessages)
+			return
+		end
+
+		-- Fallback - send commands with delays
+		for i, command in ipairs(commands) do
+			local delay = (i - 1) * 0.5
+			C_Timer.After(delay, function()
+				SendChatMessage("." .. command, "GUILD")
+			end)
+		end
+		
+		if callbackFn then
+			C_Timer.After(#commands * 0.5 + 1, function()
+				callbackFn(true, {})
+			end)
+		end
 	end
 end
 
@@ -1701,7 +1729,7 @@ function PhaseToolkit.PTK_DEBUG_NPC_CUSTOM()
 	end
 
 end
--- ============================== FUNCTION PRINCIPALES ============================== --
+-- ============================== MAIN FUNCTIONS ============================== --
 local function isKeyInTable(key)
 	if PhaseToolkit.infoPerDisplay[key] then
 		return true
@@ -1855,48 +1883,48 @@ function PhaseToolkit.GetMaxStringLength(stringTable)
 end
 
 function PhaseToolkit.GetMaxNameWidth(creatureTable)
-	-- Créer un objet FontString temporaire pour mesurer les tailles de texte
+	-- Create a temporary FontString object to measure text sizes
 	local tempFontString = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 
-	-- Variable pour stocker la largeur maximale trouvée
+	-- Variable to store the maximum width found
 	local maxWidth = 0
 
-	-- Parcourir le tableau des créatures
+	-- Loop through the creature table
 	for _, creature in ipairs(creatureTable) do
-		-- Assigner le nom de la créature au FontString
+		-- Assign the creature name to the FontString
 		tempFontString:SetText(creature["NomCreature"])
 
-		-- Obtenir la largeur en pixels du nom et comparer avec la largeur maximale actuelle
+		-- Get the pixel width of the name and compare with the current maximum width
 		local nameWidth = tempFontString:GetStringWidth()
 		if nameWidth > maxWidth then
 			maxWidth = nameWidth
 		end
 	end
 
-	-- Retourner la largeur maximale
+	-- Return the maximum width
 	return maxWidth
 end
 
 function PhaseToolkit.GetMaxStringWidth(stringTable)
-	-- Créer un objet FontString temporaire pour mesurer les tailles de texte
+	-- Create a temporary FontString object to measure text sizes
 	local tempFontString = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 
-	-- Variable pour stocker la largeur maximale trouvée
+	-- Variable to store the maximum width found
 	local maxWidth = 0
 
-	-- Parcourir le tableau de strings
+	-- Loop through the string table
 	for _, str in ipairs(stringTable) do
-		-- Assigner le texte au FontString
+		-- Assign the text to the FontString
 		tempFontString:SetText(str)
 
-		-- Obtenir la largeur en pixels du string et comparer avec la largeur maximale actuelle
+		-- Get the pixel width of the string and compare with the current maximum width
 		local stringWidth = tempFontString:GetStringWidth()
 		if stringWidth > maxWidth then
 			maxWidth = stringWidth
 		end
 	end
 
-	-- Retourner la largeur maximale
+	-- Return the maximum width
 	return maxWidth
 end
 
@@ -1906,9 +1934,9 @@ function PhaseToolkit.RemoveDuplicates(creatureList)
 
 	for _, creature in ipairs(creatureList) do
 		if not seenIds[creature.IdCreature] then
-			-- Ajoute la créature à la nouvelle liste si son ID n'a pas encore été vue
+			-- Add the creature to the new list if its ID hasn't been seen yet
 			table.insert(uniqueCreatures, creature)
-			seenIds[creature.IdCreature] = true -- Marque l'ID comme déjà vue
+			seenIds[creature.IdCreature] = true -- Mark the ID as already seen
 		end
 	end
 
@@ -1916,9 +1944,9 @@ function PhaseToolkit.RemoveDuplicates(creatureList)
 end
 
 function PhaseToolkit.ShowTooltip(self, tooltip)
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT") -- Positionne le tooltip à droite du bouton
-	GameTooltip:SetText(tooltip, 1, 1, 1, 1, true)   -- Définit le texte du tooltip
-	GameTooltip:Show()                      -- Affiche le tooltip
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT") -- Position the tooltip to the right of the button
+	GameTooltip:SetText(tooltip, 1, 1, 1, 1, true)   -- Set the tooltip text
+	GameTooltip:Show()                      -- Show the tooltip
 end
 
 function PhaseToolkit.DisableComponent(self)
@@ -1932,7 +1960,7 @@ function PhaseToolkit.EnableCompoment(self)
 end
 
 function PhaseToolkit.HideTooltip()
-	GameTooltip:Hide() -- Cache le tooltip
+	GameTooltip:Hide() -- Hide the tooltip
 end
 
 local function genericTooltipOnEnter(self)
@@ -1946,7 +1974,7 @@ function PhaseToolkit.RegisterTooltip(frame, tooltip)
 end
 
 function PhaseToolkit.RemoveStringFromTable(t, strToRemove)
-	for i = #t, 1, -1 do -- Parcours la table en sens inverse
+	for i = #t, 1, -1 do -- Traverse the table in reverse order
 		if t[i] == strToRemove then
 			table.remove(t, i)
 		end
@@ -1957,7 +1985,7 @@ function PhaseToolkit.RemoveCreatureById(creatureList, creatureId)
 	for i = #creatureList, 1, -1 do
 		if creatureList[i]["IdCreature"] == creatureId then
 			table.remove(creatureList, i)
-			break -- On peut sortir de la boucle après suppression car l'ID est unique
+			break -- We can exit the loop after deletion since the ID is unique
 		end
 	end
 end
@@ -2121,6 +2149,398 @@ function PhaseToolkit.ShowMeteoDropDown(DropDown)
 	end
 end
 
+-- Function to copy all NPC customizations (customizations + equipment + weapons + name)
+-- This function uses two main commands :
+-- 1. "npc info" to retrieve race, gender and all equipment (including weapons)
+-- 2. "phase forg npc out info" to retrieve customization parameters
+-- Normal equipment is stored with their slot and extracted object ID
+-- Weapons are detected and stored separately with their numeric slot :
+--   - Slot 0 = Main hand (main hand, mainhand)
+--   - Slot 1 = Off hand (off hand, offhand) 
+--   - Slot 2 = Ranged (ranged, bow, gun, crossbow)
+-- Application :
+--   - Normal equipment: .ph f n out equip ITEMID
+--   - Weapons: .ph fo np weapon ITEMID SLOT
+--   - Name: .ph f n name NPCNAME
+function PhaseToolkit.CopyNpcCustomisation()
+	
+	if not UnitExists("target") or UnitIsPlayer("target") then
+		print("You need to target an NPC to copy their customisations.")
+		return
+	end
+
+	-- Check if at least one copy option is enabled
+	if not (PhaseToolkit.CopyName or PhaseToolkit.CopyCustomization or PhaseToolkit.CopyEquipment or PhaseToolkit.CopyWeapons) then
+		print("|cffff0000Error: No copy options are enabled. Please enable at least one option in the copy settings.|r")
+		return
+	end
+
+	-- Create a table to store customization information
+	local outfitInformation = {}
+	
+	-- Get the targeted NPC name (only if copy name is enabled)
+	if PhaseToolkit.CopyName then
+		local npcName = UnitName("target")
+		if npcName then
+			outfitInformation["_name"] = npcName
+		else
+			print("|cffff0000Error: Could not get NPC name|r")
+			return
+		end
+	end
+	
+	-- Check that sendAddonCmd exists
+	if not sendAddonCmd then
+		print("|cffff0000Error: sendAddonCmd function not found|r")
+		return
+	end
+	
+	-- Get info via "npc info"
+	sendAddonCmd("npc info", function(isSuccessful, responses)
+		if not isSuccessful or not responses then
+			print("|cffff0000Error: 'npc info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+			return
+		end
+		
+		-- Initialize structures (only if needed)
+		if PhaseToolkit.CopyEquipment then
+			outfitInformation["_equipment"] = {}
+		end
+		if PhaseToolkit.CopyWeapons then
+			outfitInformation["_weapons"] = {}
+		end
+		
+		-- Parse each line
+		for _, line in ipairs(responses) do
+			local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+			-- Also clean item links
+			cleanLine = cleanLine:gsub("|H[^|]*|h", ""):gsub("|h", "")
+			
+			-- DisplayID for race/gender
+			if PhaseToolkit.CopyCustomization then
+				local displayID = string.match(cleanLine, "DisplayID: (%d+)")
+				if displayID then
+					local identity = PhaseToolkit.infoPerDisplay[displayID]
+					if identity then
+						outfitInformation["_race"] = identity.race
+						outfitInformation["_gender"] = identity.sexe
+					end
+				end
+			end
+
+			local slot, itemData = string.match(cleanLine, "^([^:]+):%s*%[(.+)")
+			if slot and itemData and (PhaseToolkit.CopyEquipment or PhaseToolkit.CopyWeapons) then
+				slot = slot:gsub("^%s+", ""):gsub("%s+$", "")
+				
+				-- Filter lines that are not really equipment
+				if not (string.find(slot, "NPC") or string.find(slot, "Info")) then
+				
+				-- Use existing function to extract ID from item link
+				local itemID, strippedLink = getItemInfoFromHyperlink(line)
+				
+				if itemID then
+					local slotLower = string.lower(slot)
+					if slotLower:find("main") or slotLower:find("off") or slotLower:find("ranged") then
+						-- This is a weapon slot
+						if PhaseToolkit.CopyWeapons then
+							if not outfitInformation["_weapons"] then
+								outfitInformation["_weapons"] = {}
+							end
+							if slotLower:find("main") then
+								outfitInformation["_weapons"]["0"] = itemID
+							elseif slotLower:find("off") then
+								outfitInformation["_weapons"]["1"] = itemID  
+							elseif slotLower:find("ranged") then
+								outfitInformation["_weapons"]["2"] = itemID
+							end
+						end
+					else
+						-- This is equipment slot
+						if PhaseToolkit.CopyEquipment then
+							if not outfitInformation["_equipment"] then
+								outfitInformation["_equipment"] = {}
+							end
+							outfitInformation["_equipment"][slot] = itemID
+						end
+					end
+					end
+				end
+			end
+		end  -- End of for loop
+		
+		-- Check if we need to get customizations
+		if PhaseToolkit.CopyCustomization then
+			-- Now get customizations via "ph f n out info"
+			sendAddonCmd("ph f n out info", function(isSuccessful2, responses2)
+				
+				if not isSuccessful2 then
+					print("|cffff0000Error: 'ph f n out info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+					return
+				end
+				
+				if not responses2 then
+					print("|cffff0000Error: No responses from 'ph f n out info' command|r")
+					return
+				end
+				
+				if #responses2 == 0 then
+					print("|cffff0000Error: Empty responses from 'ph f n out info' command|r")
+					return
+				end
+				
+				
+				-- Initialize customizations (only if copy customization is enabled)
+				if PhaseToolkit.CopyCustomization then
+					outfitInformation["_customizations"] = {}
+				end
+				
+				-- Parse customizations from response (only if enabled)
+				if PhaseToolkit.CopyCustomization then
+					for _, line in ipairs(responses2) do
+						-- Clean color codes
+						local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+						
+						-- Only parse "Character Select IDs" lines, ignore "Internal IDs"
+						if string.find(cleanLine, "%(Character Select IDs%)") then
+							-- Parse lines of format: "(Character Select IDs) Option: tattoocolor, Choice(s): 5,)"
+							local optionName, choiceValue = string.match(cleanLine, "Option:%s*([^,]+),%s*Choice%(s%):%s*(%d+)")
+							if optionName and choiceValue then
+								-- Clean option name (remove spaces)
+								optionName = optionName:gsub("^%s+", ""):gsub("%s+$", "")
+								local numValue = tonumber(choiceValue)
+								if numValue then
+									if numValue>200 then
+										 outfitInformation["_customizations"][optionName] = 1 
+									else
+										outfitInformation["_customizations"][optionName] = numValue
+									end
+								end
+							end
+						end
+					end
+				end
+				
+				-- Serialize and show data
+				PhaseToolkit.SerializeAndShowOutfitData(outfitInformation)
+			end, false)
+		else
+			-- No customizations needed, serialize directly
+			PhaseToolkit.SerializeAndShowOutfitData(outfitInformation)
+		end
+	end, false)
+end
+
+-- Helper function to serialize and show outfit data
+function PhaseToolkit.SerializeAndShowOutfitData(outfitInformation)
+	local serializedData = AceSerializer:Serialize(outfitInformation)	
+	if serializedData then
+		-- We have the data so we show them to the user using the OPEN_OUTFIT_COPY_POPUP
+		StaticPopup_Show("OPEN_OUTFIT_COPY_POPUP", nil, nil, { serializedData = serializedData })
+	else
+		print("|cffff0000Error: Failed to serialize data|r")
+	end
+end
+
+-- Function to paste/apply an NPC outfit
+function PhaseToolkit.PasteNpcCustomisation()
+	if not UnitExists("target") or UnitIsPlayer("target") then
+		print("You need to target an NPC to apply customisations.")
+		return
+	end
+	StaticPopup_Show("OPEN_OUTFIT_PASTE_POPUP")
+end
+
+-- Function to apply customizations from serialized data
+function PhaseToolkit.ApplyNpcCustomisation(serializedData)
+	if not serializedData or serializedData == "" then
+		print("No data to apply.")
+		return
+	end
+	
+	if not UnitExists("target") or UnitIsPlayer("target") then
+		print("You need to target an NPC to apply customisations.")
+		return
+	end
+	
+	-- Deserialize data
+	local success, deserializedData = AceSerializer:Deserialize(serializedData)
+	if not success or not deserializedData then
+		print("Invalid outfit data format.")
+		return
+	end
+	
+	-- Build commands
+	local commands = {}
+	
+	-- VERY IMPORTANT: Race and gender FIRST, otherwise everything else will fail!
+	if deserializedData["_race"] and deserializedData["_gender"] then
+		-- Use PhaseToolkit.Races to convert race name to ID
+		local raceID = PhaseToolkit.Races[deserializedData["_race"]]
+		if raceID then
+			table.insert(commands, "ph f n out race " .. raceID)
+			table.insert(commands, "ph f n out gender " .. deserializedData["_gender"])
+		end
+	end
+	
+	-- Apply name if available
+	if deserializedData["_name"] and deserializedData["_name"] ~= "" then
+		table.insert(commands, "ph f n name " .. deserializedData["_name"])
+	end
+	
+	-- Apply customizations
+	if deserializedData["_customizations"] and type(deserializedData["_customizations"]) == "table" then
+		local customizationCount = 0
+		for optionName, choiceValue in pairs(deserializedData["_customizations"]) do
+			if optionName and choiceValue then
+				table.insert(commands, "ph f n out custom " .. optionName .. " " .. choiceValue)
+				customizationCount = customizationCount + 1
+			end
+		end
+	end
+	
+	-- Apply normal equipment
+	if deserializedData["_equipment"] and type(deserializedData["_equipment"]) == "table" then
+		local equipmentCount = 0
+		for slot, itemData in pairs(deserializedData["_equipment"]) do
+			if itemData and itemData ~= "" then
+				-- If it's a number (ID), use it directly, otherwise it's a link
+				local itemToUse = tonumber(itemData) or itemData
+				table.insert(commands, "ph f n out equip " .. itemToUse)
+				equipmentCount = equipmentCount + 1
+			end
+		end
+	end
+	
+	-- Apply weapons with special command
+	if deserializedData["_weapons"] and type(deserializedData["_weapons"]) == "table" then
+		local weaponCount = 0
+		for weaponSlot, itemData in pairs(deserializedData["_weapons"]) do
+			if itemData and itemData ~= "" then
+				-- If it's a number (ID), use it directly, otherwise it's a link
+				local itemToUse = tonumber(itemData) or itemData
+				-- Use special command for weapons
+				-- .ph fo np weapon ITEMID SLOT
+				table.insert(commands, "ph fo np weapon " .. itemToUse .. " " .. weaponSlot)
+				weaponCount = weaponCount + 1
+			end
+		end
+	end
+	
+	-- Send all commands in sequential chain
+	if #commands > 0 then
+		sendAddonCommandChain(commands, function(success, allReturnMessages)
+			if not success then
+				print("Some commands failed during NPC customisation application.")
+				
+				-- Identify the command that failed
+				local totalCommands = #commands
+				local returnedMessages = (allReturnMessages and #allReturnMessages) or 0
+				
+				if returnedMessages < totalCommands then
+					-- The chain stopped, the failed command is the next one
+					local failedCommandIndex = returnedMessages
+					if commands[failedCommandIndex] then
+						print("Failed command [" .. failedCommandIndex .. "]: " .. commands[failedCommandIndex])
+					end
+				end
+			else
+				print("|cff00ff00All NPC customisation commands completed successfully!|r")
+			end
+		end, false)
+	else
+		print("No valid customisation data to apply.")
+	end
+end
+
+-- Alternative function to apply directly from copied data
+function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
+	if not outfitInformation then
+		print("No outfit data provided.")
+		return
+	end
+	
+	if not UnitExists("target") or UnitIsPlayer("target") then
+		print("You need to target an NPC to apply customisations.")
+		return
+	end
+	
+	-- Build commands directly from outfitInformation
+	local commands = {}
+	
+	-- VERY IMPORTANT: Race and gender FIRST, otherwise everything else will fail!
+	if outfitInformation["_race"] and outfitInformation["_gender"] then
+		-- Use PhaseToolkit.Races to convert race name to ID
+		local raceID = PhaseToolkit.Races[outfitInformation["_race"]]
+		if raceID then
+			table.insert(commands, "ph f n race " .. raceID)
+			table.insert(commands, "ph f n gender " .. outfitInformation["_gender"])
+			print("🧬 Race/Gender commands added first: " .. outfitInformation["_race"] .. " (ID:" .. raceID .. ") " .. outfitInformation["_gender"])
+		end
+	end
+	
+	-- Apply the name if available
+	if outfitInformation["_name"] and outfitInformation["_name"] ~= "" then
+		table.insert(commands, "ph f n name " .. outfitInformation["_name"])
+	end
+	
+	-- Apply the customizations
+	if outfitInformation["_customizations"] and type(outfitInformation["_customizations"]) == "table" then
+		for optionName, choiceValue in pairs(outfitInformation["_customizations"]) do
+			if optionName and choiceValue then
+				table.insert(commands, "ph f n out custom " .. optionName .. " " .. choiceValue)
+			end
+		end
+	end
+	
+	-- Apply normal equipment
+	if outfitInformation["_equipment"] and type(outfitInformation["_equipment"]) == "table" then
+		for slot, itemData in pairs(outfitInformation["_equipment"]) do
+			if itemData and itemData ~= "" then
+				-- If it's a number (ID), use it directly, otherwise it's a link
+				local itemToUse = tonumber(itemData) or itemData
+				table.insert(commands, "ph f n out equip " .. itemToUse)
+			end
+		end
+	end
+	
+	-- Apply weapons with the special command
+	if outfitInformation["_weapons"] and type(outfitInformation["_weapons"]) == "table" then
+		for weaponSlot, itemData in pairs(outfitInformation["_weapons"]) do
+			if itemData and itemData ~= "" then
+				-- If it's a number (ID), use it directly, otherwise it's a link
+				local itemToUse = tonumber(itemData) or itemData
+				table.insert(commands, "ph fo np weapon " .. itemToUse .. " " .. weaponSlot)
+			end
+		end
+	end
+	
+	-- Send the commands
+	if #commands > 0 then
+		sendAddonCommandChain(commands, function(success, allReturnMessages)
+			if not success then
+				print("Some commands failed during NPC customisation application.")
+				
+				-- Identify the command that failed
+				local totalCommands = #commands
+				local returnedMessages = (allReturnMessages and #allReturnMessages) or 0
+				
+				if returnedMessages < totalCommands then
+					-- The chain stopped, the failed command is the next one
+					local failedCommandIndex = returnedMessages
+					if commands[failedCommandIndex] then
+						print("Failed command [" .. failedCommandIndex .. "]: " .. commands[failedCommandIndex])
+					end
+				end
+			else
+				print("|cff00ff00All NPC customisation paste commands completed successfully!|r")
+			end
+		end, false)
+		PhaseToolkit.pasteFrame:Hide()
+	else
+		print("No valid customisation data found in pasted text.")
+	end
+end
+
 function PhaseToolkit.ShowToggleDropDown(DropDown)
 	UIDropDownMenu_Initialize(DropDown, function(self)
 		local info = UIDropDownMenu_CreateInfo()
@@ -2155,7 +2575,7 @@ function PhaseToolkit.ShowToggleDropDown(DropDown)
 end
 
 
--- ============================== FRAME PRINCIPALE ============================== --
+-- ============================== MAIN FRAME ============================== --
 PhaseToolkit.NombreDeLigne = math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) / 3)))
 PhaseToolkit.HauteurDispoCustomFrame = ((PhaseToolkit.NombreDeLigne - 1) * 65)
 PhaseToolkit.NPCCustomiserMainFrame = CreateFrame("Frame", "NPCCustomiserMainFrame", UIParent, "PortraitFrameTemplate")
@@ -2206,12 +2626,6 @@ do
 	f.TitleText:SetText("Phase Toolkit")
 	f.TitleText:SetPoint("LEFT", 15, 0) -- Fix title text position with no portrait
 end
-
---[[
-PhaseToolkit.NPCCustomMainFrameTitle = PhaseToolkit.NPCCustomiserMainFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-PhaseToolkit.NPCCustomMainFrameTitle:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 10, -5)
-PhaseToolkit.NPCCustomMainFrameTitle:SetText("Phase Toolkit")
---]]
 
 PhaseToolkit.NPCCustomiserMainFrame:RegisterEvent("ADDON_LOADED")
 
@@ -2278,6 +2692,85 @@ function PhaseToolkit.switchOpenCustomGridButton(button)
 	end
 end
 
+function PhaseToolkit.openCopySettings()
+	-- If the copy frame is already open, close it
+	if (PhaseToolkit.copySettingsFrame ~= nil) then
+		if (PhaseToolkit.copySettingsFrame:IsShown()) then
+			PhaseToolkit.copySettingsFrame:Hide()
+			PhaseToolkit.copySettingsFrame = nil
+			return
+		end
+	else
+		PhaseToolkit.copySettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
+		PhaseToolkit.copySettingsFrame:SetBackdrop({
+			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+			edgeSize = 16,
+			insets = { left = 5, right = 5, top = 5, bottom = 5 },
+		})
+		PhaseToolkit.copySettingsFrame:SetSize(170, 180)
+		PhaseToolkit.copySettingsFrame:SetPoint("TOPLEFT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, 0)
+
+
+		-- now we need checkboxes to allow the copy of : 
+		-- name
+		-- customization
+		-- equipment
+		-- weapons
+		local copyNameCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
+		copyNameCheckbox:SetPoint("TOPLEFT", PhaseToolkit.copySettingsFrame, "TOPLEFT", 5, -15)
+		--create a label on the right side of the checkbox
+		copyNameCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Name"] or "Copy Name")
+		copyNameCheckbox.Text:SetFontObject("GameFontNormal")
+		--scripts
+		copyNameCheckbox:SetScript("OnClick", function(self)
+			PhaseToolkit.CopyName = self:GetChecked()
+			PhaseToolKitConfig["CopyName"] = PhaseToolkit.CopyName
+		end)
+
+		copyNameCheckbox:SetChecked(PhaseToolkit.CopyName or false)
+
+		local copyCustomizationCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
+		copyCustomizationCheckbox:SetPoint("TOPLEFT", copyNameCheckbox, "BOTTOMLEFT", 0, -10)
+		--create a label on the right side of the checkbox
+		copyCustomizationCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Customization"] or "Copy Customization")
+		copyCustomizationCheckbox.Text:SetFontObject("GameFontNormal")
+		--scripts
+		copyCustomizationCheckbox:SetScript("OnClick", function(self)
+			PhaseToolkit.CopyCustomization = self:GetChecked()
+			PhaseToolKitConfig["CopyCustomization"] = PhaseToolkit.CopyCustomization
+		end)	
+
+		copyCustomizationCheckbox:SetChecked(PhaseToolkit.CopyCustomization or false)
+
+		local copyEquipmentCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
+		copyEquipmentCheckbox:SetPoint("TOPLEFT", copyCustomizationCheckbox, "BOTTOMLEFT", 0, -10)
+		--create a label on the right side of the checkbox
+		copyEquipmentCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Armor"] or "Copy Armor")
+		copyEquipmentCheckbox.Text:SetFontObject("GameFontNormal")
+		--scripts
+		copyEquipmentCheckbox:SetScript("OnClick", function(self)
+			PhaseToolkit.CopyEquipment = self:GetChecked()
+			PhaseToolKitConfig["CopyEquipment"] = PhaseToolkit.CopyEquipment
+		end)	
+		copyEquipmentCheckbox:SetChecked(PhaseToolkit.CopyEquipment or false)
+
+		local copyWeaponsCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
+		copyWeaponsCheckbox:SetPoint("TOPLEFT", copyEquipmentCheckbox, "BOTTOMLEFT", 0, -10)
+		--create a label on the right side of the checkbox
+		copyWeaponsCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Weapons"] or "Copy Weapons")
+		copyWeaponsCheckbox.Text:SetFontObject("GameFontNormal")
+		--scripts
+		copyWeaponsCheckbox:SetScript("OnClick", function(self)
+			PhaseToolkit.CopyWeapons = self:GetChecked()
+			PhaseToolKitConfig["CopyWeapons"] = PhaseToolkit.CopyWeapons
+		end)	
+		copyWeaponsCheckbox:SetChecked(PhaseToolkit.CopyWeapons or false)	
+
+		PhaseToolkit.copySettingsFrame:Show()
+	end
+end	
+
 function PhaseToolkit.createCustomParamFrame()
 	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
 		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
@@ -2310,7 +2803,7 @@ function PhaseToolkit.createCustomParamFrame()
 			edgeSize = 16,
 			insets = { left = 5, right = 5, top = 5, bottom = 5 },
 		})
-		PhaseToolkit.CustomMainFrame:SetSize(160, 130)
+		PhaseToolkit.CustomMainFrame:SetSize(190, 130)
 		PhaseToolkit.CustomMainFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
 
 
@@ -2408,6 +2901,41 @@ function PhaseToolkit.createCustomParamFrame()
 		end)
 		PhaseToolkit.RegisterTooltip(SetNpcSubName, "Set NPC Subname")
 
+		-- Button to copy NPC outfit
+		local CopyNpcOutfitButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
+		CopyNpcOutfitButton:SetSize(25, 25)
+		CopyNpcOutfitButton:SetPoint("LEFT", SetNpcSubName, "RIGHT", 5, 0)
+		CopyNpcOutfitButton.icon = CopyNpcOutfitButton:CreateTexture(nil, "OVERLAY")
+		CopyNpcOutfitButton.icon:SetTexture("Interface\\Icons\\inv_misc_note_06")
+		CopyNpcOutfitButton.icon:SetAllPoints()
+		CopyNpcOutfitButton:SetScript("OnClick", function()
+			PhaseToolkit.CopyNpcCustomisation()
+		end)
+		PhaseToolkit.RegisterTooltip(CopyNpcOutfitButton, "Copy NPC Outfit (Race, Gender, Equipment, Weapons, Customizations, Name)")
+
+		-- Button to paste NPC outfit
+		local PasteNpcOutfitButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
+		PasteNpcOutfitButton:SetSize(25, 25)
+		PasteNpcOutfitButton:SetPoint("LEFT", CopyNpcOutfitButton, "RIGHT", 5, 0)
+		PasteNpcOutfitButton.icon = PasteNpcOutfitButton:CreateTexture(nil, "OVERLAY")
+		PasteNpcOutfitButton.icon:SetTexture("Interface\\Icons\\inv_inscription_parchment")
+		PasteNpcOutfitButton.icon:SetAllPoints()
+		PasteNpcOutfitButton:SetScript("OnClick", function()
+			PhaseToolkit.PasteNpcCustomisation()
+		end)
+		PhaseToolkit.RegisterTooltip(PasteNpcOutfitButton, "Paste NPC Outfit")
+
+		local changeCopyInfoButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
+		changeCopyInfoButton:SetSize(25, 25)
+		changeCopyInfoButton:SetPoint("BOTTOM", PasteNpcOutfitButton, "TOP",0,5)
+		changeCopyInfoButton.icon = changeCopyInfoButton:CreateTexture(nil, "OVERLAY")
+		--gear icon
+		changeCopyInfoButton.icon:SetTexture("Interface\\Icons\\inv_misc_enggizmos_30")
+		changeCopyInfoButton.icon:SetAllPoints()
+		changeCopyInfoButton:SetScript("OnClick", function()
+			PhaseToolkit.openCopySettings()
+		end)
+		PhaseToolkit.RegisterTooltip(changeCopyInfoButton, "Change Copy Info")
 
 		PhaseToolkit.CustomMainFrame:Hide()
 		PhaseToolkit.CustomMainFrame:Show()
@@ -2714,147 +3242,153 @@ end
 -- Function to forge the item with all the data needed
 function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 	local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-	C_Timer.After(0.5, function()
-		if(PhaseToolkit.itemCreatorData.itemName~=nil) then
-			sendAddonCmd("forge item set name "..itemLink..PhaseToolkit.itemCreatorData.itemName,nil,false)
-		end
-	 end)
+	local CommandsToSend = {}
+	
+	-- Collect all commands to send
+	if(PhaseToolkit.itemCreatorData.itemName~=nil) then
+		table.insert(CommandsToSend, "forge item set name "..itemLink..PhaseToolkit.itemCreatorData.itemName)
+	end
 
-	C_Timer.After(0.5, function()
-		if(PhaseToolkit.itemCreatorData.itemDescription~=nil) then
-			local maxDescriptionSize=240-(string.len("f i s de ")+string.len(itemLink))
-			if(string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize) then
-				sendMessageInChunks("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
-			else
-				sendAddonCmd("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
+	if(PhaseToolkit.itemCreatorData.itemDescription~=nil) then
+		local maxDescriptionSize=240-(string.len("f i s de ")+string.len(itemLink))
+		if(string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize) then
+			-- Note: sendMessageInChunks will need to be handled separately
+			table.insert(CommandsToSend, "f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
+		else
+			table.insert(CommandsToSend, "f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
+		end
+	end
+	
+	if(PhaseToolkit.itemCreatorData.itemClass~=nil and PhaseToolkit.itemCreatorData.itemClass~=-1) then
+		table.insert(CommandsToSend, "forge item set class "..itemLink..PhaseToolkit.itemCreatorData.itemClass)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.itemSubClass~=nil and PhaseToolkit.itemCreatorData.itemSubClass~=-1) then
+		--apparently if itemclass is 4 (armor) subclass 5 (cosmetic) isn't valid 
+		-- so we set to 0 (generic) instead to avoid error spam
+		if(PhaseToolkit.itemCreatorData.itemClass==4 and PhaseToolkit.itemCreatorData.itemSubClass==5) then
+			PhaseToolkit.itemCreatorData.itemSubClass=0
+		end
+		table.insert(CommandsToSend, "forge item set subclass "..itemLink..PhaseToolkit.itemCreatorData.itemSubClass)
+
+	end
+	
+	if(PhaseToolkit.itemCreatorData.inventoryType~=nil and PhaseToolkit.itemCreatorData.inventoryType~=-1) then
+		table.insert(CommandsToSend, "forge item set inventorytype "..itemLink..PhaseToolkit.itemCreatorData.inventoryType)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.itemDisplayLink~=nil and PhaseToolkit.itemCreatorData.itemDisplayLink~=-1) then
+		table.insert(CommandsToSend, "forge item set display "..itemLink..PhaseToolkit.itemCreatorData.itemDisplayLink)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.bonding~=nil and PhaseToolkit.itemCreatorData.bonding~=-1) then
+		table.insert(CommandsToSend, "forge item set bonding "..itemLink..PhaseToolkit.itemCreatorData.bonding)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.quality~=nil and PhaseToolkit.itemCreatorData.quality~=-1) then
+		table.insert(CommandsToSend, "forge item set quality "..itemLink..PhaseToolkit.itemCreatorData.quality)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.sheath~=nil and PhaseToolkit.itemCreatorData.sheath~=-1) then
+		table.insert(CommandsToSend, "forge item set sheath "..itemLink..PhaseToolkit.itemCreatorData.sheath)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.itemIconIdOrLink~=nil and PhaseToolkit.itemCreatorData.itemIconIdOrLink~=-1) then
+		table.insert(CommandsToSend, "forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.stackable~=nil and PhaseToolkit.itemCreatorData.stackable~=-1) then
+		local value=1
+		if(PhaseToolkit.itemCreatorData.stackable==true) then
+			if( PhaseToolkit.itemCreatorData.stackablecount and PhaseToolkit.itemCreatorData.stackablecount>0) then
+				value=PhaseToolkit.itemCreatorData.stackablecount
 			end
 		end
-	end)
-	C_Timer.After(0.5, function()
-		if(PhaseToolkit.itemCreatorData.itemClass~=nil and PhaseToolkit.itemCreatorData.itemClass~=-1) then
-			sendAddonCmd("forge item set class "..itemLink..PhaseToolkit.itemCreatorData.itemClass,nil,false)
-		end
-	end)
-	C_Timer.After(0.5, function()
-		if(PhaseToolkit.itemCreatorData.itemSubClass~=nil and PhaseToolkit.itemCreatorData.itemSubClass~=-1) then
-			sendAddonCmd("forge item set subclass "..itemLink..PhaseToolkit.itemCreatorData.itemSubClass,nil,false)
-		end
-	end)
-	C_Timer.After(0.5, function()
-		if(PhaseToolkit.itemCreatorData.inventoryType~=nil and PhaseToolkit.itemCreatorData.inventoryType~=-1) then
-			sendAddonCmd("forge item set inventorytype "..itemLink..PhaseToolkit.itemCreatorData.inventoryType,nil,false)
-		end
-	end)
-	C_Timer.After(0.6, function()
-		if(PhaseToolkit.itemCreatorData.itemDisplayLink~=nil and PhaseToolkit.itemCreatorData.itemDisplayLink~=-1) then
-			sendAddonCmd("forge item set display "..itemLink..PhaseToolkit.itemCreatorData.itemDisplayLink,nil,false)
-		end
-	end)
-	C_Timer.After(0.7, function()
-		if(PhaseToolkit.itemCreatorData.bonding~=nil and PhaseToolkit.itemCreatorData.bonding~=-1) then
-			sendAddonCmd("forge item set bonding "..itemLink..PhaseToolkit.itemCreatorData.bonding,nil,false)
-		end
-	end)
-	C_Timer.After(0.8, function()
-		if(PhaseToolkit.itemCreatorData.quality~=nil and PhaseToolkit.itemCreatorData.quality~=-1) then
-			sendAddonCmd("forge item set quality "..itemLink..PhaseToolkit.itemCreatorData.quality,nil,false)
-		end
-	end)
-	C_Timer.After(0.9, function()
-		if(PhaseToolkit.itemCreatorData.sheath~=nil and PhaseToolkit.itemCreatorData.sheath~=-1) then
-			sendAddonCmd("forge item set sheath "..itemLink..PhaseToolkit.itemCreatorData.sheath,nil,false)
-		end
-	end)
-	C_Timer.After(1, function()
-		if(PhaseToolkit.itemCreatorData.itemIconIdOrLink~=nil and PhaseToolkit.itemCreatorData.itemIconIdOrLink~=-1) then
-			sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,nil,false)
-		end
-	end)
-	C_Timer.After(1.1, function()
-		if(PhaseToolkit.itemCreatorData.stackable~=nil and PhaseToolkit.itemCreatorData.stackable~=-1) then
-			local value=1
-			if(PhaseToolkit.itemCreatorData.stackable==true) then
-				if( PhaseToolkit.itemCreatorData.stackablecount and PhaseToolkit.itemCreatorData.stackablecount>0) then
-					value=PhaseToolkit.itemCreatorData.stackablecount
-				end
-			end
-			sendAddonCmd("forge item set stackable "..itemLink..value,nil,false)
-		end
-	end)
-	C_Timer.After(1.2, function()
-		if(PhaseToolkit.itemCreatorData.adder~=nil and PhaseToolkit.itemCreatorData.adder~=-1) then
-			sendAddonCmd("forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder,nil,false)
-		end
-	end)
+		table.insert(CommandsToSend, "forge item set stackable "..itemLink..value)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.adder~=nil and PhaseToolkit.itemCreatorData.adder~=-1) then
+		table.insert(CommandsToSend, "forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder)
+	end
+	
 	if(PhaseToolkit.additemOption~=nil) then
 		for _,option in ipairs(PhaseToolkit.additemOption) do
 			local value=""
 			if option.value==false then  value="off" else value="on" end
-			C_Timer.After(0.2, function()
-				sendAddonCmd("forge item set property additem "..option.text..itemLink..value,nil,false)
-			end)
+			table.insert(CommandsToSend, "forge item set property additem "..option.text..itemLink..value)
 		end
 	end
-	C_Timer.After(0.2, function()
-		if(PhaseToolkit.itemCreatorData.copy~=nil and PhaseToolkit.itemCreatorData.copy~=-1) then
-			sendAddonCmd("forge item set property copy"..itemLink..PhaseToolkit.itemCreatorData.copy,nil,false)
-		end
-	end)
-	C_Timer.After(0.2, function()
-		if(PhaseToolkit.itemCreatorData.creator~=nil and PhaseToolkit.itemCreatorData.creator~=-1) then
-			sendAddonCmd("forge item set property creator"..itemLink..PhaseToolkit.itemCreatorData.creator,nil,false)
-		end
-	end)
-	C_Timer.After(0.2, function()
-		if(PhaseToolkit.itemCreatorData.info~=nil and PhaseToolkit.itemCreatorData.info~=-1) then
-			sendAddonCmd("forge item set property info"..itemLink..PhaseToolkit.itemCreatorData.info,nil,false)
-		end
-	end)
-	C_Timer.After(0.2, function()
-		if(PhaseToolkit.itemCreatorData.lookup~=nil and PhaseToolkit.itemCreatorData.lookup~=-1) then
-			sendAddonCmd("forge item set property lookup"..itemLink..PhaseToolkit.itemCreatorData.lookup,nil,false)
-		end
-	end)
+	
+	if(PhaseToolkit.itemCreatorData.copy~=nil and PhaseToolkit.itemCreatorData.copy~=-1) then
+		table.insert(CommandsToSend, "forge item set property copy"..itemLink..PhaseToolkit.itemCreatorData.copy)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.creator~=nil and PhaseToolkit.itemCreatorData.creator~=-1) then
+		table.insert(CommandsToSend, "forge item set property creator"..itemLink..PhaseToolkit.itemCreatorData.creator)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.info~=nil and PhaseToolkit.itemCreatorData.info~=-1) then
+		table.insert(CommandsToSend, "forge item set property info"..itemLink..PhaseToolkit.itemCreatorData.info)
+	end
+	
+	if(PhaseToolkit.itemCreatorData.lookup~=nil and PhaseToolkit.itemCreatorData.lookup~=-1) then
+		table.insert(CommandsToSend, "forge item set property lookup"..itemLink..PhaseToolkit.itemCreatorData.lookup)
+	end
+	
 	if(PhaseToolkit.itemCreatorData.whitelistedChar~=nil and #PhaseToolkit.itemCreatorData.whitelistedChar>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedChar do
-			C_Timer.After(0.2, function()
-				sendAddonCmd("forge item set whitelist character add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedChar[i],nil,false)
-			end)
+			table.insert(CommandsToSend, "forge item set whitelist character add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedChar[i])
 		end
 	end
+	
 	if(PhaseToolkit.itemCreatorData.whitelistedPhaseForMember~=nil and #PhaseToolkit.itemCreatorData.whitelistedPhaseForMember>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForMember do
-
-			C_Timer.After(0.2, function()
-				sendAddonCmd("forge item set whitelist member add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForMember[i],nil,false)
-			end)
+			table.insert(CommandsToSend, "forge item set whitelist member add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForMember[i])
 		end
 	end
+	
 	if(PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer~=nil and #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer do
-			C_Timer.After(0.2, function()
-				sendAddonCmd("forge item set whitelist officer add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer[i],nil,false)
-			end)
+			table.insert(CommandsToSend, "forge item set whitelist officer add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer[i])
 		end
 	end
 
-	PhaseToolkit.itemCreatorData.itemLink=nil
-	-- we reset everything now
-	-- Need a delay  wtf was I thinking?
-	C_Timer.After(1.5, function()
+	-- Use EpsilonLib's sendAddonCommandChain to send all commands in sequence
+	if #CommandsToSend > 0 then
+		sendAddonCommandChain(CommandsToSend, function(success, allReturnMessages)
+			-- Command chain completed
+			PhaseToolkit.itemCreatorData.itemLink=nil
+			
+			-- Reset everything after all commands are done
+			for key in pairs(PhaseToolkit.itemCreatorData) do
+				PhaseToolkit.itemCreatorData[key] = nil
+			end
+			
+			if success then
+				print("Item Forging done !\nyou can use your item !")
+			else
+				if(PhaseToolkit.debugMode) then
+					print("Item Forging had some issues. Here are the errors:")
+					dump(allReturnMessages)
+				else
+					print("Item Forging had some issues. Run : /run PhaseToolkit.debugMode=true\nThen try again and check the chat for errors, if needed create a bug report.")
+				end
+			end
+			ContainerFrame_UpdateAll()
+		end, false)
+	else
+		-- No commands to send, just clean up
+		PhaseToolkit.itemCreatorData.itemLink=nil
 		for key in pairs(PhaseToolkit.itemCreatorData) do
 			PhaseToolkit.itemCreatorData[key] = nil
 		end
-		print("Item Forging done !\nyou can use your item !")
-		sendAddonCmd("forge item request"..itemLink) -- Just in case!
-		ContainerFrame_UpdateAll()
-	end)
+	end
 
 end
 
 function GetItemIDFromLink(itemLink)
     if not itemLink then return nil end
-    -- Extrait l'ID de l'objet depuis le lien
+    -- Extract the item ID from the link
     local itemID = itemLink:match("item:(%d+)")
     return  itemID
 end
@@ -2874,10 +3408,10 @@ function PhaseToolkit.insertSpaces(inputString)
     local length = #inputString
 
     for i = 1, length, 27 do
-        table.insert(result, inputString:sub(i, i + 26)) -- Prend 27 caractères à chaque itération
+        table.insert(result, inputString:sub(i, i + 26)) -- Takes 27 characters at each iteration
     end
 
-    return table.concat(result, " ") -- Combine les segments avec un espace
+    return table.concat(result, " ") -- Combines segments with a space
 end
 
 local function updateFields(itemLink)
@@ -2897,20 +3431,20 @@ local function updateFields(itemLink)
 
 
 	local tooltipScanner = CreateFrame("GameTooltip", "TooltipScanner", nil, "GameTooltipTemplate")
-	tooltipScanner:SetOwner(WorldFrame, "ANCHOR_NONE") -- On le rend invisible
-	tooltipScanner:SetHyperlink("item:" .. itemId) -- Charge l'objet par son ID
+	tooltipScanner:SetOwner(WorldFrame, "ANCHOR_NONE") -- Make it invisible
+	tooltipScanner:SetHyperlink("item:" .. itemId) -- Load the item by its ID
 	PhaseToolkit.ModifyItemData=false
 
     for i = 1, tooltipScanner:NumLines() do
         local leftText = _G["TooltipScannerTextLeft" .. i]
         local rightText = _G["TooltipScannerTextRight" .. i]
 
-        -- Ajouter le texte de gauche
+        -- Add left text
         if leftText and leftText:GetText() then
             table.insert(content, leftText:GetText())
         end
 
-        -- Ajouter le texte de droite
+        -- Add right text
         if rightText and rightText:GetText() then
             table.insert(content, rightText:GetText())
         end
@@ -3133,7 +3667,7 @@ function PhaseToolkit.createItemCreatorFrame()
 			end);
 
 			SendChatMessage(".forge item create")
-			C_Timer.After(0.5, function()
+			C_Timer.After(1, function()
 				PhaseToolkit.currentItems=updateBagContents()
 			end)
 		end
@@ -3638,49 +4172,49 @@ function PhaseToolkit.createItemCreatorFrame()
 end
 
 local function updateWhitelistDisplay(typeOfWhitelist, data)
-    -- Nettoyer le contenu existant
+    -- Clean existing content
     if PhaseToolkit.listFrame.content then
         PhaseToolkit.listFrame.content:Hide()
         PhaseToolkit.listFrame.content = nil
     end
 
-    -- Contenu à scroller
+    -- Content to scroll
     local content = CreateFrame("Frame", nil, PhaseToolkit.listFrame.scrollFrame)
-    content:SetSize(100, 30 * (#data or 1)) -- Ajuste la hauteur en fonction du nombre d'éléments
+    content:SetSize(100, 30 * (#data or 1)) -- Adjust height based on number of elements
     PhaseToolkit.listFrame.content = content
 	local tableau={}
 
-    local maxTextWidth = 0 -- Pour déterminer la largeur maximale
+    local maxTextWidth = 0 -- To determine the maximum width
 
     for i, value in ipairs(data) do
-        -- Texte pour l'élément
+        -- Text for the element
         local text = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         text:SetPoint("TOPLEFT", 10, -30 * (i - 1) - 10)
         text:SetText(value)
 
-		 -- Calculer la largeur du texte
+		 -- Calculate text width
 		 local textWidth = text:GetStringWidth()
 		 if textWidth > maxTextWidth then
 			 maxTextWidth = textWidth+30
 		 end
 
-        -- Bouton de suppression
+        -- Delete button
         local deleteButton = CreateFrame("Button", nil, content, "UIPanelCloseButton")
         deleteButton:SetSize(30, 30)
         deleteButton:SetPoint("LEFT",text,"RIGHT", 10,0)
 
-        -- Icône croix et suppression
+        -- Cross icon and deletion
         deleteButton:SetScript("OnClick", function()
-            table.remove(data, i) -- Supprime l'élément du tableau
-            updateWhitelistDisplay(typeOfWhitelist, data) -- Actualise la liste
+            table.remove(data, i) -- Remove element from table
+            updateWhitelistDisplay(typeOfWhitelist, data) -- Update the list
         end)
     end
 
-    -- Lier le contenu au ScrollFrame
+    -- Link content to ScrollFrame
     PhaseToolkit.listFrame.scrollFrame:SetScrollChild(content)
 
-	-- Ajuster la taille de PhaseToolkit.listFrame si nécessaire
-    local newWidth = math.max(150, maxTextWidth + 50) -- Largeur minimum + marge
+	-- Adjust PhaseToolkit.listFrame size if necessary
+    local newWidth = math.max(150, maxTextWidth + 50) -- Minimum width + margin
     PhaseToolkit.listFrame:SetWidth(newWidth)
 end
 
@@ -3701,7 +4235,7 @@ function PhaseToolkit.openWhitelistFor(typeOfWhitelist,updating)
 			updateWhitelistDisplay(typeOfWhitelist,getDataFromWhitelistType(typeOfWhitelist))
 			PhaseToolkit.listFrame:Show()
 	else
-		-- Frame principale
+		-- Main frame
 		PhaseToolkit.listFrame = CreateFrame("Frame", "MyScrollableFrame", PhaseToolkit.ItemCreatorFrame, "BasicFrameTemplateWithInset")
 		PhaseToolkit.listFrame:SetSize(150, 200)
 		PhaseToolkit.listFrame:SetPoint("BOTTOMLEFT", PhaseToolkit.ItemCreatorFrame, "BOTTOMRIGHT", 5, 0)
@@ -3713,7 +4247,7 @@ function PhaseToolkit.openWhitelistFor(typeOfWhitelist,updating)
 		PhaseToolkit.listFrame.scrollFrame = scrollFrame
 
 		PhaseToolkit.currentWhitelistType=typeOfWhitelist
-		-- Initialiser l'affichage
+		-- Initialize the display
 		updateWhitelistDisplay(typeOfWhitelist, getDataFromWhitelistType(typeOfWhitelist))
 	end
 end
@@ -4320,7 +4854,7 @@ function PhaseToolkit.GetCreatureById(npcId)
 	end
 	return nil
 end
---================================= Frame pour Listes ===============================--
+--================================= Frame for Lists ===============================--
 function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	if (PhaseToolkit.TELEFrame ~= nil) then
 		if (PhaseToolkit.TELEFrame:IsShown()) then
@@ -4359,27 +4893,27 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	end
 
 
-	-- Fonction qui retourne la largeur maximale d'un nom de créature en pixels
+	-- Function that returns the maximum width of a creature name in pixels
 	function PhaseToolkit.GetMaxNameWidth(creatureTable)
-		-- Créer un objet FontString temporaire pour mesurer les tailles de texte
+		-- Create a temporary FontString object to measure text sizes
 		local tempFontString = PhaseToolkit.NPCCustomiserMainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 
-		-- Variable pour stocker la largeur maximale trouvée
+		-- Variable to store the maximum width found
 		local maxWidth = 0
 
-		-- Parcourir le tableau des créatures
+		-- Browse through the creature table
 		for _, creature in ipairs(creatureTable) do
-			-- Assigner le nom de la créature au FontString
+			-- Assign the creature name to the FontString
 			tempFontString:SetText(creature["NomCreature"])
 
-			-- Obtenir la largeur en pixels du nom et comparer avec la largeur maximale actuelle
+			-- Get the pixel width of the name and compare with the current maximum width
 			local nameWidth = tempFontString:GetStringWidth()
 			if nameWidth > maxWidth then
 				maxWidth = nameWidth
 			end
 		end
 
-		-- Retourner la largeur maximale
+		-- Return the maximum width
 		return maxWidth
 	end
 
@@ -4471,6 +5005,9 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	PhaseToolkit.PNJFrame:EnableMouse(true);
 
 	PhaseToolkit.PNJFrame:SetScript("OnHide", function()
+		-- Sauvegarder la page actuelle quand on ferme la frame
+		PhaseToolkit.NPCListCurrentPage = currentPage
+		
 		if PhaseToolkit.categoryPanelNPC ~= nil then
 			if PhaseToolkit.categoryPanelNPC:IsShown() then
 				PhaseToolkit.categoryPanelNPC:Hide()
@@ -4697,14 +5234,14 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	end
 
 	function PhaseToolkit.DisplayNpcPage(creatureList)
-		-- Calcul des indices de la page actuelle
+		-- Calculate indices for the current page
 		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageNPC + 1
 		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageNPC, #creatureList)
 
 		local isAlreadyBiggerForAddToCategory=false
 		local isAlreadyBiggerForGetOutOfCategory=false
 
-		-- Calculer la largeur maximale des noms pour la page actuelle
+		-- Calculate the maximum width of names for the current page
 		local pageCreatureList = {}
 		for i = startIndex, endIndex do
 			table.insert(pageCreatureList, creatureList[i])
@@ -4712,10 +5249,10 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 
 		local maxNameWidth = PhaseToolkit.GetMaxNameWidth(pageCreatureList)
 
-		-- Ajuster la largeur de la GlobalNPCCUSTOMISER_PNJFrame en fonction de la largeur maximale des noms
-		local frameWidth = maxNameWidth + 190 -- 180 pour les boutons et marges
+		-- Adjust the width of GlobalNPCCUSTOMISER_PNJFrame based on the maximum width of names
+		local frameWidth = maxNameWidth + 190 -- 180 for buttons and margins
 		if PhaseToolkit.LookupInNpcListEditBox then
-			PhaseToolkit.LookupInNpcListEditBox:SetWidth(maxNameWidth - 10) -- Ajuster la largeur de la zone de recherche
+			PhaseToolkit.LookupInNpcListEditBox:SetWidth(maxNameWidth - 10) -- Adjust search area width
 		end
 		PhaseToolkit.PNJFrame:SetWidth(frameWidth + 30 * 2)
 		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory then
@@ -4733,16 +5270,16 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory  and generaloffset>(-190) then
 			generaloffset = -145
 		end
-		-- Affichage des PNJ sur la page
+		-- Display NPCs on the page
 		for i = 1, PhaseToolkit.itemsPerPageNPC do
 			local idx = startIndex + i - 1
 			local row = PNJRows[i]
 			if idx <= endIndex then
 				local creature = creatureList[idx]
-				row.name:SetText(creature["NomCreature"]) -- Affiche le nom de la créature
+				row.name:SetText(creature["NomCreature"]) -- Display creature name
 				row:Show()
 
-				-- Associe l'ID de la créature aux boutons "Spawn" et "Delete"
+				-- Associate creature ID with "Spawn" and "Delete" buttons
 				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(creature["IdCreature"]) end)
 				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(creature["IdCreature"]) end)
 
@@ -4811,7 +5348,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 
 		if totalPages >0 and currentPage > totalPages and PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
 			currentPage = 1
-			NpcCurrentPageeditBox:SetText(currentPage)
+			NpcCurrentPageeditBox:SetText(tostring(currentPage))
 			PhaseToolkit.NPCListCurrentPage = currentPage
 			PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
 		end
@@ -4863,7 +5400,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	function PhaseToolkit.UpdatePNJPagination(creatureList)
 		totalPages = math.ceil(#creatureList / PhaseToolkit.itemsPerPageNPC)
 
-		-- Mise à jour de l'état des boutons de navigation
+		-- Update navigation button states
 		if currentPage <= 1 then
 			prevButton:Disable()
 		else
@@ -4876,7 +5413,7 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 			nextButton:Enable()
 		end
 
-		-- Affichage de la page actuelle
+		-- Display the current page
 		PhaseToolkit.DisplayNpcPage(creatureList)
 		NumberOfPageMaxLabelNPC:SetText("/ " .. totalPages)
 	end
@@ -4884,12 +5421,14 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	nextButton:SetScript("OnClick", function()
 		if currentPage < totalPages then
 			currentPage = currentPage + 1
-			NpcCurrentPageeditBox:SetText(currentPage)
+			NpcCurrentPageeditBox:SetText(tostring(currentPage))
 			PhaseToolkit.NPCListCurrentPage=currentPage
 			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
 				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+			elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 			else
-				PhaseToolkit.UpdatePNJPagination(_creatureList)
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
 			end
 		end
 	end)
@@ -4897,28 +5436,40 @@ function PhaseToolkit.CreateNpcListFrame(_creatureList)
 	prevButton:SetScript("OnClick", function()
 		if currentPage > 1 then
 			currentPage = currentPage - 1
-			NpcCurrentPageeditBox:SetText(currentPage)
+			NpcCurrentPageeditBox:SetText(tostring(currentPage))
 			PhaseToolkit.NPCListCurrentPage=currentPage
 			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
 				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+			elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 			else
-				PhaseToolkit.UpdatePNJPagination(_creatureList)
+				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
 			end
 		end
 	end)
 
 	PhaseToolkit.PNJFrame:SetScript("OnShow", function()
-		currentPage = 1
 		if(PhaseToolkit.NPCListCurrentPage) then
 			currentPage=PhaseToolkit.NPCListCurrentPage
+		else
+			currentPage = 1
 		end
-		PhaseToolkit.UpdatePNJPagination(_creatureList)
+		
+		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
+			PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+		elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+		else
+			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+		end
 	end)
 
 	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
 		PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
+	elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
+		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
 	else
-		PhaseToolkit.UpdatePNJPagination(_creatureList)
+		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
 	end
 end
 
@@ -5009,7 +5560,12 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 				end
 			end
 		else
-			PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.GetMaxStringWidth(PhaseToolkit.teleList), 400)
+			-- Restaurer la taille sauvegardée si disponible
+			if PhaseToolkit.TELEFrameWidth and PhaseToolkit.TELEFrameHeight then
+				PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.TELEFrameWidth, PhaseToolkit.TELEFrameHeight)
+			else
+				PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.GetMaxStringWidth(_teleList), 400)
+			end
 			PhaseToolkit.TELEFrame:Show()
 		end
 		return
@@ -5020,7 +5576,12 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 		currentPage=PhaseToolkit.TELEListcurrentPage
 	end
 
-	local totalPages = math.ceil(#PhaseToolkit.teleList / PhaseToolkit.itemsPerPageTELE)
+	local totalPages = math.ceil(#_teleList / PhaseToolkit.itemsPerPageTELE)
+	-- Si la liste est vide, on a au moins 1 page (vide)
+	if totalPages == 0 then
+		totalPages = 1
+	end
+	
 	if(PhaseToolkit.TELEListcurrentPage) then
 		if PhaseToolkit.TELEListcurrentPage<=totalPages then
 			currentPage=PhaseToolkit.TELEListcurrentPage
@@ -5097,13 +5658,21 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	end
 
 
-	-- Création de la frame principale pour afficher la liste des PNJ
+	-- Create the main frame to display the NPC list
 	PhaseToolkit.TELEFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
 	PhaseToolkit.TELEFrame:SetSize(600, (PhaseToolkit.itemsPerPageTELE * 30) + 80)
 	PhaseToolkit.TELEFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
 	PhaseToolkit.TELEFrame:EnableMouse(true)
+	
+	-- Stocker la liste actuelle dans la frame pour éviter les problèmes de scope
+	PhaseToolkit.TELEFrame.currentTeleList = _teleList
 
 	PhaseToolkit.TELEFrame:SetScript("OnHide", function()
+		-- Sauvegarder la page actuelle et la taille quand on ferme la frame
+		PhaseToolkit.TELEListcurrentPage = currentPage
+		PhaseToolkit.TELEFrameWidth = PhaseToolkit.TELEFrame:GetWidth()
+		PhaseToolkit.TELEFrameHeight = PhaseToolkit.TELEFrame:GetHeight()
+		
 		if PhaseToolkit.categoryPanelTELE ~= nil then
 			if PhaseToolkit.categoryPanelTELE:IsShown() then
 				PhaseToolkit.categoryPanelTELE:Hide()
@@ -5215,10 +5784,10 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	if (PhaseToolkit.teleList ~= nil and PhaseToolkit.IsTableEmpty(PhaseToolkit.teleList) == false) then
 		PhaseToolkit.LookupInTeleListEditBox = CreateFrame("EditBox", nil, PhaseToolkit.TELEFrame, "InputBoxTemplate")
 
-		if (PhaseToolkit.GetMaxStringWidth(PhaseToolkit.teleList) < 80) then
+		if (PhaseToolkit.GetMaxStringWidth(_teleList) < 80) then
 			PhaseToolkit.LookupInTeleListEditBox:SetSize(90, 20)
 		else
-			PhaseToolkit.LookupInTeleListEditBox:SetSize(PhaseToolkit.GetMaxStringWidth(PhaseToolkit.teleList), 20)
+			PhaseToolkit.LookupInTeleListEditBox:SetSize(PhaseToolkit.GetMaxStringWidth(_teleList), 20)
 		end
 		PhaseToolkit.LookupInTeleListEditBox:SetPoint("LEFT", ButtonToChangeNumberOfLine, "RIGHT", 10, -0.5)
 		PhaseToolkit.LookupInTeleListEditBox:SetAutoFocus(false)
@@ -5229,37 +5798,37 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 		PhaseToolkit.LookupInTeleListEditBox:SetScript("OnEnterPressed", SearchAndFindTeleByText)
 	end
-	-- Tableaux pour les boutons et noms des PNJ
+	-- Arrays for buttons and NPC names
 	local PNJRows = {}
 
-	-- Fonction appelée lors du clic sur le bouton "Spawn"
+	-- Function called when clicking the "Spawn" button
 	local function OnSpawnClick(teleId)
 		sendAddonCmd("phase tele " .. teleId .. " ", nil)
-		-- Logique d'apparition (spawn) de la créature
+		-- Creature spawn logic
 	end
 
-	-- Fonction appelée lors du clic sur le bouton "Delete"
+	-- Function called when clicking the "Delete" button
 	local function OnDeleteClick(teleId)
 		StaticPopup_Show("CONFIRM_DELETE_TELE", nil, nil, { teleId = teleId })
 	end
 
-	-- Création des lignes (Nom, Spawn, Delete) pour chaque PNJ
+	-- Create rows (Name, Spawn, Delete) for each NPC
 	for i = 1, PhaseToolkit.itemsPerPageTELE do
 		local row = CreateFrame("Frame", nil, PhaseToolkit.TELEFrame)
 		row:SetSize(500, 30)
 		row:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPLEFT", 10, -15 * i - (i * 15))
 
-		-- Texte pour le nom du PNJ
+		-- Text for NPC name
 		row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 		row.name:SetPoint("LEFT", row, "LEFT", 10, 0)
 
-		-- Bouton "Spawn"
+		-- "Spawn" button
 		row.spawnButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 		row.spawnButton:SetSize(80, 30)
 		row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
 		row.spawnButton:SetText("Goto")
 
-		-- Bouton "Delete"
+		-- "Delete" button
 		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 		row.deleteButton:SetSize(80, 30)
 		row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
@@ -5287,35 +5856,46 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 
 		PhaseToolkit.RegisterTooltip(row.addToCategoryButton,"add to selected category")
 		PhaseToolkit.RegisterTooltip(row.getOutOfCategoryButton,"remove from selected category")
-		-- Ajouter la ligne au tableau pour gestion
+		-- Add the row to the table for management
 		PNJRows[i] = row
 	end
 
 
 
-	-- Fonction pour afficher les PNJ sur la page actuelle
+	-- Function to display NPCs on the current page
 	local function DisplayPage(teleList)
-		-- Calcul des indices de la page actuelle
+		-- Calculate indices for the current page
 		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageTELE + 1
 		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageTELE, #teleList)
 
 		local isAlreadyBiggerForAddToCategory=false
 		local isAlreadyBiggerForGetOutOfCategory=false
 
-		-- Calculer la largeur maximale des noms pour la page actuelle
+		-- Calculate the maximum width of names for the current page
 		local pageteleList = {}
 		for i = startIndex, endIndex do
 			table.insert(pageteleList, teleList[i])
 		end
 
-		local maxNameWidth = PhaseToolkit.GetMaxStringWidth(pageteleList)
+		-- Gestion spéciale pour les listes vides (résultat de recherche vide)
+		local maxNameWidth
+		if #pageteleList == 0 or #teleList == 0 then
+			maxNameWidth = 100 -- Largeur réduite pour affichage vide (moitié de l'ancienne valeur)
+		else
+			maxNameWidth = PhaseToolkit.GetMaxStringWidth(pageteleList)
+		end
 
-		-- Ajuster la largeur de la GlobalNPCCUSTOMISER_TELEFrame en fonction de la largeur maximale des noms
-		local frameWidth = maxNameWidth + 180 -- 180 pour les boutons et marges
+		-- Adjust the width of GlobalNPCCUSTOMISER_TELEFrame based on the maximum width of names
+		local frameWidth = maxNameWidth + 180 -- 180 for buttons and margins
 		if PhaseToolkit.LookupInTeleListEditBox then
-			PhaseToolkit.LookupInTeleListEditBox:SetWidth(maxNameWidth - 10) -- Ajuster la largeur de la zone de recherche
+			PhaseToolkit.LookupInTeleListEditBox:SetWidth(maxNameWidth - 10) -- Adjust search area width
 		end
 		PhaseToolkit.TELEFrame:SetWidth(frameWidth + 30 * 2)
+		
+		-- Sauvegarder la taille de la frame
+		PhaseToolkit.TELEFrameWidth = PhaseToolkit.TELEFrame:GetWidth()
+		PhaseToolkit.TELEFrameHeight = PhaseToolkit.TELEFrame:GetHeight()
+		
 		if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory then
 			PhaseToolkit.categoryPanelTELE:ClearAllPoints()
 			PhaseToolkit.categoryPanelTELE:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPRIGHT", 5, 0)
@@ -5332,16 +5912,31 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 			generaloffset = -145
 		end
 
-		-- Affichage des PNJ sur la page
+		-- Affichage des PNJ sur la page - d'abord nettoyer TOUTES les rows
+		for i = 1, PhaseToolkit.itemsPerPageTELE do
+			local row = PNJRows[i]
+			-- Reset complet de la row
+			row.name:SetText("") 
+			row:Hide()
+			-- Reset des boutons pour éviter les callbacks incorrects
+			row.spawnButton:SetScript("OnClick", nil)
+			row.deleteButton:SetScript("OnClick", nil)
+			row.addToCategoryButton:SetScript("OnClick", nil)
+			row.getOutOfCategoryButton:SetScript("OnClick", nil)
+			row.addToCategoryButton:Hide()
+			row.getOutOfCategoryButton:Hide()
+		end
+		
+		-- Display NPCs on the page
 		for i = 1, PhaseToolkit.itemsPerPageTELE do
 			local idx = startIndex + i - 1
 			local row = PNJRows[i]
 			if idx <= endIndex then
 				local tele = teleList[idx]
-				row.name:SetText(tele) -- Affiche le nom de la créature
+				row.name:SetText(tele) -- Display creature name
 				row:Show()
 
-				-- Associe l'ID de la créature aux boutons "Spawn" et "Delete"
+				-- Associate creature ID with "Spawn" and "Delete" buttons
 				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(tele) end)
 				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(tele) end)
 
@@ -5419,7 +6014,7 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	TeleCurrentPageeditBox:SetPoint("LEFT", prevButton, "RIGHT", 10, 0)
 	TeleCurrentPageeditBox:SetNumeric(true)
 	TeleCurrentPageeditBox:SetAutoFocus(false)
-	TeleCurrentPageeditBox:SetText(currentPage)
+	TeleCurrentPageeditBox:SetText(tostring(currentPage))
 
 	NumberOfPageMaxLabelTele = PhaseToolkit.TELEFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	NumberOfPageMaxLabelTele:SetText("/ " .. totalPages)
@@ -5433,28 +6028,24 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 	TeleCurrentPageeditBox:SetScript("OnEnterPressed", function()
 		if TeleCurrentPageeditBox:GetText() ~= "" and tonumber(TeleCurrentPageeditBox:GetText()) ~= 0 and tonumber(TeleCurrentPageeditBox:GetText()) <= totalPages then
 			currentPage = TeleCurrentPageeditBox:GetNumber()
-			TeleCurrentPageeditBox:SetText(currentPage)
-			if (PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
-				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
-			else
-				PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
-			end
+			TeleCurrentPageeditBox:SetText(tostring(currentPage))
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 			TeleCurrentPageeditBox:ClearFocus()
 		end
 	end)
 
 
-	-- Création des boutons de navigation
+	-- Create navigation buttons
 	local nextButton = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
 	nextButton:SetSize(80, 30)
 	nextButton:SetPoint("LEFT", prevButton, "RIGHT", 70, 0)
 	nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
 
-	-- Fonction pour mettre à jour les boutons et afficher la page
+	-- Function to update buttons and display the page
 	function PhaseToolkit.TeleUpdatePagination(teleList)
 		totalPages = math.ceil(#teleList / PhaseToolkit.itemsPerPageTELE)
 
-		-- Mise à jour de l'état des boutons de navigation
+		-- Update navigation button states
 		if currentPage <= 1 then
 			prevButton:Disable()
 		else
@@ -5467,37 +6058,38 @@ function PhaseToolkit.CreateTeleListFrame(_teleList)
 			nextButton:Enable()
 		end
 
-		-- Affichage de la page actuelle
+		-- Display the current page
 		NumberOfPageMaxLabelTele:SetText("/ " .. totalPages)
 		DisplayPage(teleList)
 	end
 
-	-- Gestion des événements des boutons de pagination
+	-- Handle pagination button events
 	nextButton:SetScript("OnClick", function()
 		if currentPage < totalPages then
 			currentPage = currentPage + 1
-			TeleCurrentPageeditBox:SetText(currentPage)
-			PhaseToolkit.TeleUpdatePagination(_teleList) -- Mise à jour avec la liste de PNJ fournie
+			TeleCurrentPageeditBox:SetText(tostring(currentPage))
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 		end
 	end)
 
 	prevButton:SetScript("OnClick", function()
 		if currentPage > 1 then
 			currentPage = currentPage - 1
-			TeleCurrentPageeditBox:SetText(currentPage)
-			PhaseToolkit.TeleUpdatePagination(_teleList)
+			TeleCurrentPageeditBox:SetText(tostring(currentPage))
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 		end
 	end)
 
-	-- Affichage initial des PNJ à la première page
+	-- Initial display of NPCs on the first page
 	PhaseToolkit.TELEFrame:SetScript("OnShow", function()
-		currentPage = 1
-		PhaseToolkit.TeleUpdatePagination(_teleList)
+		-- Sauvegarder la page actuelle quand on ferme
+		PhaseToolkit.TELEListcurrentPage = currentPage
+		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 	end)
 
-	PhaseToolkit.TeleUpdatePagination(_teleList)
+	PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 end
---=============================== Recuperation de Tele ===========================--
+--=============================== Teleport Retrieval ===========================--
 
 PhaseToolkit.MaxNumberOfTP = nil
 PhaseToolkit.NumberofTp = 0
@@ -5543,7 +6135,7 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 --#region Phase Options
 -- -- -- -- -- -- -- -- -- -- -- --
--- ============================== Frame pour Phase Option ============================== --
+-- ============================== Frame for Phase Options ============================== --
 
 function PhaseToolkit.CreatePhaseOptionFrame()
 	if (PhaseToolkit.CustomFrame ~= nil) then
@@ -5626,7 +6218,7 @@ function PhaseToolkit.CreatePhaseOptionFrame()
 	PhaseToolkit.recreateFrameModule()
 end
 
---==== Module d'accès de phase ====--
+--==== Phase Access Module ====--
 function PhaseToolkit.createPhaseAccessFrame()
 	PhaseToolkit.moduleForPhaseAccessFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForPhaseAccessFrame:SetBackdrop({
@@ -5693,7 +6285,7 @@ function PhaseToolkit.createPhaseAccessFrame()
 	end
 end
 
---==== Module de météo ====--
+--==== Weather Module ====--
 function PhaseToolkit.createMeteoSettingsFrame()
 	PhaseToolkit.moduleForMetteoSettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForMetteoSettingsFrame:SetBackdrop({
@@ -5740,9 +6332,9 @@ function PhaseToolkit.createMeteoSettingsFrame()
 	end)
 end
 
---==== Module pour l'heure====--
+--==== Time Module ====--
 function PhaseToolkit.createTimeSettingsFrame()
-	-- need une frame module
+	-- need a frame module
 	PhaseToolkit.moduleForTimeSliderFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForTimeSliderFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -5794,9 +6386,9 @@ function PhaseToolkit.createTimeSettingsFrame()
 	end)
 end
 
---==== Module pour le starting ====--
+--==== Starting Module ====--
 function PhaseToolkit.createSetStartingFrame()
-	-- need une frame module
+	-- need a frame module
 	PhaseToolkit.moduleForSetStartingFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForSetStartingFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -5832,9 +6424,9 @@ function PhaseToolkit.createSetStartingFrame()
 	)
 end
 
---==== Module pour les toggles ====--
+--==== Toggles Module ====--
 function PhaseToolkit.createTogglesFrame()
-	-- need une frame module
+	-- need a frame module
 	PhaseToolkit.moduleForTogglesFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForTogglesFrame:SetBackdrop({
 		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -5856,7 +6448,7 @@ function PhaseToolkit.createTogglesFrame()
 	PhaseToolkit.ShowToggleDropDown(Togglesdropdown)
 end
 
---==== Module pour le nom ====--
+--==== Name Module ====--
 function PhaseToolkit.createPhaseSetNameFrame()
 	PhaseToolkit.moduleForPhaseSetNameFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForPhaseSetNameFrame:SetBackdrop({
@@ -5882,7 +6474,7 @@ function PhaseToolkit.createPhaseSetNameFrame()
 	labelForNameTextEdit:SetText(PhaseToolkit.CurrentLang["Phase Name"] or "Phase Name")
 end
 
---==== Module pour la description ====--
+--==== Description Module ====--
 function PhaseToolkit.createPhaseSetDescriptionFrame()
 	PhaseToolkit.moduleForPhaseSetDescriptionFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
 	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetBackdrop({
@@ -5950,65 +6542,65 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 
 function PhaseToolkit.PromptForNPCName()
-	-- Création de l'EditBox
+	-- Create the EditBox
 	local editBox = CreateFrame("EditBox", nil, PhaseToolkit.CustomMainFrame, "InputBoxTemplate")
 	editBox:SetSize(180, 30)
 	editBox:SetPoint("BOTTOMRIGHT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, 0)
 	editBox:SetAutoFocus(true)
 
-	-- Fonction de validation de la saisie
+	-- Input validation function
 	local function OnEnterPressed(self)
 		local npcName = self:GetText()
 		if npcName and npcName ~= "" then
-			-- Envoi de la commande
+			-- Send the command
 			sendAddonCmd("phase forge npc name " .. npcName, nil)
 		end
 		self:ClearFocus()
-		self:Hide() -- Ferme l'EditBox après la saisie
+		self:Hide() -- Close the EditBox after input
 	end
 
-	-- Ajout de l'événement pour le bouton "Entrée"
+	-- Add the event for the "Enter" button
 	editBox:SetScript("OnEnterPressed", OnEnterPressed)
 	editBox:SetScript("OnEscapePressed", function()
 		editBox:ClearFocus()
 		editBox:Hide()
 	end)
 
-	-- Afficher l'EditBox
+	-- Show the EditBox
 	editBox:Show()
-	editBox:SetFocus() -- Focaliser l'EditBox pour que l'utilisateur puisse commencer à taper
+	editBox:SetFocus() -- Focus the EditBox so the user can start typing
 end
 
 function PhaseToolkit.PromptForNPCSubName()
-	-- Création de l'EditBox
+	-- Create the EditBox
 	local editBox = CreateFrame("EditBox", nil, PhaseToolkit.CustomMainFrame, "InputBoxTemplate")
 	editBox:SetSize(180, 30)
 	editBox:SetPoint("BOTTOMRIGHT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, -10)
 	editBox:SetAutoFocus(true)
 
-	-- Fonction de validation de la saisie
+	-- Input validation function
 	local function OnEnterPressed(self)
 		local npcName = self:GetText()
 		if npcName and npcName ~= "" then
 			sendAddonCmd("phase forge npc subname " .. npcName, nil)
 		end
 		self:ClearFocus()
-		self:Hide() -- Ferme l'EditBox après la saisie
+		self:Hide() -- Close the EditBox after input
 	end
 
-	-- Ajout de l'événement pour le bouton "Entrée"
+	-- Add the event for the "Enter" button
 	editBox:SetScript("OnEnterPressed", OnEnterPressed)
 	editBox:SetScript("OnEscapePressed", function()
 		editBox:ClearFocus()
 		editBox:Hide()
 	end)
 
-	-- Afficher l'EditBox
+	-- Show the EditBox
 	editBox:Show()
-	editBox:SetFocus() -- Focaliser l'EditBox pour que l'utilisateur puisse commencer à taper
+	editBox:SetFocus() -- Focus the EditBox so the user can start typing
 end
 
--- ============================== Frame pour Custom ============================== --
+-- ============================== Frame for Custom ============================== --
 function PhaseToolkit.CreateCustomFrame()
 	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
 		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
@@ -6164,7 +6756,7 @@ function PhaseToolkit.CreateCustomGrid(data)
 			buttonMoins.icon:SetAllPoints()
 			buttonMoins:SetScript("OnClick", function()
 				if (PhaseToolkit.GeneralStat[attribute] == 1) then
-					-- si on est a 1 et qu'on fais -1 on arrive au max
+					-- if we're at 1 and do -1 we reach the max
 					PhaseToolkit.GeneralStat[attribute] = value
 					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
 					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
@@ -7343,16 +7935,72 @@ StaticPopupDialogs["CONFIRM_DELETE_TELE"] = {
 	button1 = "Yes",
 	button2 = "No",
 	OnAccept = function(self, data)
-		sendAddonCmd("phase tele delete " .. data, nil, false)
-		PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, data)
-		if(PhaseToolkit.IsCurrentlyFilteringTeleViaText or PhaseToolkit.IsCurrentlyFilteringTeleViaCategory) then
-			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
-		else
-			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
-		end
-	end,
+    -- Use the correct field: teleId
+    sendAddonCmd("phase tele delete " .. data.teleId, nil, false)
+
+    PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, data.teleId)
+
+    if (PhaseToolkit.IsCurrentlyFilteringTeleViaText or PhaseToolkit.IsCurrentlyFilteringTeleViaCategory) then
+        PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+    else
+        PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+    end
+end,
 	timeout = 0,
 	whileDead = true,
 	hideOnEscape = true,
 	preferredIndex = 3,
 }
+
+StaticPopupDialogs["OPEN_OUTFIT_COPY_POPUP"]={
+	text="Copy / Export Outfit Data",
+	OnShow=function(self,data)
+		self.editBox:SetWidth(270)
+		self.editBox:SetText(data.serializedData)
+		self.editBox:SetFocus(true)
+		self.editBox:HighlightText()
+		self.editBox:SetScript("OnEscapePressed", function()
+			self.editBox:ClearFocus()
+			self:Hide()
+		end)
+	end,
+	hasEditBox=true,
+	OnAccept= function(self)
+		self:Hide();
+	end,
+	OnCancel=function(self)
+		self:Hide();
+	end,
+	button1 = "Close",
+	timeout=0,
+	hideOnEscape=true,
+}
+
+StaticPopupDialogs["OPEN_OUTFIT_PASTE_POPUP"]={
+	text="Paste Outfit Data",
+	OnShow=function(self,data)
+		self.editBox:SetWidth(270)
+		self.editBox:SetFocus(true)
+		self.editBox:SetCursorPosition(0)
+		self.editBox:SetScript("OnEscapePressed", function()
+			self.editBox:ClearFocus()
+			self:Hide()
+		end)
+	end,
+	hasEditBox=true,
+	OnAccept= function(self)
+		--paste the serialized data from the edit box onto the npc
+		self:Hide();
+		local text = self.editBox:GetText()
+		if(text and text~="") then
+			PhaseToolkit.ApplyNpcCustomisation(text)
+		end
+	end,
+	OnCancel=function(self)
+		self:Hide();
+	end,
+	button1 = "Close",
+	timeout=0,
+	hideOnEscape=true,
+}
+

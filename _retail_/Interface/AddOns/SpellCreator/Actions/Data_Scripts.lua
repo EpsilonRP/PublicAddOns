@@ -631,6 +631,107 @@ end
 --#endregion
 --------------------
 
+--------------------
+--#region Generic Teleport Visual System
+--------------------
+local tele = {}
+
+local function CallbackClosure(func, ...)
+	if type(func) ~= "function" then error("newCallback arg #1 must be a function") end
+	local args = { ... }
+	local numArgs = select("#", ...)
+	return function() func(unpack(args, numArgs)) end
+end
+
+local function cast(id, trig, self, revert)
+	if trig == nil then trig = true end
+	if self == nil then self = true end
+	cmd(("cast %s %s %s"):format(id, (trig and "triggered" or ""), (self and "self" or "")))
+
+	if revert then
+		C_Timer.After(tonumber(revert) or 0.25, CallbackClosure(cmd, "unaura " .. id .. " self"))
+	end
+end
+
+---@class CastSpellData
+---@field [1] number SpellID
+---@field [2] boolean? triggered
+---@field [3] boolean? self
+---@field [4] boolean|number? revert (true, false, or a number to specify the revert time)
+
+---@alias TeleVisual CastSpellData[]
+
+---@type TeleVisual[]
+local teleVisuals = {
+	{ -- [1] Classic
+		delay = 0.8,
+		{ 41232 },
+	},
+	{ -- [2] Bastion
+		delay = 2,
+		{ 335419, nil, true, 3 },
+	},
+	{ -- [3] Progenitor
+		{ 367049 },
+		{ 364475, false, false },
+	},
+	{ -- [4] Arcane
+		-- 361504,361505,355673,367731
+		{ 361504 },
+		{ 361505 },
+	},
+	{ -- [5] Holy
+		{ 253303, nil, nil, true },
+		--317142
+	},
+	{ -- [6] Epsilon Sparkle FX
+		delay = 7.01,
+		{ 272187, nil, true, 3 },
+		{ 274920, nil, true, 6 - 0.5, delay = 0.5 },
+		{ 237075, nil, true, 7 - 3,   delay = 3 },
+	},
+	{ -- [7] Fade to Black Screen FX
+		{ 1000112, nil, true, 1 },
+	},
+	{ -- [8] Tele Full Screen FX
+		delay = 2,
+		{ 344538, nil, true, 3 },
+	},
+	{ -- [9] Zereth Mortis Holy Screen FX
+		delay = 1.5,
+		{ 364782, nil, true, 3 }
+	},
+	{ -- [10] Chromie Time FX
+		delay = 1.5,
+		{ 340741, nil, true, 0.5 }
+	},
+	{ -- [11] Blood Screen FX
+		delay = 1.5,
+		{ 344545, nil, true, 2 },
+	},
+}
+
+function tele.port(comm, visualID)
+	visualID = tonumber(visualID)
+	if not visualID then visualID = 1 end
+
+	for _, v in ipairs(teleVisuals[visualID]) do
+		if v.delay then
+			C_Timer.After(v.delay, function() cast(v[1], v[2], v[3], v[4]) end)
+		else
+			cast(v[1], v[2], v[3], v[4])
+		end
+	end
+
+	local delay = teleVisuals[visualID].delay or 1
+
+	C_Timer.After(delay, CallbackClosure(cmd, comm))
+end
+
+--------------------
+--#endregion
+--------------------
+
 ARC._DEBUG.DATA_SCRIPTS = {
 	keybindings = keybindFrame.bindings
 }
@@ -647,6 +748,7 @@ ns.Actions.Data_Scripts = {
 	TRP3e_items = TRP3e.items,
 
 	items = items,
+	tele = tele,
 
 	runScriptPriv = runScriptPriv
 }

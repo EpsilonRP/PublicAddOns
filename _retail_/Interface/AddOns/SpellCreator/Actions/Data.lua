@@ -678,23 +678,36 @@ local actionTypeData = {
 	-- 	["revert"] = nil,
 	-- }),
 
-	[ACTION_TYPE.CheatOn] = serverAction("Enable Cheat", {
-		command = "cheat @N@ on",
+	[ACTION_TYPE.CheatOn] = scriptAction("Enable Cheat", {
+		--command = "cheat @N@ on",
+		command = function(vars)
+			local cheat = vars:lower()
+			EpsilonLib.Cheat.Enable(cheat, true)
+		end,
 		description = "Enables the specified cheat.\n\rUse " .. Tooltip.genContrastText('.cheat') .. " to view available cheats.",
 		dataName = "Cheat",
 		inputDescription = "The cheat command to enable.\n\rCommon Cheats:\r" ..
-			Tooltip.genContrastText({ "casttime", "cooldown", "god", "waterwalk", "duration", "slowcast" }) .. "\n\rUse " .. Tooltip.genContrastText(".cheat") .. " to view all available cheats.",
+			Tooltip.genContrastText({ "fly", "casttime", "cooldown", "god", "waterwalk", "duration", "slowcast" }) .. "\n\rUse " .. Tooltip.genContrastText(".cheat") .. " to view all available cheats.",
 		example = "\r" .. Tooltip.genContrastText("cast") .. " will enable instant cast cheat\r" .. Tooltip.genContrastText("cool") .. " will enable no cooldowns cheat",
-		revert = "cheat @N@ off",
+		revert = function(vars)
+			local cheat = vars:lower()
+			EpsilonLib.Cheat.Disable(cheat, true)
+		end,
 		revertDesc = "Disable the cheat",
 	}),
-	[ACTION_TYPE.CheatOff] = serverAction("Disable Cheat", {
-		command = "cheat @N@ off",
+	[ACTION_TYPE.CheatOff] = scriptAction("Disable Cheat", {
+		command = function(vars)
+			local cheat = vars:lower()
+			EpsilonLib.Cheat.Disable(cheat, true)
+		end,
 		description = "Disables the specified cheat.\n\rUse " .. Tooltip.genContrastText('.cheat') .. " to view available cheats.",
 		dataName = "Cheat",
 		inputDescription = "The cheat command to disable.\n\rUse " .. Tooltip.genContrastText('.cheat') .. " to view available cheats.",
 		example = "\r" .. Tooltip.genContrastText("cast") .. " will disable instant cast cheat\r" .. Tooltip.genContrastText("cool") .. " will disable no cooldowns cheat",
-		revert = "cheat @N@ on",
+		revert = function(vars)
+			local cheat = vars:lower()
+			EpsilonLib.Cheat.Enable(cheat, true)
+		end,
 		revertDesc = "Enable the cheat",
 	}),
 
@@ -1143,15 +1156,15 @@ local actionTypeData = {
 		revert = nil,
 		doNotDelimit = true,
 	}),
-	[ACTION_TYPE.PrintMsg] = scriptAction("Chatbox Message", {
+	[ACTION_TYPE.PrintMsg] = scriptAction("Chatbox Message (Self)", {
 		command = print,
-		description = "Prints a message in the chatbox.",
+		description = "Prints a message in the chatbox, only for the person casting the spell.",
 		dataName = "Text",
 		inputDescription = "The text to print into the chatbox.",
 		revert = nil,
 		doNotDelimit = true,
 	}),
-	[ACTION_TYPE.RaidMsg] = scriptAction("Raid Message", {
+	[ACTION_TYPE.RaidMsg] = scriptAction("Raid Message (Self)", {
 		command = function(msg)
 			RaidNotice_AddMessage(RaidWarningFrame, msg, ChatTypeInfo["RAID_WARNING"])
 		end,
@@ -1161,7 +1174,7 @@ local actionTypeData = {
 		revert = nil,
 		doNotDelimit = true,
 	}),
-	[ACTION_TYPE.ErrorMsg] = scriptAction("UI Message", {
+	[ACTION_TYPE.ErrorMsg] = scriptAction("UI Message (Self)", {
 		command = function(msg)
 			--[[
 			--local args, numArgs = parseArgsWrapper(msg)
@@ -3112,10 +3125,9 @@ local actionTypeData = {
 	}),
 
 	-- SendSay = "SendSay",              -- SendChatMessage("SAY")
-	[ACTION_TYPE.SendSay] = scriptAction("/say", {
+	[ACTION_TYPE.SendSay] = scriptAction("Say (/say)", {
 		command = function(vars)
-			local rps_command = ("SendChatMessage('%s', 'SAY')"):format(vars:gsub("'", "\\'"))
-			RunPrivileged(rps_command)
+			Scripts.sendChat(vars, "SAY")
 		end,
 		description =
 		"Sends a /say chat message.",
@@ -3127,7 +3139,32 @@ local actionTypeData = {
 	}),
 
 	-- SendYell = "SendYell",            -- SendChatMessage("YELL")
+	[ACTION_TYPE.SendYell] = scriptAction("Yell (/yell)", {
+		command = function(vars)
+			Scripts.sendChat(vars, "YELL")
+		end,
+		description =
+		"Sends a /yell chat message.",
+		dataName = 'Message to Yell',
+		doNotDelimit = true,
+		revertAlternative = "Words yelled into the wind are forever..",
+		requirement = "C_Epsilon.RunPrivileged",
+		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
+	}),
 	-- SendEmote = "SendEmote",          -- SendChatMessage("EMOTE")
+	[ACTION_TYPE.SendEmote] = scriptAction("Emote (/emote)", {
+		command = function(vars)
+			Scripts.sendChat(vars, "EMOTE")
+		end,
+		description =
+		"Sends a /emote chat message.",
+		dataName = 'Message to Emote',
+		doNotDelimit = true,
+		revertAlternative = "You'll need to void that emote yourself..",
+		requirement = "C_Epsilon.RunPrivileged",
+		disabledWarning = "\nAction Unavailable (EPSI_RSP_MISSING)"
+	}),
+
 	-- SendChannel = "SendChannel",      -- SendChatMessage("CHANNEL")
 	-- SendRaidWarning = "SendRaidWarning", -- SendChatMessage("RAID_WARNING")
 

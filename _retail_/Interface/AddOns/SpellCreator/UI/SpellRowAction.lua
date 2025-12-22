@@ -193,10 +193,11 @@ local baseMenuList = {
 	})),
 
 	header("Commands / Other"),
-	--[[
+	--[[ -- Disabled as it's buggy and doesn't work properly on delay; plus, not very secure either.
 	selectmenu("Chat", {
 		action(ACTION.SendSay),
-		--action(ACTION.SendYell),
+		action(ACTION.SendYell),
+		action(ACTION.SendEmote),
 	}),
 	--]]
 	selectmenu("Target", {
