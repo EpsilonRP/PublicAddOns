@@ -451,11 +451,18 @@ EpsilonPhases:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, isLogin, isRelo
 		EpsilonPhases:RegisterEvent("FIRST_FRAME_RENDERED", function()
 			EpsilonPhases:GetMallsFromMPDirectory()
 			if EpsilonPhases.HomePhase ~= nil and isLogin and not isReload then
-				C_Timer.After(1,
-					function()
+				if TRP3_API and TRP3_API.events then
+					TRP3_API.events.registerCallback(TRP3_API.events.BROADCAST_CHANNEL_READY, function()
 						sendAddonCmd("phase enter " ..
 							EpsilonPhases.HomePhase .. ' ' .. EpsilonPhases.HomePhaseEntry)
 					end)
+				else
+					C_Timer.After(1,
+						function()
+							sendAddonCmd("phase enter " ..
+								EpsilonPhases.HomePhase .. ' ' .. EpsilonPhases.HomePhaseEntry)
+						end)
+				end
 			end
 			EpsilonPhases:UnregisterEvent("FIRST_FRAME_RENDERED")
 		end)
