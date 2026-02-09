@@ -1221,7 +1221,7 @@ local function setupGlanceAnchor()
 			end
 			tt:SetWidth(50)
 		end
-	elseif anchorPosition == "ANCHOR_BOTTOMRIGHT" then
+	elseif anchorPosition == "ANCHOR_BOTTOMRIGHT" or anchorPosition == "ANCHOR_TOPRIGHT" then
 		for i, tt in ipairs(ui_GlanceTTs) do
 			tt:SetOwner(ui_CharacterTT, "ANCHOR_NONE");
 			if i == 1 then
@@ -1390,6 +1390,11 @@ TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOAD, function()
 		-- The event UPDATE_MOUSEOVER_UNIT is fired even when there is no unit on tooltip
 		-- But there is a target on mouseover (maintaining ALT on spell buttons)
 		-- So we need to check that we have indeed a unit before displaying our tooltip.
+		if TargetBuffsMover and TargetBuffsMover:IsMouseOver(2, -15, -15, 15) or TargetDebuffsMover and TargetDebuffsMover:IsMouseOver(5, -15, -15, 15) then
+			ui_CharacterTT:Hide();
+			ui_CompanionTT:Hide();
+			return;
+		end
 		if GameTooltip:GetUnit() then
 			local targetID, targetMode = getUnitID("mouseover");
 			Events.fireEvent(Events.MOUSE_OVER_CHANGED, targetID, targetMode, "mouseover");
@@ -1397,7 +1402,7 @@ TRP3_API.events.listenToEvent(TRP3_API.events.WORKFLOW_ON_LOAD, function()
 	end);
 	hooksecurefunc(GameTooltip, "SetUnit", function()
 		local _, unitID = GameTooltip:GetUnit();
-		if unitID then
+		if unitID and not (TargetBuffsMover and TargetBuffsMover:IsMouseOver(0, -15, -15, 15) or TargetDebuffsMover and TargetDebuffsMover:IsMouseOver(0, -15, -15, 15)) then
 			local targetID, targetMode = getUnitID(unitID);
 			Events.fireEvent(Events.MOUSE_OVER_CHANGED, targetID, targetMode, unitID);
 		end
