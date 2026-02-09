@@ -575,9 +575,9 @@ local conditions = {
 				inputs = { input("Aura ID", "number"), input("Stacks", "number"), input("Or Greater Than", "boolean?"), },
 				script = function(auraID, stacks, greaterThan)
 					local spell = { ns.Utils.Aura.checkTargetAuraID(tonumber(auraID)) }
-					if #spell == 0 then return false end                                -- no spell, fail
-					local spellStacks = select(3, spell); if spellStacks == 0 then spellStacks = 1 end -- Convert 0 to 1, since that just means we have one stack and it's not stackable.
-					if greaterThan and toBoolean(greaterThan) then                      -- greaterThan was real & also was true bool
+					if #spell == 0 then return false end                        -- no spell, fail
+					local spellStacks = spell[3]; if spellStacks == 0 then spellStacks = 1 end -- Convert 0 to 1, since that just means we have one stack and it's not stackable.
+					if greaterThan and toBoolean(greaterThan) then              -- greaterThan was real & also was true bool
 						return spellStacks >= tonumber(stacks)
 					else
 						return spellStacks == tonumber(stacks)
