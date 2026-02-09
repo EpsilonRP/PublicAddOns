@@ -175,6 +175,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field isNumeric? boolean force the editbox to be numeric only
 ---@field editJustifyH? "LEFT"|"CENTER"|"RIGHT" modify editBox justifyH - default is LEFT
 ---@field editJustifyV? "TOP"|"MIDDLE"|"BOTTOM" modify editBox justifyV - default is TOP
+---@field insertedFrame? frame frame to insert into the dialog; goes under the edit box
 
 
 ---@param customData GenericInputCustomData
@@ -200,7 +201,7 @@ end
 
 local function multiLineNonEmptyTextHandler(self)
 	local scrollframe = self:GetParent();
-	local dialog = scrollframe:GetParent();
+	local dialog = scrollframe:GetParent():GetParent();
 	dialog.button1:SetEnabled(strtrim(self:GetText()) ~= "");
 end
 
@@ -275,25 +276,46 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 	editBoxWidth = 340
 };
 
+local containerFrame
 local multiLineInputBox
-local function genMultiLineInputBoxOnDemand(width)
+local function genMultiLineInputBoxOnDemand(width, insertedFrame)
+	if not containerFrame then
+		containerFrame = CreateFrame("Frame", nil, nil)
+	end
+
+	containerFrame:SetSize(330, 180)
+
 	if not multiLineInputBox then
-		multiLineInputBox = CreateFrame("ScrollFrame", nil, nil, "InputScrollFrameTemplate")
+		multiLineInputBox = CreateFrame("ScrollFrame", nil, containerFrame, "InputScrollFrameTemplate")
 		multiLineInputBox:SetSize(330, 180)
 	end
 
-	multiLineInputBox:SetWidth(width and tonumber(width) or 180)
-	multiLineInputBox.EditBox:SetWidth(multiLineInputBox:GetWidth() - 18)
-	multiLineInputBox.maxLetters = 999999
+	containerFrame.EditBox = multiLineInputBox.EditBox
+	multiLineInputBox:ClearAllPoints()
+	multiLineInputBox:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 0, 0)
+	multiLineInputBox:SetPoint("TOPRIGHT", containerFrame, "TOPRIGHT", 0, 0)
 
-	return multiLineInputBox
+	if insertedFrame then
+		containerFrame:SetHeight(180 + insertedFrame:GetHeight() + 10)
+		insertedFrame:SetParent(containerFrame)
+		insertedFrame:ClearAllPoints()
+		insertedFrame:SetPoint("TOP", multiLineInputBox, "BOTTOM", 0, -10)
+		insertedFrame:Show()
+	end
+
+	multiLineInputBox:SetWidth(width and tonumber(width) or 180)
+	containerFrame:SetWidth(width and tonumber(width) or 180)
+	multiLineInputBox.EditBox:SetWidth(multiLineInputBox:GetWidth() - 18)
+	multiLineInputBox.maxLetters = math.huge
+
+	return containerFrame
 end
 
 ---@param customData GenericInputCustomData
 local function showCustomMultiLineInputBox(customData)
 	local template = "EPSILIB_GENERIC_MULTILINE_INPUT_BOX"
 	runOverrides(StaticPopupDialogs[template], customData)
-	local shownFrame = StaticPopup_Show(template, nil, nil, customData, genMultiLineInputBoxOnDemand(customData.editBoxWidth));
+	local shownFrame = StaticPopup_Show(template, nil, nil, customData, genMultiLineInputBoxOnDemand(customData.editBoxWidth, customData.insertedFrame));
 	--resetOverrides(StaticPopupDialogs[template])
 	restoreCancelButton(StaticPopupDialogs[template])
 
@@ -522,6 +544,23 @@ local function copyText(text)
 	popup.editBox:HighlightText()
 end
 
+local function copyMultiLineText(text)
+	showCustomMultiLineInputBox({
+		text = copy_to_clipboard,
+		subText = " ",
+		callback = function(text)
+			text = text:gsub("'", "\\'")
+			local call = "CopyToClipboard('" .. text .. "')"
+			EpsiLib.RunScript.raw(call)
+			UIErrorsFrame:AddMessage("Copied!", 0.4, 0.73, 1, 1)
+		end,
+		acceptText = CALENDAR_COPY_EVENT,
+		cancelText = CLOSE,
+		inputText = text,
+		editBoxWidth = GetScreenWidth() * 0.5,
+	})
+end
+
 -------------------------------
 ---#endregion
 -------------------------------
@@ -538,4 +577,5 @@ EpsiLib.Utils.GenericDialogs = {
 	GenericDropDown = showGenericDropDown,
 
 	Copy = copyText,
+	CopyMultiLine = copyMultiLineText
 };
