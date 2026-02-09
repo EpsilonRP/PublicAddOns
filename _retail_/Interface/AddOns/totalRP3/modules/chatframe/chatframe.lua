@@ -165,15 +165,15 @@ local function createConfigPage()
 	}
 
 	local EMOTE_PATTERNS = {
-		{ "* Emote *", "(%*.-%*)" },
-		{ "** Emote **", "(%*%*.-%*%*)" },
-		{ "< Emote >", "(%<.-%>)" },
+		{ "* Emote *",             "(%*.-%*)" },
+		{ "** Emote **",           "(%*%*.-%*%*)" },
+		{ "< Emote >",             "(%<.-%>)" },
 		{ "* Emote * + < Emote >", "([%*%<].-[%*%>])" },
 	}
 
 	local OOC_PATTERNS = {
-		{ "( OOC )", "(%(.-%))" },
-		{ "(( OOC ))", "(%(%(.-%)%))" },
+		{ "( OOC )",            "(%(.-%))" },
+		{ "(( OOC ))",          "(%(%(.-%)%))" },
 		{ "(OOC) + (( OOC )) ", "(%(+[^%)]+%)+)" },
 	}
 
@@ -519,12 +519,10 @@ local function wrapNameInColorForNPCEmote(name, senderID, chatColor)
 end
 
 local function handleNPCEmote(message, senderID)
-
 	local chatColor;
 
 	-- Go through all talk types
 	for talkType, talkChannel in pairs(NPC_TALK_PATTERNS) do
-
 		local name;
 		local content;
 
@@ -572,7 +570,6 @@ function TRP3_API.chat.getOwnershipNameID()
 end
 
 function handleCharacterMessage(_, event, message, ...)
-
 	if disabledByOOC() then
 		return false, message, ...;
 	end
@@ -629,6 +626,36 @@ function handleCharacterMessage(_, event, message, ...)
 	return false, message, ...;
 end
 
+local function cleanChatName(name)
+	-- Clean textures: |Tpath:height:width:...|t
+	name = name:gsub(
+		"|T([^:|]+):([^:|]*):?([^:|]*)([^|]*)|t",
+		function(path, height, width, rest)
+			-- Force height/width to 0 (width is optional but we normalize it)
+			if width ~= "" then
+				return "|T" .. path .. ":0:" .. width .. rest .. "|t"
+			else
+				return "|T" .. path .. ":0" .. rest .. "|t"
+			end
+		end
+	)
+
+	-- Clean atlases: |Aatlas:height:width:...|a
+	name = name:gsub(
+		"|A([^:|]+):([^:|]*):?([^:|]*)([^|]*)|a",
+		function(atlas, height, width, rest)
+			if width ~= "" then
+				return "|A" .. atlas .. ":0:" .. width .. rest .. "|a"
+			else
+				return "|A" .. atlas .. ":0" .. rest .. "|a"
+			end
+		end
+	)
+
+	return name
+end
+
+
 local function getFullnameUsingChatMethod(info)
 	local characterName;
 	local nameMethod = configNameMethod();
@@ -640,7 +667,7 @@ local function getFullnameUsingChatMethod(info)
 
 		if characteristics.FN then
 			-- Use custom name if defined
-			characterName = characteristics.FN;
+			characterName = cleanChatName(characteristics.FN);
 		end
 
 		if nameMethod == 4 and characteristics.TI then
@@ -679,7 +706,6 @@ local GetClassColorByGUID = TRP3_API.utils.color.GetClassColorByGUID;
 -- (It is stored in Utils as we need it in other modules like Prat or WIM)
 -- It must receive a fallback function as first parameter. It is the function it will use if we don't handle name customizations ourselves
 function Utils.customGetColoredNameWithCustomFallbackFunction(fallback, event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, channelNumber, arg9, arg10, arg11, arg12, ...)
-
 	assert(fallback, "Trying to call TRP3_API.utils.customGetColoredNameWithCustomFallbackFunction(fallback, event, ...) without a fallback function!")
 
 	if disabledByOOC() then
@@ -693,7 +719,7 @@ function Utils.customGetColoredNameWithCustomFallbackFunction(fallback, event, a
 	-- Do not change stuff if the customizations are disabled for this channel or the GUID is invalid (WIM…), use the default function
 	if not isChannelHandled(event) or not configIsChannelUsed(event) or not GUID or not Utils.guid.isAPlayerGUID(GUID) then
 		return fallback(event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, channelNumber, arg9, arg10, arg11, arg12)
-	end ;
+	end;
 
 	local characterName = unitID;
 	--@type ColorMixin
@@ -701,7 +727,7 @@ function Utils.customGetColoredNameWithCustomFallbackFunction(fallback, event, a
 
 	-- We don't have a unit ID for this message (WTF? Some other add-on must be doing some weird shit again…)
 	-- Bail out, let the fallback function handle that shit.
-	if not unitID then return fallback(event, event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, channelNumber, arg9, arg10, arg11, arg12) end ;
+	if not unitID then return fallback(event, event, arg1, arg2, arg3, arg4, arg5, arg6, arg7, channelNumber, arg9, arg10, arg11, arg12) end;
 
 	-- Check if this message ID was flagged as containing NPC chat
 	-- If it does we use the NPC name that was saved before.
@@ -796,17 +822,16 @@ function hooking()
 	-- in the chat frame to insert it into a text field.
 	-- We can replace the name inserted by the complete RP name of the player if we have it.
 	hooksecurefunc("ChatEdit_InsertLink", function(unitID)
-
-		if disabledByOOC() then return end ;
+		if disabledByOOC() then return end;
 
 		-- If we didn't get a name at all then we have nothing to do here
-		if not unitID then return end ;
+		if not unitID then return end;
 
 		-- Do not modify the name inserted if the option is not enabled or if the ALT key is down.
-		if not configInsertFullRPName() or IsAltKeyDown() then return end ;
+		if not configInsertFullRPName() or IsAltKeyDown() then return end;
 
 		-- Do not modify the name if we don't know that character
-		if not (IsUnitIDKnown(unitID) or unitID == Globals.player_id) then return end ;
+		if not (IsUnitIDKnown(unitID) or unitID == Globals.player_id) then return end;
 
 		local activeChatFrame = ChatEdit_GetActiveWindow();
 
@@ -825,7 +850,6 @@ function hooking()
 			editBox:SetText(textBefore .. name .. textAfter);
 			-- Move the cursor to the end of the insertion
 			editBox:SetCursorPosition(textBefore:len() + name:len());
-
 		end
 	end);
 
@@ -859,7 +883,6 @@ end
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 local function onStart()
-
 	POSSIBLE_CHANNELS = {
 		"CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_EMOTE", "CHAT_MSG_TEXT_EMOTE",
 		"CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
