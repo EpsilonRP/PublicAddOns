@@ -5,6 +5,7 @@
 ## SavedVariables: EpsiLib_DB, EpsiLib_Char_DB
 ## Version: 0.1
 ## LoadWith: Blizzard_UIWidgets
+## Dependencies: Blizzard_WorldMap
 
 Lib\Lib.xml
 
