@@ -1547,7 +1547,15 @@ local function parseBlueprintResponse(IsCommandSuccessful,replies,isUpdating)
             reply = reply:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
             local isCallingAgainNeeded = string.find(reply, "Enter .lookup next") ~= nil
             local isFirstMessage = string.find(reply, "fetched") ~= nil
-            
+            local isAmbiguous = string.find(reply, "is ambiguous:") ~= nil
+
+            if isAmbiguous then
+                print("Something went wrong with the blueprint fetching");
+                print("Please check your alias and ensure that you don't have something like :")
+                print(" '.lo blueprint = XXXXXXXXX' => this would cause the error please remove it and try again.")
+                return
+            end
+
             if(not isFirstMessage) then
                 --283379 - [50] | #2 objects (Created by: Xraan on 2025-03-06).
 
