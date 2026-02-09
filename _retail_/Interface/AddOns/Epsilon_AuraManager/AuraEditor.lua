@@ -123,9 +123,17 @@ function EpsilonAuraManagerAuraEditor_ResetSearch()
 	EpsilonAuraManagerAuraEditor_HideSearchPreview();
 end
 
-function EpsilonAuraManagerAuraEditor_SelectSearch(index)
-	local buff = filteredList[index];
-
+function EpsilonAuraManagerAuraEditor_SelectSearch(index, isSpellID)
+	local buff
+	if isSpellID then
+		local name, subtext, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(index)
+		if name then
+			buff = {}
+			buff = { name = name, icon = icon, spellDesc = GetSpellDescription(buff.spellID, true), spellID = spellID, desc = EpsilonAuraManagerAuraEditor_GetSpellTooltip(spellID) }
+		end
+	else
+		local buff = filteredList[index];
+	end
 	if not (buff) then
 		return
 	end
@@ -273,6 +281,13 @@ function EpsilonAuraManagerAuraEditor_OnTextChanged(self)
 end
 
 function EpsilonAuraManagerAuraEditor_OnEnterPressed(self)
+	local _, _, _, _, _, _, spellID = GetSpellInfo(self:GetNumber())
+	if spellID then
+		local spell = Spell:CreateFromSpellID(spellID)
+		spell:ContinueOnSpellLoad(function()
+			EpsilonAuraManagerAuraEditor_SelectSearch(spellID, true)
+		end)
+	end
 	if self.selectedIndex > 6 or self.selectedIndex < 0 then
 		return;
 	elseif self.selectedIndex == 6 then
