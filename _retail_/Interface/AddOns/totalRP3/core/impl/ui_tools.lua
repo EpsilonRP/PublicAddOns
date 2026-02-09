@@ -1048,6 +1048,9 @@ do
 	-- WoW-format versions of TRP3’s selection handlers
 	local function onIconTagSelected(icon, frame)
 		if not icon or icon == "" then return end
+		if not icon:lower():find("interface\\icons\\") and not icon:lower():find("interface/icons/") then
+			icon = "interface\\icons\\" .. icon
+		end
 		local cursorIndex = frame:GetCursorPosition();
 		local tag = ("|T%s:0|t"):format(icon)
 		insertTag(tag, cursorIndex, frame);
