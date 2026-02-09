@@ -55,6 +55,11 @@ local isSparkConditionsMet            = SparkInit.isSparkConditionsMet
 local isSparkOrSpellNotOnCD           = SparkInit.isSparkOrSpellNotOnCD
 local isSparkType                     = ns.UI.SparkPopups.CreateSparkUI.isSparkType
 
+local textureDevPathFix               = function(path)
+	if not path then return nil end
+	if type(path) ~= "string" then return path end
+	return path:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+end
 
 ---Checks if spark is in range of given X Y Z, or Player Pos if X Y Z not given
 ---@param sparkData SparkTriggerData
@@ -468,12 +473,12 @@ local function showSparkPopup(commID, barTex, index, colorHex, sparkData)
 	else
 		-- It's not an atlas - ensure we're using the correct %-dev string for the texture path if string, then set it as a normal texture
 		if type(texture) == "string" then
-			texture = texture:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+			texture = textureDevPathFix(texture)
 		end
 		bar.Border.style:SetTexture(texture);
 	end
 
-	local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[barTex]
+	local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[textureDevPathFix(barTex)]
 	if styleData and styleData.circular then
 		sparkButton:SetCircular()
 	else

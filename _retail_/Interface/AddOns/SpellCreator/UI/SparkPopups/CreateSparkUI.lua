@@ -31,6 +31,13 @@ local function halloweenUnlockTest(key)
 	return SavedVariables.unlocks.isUnlockedByKeyOrTime(key, event_unlock_dates.halloween2023)
 end
 
+local textureDevPathFix = function(path)
+	if not path then return nil end
+	if type(path) ~= "string" then return path end
+	return path:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+end
+
+
 ------------------------------------
 --#region Spark Types
 ------------------------------------
@@ -865,12 +872,12 @@ local uiOptionsTable = {
 						if sparkUI_Helper.color then vR, vG, vB = CreateColorFromHexString(sparkUI_Helper.color):GetRGBAsBytes() end
 
 						local style = sparkUI_Helper.style
-						local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[style]
+						local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[textureDevPathFix(style)]
 						local width = styleData and styleData.width or 1
 
 						if type(style) == "string" then
 							-- Ensure our FilePath works on -dev addons
-							style = style:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+							style = textureDevPathFix(style)
 						end
 
 						-- For Multi-Sparks, ensure our border accounts for needing a "-number" at the end.
