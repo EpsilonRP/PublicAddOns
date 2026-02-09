@@ -487,7 +487,7 @@
 			<Color r="0.510" g="0.773" b="1.0" a="1.0"/>
 		</NormalFont>
 		<HighlightFont style="SystemFont_Shadow_Med1">
-			
+
 		</HighlightFont>
 		<DisabledFont style="GameFontDisableSmall"/>
 		<HighlightTexture name="$parentHighlightTexture" parentKey="HighlightTexture" file="Interface\PaperDollInfoFrame\UI-Character-Tab-Highlight" alphaMode="ADD">
@@ -497,4 +497,5 @@
 			</Anchors>
 		</HighlightTexture>
     </Button>
+
 </Ui>

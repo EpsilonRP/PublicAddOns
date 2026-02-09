@@ -40,10 +40,15 @@ local raw_atlas_tags = {
 	["left-click"] = CreateAtlasMarkup("NPE_LeftClick"),
 	["right-click"] = CreateAtlasMarkup("NPE_RightClick"),
 	["mouse-wheel"] = CreateAtlasMarkup("newplayertutorial-icon-mouse-middlebutton"),
-	["shift"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0, 0.5, 0, 0.5),
-	["ctrl"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0, 0.5, 0.5, 1),
-	["alt"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0.5, 1, 0, 0.5),
-	["esc"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 64, 128, 24, 12, 0.5, 1, 0.5, 1),
+	["shift"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 128, 64, 21, 12, 0 + (4 / 64), 0.5 - (4 / 64), 0, 0.5),
+	["ctrl"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 128, 64, 21, 12, 0 + (4 / 64), 0.5 - (4 / 64), 0.5, 1),
+	["alt"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 128, 64, 21, 12, 0.5 + (4 / 64), 1 - (4 / 64), 0, 0.5),
+	["esc"] = CreateTextureMarkup(ASSETS_PATH .. "KeyPressIcons.tga", 128, 64, 21, 12, 0.5 + (4 / 64), 1 - (4 / 64), 0.5, 1),
+	["arrow-keys"] = CreateTextureMarkup(ASSETS_PATH .. "ArrowKeys", 128, 64, 18, 12, 0 + (20 / 128), 1 - (20 / 128), 0 + (4 / 64), 1 - (4 / 64)),
+	["left-arrow"] = CreateTextureMarkup(ASSETS_PATH .. "ArrowKeyLeft", 32, 32, 12, 12, 0, 1, 0, 1),
+	["right-arrow"] = CreateTextureMarkup(ASSETS_PATH .. "ArrowKeyRight", 32, 32, 12, 12, 0, 1, 0, 1),
+	["up-arrow"] = CreateTextureMarkup(ASSETS_PATH .. "ArrowKeyUp", 32, 32, 12, 12, 0, 1, 0, 1),
+	["down-arrow"] = CreateTextureMarkup(ASSETS_PATH .. "ArrowKeyDown", 32, 32, 12, 12, 0, 1, 0, 1),
 }
 local text_replacement_tags = {
 	["{left-click}"] = raw_atlas_tags["left-click"],
@@ -65,6 +70,12 @@ local text_replacement_tags = {
 	["{ctrl}"] = raw_atlas_tags["ctrl"],
 	["{alt}"] = raw_atlas_tags["alt"],
 	["{esc}"] = raw_atlas_tags["esc"],
+
+	["{arrow-keys}"] = raw_atlas_tags["arrow-keys"],
+	["{left-arrow}"] = raw_atlas_tags["left-arrow"],
+	["{right-arrow}"] = raw_atlas_tags["right-arrow"],
+	["{up-arrow}"] = raw_atlas_tags["up-arrow"],
+	["{down-arrow}"] = raw_atlas_tags["down-arrow"],
 
 	["{shift-left-click-text}"] = contrastColor:WrapTextInColorCode("Shift + Left-Click"),
 	["{shift-right-click-text}"] = contrastColor:WrapTextInColorCode("Shift + Right-Click"),
