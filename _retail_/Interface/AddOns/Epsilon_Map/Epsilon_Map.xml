@@ -1,0 +1,23 @@
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd" xmlns="http://www.blizzard.com/wow/ui/">
+
+<script file="Utilities.lua"/>
+
+<include file="Templates.xml"/>
+
+<script file="Features/MapTextureManager.lua"/>
+<script file="Features/MapFeatureDefinitions.lua"/>
+
+<script file="Epsilon_Map.lua"/>
+
+<script file="Settings/Settings.lua"/>
+<include file="Settings/Settings.xml"/>
+
+<script file="Sidebar.lua"/>
+<include file="Sidebar.xml"/>
+
+<script file="Pins/PinMixin.lua"/>
+<include file="Pins/Editor.xml"/>
+
+<script file="Features/FeatureMixin.lua"/>
+<include file="Features/Editor.xml"/>
+</Ui>

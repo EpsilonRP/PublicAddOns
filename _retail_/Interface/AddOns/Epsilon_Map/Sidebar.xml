@@ -1,0 +1,471 @@
+<Ui>
+
+	<Button name="EpsilonDropdownExpandButtonTemplate" mixin="EpsilonDropdownExpandButtonMixin" virtual="true" inherits="EpsilonMap_DevTextureIntrinsic_OnLoad_Template">
+		<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerSquareButton" />
+		<Size x="25" y="25"/>
+		<Anchors>
+			<Anchor point="RIGHT"/>
+		</Anchors>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="ArrowIcon" setAllPoints="true" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDropdownArrow"/>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad method="OnLoad" inherit="prepend" intrinsicOrder="precall"/>
+		</Scripts>
+		<Animations>
+			<AnimationGroup parentKey="ActivateAnim">
+				<Rotation smoothing="NONE" duration="0.2" order="1" degrees="-90" targetKey="$parent.$parent.ArrowIcon"/>
+			</AnimationGroup>
+		</Animations>
+	</Button>
+
+	<Frame name="EpsilonMapSidebarPinListEntryTemplate" mixin="EpsilonMap_SidebarEntryMixin" virtual="true" inherits="EpsilonMap_DevTextureIntrinsic_OnLoad_Template">
+		<Size x="258" y="50"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="$parentBackground" parentKey="Background" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryBackground1.blp">
+					<TexCoords left="0.21" top="0.11" bottom="0.89" right="0.79"/>
+					<Size x="258" y="50"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Highlight" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryHighlight.blp" hidden="true">
+					<TexCoords left="0.21" top="0.11" bottom="0.89" right="0.79"/>
+					<Size x="258" y="50"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentIconBorder" parentKey="IconBorder" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryIcon.blp" frameLevel="0">
+					<Size x="60" y="60"/>
+					<Anchors>
+						<Anchor point="LEFT" x="-5"/>
+						<Anchor point="TOP" y="5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture name="$parentIcon" parentKey="Icon" frameLevel="100">
+					<Size x="50" y="50"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+				</Texture>
+				<FontString name="$parentPinTitle" parentKey="Title" inherits="GameFontNormalLarge">
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" y="10"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentPinSubTitle" parentKey="SubTitle" inherits="GameFontNormalSmall">
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" />
+						<Anchor point="TOP" relativeKey="$parent.Title" relativePoint="BOTTOM"/>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentDescription" parentKey="Description" inherits="GameFontWhiteSmall" hidden="true" maxLines="5" justifyH="LEFT" justifyV="TOP">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="5" y="-5"/>
+						<Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button name="$parentEditButton" parentKey="EditButton">
+				<Size x="25" y="25"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT"/>
+				</Anchors>
+				<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEdit.blp"/>
+				<Scripts>
+					<OnClick>
+					EpsilonMap_PinEditorMixin:OpenEditor(WorldMapFrame.mapID, self:GetParent().pinIndex)
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<!--OnClick>
+				if self.pinIndex then
+					self:SelectPinEntry()
+				end
+			</OnClick-->
+			<OnLoad inherit="prepend" intrinsicOrder="precall">
+				self.defaultHeight = self:GetHeight()
+				if not (C_Epsilon.IsOwner() or C_Epsilon.IsOfficer()) then
+					self.EditButton:Hide()
+				end
+			</OnLoad>
+		</Scripts>
+	</Frame>
+
+	<Button name="EpsilonMapSidebarFeatureListEntryTemplate" mixin="EpsilonMap_SidebarEntryMixin" registerForClicks="LeftButtonUp, RightButtonUp" hidden="true" virtual="true" inherits="EpsilonMap_DevTextureIntrinsic_OnLoad_Template">
+		<Size x="258" y="24"/>
+		<Layers>
+			<Layer level="Background">
+				<Texture parentKey="Background" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryBackground">
+					<TexCoords left="0.21" top="0.11" bottom="0.89" right="0.79"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon">
+					<Size x="24" y="24"/>
+					<Anchors>
+						<Anchor point="LEFT"/>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+				<MaskTexture parentKey="IconMask">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPLEFT" x="2" y="-2"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" relativePoint="BOTTOMRIGHT" x="-2" y="2"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Icon"/>
+					</MaskedTextures>
+				</MaskTexture>
+				<FontString inherits="GameFontDisableLarge" parentKey="FeatureCount">
+					<Anchors>
+						<Anchor point="RIGHT" x="-69" />
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="BORDER">
+				<Texture parentKey="IconBg" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryRingBackground.blp">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon" x="-3" y="3"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="3" y="-3"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="IconBorder" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryRing.blp">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon" x="-3" y="3"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="3" y="-3"/>
+					</Anchors>
+				</Texture>
+				<Texture parentKey="Highlight" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerEntryHighlight.blp" hidden="true" setAllPoints="true">
+					<TexCoords left="0.21" top="0.11" bottom="0.89" right="0.79"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<ButtonText parentKey="Text" wordwrap="false" justifyH="LEFT">
+			<Anchors>
+				<Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.IconBorder"/>
+				<Anchor point="RIGHT" x="-40"/>
+			</Anchors>
+		</ButtonText>
+		<NormalFont style="GameFontNormalLarge"/>
+		<HighlightFont style="GameFontHighlightLarge"/>
+		<DisabledFont style="GameFontDisableLarge"/>
+
+		<Frames>
+			<Button parentKey="ExpandButton" hidden="true" inherits="EpsilonDropdownExpandButtonTemplate">
+				<Size x="25" y="25"/>
+				<Anchors>
+					<Anchor point="RIGHT"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="VisibilityButton" inherits="IconButtonTemplate">
+				<Size x="25" y="25"/>
+				<Anchors>
+					<Anchor point="RIGHT" relativePoint="LEFT" relativeKey="$parent.ExpandButton"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon">
+							<Size x="40" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+					local utils = LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils
+					local vis_texture = utils.GetAddonAssetsPath("UI\\CartographerVisible")
+					local hidden_texture = utils.GetAddonAssetsPath("UI\\CartographerInvisible")
+					utils.AddTooltipToFrame(self, "Visibility", "Toggle the Feature / Layer's Visibility on the map")
+
+					self.SetIconState = function(self, vis)
+						local texture = vis and vis_texture or hidden_texture
+						self.Icon:SetTexture(texture);
+						self.HighlightTexture:SetTexture(texture);
+						self.Icon:SetDesaturated(not vis)
+					end
+					self:SetIconState(true)
+					</OnLoad>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" alpha="0.4">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+			<Button parentKey="LockButton" inherits="IconButtonTemplate">
+				<Size x="20" y="25"/>
+				<Anchors>
+					<Anchor point="RIGHT" relativePoint="LEFT" relativeKey="$parent.VisibilityButton"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon">
+							<Size x="20" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+					local utils = LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils
+					local locked_texture = utils.GetAddonAssetsPath("UI\\CartographerLocked")
+					local unlocked_texture = utils.GetAddonAssetsPath("UI\\CartographerUnlocked")
+					utils.AddTooltipToFrame(self, "Lock", "Lock the Feature or Layer to prevent it from being selected or edited.")
+
+					self.SetIconState = function(self, locked)
+						local texture = locked and locked_texture or unlocked_texture
+						self.Icon:SetTexture(texture);
+						self.HighlightTexture:SetTexture(texture);
+						self.Icon:SetDesaturated(not locked)
+					end
+					self:SetIconState(false)
+					</OnLoad>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" alpha="0.4" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerUnlocked">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnEnter>
+			self.Highlight:Show()
+			if MapTextureManager:GetSelected() == self.__mtm_instance then
+				self.Highlight:SetAlpha(1)
+			else
+				self.Highlight:SetAlpha(1)
+			end
+			</OnEnter>
+			<OnLeave>
+			if self.__mtm_instance and (MapTextureManager:GetSelected() == self.__mtm_instance) then return end
+			self.Highlight:Hide()
+			</OnLeave>
+			<OnHide>
+			if self.__mtm_instance then
+				self.__mtm_instance.__sidebar = nil
+			end
+			</OnHide>
+		</Scripts>
+	</Button>
+
+	<Frame name="EpsilonMapSidebarMapFrame" mixin="EpsilonMap_SidebarMixin" enableMouse="true" hidden="true" inherits="EpsilonMap_DevTextureIntrinsic_OnLoad_Template">
+		<Size x="286" y="0"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Header" name="$parentHeader" file="Interface\Addons\Epsilon_Map\Assets\UI/EpsilonCartographerHeader">
+					<Size y="40"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.205" right="0.795" top="0.1" bottom="0.9"/>
+				</Texture>
+				<Texture parentKey="VerticalSeparator" inherits="!UI-Frame-InnerRightTile">
+					<Size x="3" y="0"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativePoint="TOPLEFT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="1">
+				<FontString inherits="GameFontNormalLarge" name="$parentHeaderText" parentKey="HeaderText" text="Epsilon Cartographer">
+					<Anchors>
+						<Anchor point="CENTER" relativeTo="$parentHeader"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<!-- Commented out for now - this 'Header' parentKey conflicts with the 'Header' parentKey texture above -->
+			<!--
+			<Frame parentKey="Header" name="EpsilonMapSidebarHeader" hidden="false">
+			</Frame>
+			-->
+			<!--Slider parentKey="ScrollBar" inherits="UIPanelScrollBarTemplate" valueStep="1" defaultValue="0" minvalue="0" obeyStepOnDrag="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="-22" y="-18"/>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="-22" y="18"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="1">
+						<Texture name="$parentTop" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+							<Size x="31" y="256"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="$parentScrollUpButton" relativePoint="TOPLEFT" x="-7" y="5"/>
+							</Anchors>
+							<TexCoords left="0" right="0.484375" top="0" bottom="1.0"/>
+						</Texture>
+						<Texture name="$parentBottom" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+							<Size x="31" y="106"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollDownButton" relativePoint="BOTTOMLEFT" x="-7" y="-2"/>
+							</Anchors>
+							<TexCoords left="0.515625" right="1.0" top="0" bottom="0.4140625"/>
+						</Texture>
+						<Texture name="$parentMiddle" file="Interface\PaperDollInfoFrame\UI-Character-ScrollBar">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeTo="$parentTop" relativePoint="BOTTOMLEFT"/>
+								<Anchor point="BOTTOMRIGHT" relativeTo="$parentBottom" relativePoint="TOPRIGHT"/>
+							</Anchors>
+							<TexCoords left="0" right="0.484375" top="0.1640625" bottom="1"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					self:GetParent():Refresh()
+				</Scripts>
+			</Slider-->
+			<Button parentKey="TogglePins" text="Pins" mixin="EpsilonMap_SidebarTabMixin">
+				<Size y="26"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentHeader" relativePoint="BOTTOMLEFT" y="1"/>
+					<Anchor point="TOPRIGHT" relativeTo="$parentHeader" relativePoint="BOTTOM" y="1"/>
+				</Anchors>
+				<ButtonText parentKey="Text"/>
+				<DisabledTexture parentKey="Disabled" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTabSelected"/>
+				<PushedTexture parentKey="Pushed" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTabSelected"/>
+				<NormalTexture parentKey="Normal" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTab"/>
+				<NormalFont style="GameFontNormal"/>
+				<DisabledFont style="GameFontHighlight"/>
+				<Scripts>
+					<OnLoad inherit="prepend" intrinsicOrder="precall">
+						local textures = { self:GetRegions() }
+						for k,v in ipairs(textures) do
+							if v:IsObjectType("Texture") then
+								local sizeH, sizeY = 256, 64
+								local hCrop = 6 / sizeH
+								local yCrop = 5 / sizeY
+								v:SetTexCoord(0 + hCrop, 1 - hCrop, 0 + yCrop, 1 - yCrop)
+							end
+						end
+					</OnLoad>
+					<OnEnter method="OnEnter"/>
+					<OnLeave method="OnLeave"/>
+					<OnClick>
+						self:GetParent():SetShowFeatures(false)
+						MapTextureManager:ToggleEditMode(false)
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="ToggleFeatures" text="Features" mixin="EpsilonMap_SidebarTabMixin">
+				<Size y="26"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentHeader" relativePoint="BOTTOM" y="1"/>
+					<Anchor point="TOPRIGHT" relativeTo="$parentHeader" relativePoint="BOTTOMRIGHT" y="1"/>
+				</Anchors>
+				<ButtonText parentKey="Text"/>
+				<DisabledTexture parentKey="Disabled" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTabSelected"/>
+				<PushedTexture parentKey="Pushed" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTabSelected"/>
+				<NormalTexture parentKey="Normal" file="Interface\Addons\Epsilon_Map\Assets\UI\CartographerTab"/>
+				<!--HighlightTexture file="Interface\Addons\Epsilon_Map\Assets\UI/CartographerTabHighlight" alphaMode="ADD"/-->
+				<NormalFont style="GameFontNormal"/>
+				<!--HighlightFont style="GameFontHighlight"/-->
+				<DisabledFont style="GameFontHighlight"/>
+				<Scripts>
+					<OnLoad inherit="prepend" intrinsicOrder="precall">
+						local textures = { self:GetRegions() }
+						for k,v in ipairs(textures) do
+							if v:IsObjectType("Texture") then
+								local sizeH, sizeY = 256, 64
+								local hCrop = 6 / sizeH
+								local yCrop = 5 / sizeY
+								v:SetTexCoord(0 + hCrop, 1 - hCrop, 0 + yCrop, 1 - yCrop)
+							end
+						end
+					</OnLoad>
+					<OnEnter method="OnEnter"/>
+					<OnLeave method="OnLeave"/>
+					<OnClick>
+						self:GetParent():SetShowFeatures(true)
+						MapTextureManager:ToggleEditMode(true)
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<!-- This button swaps between Add Pins & Add Features -->
+			<Button parentKey="ToggleEditor" inherits="EpsilonMap_ButtonTemplate" text="Add Pins">
+				<Size y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.TogglePins" relativePoint="BOTTOMLEFT" x="4"/>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.TogglePins" relativePoint="BOTTOMRIGHT" x="-4"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OpenEditor()
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="AddTextButton" inherits="EpsilonMap_ButtonTemplate" text="Add Text" hidden="true">
+				<Size y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ToggleFeatures" relativePoint="BOTTOMLEFT" x="4"/>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.ToggleFeatures" relativePoint="BOTTOMRIGHT" x="-4"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						MapTextureManager:PromptForNewTextFeature()
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="SettingsButton" inherits="IconButtonTemplate" hidden="false">
+				<Size x="24" y="24"/>
+				<Anchors>
+					<Anchor point="RIGHT" relativeKey="$parent.Header" x="-4"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="mechagon-projects">
+							<Size x="24" y="24"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OpenSettingsMenu()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<Frame parentKey="Contents">
+				<Size x="258" y="418"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT"/>
+				</Anchors>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad" inherit="prepend" intrinsicOrder="precall"/>
+			<OnShow method="OnShow"/>
+		</Scripts>
+	</Frame>
+</Ui>

@@ -1,0 +1,639 @@
+<Ui>
+
+	<Frame name="EpsilonMapSettings" parent="WorldMapFrame" mixin="EpsilonMap_SettingsMixin" hidden="true" inherits="ButtonFrameTemplate,EpsilonMap_DevTextureIntrinsic_OnLoad_Template" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="false" toplevel="true" clampedToScreen="true">
+		<Size x="320" y="500"/>
+		<Anchors>
+			<Anchor point="CENTER"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="MapNameDividerTop" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDivider.blp">
+					<Size x="280" y="8"/>
+					<Anchors>
+						<Anchor point="TOP" y="-28"/>
+					</Anchors>
+					<Color r="0.184" g="0.49" b="0.0" a="1"/>
+				</Texture>
+				<FontString parentKey="MapNameLabel" inherits="GameFontNormalLarge" text="">
+					<Anchors>
+						<Anchor point="TOP" y="-38"/>
+					</Anchors>
+				</FontString>
+				<Texture parentKey="MapNameDividerBottom" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDivider.blp">
+					<Size x="280" y="8"/>
+					<Anchors>
+						<Anchor point="TOP" relativeKey="$parent.MapNameLabel" relativePoint="BOTTOM" y="-2"/>
+					</Anchors>
+					<Color r="0.184" g="0.49" b="0.0" a="1"/>
+				</Texture>
+				<FontString parentKey="RemoveLabel" inherits="GameFontNormal" text="Toggle:">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="21" y="-68"/>
+					</Anchors>
+				</FontString>
+
+				<FontString parentKey="MapBoundariesLabel" inherits="GameFontNormalLarge" text="Map Boundaries">
+					<Anchors>
+						<Anchor point="TOP" y="-223"/>
+					</Anchors>
+				</FontString>
+				<Texture parentKey="MapBoundariesDivider" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDivider.blp">
+					<Size x="280" y="8"/>
+					<Anchors>
+						<Anchor point="BOTTOM" relativeKey="$parent.MapBoundariesLabel" relativePoint="TOP" y="10"/>
+					</Anchors>
+					<Color r="0.184" g="0.49" b="0.0" a="1"/>
+				</Texture>
+				<Texture parentKey="DisplayedMapDivider" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDivider.blp">
+					<Size x="280" y="8"/>
+					<Anchors>
+						<Anchor point="BOTTOM" y="134"/>
+					</Anchors>
+					<Color r="0.184" g="0.49" b="0.0" a="1"/>
+				</Texture>
+				<Texture parentKey="FinalControlsDivider" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerDivider.blp">
+					<Size x="280" y="8"/>
+					<Anchors>
+						<Anchor point="BOTTOM" y="58"/>
+					</Anchors>
+					<Color r="0.184" g="0.49" b="0.0" a="1"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<CheckButton parentKey="CleanFlightPointsCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="18" y="-88"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Flightpoints")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"FlightPointPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"FlightPointPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanEncounterPinsCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanFlightPointsCheckButton" relativePoint="BOTTOMLEFT"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Encounter Journal Pins")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"EncounterJournalPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"EncounterJournalPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanDungeonCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanEncounterPinsCheckButton" relativePoint="BOTTOMLEFT"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Dungeon Portals")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"DungeonEntrancePinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"DungeonEntrancePinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanExplorationCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanFlightPointsCheckButton" relativePoint="TOPRIGHT" x="120"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Exploration Textures")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"MapExplorationPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"MapExplorationPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanPetBattleCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanEncounterPinsCheckButton" relativePoint="TOPRIGHT" x="120"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Pet Battle Trainers")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"PetTamerPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"PetTamerPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanAreaPOICheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanDungeonCheckButton" relativePoint="TOPRIGHT" x="120"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Fast Travel Points")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"AreaPOIPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"AreaPOIPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanMapLinkCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanDungeonCheckButton" relativePoint="BOTTOMLEFT"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Map Links")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"MapLinkPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"MapLinkPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanQuestCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CleanMapLinkCheckButton" relativePoint="BOTTOMLEFT"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Quest Markers")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"QuestPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"QuestPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanStorylineQuestCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.CleanAreaPOICheckButton" relativePoint="BOTTOM"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Storyline Quests")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"StorylineQuestPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"StorylineQuestPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanDigSiteCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.CleanStorylineQuestCheckButton" relativePoint="BOTTOM"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Dig Sites")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"DigSitePinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"DigSitePinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<CheckButton parentKey="CleanFogOfWarCheckButton" inherits="OptionsSmallCheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.CleanQuestCheckButton" relativePoint="BOTTOM"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Fog of War")
+						self.Text:SetFontObject("GameFontHighlightSmall")
+					</OnLoad>
+					<OnClick>
+						self:GetParent().RemovePins(self,"FogOfWarPinTemplate")
+					</OnClick>
+					<OnShow>
+						self:GetParent().SetCheckedState(self,"FogOfWarPinTemplate")
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+			<EditBox parentKey="UpperBoundary" inherits="InputBoxTemplate" autofocus="false">
+				<Size x="55" y="32"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.MapBoundariesLabel" relativePoint="BOTTOM" x="0" y="-20"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontHighlight" text="Top">
+							<Anchors>
+								<Anchor point="BOTTOM" relativePoint="TOP" x="-3" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:SetJustifyH("CENTER");
+						self:SetTextInsets(0, 4, 0, 0);
+					</OnLoad>
+					<OnTextChanged>
+						EpsilonMap_SettingsMixin.ValidateBoundaries(self)
+					</OnTextChanged>
+				</Scripts>
+			</EditBox>
+			<Button parentKey="UseCurrentPosButtonUpper" inherits="IconButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.UpperBoundary"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="poi-islands-table">
+							<Size x="20" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						self:GetParent().UpperBoundary:SetText(math.ceil(select(1, C_Epsilon.GetPosition())))
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Use Current Position", NORMAL_FONT_COLOR);
+						GameTooltip_AddHighlightLine(GameTooltip, "Set this boundary to your current position.");
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" file="Interface\Buttons\UI-Common-MouseHilight">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+			<EditBox parentKey="LowerBoundary" inherits="InputBoxTemplate" autofocus="false">
+				<Size x="55" y="32"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.UpperBoundary" relativePoint="BOTTOM" x="0" y="-30"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontHighlight" text="Bottom">
+							<Anchors>
+								<Anchor point="BOTTOM" relativePoint="TOP" x="-3" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:SetJustifyH("CENTER");
+						self:SetTextInsets(0, 4, 0, 0);
+					</OnLoad>
+					<OnTextChanged>
+						EpsilonMap_SettingsMixin.ValidateBoundaries(self)
+					</OnTextChanged>
+				</Scripts>
+			</EditBox>
+			<Button parentKey="UseCurrentPosButtonLower" inherits="IconButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.LowerBoundary"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="poi-islands-table">
+							<Size x="20" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						self:GetParent().LowerBoundary:SetText(math.ceil(select(1, C_Epsilon.GetPosition())))
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Use Current Position", NORMAL_FONT_COLOR);
+						GameTooltip_AddHighlightLine(GameTooltip, "Set this boundary to your current position.");
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" file="Interface\Buttons\UI-Common-MouseHilight">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+			<EditBox parentKey="LeftBoundary" inherits="InputBoxTemplate" autofocus="false">
+				<Size x="55" y="32"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.UpperBoundary" relativePoint="BOTTOMLEFT" x="-40" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontHighlight" text="Left">
+							<Anchors>
+								<Anchor point="BOTTOM" relativePoint="TOP" x="-3" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:SetJustifyH("CENTER");
+						self:SetTextInsets(0, 4, 0, 0);
+					</OnLoad>
+					<OnTextChanged>
+						EpsilonMap_SettingsMixin.ValidateBoundaries(self)
+					</OnTextChanged>
+				</Scripts>
+			</EditBox>
+			<Button parentKey="UseCurrentPosButtonLeft" inherits="IconButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.LeftBoundary"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="poi-islands-table">
+							<Size x="20" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						self:GetParent().LeftBoundary:SetText(math.ceil(select(2, C_Epsilon.GetPosition())))
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Use Current Position", NORMAL_FONT_COLOR);
+						GameTooltip_AddHighlightLine(GameTooltip, "Set this boundary to your current position.");
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" file="Interface\Buttons\UI-Common-MouseHilight">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+			<EditBox parentKey="RightBoundary" inherits="InputBoxTemplate" autofocus="false">
+				<Size x="55" y="32"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.UpperBoundary" relativePoint="BOTTOMRIGHT" x="40" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontHighlight" text="Right">
+							<Anchors>
+								<Anchor point="BOTTOM" relativePoint="TOP" x="-3" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:SetJustifyH("CENTER");
+						self:SetTextInsets(0, 4, 0, 0);
+					</OnLoad>
+					<OnTextChanged>
+						EpsilonMap_SettingsMixin.ValidateBoundaries(self)
+					</OnTextChanged>
+				</Scripts>
+			</EditBox>
+			<Button parentKey="UseCurrentPosButtonRight" inherits="IconButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.RightBoundary"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="poi-islands-table">
+							<Size x="20" y="20"/>
+							<Anchors>
+								<Anchor point="CENTER" x="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						self:GetParent().RightBoundary:SetText(math.ceil(select(2, C_Epsilon.GetPosition())))
+					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Use Current Position", NORMAL_FONT_COLOR);
+						GameTooltip_AddHighlightLine(GameTooltip, "Set this boundary to your current position.");
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+				<HighlightTexture parentKey="HighlightTexture" alphaMode="ADD" file="Interface\Buttons\UI-Common-MouseHilight">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+				</HighlightTexture>
+			</Button>
+			<Frame name="EpsilonMapMapsDropdown" parentKey="MapsDropdown" inherits="UIDropDownMenuTemplate">
+				<Anchors>
+					<Anchor point="BOTTOM" x="-18" y="70"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="ButtonTexture" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp">
+							<Anchors>
+								<Anchor point="TOPLEFT" x="50" y="3"/>
+								<Anchor point="BOTTOMRIGHT" x="-15" y="2"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontNormal" text="Displayed Map">
+							<Anchors>
+								<Anchor point="CENTER" x="18" y="30" />
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self.Left:Hide()
+						self.Middle:Hide()
+						self.Right:Hide()
+						UIDropDownMenu_SetWidth(self, 200)
+					</OnLoad>
+					<OnShow>
+						self:GetParent():DropdownOnShow()
+					</OnShow>
+				</Scripts>
+			</Frame>
+			<Button parentKey="OverrideMapButton" text="Override Map" inherits="EpsilonMap_ButtonTemplate">
+				<HighlightTexture file="Interface/BUTTONS/ButtonHilight-Square" alphaMode="ADD"/>
+				<Size x="130" y="30"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="20" y="20"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OverrideMap()
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="UndoOverrideButton" text="Undo Override" inherits="EpsilonMap_ButtonTemplate">
+				<HighlightTexture file="Interface/BUTTONS/ButtonHilight-Square" alphaMode="ADD"/>
+				<Size x="130" y="30"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-20" y="20"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+					self:GetParent():UndoOverrides(C_Map.GetBestMapForUnit("player", true))
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad" intrinsicOrder="precall" inherit="prepend"/>
+			<OnShow method="OnShow"/>
+			<OnMouseDown method="StartMoving"/>
+			<OnMouseUp method="StopMovingOrSizing"/>
+		</Scripts>
+	</Frame>
+
+
+	<Frame name="EpsilonMapCartographerSettings" parent="WorldMapFrame" mixin="EpsilonMap_CartographerSettingsMixin" hidden="true" inherits="ButtonFrameTemplate,EpsilonMap_DevTextureIntrinsic_OnLoad_Template" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="false" toplevel="true" clampedToScreen="true" dontSavePosition="true">
+		<Size x="300" y="300" />
+		<Anchors>
+			<Anchor point="LEFT" relativeTo="WorldMapFrame" relativePoint="RIGHT"/>
+		</Anchors>
+		<Frames>
+			<CheckButton parentKey="AllowOfficerToEditCheckButton" inherits="OptionsBaseCheckButtonTemplate" text="Allow Officers to Edit Map Settings &amp; Features">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="18" y="-30"/>
+				</Anchors>
+				<ButtonText parentKey="Text">
+					<Anchors>
+   						<Anchor point="LEFT" relativePoint="RIGHT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="GameFontHighlightSmall"/>
+				<DisabledFont style="GameFontDisableSmall"/>
+
+				<Scripts>
+					<OnLoad>
+						self.tooltipText = "If enabled, officers will be able to edit map settings and features." ..
+							"\n\r|cffFF9999WARNING|r: Map Editing is not designed for multiple users to edit simultaneously." ..
+							"\n\rEnabling this may lead to unexpected behavior if multiple officers are editing at the same time." ..
+							"\n\rOnly enable this if you understand the risks &amp; communicate with your officer team the same."
+					</OnLoad>
+					<OnClick>
+						if not C_Epsilon.IsOwner() then return end
+						self:GetParent():SetOfficerAllowed( self:GetChecked() )
+					</OnClick>
+					<OnShow>
+						self:SetEnabled( C_Epsilon.IsOwner() )
+						self:SetChecked( self:GetParent():IsOfficerAllowed() )
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+
+			<Button parentKey="ExportFeatures" inherits="EpsilonMap_ButtonTemplate" text="Export Features">
+				<Size y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMLEFT" x="8" y="4" />
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOM" x="-4" y="4" />
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						MapTextureManager:ExportBackup()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<Button parentKey="ImportFeatures" inherits="EpsilonMap_ButtonTemplate" text="Import Features">
+				<Size y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOM" x="4" y="4" />
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-8" y="4" />
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						MapTextureManager:ShowImportDialog()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad" intrinsicOrder="precall" inherit="prepend"/>
+			<OnShow method="OnShow"/>
+		</Scripts>
+	</Frame>
+</Ui>
