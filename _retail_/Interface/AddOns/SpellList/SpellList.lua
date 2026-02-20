@@ -19,6 +19,21 @@ SpellList_Options = Addon.Options;
 
 SpellList = Addon;
 
+----------------------------------
+--[[	Epsilon Compatibility	]]
+----------------------------------
+-- Always ask for original spell data
+
+local _GetSpellInfo = GetSpellInfo
+local GetSpellInfo = function(arg1, arg2)
+	return _GetSpellInfo(arg1, arg2, true)
+end
+
+local _GetSpellTexture = GetSpellTexture
+local GetSpellTexture = function(arg1, arg2)
+	return _GetSpellTexture(arg1, arg2, true)
+end
+
 --------------------------
 --[[	Version Check	]]
 --------------------------
