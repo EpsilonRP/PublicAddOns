@@ -162,7 +162,7 @@ function EpsilonMap:RefreshSidebar()
 		DataProvider:Flush()
 
 		for i, pin in ipairs(pins) do
-			if pin and pin.description and pin.title and pin.subtitle and pin.textureIndex then
+			if pin then
 				if pin.discoverable and (not EpsilonMap.discoveredPins[pin.uid] and not C_Epsilon.IsDM) then
 					-- skip undiscovered discoverable pins
 				else
