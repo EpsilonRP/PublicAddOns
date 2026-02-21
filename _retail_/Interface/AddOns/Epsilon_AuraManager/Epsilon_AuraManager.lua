@@ -267,7 +267,12 @@ end
 local _origGetSpellTexture = GetSpellTexture
 
 function GetSpellTexture(id, bookType, context)
-	local spellTexture, originalIcon = _origGetSpellTexture(id, bookType)
+	local spellTexture, originalIcon
+	if bookType then
+		spellTexture, originalIcon = _origGetSpellTexture(id, bookType)
+	else
+		spellTexture, originalIcon = _origGetSpellTexture(id)
+	end
 
 	spellTexture = _GetBestFitOverrideValueOnSpell(id, "icon", context, spellTexture)
 

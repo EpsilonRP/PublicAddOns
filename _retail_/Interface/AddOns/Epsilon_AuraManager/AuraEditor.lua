@@ -132,7 +132,7 @@ function EpsilonAuraManagerAuraEditor_SelectSearch(index, isSpellID)
 			buff = { name = name, icon = icon, spellDesc = GetSpellDescription(buff.spellID, true), spellID = spellID, desc = EpsilonAuraManagerAuraEditor_GetSpellTooltip(spellID) }
 		end
 	else
-		local buff = filteredList[index];
+		buff = filteredList[index];
 	end
 	if not (buff) then
 		return
