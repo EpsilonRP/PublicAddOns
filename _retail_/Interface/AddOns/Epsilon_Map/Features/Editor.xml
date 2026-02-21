@@ -1,0 +1,196 @@
+<Ui>
+
+  <Frame name="EpsilonMapDragIcon" movable="true" enableMouse="true" parent="UIParent" frameStrata="DIALOG">
+	<Size x="72" y="72"/>
+	<Anchors>
+		<Anchor point="CENTER"/>
+	</Anchors>
+	<Layers>
+		<Layer level="OVERLAY">
+			<Texture name="$parentTexture" parentKey="Texture" setAllPoints="true"/>
+		</Layer>
+	</Layers>
+	<Scripts>
+		<OnLoad>
+			self:SetParent(UIParent)
+			self:Hide()
+			self:RegisterForDrag("LeftButton")
+		</OnLoad>
+	</Scripts>
+  </Frame>
+
+  <Button name="EpsilonMapFeaturePickerButton" mixin="EpsilonMap_FeaturePickerButtonMixin" virtual="true" movable="true" enableMouse="true">
+	<Size x="28" y="28"/>
+	<NormalTexture parentKey="NormalTexture" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerGridBackground.blp">
+		<Anchors>
+			<Anchor point="TOPLEFT" x="-1" y="1"/>
+			<Anchor point="BOTTOMRIGHT" x="1" y="-1"/>
+		</Anchors>
+
+	</NormalTexture>
+	<HighlightTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerObjectHighlight.blp"/>
+	<Layers>
+		<Layer level="OVERLAY">
+			<Texture name="$parentTexture" parentKey="FeatureTexture">
+				<Anchors>
+					<Anchor point="CENTER"/>
+				</Anchors>
+			</Texture>
+		</Layer>
+	</Layers>
+	<Scripts>
+		<OnShow method="Refresh"/>
+		<OnClick method="OnClick"/>
+		<OnDoubleClick method="OnDoubleClick"/>
+		<OnEnter method="OnEnter"/>
+		<OnLeave method="OnLeave"/>
+		<OnDragStart method="OnDragStart"/>
+		<OnDragStop method="OnDragStop"/>
+		<OnLoad intrinsicOrder="postcall">
+			local utils = LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils
+			utils.AdjustDevTex(self:GetNormalTexture())
+			utils.AdjustDevTex(self:GetHighlightTexture())
+
+			self.NormalMask = self:CreateMaskTexture()
+			self.NormalMask:SetAllPoints(self.NormalTexture)
+			self.NormalMask:SetTexture(utils.GetAddonAssetsPath("UI\\CartographerGridMask"))
+			self.NormalTexture:AddMaskTexture(self.NormalMask)
+		</OnLoad>
+	</Scripts>
+  </Button>
+
+  <Frame name="EpsilonMapFeaturePicker" parent="EpsilonMapSidebarMapFrame" mixin="EpsilonMap_FeaturePickerMixin" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="false" toplevel="true">
+    <Size x="300" y="534" />
+	<Anchors>
+	   <Anchor point="LEFT" relativeTo="WorldMapFrame" relativePoint="RIGHT"/>
+    </Anchors>
+	<Layers>
+		<Layer level="ARTWORK">
+		<FontString parentKey="CategoryLabel" inherits="GameFontNormalSmall" justifyH="center" text="Category: n/a">
+			<Size y="12"/>
+			<Anchors>
+				<Anchor point="TOP" x="0" y="-24"/>
+			</Anchors>
+		</FontString>
+		</Layer>
+	</Layers>
+
+
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+	  <OnShow method="OnShow"/>
+    </Scripts>
+    <Frames>
+
+      <!-- Layer override box -->
+      <EditBox parentKey="LayerOverrideInput" inherits="NumericInputSpinnerTemplate">
+        <Size x="31" y="20" />
+		<Anchors>
+			<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Inset" relativePoint="BOTTOMLEFT" x="0" y="0" />
+		</Anchors>
+
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString name="$parentText" inherits="GameFontNormalTiny2" parentKey="text" text="Layer">
+					<Anchors>
+						<Anchor point="BOTTOM" relativePoint="TOP" x="-2" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+
+
+        <Scripts>
+			<OnLoad>
+				self:SetMinMaxValues(0, 16);
+				self:SetJustifyH("CENTER");
+				self:SetTextInsets(0, 4, 0, 0);
+				self.IncrementButton:Hide();
+				self.DecrementButton:Hide();
+			</OnLoad>
+		    <OnEnter>
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				GameTooltip_SetTitle(GameTooltip, "Layer Override", NORMAL_FONT_COLOR);
+				GameTooltip_AddHighlightLine(GameTooltip, "Set a specific layer for all placed features.", false);
+				GameTooltip_AddHighlightLine(GameTooltip, "Leave as 0 to use default layer behavior.");
+				GameTooltip:Show();
+			</OnEnter>
+			<OnLeave>
+				GameTooltip:Hide();
+			</OnLeave>
+        </Scripts>
+      </EditBox>
+
+
+      <!-- Search/filter box -->
+      <EditBox parentKey="search" inherits="SearchBoxTemplate">
+        <Size x="210" y="8" />
+        <Anchors>
+          <Anchor point="BOTTOM" relativeKey="$parent.Inset" relativePoint="TOP" x="-17" y="8" />
+        </Anchors>
+
+        <Scripts>
+          <OnTextChanged>
+            SearchBoxTemplate_OnTextChanged(self);
+          </OnTextChanged>
+          <OnEscapePressed function="EditBox_ClearFocus"/>
+        </Scripts>
+      </EditBox>
+	  <CheckButton parentKey="searchAll" inherits="EpsilonCheckBoxTemplate">
+		<KeyValues>
+			<KeyValue key="label" value="All"/>
+			<KeyValue key="tooltipTitle" value="Search All Categories"/>
+		</KeyValues>
+		<Size x="20" y="20" />
+        <Anchors>
+          <Anchor point="LEFT" relativeKey="$parent.search" relativePoint="RIGHT" x="2" y="0" />
+        </Anchors>
+	  </CheckButton>
+
+      <!-- Area for icon selector. -->
+      <Frame parentKey="selectorFrame">
+        <Anchors>
+          <Anchor point="TOPLEFT" x="5" y="-5"/>
+          <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+        </Anchors>
+        <Scripts>
+          <OnLoad>
+          </OnLoad>
+          <OnMouseWheel>
+		  		local newVal = self.scroller:GetValue() - delta * self.scroller:GetValueStep()
+		  		self.scroller:SetValue(newVal)
+          </OnMouseWheel>
+        </Scripts>
+
+        <Frames>
+
+          <!-- Scroll bar -->
+          <Slider parentKey="scroller" inherits="UIPanelScrollBarTrimTemplate" minvalue="0" maxvalue="256" defaultValue="0" valueStep="6" obeyStepOnDrag="true">
+
+            <Anchors>
+              <Anchor point="TOPRIGHT" relativeTo="EpsilonMapFeaturePickerInset" relativePoint="TOPRIGHT" x="2" y="-16" />
+              <Anchor point="BOTTOMRIGHT" relativeTo="EpsilonMapFeaturePickerInset" relativePoint="BOTTOMRIGHT" x="2" y="14" />
+            </Anchors>
+
+            <Layers>
+              <Layer level="BACKGROUND">
+
+                <!-- scroller background -->
+                <Texture setAllPoints="true">
+                  <Color r="0" g="0" b="0" a="0.25"/>
+                </Texture>
+
+              </Layer>
+            </Layers>
+            <Scripts>
+              <OnValueChanged>
+					self:GetParent():GetParent():OnScroll(self)
+              </OnValueChanged>
+            </Scripts>
+          </Slider>
+        </Frames>
+      </Frame>
+
+    </Frames>
+  </Frame>
+</Ui>

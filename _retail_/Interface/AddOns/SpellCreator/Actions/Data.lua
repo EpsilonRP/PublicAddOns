@@ -170,6 +170,8 @@ local ACTION_TYPE = {
 	Morph = "Morph",
 	Native = "Native",
 	Unmorph = "Unmorph",
+	Mount = "Mount",
+	Dismount = "Dismount",
 
 	PlayLocalSoundKit = "PlayLocalSoundKit",
 	PlayLocalSoundFile = "PlayLocalSoundFile",
@@ -222,6 +224,9 @@ local ACTION_TYPE = {
 	BoxPromptCommandNoInput = "BoxPromptCommandNoInput",
 	BoxPromptCommandChoice = "BoxPromptCommandChoice",
 	BoxPromptScriptChoice = "BoxPromptScriptChoice",
+
+	ToggleWorldMap = "ToggleWorldMap",
+	OpenWorldMap = "OpenWorldMap",
 	OpenSendMail = "OpenSendMail",
 	SendMail = "SendMail",
 	TalkingHead = "TalkingHead",
@@ -469,6 +474,15 @@ local actionTypeData = {
 		revertDesc = "demorph",
 		convertLinks = true,
 	}),
+	[ACTION_TYPE.Mount] = serverAction("Mount", {
+		command = "mod mount @N@",
+		description = "Mount your character.",
+		dataName = "Display ID/Link",
+		inputDescription = "No, you can't put multiple to become a hybrid monster..\n\rUse " .. Tooltip.genContrastText('.look displayid') .. " to find IDs.",
+		revert = "dismount",
+		revertDesc = "dismount",
+		convertLinks = true,
+	}),
 	[ACTION_TYPE.Native] = serverAction("Native", {
 		command = "mod native @N@",
 		description = "Modifies your Native to specified Display ID.",
@@ -477,6 +491,20 @@ local actionTypeData = {
 		revert = "demorph",
 		revertDesc = "demorph",
 		convertLinks = true,
+	}),
+	[ACTION_TYPE.Unmorph] = serverAction("Remove Morph", {
+		command = "demorph",
+		description = "Remove all morphs, including natives.",
+		dataName = nil,
+		revert = nil,
+		revertAlternative = "another morph/native action",
+	}),
+	[ACTION_TYPE.Dismount] = serverAction("Dismount", {
+		command = "dismount",
+		description = "Dismounts.",
+		dataName = nil,
+		revert = nil,
+		revertAlternative = "another mount action",
 	}),
 	[ACTION_TYPE.Standstate] = serverAction("Standstate", {
 		command = "mod standstate @N@",
@@ -573,13 +601,6 @@ local actionTypeData = {
 		revert = nil,
 		revertAlternative = "another aura/cast action",
 		selfAble = true,
-	}),
-	[ACTION_TYPE.Unmorph] = serverAction("Remove Morph", {
-		command = "demorph",
-		description = "Remove all morphs, including natives.",
-		dataName = nil,
-		revert = nil,
-		revertAlternative = "another morph/native action",
 	}),
 	[ACTION_TYPE.Unequip] = scriptAction("Unequip Item", {
 		command = function(slotID)
@@ -1555,6 +1576,69 @@ local actionTypeData = {
 		revert = nil,
 		doNotDelimit = true,
 		doNotSanitizeNewLines = true,
+	}),
+	[ACTION_TYPE.ToggleWorldMap] = scriptAction("Toggle World Map", {
+		command = function(vars)
+			vars = vars and strtrim(tostring(vars)):lower()
+			if vars then
+				if vars == "open" then
+					OpenWorldMap()
+					return
+				elseif vars == "close" then
+					if WorldMapFrame:IsShown() then
+						ToggleWorldMap()
+					end
+					return
+				end
+			end
+			ToggleWorldMap()
+		end,
+		description = "Toggles the World Map open or closed.",
+		dataName = "[Open or Close]?",
+		inputDescription = "Optional: 'open' to open the map, 'close' to close the map. Leave blank to simply toggle.",
+		revert = nil,
+		doNotDelimit = true,
+	}),
+	[ACTION_TYPE.OpenWorldMap] = scriptAction("Open World Map", {
+		command = function(vars)
+			vars = vars and strtrim(tostring(vars))
+			if vars and vars:find("^area:") then
+				-- area ID
+				vars = vars:gsub("^area:", "")
+				local areaID = tonumber(vars)
+				if not areaID then return end
+				local HBD_M = LibStub:GetLibrary("HereBeDragons-Migrate")
+				if not HBD_M then
+					ns.Logging.eprint("HereBeDragons-Migrate library not found, cannot open World Map by AreaID.")
+					return
+				end
+				local UiMapId = HBD_M:GetUIMapIDFromMapAreaId(areaID)
+				if not UiMapId then
+					ns.Logging.eprint("No UiMapId found for AreaID " .. areaID .. ". Cannot open World Map to that area.")
+					return
+				end
+
+				OpenWorldMap(UiMapId)
+				return
+			elseif vars and vars:find("^map:") then
+				-- map ID
+				vars = vars:gsub("^map:", "")
+				local mapID = tonumber(vars)
+				if not mapID then return end
+
+				local UiMapId = C_Map.GetMapPosFromWorldPos(mapID, { x = 0, y = 0 })
+				OpenWorldMap(UiMapId)
+				return
+			end
+			OpenWorldMap(vars and tonumber(vars) or nil)
+		end,
+		description = "Opens the World Map, optionally to a specific UiMapId.",
+		dataName = "UiMapId?",
+		inputDescription = "Optional: a UiMapId to open the map to. If not given, opens to current zone." ..
+			"\n\rTo find a UiMapId, go to the map you want on the map, and type '/dump WorldMapFrame:GetMapID()' in chat (case sensitive)." ..
+			"\n\rYou may also provide a Map ID or Area ID (from '.gps') by prefixing it with 'map:' or 'area:' (e.g., 'map:1737' or 'area:8709' for Dranosh Valley).\rThis is less accurate, as some MapIDs / AreaID's may contain multiple options, or are not able to be determined.",
+		revert = nil,
+		doNotDelimit = true,
 	}),
 	[ACTION_TYPE.OpenSendMail] = scriptAction("Open Mail", {
 		command = function(vars)

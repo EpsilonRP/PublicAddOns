@@ -22,7 +22,7 @@ local function checkForAuraID(wantedID, unit)
 
 	local helpful = { AuraUtil.FindAura(checkForAuraIDPredicate, unit, nil, tonumber(wantedID)) }
 	if #helpful > 0 then
-		return unpack(helpful)
+		return unpack(helpful, 1, 15)
 	else
 		return AuraUtil.FindAura(checkForAuraIDPredicate, unit, "HARMFUL", tonumber(wantedID))
 	end

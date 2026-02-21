@@ -262,21 +262,27 @@ function Addon:initialize()
 		if searchText == "" then
 			return
 		end
-		
+
 
 		local spells = {};
 		spellbook.tabs[SpellBookFrame.selectedSkillLine].offset = 0
 		for k,v in pairs(spellbook.spells) do
 			local slotType, spellID = GetSpellBookItemInfo(v, SpellBookFrame.bookType);
 			local fullSpellName, desc
-			if slotType == "SPELL" or slotType == "FUTURESPELL" then	
+			if slotType == "SPELL" or slotType == "FUTURESPELL" then
 				fullSpellName = GetFullSpellName(v, SpellBookFrame.bookType);
 				desc = GetSpellDescription(spellID)
 			elseif slotType == "FLYOUT" then
-				name = GetFlyoutInfo(spellID)
+				name, description, slots = GetFlyoutInfo(spellID)
+				for i=1, slots, 1 do
+					local _,_,_,flyoutName = GetFlyoutSlotInfo(spellID, i)
+					if flyoutName and flyoutName:lower():match(searchText:lower()) then
+						table.insert(spells, v)
+					end
+				end
 			end
 
-			if fullSpellName:lower():match(searchText:lower()) then
+			if fullSpellName and fullSpellName:lower():match(searchText:lower()) then
 				table.insert(spells, v)
 			end
 		end
@@ -362,7 +368,7 @@ function Addon:initialize()
 		end
 
 		spellbook.tabs[startTab].numSlots = spellbook.tabs[startTab].numSlots - 1
-		
+
 		local endPos = (spellbook.tabs[endTab].offset) + 1
 
 		if IsPassiveSpell(spellID) then
@@ -510,7 +516,7 @@ function Addon:initialize()
 
 		for i = 1, GetNumSpellTabs() do
 			local name = GetSpellTabInfo(i)
-			nestedMenu[i] = quickIndentedButton(0,name, function() 
+			nestedMenu[i] = quickIndentedButton(0,name, function()
 				local startPos = GetMappedSlot(slot)
 				MoveSpell(startPos, i)
 				CloseDropDownMenus()
@@ -631,7 +637,7 @@ function Addon:initialize()
 	local function SetupSpellTabRightClick()
 		local spellbookDropdown = CreateFrame("Frame", nil, UIParent, "UIDropDownMenuTemplate")
 
-		UIDropDownMenu_Initialize(spellbookDropdown, function(self) 
+		UIDropDownMenu_Initialize(spellbookDropdown, function(self)
 			local info = UIDropDownMenu_CreateInfo()
 
 			info.text = "Change Icon"
@@ -641,7 +647,7 @@ function Addon:initialize()
 				_G["SpellBookSkillLineTab" .. spellbookDropdown.index]:SetNormalTexture(texture)
 			end, true, true) end
 			UIDropDownMenu_AddButton(info)
-			
+
 			info.text = "Rename"
 			info.notCheckable = true
 			info.func = function()
@@ -667,7 +673,7 @@ function Addon:initialize()
 		local totalSpells = 0
 		local swapped_spells = {}
 		spellbook.spells = {}
-		for i = 1,numSpellTabs do 
+		for i = 1,numSpellTabs do
 			local name, texture, offset, numSlots, isGuild, offspecID = _origSpellTab(i)
 			local numSpells = 0
 			spellbook.tabs[i] = spellbook.tabs[i] or {}
@@ -686,7 +692,7 @@ function Addon:initialize()
 		for spellID, tab in pairs(spellbook.swapped_spells) do
 			for  k,v in pairs(spellbook.spells) do
 				local spellType, id = GetSpellBookItemInfo(v, "BOOKTYPE_SPELL")
-				if spellID == id then 
+				if spellID == id then
 					MoveSpell(k, tab)
 				end
 			end

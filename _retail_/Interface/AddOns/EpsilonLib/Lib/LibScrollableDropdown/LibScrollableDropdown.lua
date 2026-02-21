@@ -86,6 +86,11 @@ end
 
 local unresolvableFields = {
 	func = true,
+	OnEnterPressed = true,
+	OnEscapePressed = true,
+	OnTextChanged = true,
+	OnEditFocusLost = true,
+	settings = true,
 }
 local function resolveEntry(entry)
 	local out = {}
@@ -97,6 +102,43 @@ local function resolveEntry(entry)
 		end
 	end
 	return out
+end
+
+-- Input Pool
+
+local function inputPoolResetter(pool, frame)
+	frame:ClearFocus()
+	frame:SetText("")
+	frame.Instructions:SetText("")
+	if frame:IsShown() then frame:Hide() end
+end
+
+local inputPool = CreateFramePool("EditBox", UIParent, "InputBoxInstructionsTemplate", inputPoolResetter)
+inputPool._rawAcquire = inputPool.Acquire
+inputPool.Acquire = function(pool)
+	local frame, new = pool:_rawAcquire()
+
+	if new then
+		frame:SetSize(100, 20)
+		frame:HookScript("OnHide", function(self)
+			pool:Release(self)
+		end)
+
+		frame:HookScript("OnTextChanged", function(self, userInput)
+			if self._OnTextChanged and userInput then
+				self:_OnTextChanged(self:GetText(), userInput)
+			end
+		end)
+
+		frame:HookScript("OnEditFocusLost", function(self)
+			if self._OnEditFocusLost then
+				self:_OnEditFocusLost(self:GetText())
+			end
+		end)
+	end
+
+	frame:Show()
+	return frame
 end
 
 -- Create menu frame
@@ -156,7 +198,14 @@ local function ResetMenu(menu)
 		item:Hide()
 		item.subMenuFrame = nil
 		item._info = nil
-		tinsert(itemPool, item)
+		if item._isCustomFrame then
+			-- Clear parent and anchors for custom frames
+			item:ClearAllPoints()
+			item:SetParent(nil)
+		else
+			-- return to pool
+			tinsert(itemPool, item)
+		end
 	end
 	wipe(menu.items)
 	menu:Hide()
@@ -177,6 +226,8 @@ function lib:CloseAll()
 	for _, menu in ipairs(activeMenus) do ResetMenu(menu) end
 	wipe(activeMenus)
 	lib.currentParent = nil
+
+	inputPool:ReleaseAll()
 end
 
 function lib:IsMenuOpen(menu)
@@ -221,7 +272,7 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 	local totalHeight = 0
 	for i, entry in ipairs(menuData) do
 		repeat -- we're gonna use repeat here to allow break to early exit iterations as needed
-			local entry = resolveEntry(entry)
+			entry = resolveEntry(entry)
 			if not entry then error("Invalid Dropdown Entry " .. i) end
 			if entry.hidden then break end
 
@@ -231,14 +282,56 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 			local itemWidth = MENU_BASE_WIDTH
 			local item
 
-			if entry.customFrame then
-				item = item
-				itemHeight = item:GetHeight()
-				itemWidth = item:GetWidth()
+			if entry.hasInput then
+				local inputBox = inputPool:Acquire()
+				local settings = entry.settings or {}
+				item = inputBox
+				item._isCustomFrame = true
+
+				item:SetParent(menu.scrollChild)
+				item:Show()
+				item:ClearAllPoints()
+				item:SetPoint("TOPLEFT", lastButton or menu.scrollChild, lastButton and "BOTTOMLEFT" or "TOPLEFT", (lastButton and 0 or BUTTON_SIDE_PADDING) + 4, 0)
+
+				inputBox.lib = lib
+				inputBox:SetWidth(settings.width or 100)
+				inputBox:SetAutoFocus((settings.autoFocus == nil) and true or settings.autoFocus)
+
+				itemWidth = inputBox:GetWidth() + TEXT_PADDING_LEFT + TEXT_PADDING_RIGHT + 8
+
+				if settings.instructions then
+					inputBox.Instructions:SetText(settings.instructions)
+				else
+					inputBox.Instructions:SetText("")
+				end
+
+				inputBox:SetText(entry.inputText or "")
+
+				inputBox:SetScript("OnEnterPressed", function(self)
+					if settings.OnEnterPressed then settings.OnEnterPressed(self, self:GetText()) end
+					lib:CloseAll()
+					inputPool:Release(self)
+				end)
+
+				inputBox:SetScript("OnEscapePressed", function(self)
+					if settings.OnEscapePressed then settings.OnEscapePressed(self) end
+					lib:CloseAll()
+					inputPool:Release(self)
+				end)
+
+				inputBox._OnTextChanged = settings.OnTextChanged
+				inputBox._OnEditFocusLost = settings.OnEditFocusLost
+			elseif entry.customFrame then
+				item = entry.customFrame
+				item._isCustomFrame = true
 				item:SetParent(menu.scrollChild)
 
 				-- Anchor to previous button, or to the top of the dropdown if none existed yet
-				item:SetPoint("TOPLEFT", lastButton or menu.scrollChild, lastButton and "BOTTOMLEFT" or "TOPLEFT", lastButton and 0 or BUTTON_SIDE_PADDING, 0)
+				item:Show()
+				item:ClearAllPoints()
+				item:SetPoint("TOPLEFT", lastButton or menu.scrollChild, lastButton and "BOTTOMLEFT" or "TOPLEFT", (lastButton and 0 or BUTTON_SIDE_PADDING), 0)
+
+				itemWidth = item:GetWidth() + TEXT_PADDING_LEFT
 			else
 				item = tremove(itemPool) or CreateMenuItem()
 				item:SetParent(menu.scrollChild)
@@ -248,7 +341,7 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 				item:SetPoint("RIGHT", -BUTTON_SIDE_PADDING, 0)
 				item:SetHeight(itemHeight)
 
-				item.text:SetText(entry.text or "")
+				item.text:SetText(entry.text or " ")
 				item.rightIcon:SetShown(entry.subMenu ~= nil or entry.hasArrow)
 
 				item.check:SetShown(entry.checked and not entry.notCheckable)
@@ -351,7 +444,7 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 					if entry.subMenu and not item.subMenuFrame then
 						-- Open submenu initially to the right
 						local subMenu = self:Open(item, entry.subMenu, "TOPLEFT", "TOPRIGHT", 0, 0, true)
-						subMenu._parentMenu = menu
+						subMenu._parentMenu = parent
 						subMenu._parentItem = item
 						--subMenu:Raise()
 
@@ -387,6 +480,7 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 				end)
 			end
 
+			item._index = i
 			item._info = entry
 			item._menu = menu
 
@@ -394,8 +488,14 @@ function lib:Open(parent, menuData, anchor, anchor2, x, y, isSubMenu)
 			tinsert(menu.items, item)
 
 			-- Auto-width calculation
-			local textWidth = item.text:GetStringWidth() or 0
-			local totalWidth = BUTTON_SIDE_PADDING + textWidth + TEXT_PADDING_LEFT + TEXT_PADDING_RIGHT
+			local totalWidth
+			if entry.customFrame then
+				-- For custom frames, use the frame's width directly
+				totalWidth = item:GetWidth()
+			else
+				-- For standard items, use text width
+				totalWidth = (item.text and (item.text:GetStringWidth() + TEXT_PADDING_LEFT + TEXT_PADDING_RIGHT)) or 0
+			end
 
 			if entry.icon then
 				totalWidth = totalWidth + LEFT_ICON_WIDTH
@@ -484,6 +584,18 @@ end
 function lib:CreateSubMenu(text, items, extraData)
 	local data = { text = text, subMenu = items }
 	if extraData then for k, v in pairs(extraData) do data[k] = v end end
+	return data
+end
+
+function lib:CreateInput(settings, onEnterPressed, extraData)
+	local data = {
+		hasInput = true,
+		notCheckable = true,
+		settings = settings,
+		OnEnterPressed = onEnterPressed,
+		inputText = settings.inputText,
+	}
+
 	return data
 end
 

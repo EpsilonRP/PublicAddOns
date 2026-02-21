@@ -6,9 +6,9 @@
 	<Include file="LibDeflate\lib.xml" />
 	<Include file="LibSerialize\lib.xml" />
 	<Script file="ChatThrottleLib.lua"/>
-	
+
 	<Include file="CallbackHandler-1.0\CallbackHandler-1.0.xml" />
-	
+
 	<Include file="AceAddon-3.0\AceAddon-3.0.xml"/>
 	<Include file="AceEvent-3.0\AceEvent-3.0.xml"/>
 	<Include file="AceDB-3.0\AceDB-3.0.xml"/>
@@ -18,6 +18,9 @@
 	<Include file="AceSerializer-3.0\AceSerializer-3.0.xml"/>
 	<Include file="AceConsole-3.0\AceConsole-3.0.xml"/>
 
+	<Script file="HereBeDragons\HereBeDragons-2.0.lua"/>
+	<Script file="HereBeDragons\HereBeDragons-Pins-2.0.lua"/>
+	<Script file="HereBeDragons\HereBeDragons-Migrate.lua"/>
 
 	<Script file="Commands.lua"/>
 	<Script file="LookupTerms.lua"/>

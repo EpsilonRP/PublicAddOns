@@ -118,6 +118,13 @@ local function filterSparksData(sparks, filter)
 	end
 end
 
+local textureDevPathFix = function(path)
+	if not path then return nil end
+	if type(path) ~= "string" then return path end
+	return path:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
+end
+
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 ---@param group AceGUIContainer
@@ -308,13 +315,12 @@ local function drawMapGroup(group, mapID, callback)
 				styleBorderImage = SPARK_ASSETS_PATH .. "1Simple"
 			end
 
-			local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[styleBorderImage]
+			local styleData = ns.UI.SparkPopups.CreateSparkUI.sparkPopupStyles_Map[textureDevPathFix(styleBorderImage)]
 			local width = styleData and styleData.width or 1
 
 			if type(styleBorderImage) == "string" then
 				-- Ensure our FilePath works on -dev addons
-				styleBorderImage = styleBorderImage:gsub("SpellCreator%-dev", "SpellCreator"):gsub("SpellCreator", addonName)
-
+				styleBorderImage = textureDevPathFix(styleBorderImage)
 				-- For Multi-Sparks, ensure our border accounts for needing a "-number" at the end.
 				if isSparkType(triggerData[9], _sparkTypesMap["Multi"]) then
 					local numSpells = #{ strsplit(",", triggerData[1], 4) }

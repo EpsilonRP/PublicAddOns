@@ -209,6 +209,7 @@ end
 ---@param key string The key to use. You may use %s in the key to indicate where the iter goes, otherwise it will be appended to the end as _X where X = the iter count, if the str requires split
 ---@param str string
 function EpsiLib.PhaseAddonData.SetAddonData(key, str)
+	if not str then str = "" end
 	local strLength = #str
 	if strLength > MAX_CHARS_PER_SEGMENT then
 		local numEntriesRequired = math.ceil(strLength / MAX_CHARS_PER_SEGMENT)

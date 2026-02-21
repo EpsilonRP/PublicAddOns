@@ -1,6 +1,5 @@
 local EpsilonLib, EpsiLib = ...;
 
-
 EpsiLib.Utils.Misc = {}
 local _misc = EpsiLib.Utils.Misc
 
@@ -28,6 +27,16 @@ local function _eval(t, ...)
 		return t(...)
 	end
 	return t
+end
+
+local function convertDevFilePath(addonName, filePath)
+	if not filePath then return end
+	if not addonName then addonName = EpsilonLib end
+	local baseAddOnName = addonName:gsub("%-dev", "")
+
+	filePath = filePath:gsub("%-dev", "")
+	filePath = filePath:gsub(baseAddOnName, addonName)
+	return filePath
 end
 
 -- Custom Attributes (customAttrs) are an array of tables, containing the following valid keys:
@@ -251,6 +260,42 @@ function _misc.SetupCoherentButtonTextures(button, path, useAtlas)
 	setTextureOffset(button.PushedTexture, 1, -1)
 end
 
+function _misc.AdjustDevTex(addonName, ...)
+	local textures = { ... }
+	for i = 1, #textures do
+		local tex = textures[i]
+		if tex:IsObjectType("Texture") then
+			local file = tex:GetTextureFilePath()
+			if type(file) == "string" and file:lower():find("addon") then
+				file = convertDevFilePath(addonName, file)
+				tex:SetTexture(file)
+			end
+		end
+	end
+end
+
+-- Internal - Uses a tracker table to handle recurse to ensure we cannot get stuck in a loop somehow.
+local function _AdjustAllDevTex(addonName, frame, tracker)
+	if not tracker then return end
+	if not frame:IsObjectType("Frame") then return end -- cannot handle non-frames
+	if tracker[frame] then return end               -- already handled this frame
+	tracker[frame] = true
+
+	-- handle this frames regions
+	_misc.AdjustDevTex(addonName, frame:GetRegions())
+
+	-- dig to fix this frames children (recurse)
+	local children = { frame:GetChildren() }
+	for i = 1, #children do
+		_AdjustAllDevTex(addonName, children[i], tracker)
+	end
+end
+
+function _misc.AdjustAllDevTex(addonName, frame)
+	local handledFrames = {}
+	_AdjustAllDevTex(addonName, frame, handledFrames)
+end
+
 --#region AceGUI powered Context Menus
 
 local t = {}
@@ -424,4 +469,25 @@ function UnitSubName(unit)
 		if subName:find("Level") then return end
 		return subName
 	end
+end
+
+-- Frame Dragbar Builder
+function _misc.AddDragBarToFrame(frame)
+	local dragBar = CreateFrame("Frame", nil, frame)
+	dragBar:SetPoint("TOPLEFT")
+	dragBar:SetSize(20, 20)
+	if frame.CloseButton then
+		dragBar:SetPoint("RIGHT", frame.CloseButton, "LEFT", -20, 0)
+	else
+		dragBar:SetPoint("TOPRIGHT", 0, 0)
+	end
+	dragBar:RegisterForDrag("LeftButton");
+	dragBar:EnableMouse(true)
+	dragBar:HookScript("OnMouseDown", function(self)
+		frame:Raise()
+		frame:StartMoving()
+	end)
+	dragBar:HookScript("OnMouseUp", function(self)
+		frame:StopMovingOrSizing()
+	end)
 end

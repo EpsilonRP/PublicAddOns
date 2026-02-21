@@ -1,0 +1,110 @@
+<Ui>
+
+	<Frame name="EpsilonMap_DevTextureIntrinsic_OnLoad_Template" virtual="true">
+		<Scripts>
+			<OnLoad intrinsicOrder="postcall" inherit="append">
+				LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils.AdjustAllDevTex(self)
+			</OnLoad>
+		</Scripts>
+	</Frame>
+
+	<Button name="EpsilonMap_ButtonTemplate" inherits="EpsilonMap_DevTextureIntrinsic_OnLoad_Template" virtual="true">
+		<Size x="40" y="22"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Left" file="Interface\AddOns\Epsilon_Map\Assets\UI\CartographerButton">
+				<Size x="20" y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT"/>
+					<Anchor point="BOTTOMLEFT"/>
+				</Anchors>
+				<TexCoords left="0" right="0.234375" top="0" bottom="1"/>
+				</Texture>
+				<Texture parentKey="Right" file="Interface\AddOns\Epsilon_Map\Assets\UI\CartographerButton">
+				<Size x="20" y="22"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT"/>
+					<Anchor point="BOTTOMRIGHT"/>
+				</Anchors>
+				<TexCoords left="0.765625" right="1" top="0" bottom="1"/>
+				</Texture>
+				<Texture parentKey="Middle" file="Interface\AddOns\Epsilon_Map\Assets\UI\CartographerButton">
+				<Size x="12" y="22"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.Left" relativePoint="TOPRIGHT"/>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Right" relativePoint="BOTTOMLEFT"/>
+				</Anchors>
+				<TexCoords left="0.234375" right="0.765625" top="0" bottom="1"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnDisable>
+				self.Left:SetDesaturated(true);
+				self.Right:SetDesaturated(true);
+				self.Middle:SetDesaturated(true);
+			</OnDisable>
+			<OnEnable>
+				self.Left:SetDesaturated(false);
+				self.Right:SetDesaturated(false);
+				self.Middle:SetDesaturated(false);
+			</OnEnable>
+			<OnShow>
+				if self:IsEnabled() then
+					self.Left:SetDesaturated(false);
+					self.Right:SetDesaturated(false);
+					self.Middle:SetDesaturated(false);
+				else
+					self.Left:SetDesaturated(true);
+					self.Right:SetDesaturated(true);
+					self.Middle:SetDesaturated(true);
+				end
+			</OnShow>
+			<OnMouseDown>
+				if(self:IsEnabled()) then
+					--self:AdjustPointsOffset(1, -1);
+					self.Left:SetPoint("TOPLEFT", 1, -1);
+					self.Right:SetPoint("TOPRIGHT", 1, -1);
+
+					for _, tex in ipairs({self:GetRegions()}) do
+						if tex:IsObjectType("Texture") then
+							tex:SetVertexColor(0.8, 0.8, 0.8);
+						end
+					end
+
+				end
+			</OnMouseDown>
+			<OnMouseUp>
+				if(self:IsEnabled()) then
+					--self:AdjustPointsOffset(-1, 1);
+					self.Left:SetPoint("TOPLEFT", 0, 0);
+					self.Right:SetPoint("TOPRIGHT", 0, 0);
+
+					for _, tex in ipairs({self:GetRegions()}) do
+						if tex:IsObjectType("Texture") then
+							tex:SetVertexColor(1,1,1);
+						end
+					end
+				end
+			</OnMouseUp>
+			<OnEnter>
+				if(self.tooltipText ~= nil) then
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip_SetTitle(GameTooltip, self.tooltipText);
+					GameTooltip:Show();
+				end
+			</OnEnter>
+			<OnLeave>
+				if(self.tooltipText ~= nil) then
+					GameTooltip:Hide();
+				end
+			</OnLeave>
+		</Scripts>
+		<ButtonText parentKey="Text"/>
+		<NormalFont style="GameFontNormal"/>
+		<HighlightFont style="GameFontHighlight"/>
+		<DisabledFont style="GameFontDisable"/>
+		<HighlightTexture inherits="UIPanelButtonHighlightTexture"/>
+	</Button>
+
+</Ui>

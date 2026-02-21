@@ -1,0 +1,9 @@
+## Interface: 90207
+## Title: Epsilon Cartographer
+## Author: Systemerror, Mindscape
+## Notes: Adds Epsilon Features to the World Map
+## Version: 1.0
+## SavedVariables: EpsilonMapDB
+## RequiredDeps: EpsilonLib
+
+Epsilon_Map.xml

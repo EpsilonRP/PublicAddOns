@@ -1,0 +1,426 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+	<Frame name="EpsilonMapPinEditor" mixin="EpsilonMap_PinEditorMixin" parent="EpsilonMapSidebarMapFrame" inherits="ButtonFrameTemplate,EpsilonMap_DevTextureIntrinsic_OnLoad_Template" hidden="true" frameStrata="DIALOG" enableMouse="true" movable="true" topLevel="true">
+		<Size x="250" y="420" />
+		<Anchors>
+			<Anchor point="LEFT" relativeTo="EpsilonMapSidebarMapFrame" relativePoint="RIGHT" x="0" y="0" />
+		</Anchors>
+
+		<Frames>
+			<Button name="$parentPinTextureButton" parentKey="texture">
+				<Size x="42" y="42"/>
+				<NormalTexture parentKey="icon" setAllPoints="true" file="Interface/Icons/inv_misc_questionmark">
+				</NormalTexture>
+				<HighlightTexture setAllPoints="true" file="Interface/Buttons/ButtonHilight-Square" alphaMode="ADD"/>
+				<DisabledTexture setAllPoints="true" desaturated="true" file="Interface/Icons/inv_misc_questionmark">
+				</DisabledTexture>
+				<Size x="60" y="60"/>
+				<Anchors>
+					<Anchor point="LEFT" x="20" y="0"/>
+					<Anchor point="TOP" relativeKey="$parent.Inset" relativePoint="TOP" x="0" y="-20"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="Bg" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerGridBackground.blp">
+							<Anchors>
+								<Anchor point="TOPLEFT" x="-1" y="1"/>
+								<Anchor point="BOTTOMRIGHT" x="1" y="-1"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+
+				<Scripts>
+					<OnClick>
+						_G["EpsilonMapPinPicker"]:Show()
+					</OnClick>
+					<OnLoad intrinsicOrder="postcall">
+						local utils = LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils
+
+						self.BgMask = self:CreateMaskTexture()
+						self.BgMask:SetAllPoints(self.Bg)
+						self.BgMask:SetTexture(utils.GetAddonAssetsPath("UI\\CartographerGridMask"))
+						self.Bg:AddMaskTexture(self.BgMask)
+					</OnLoad>
+				</Scripts>
+			</Button>
+
+			<EditBox parentKey="title" font="GameFontHighlightSmall" inherits="InputBoxTemplate" autoFocus="false">
+				<Size x="150" y="12"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.texture" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Title">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="0" y="4"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						C_Timer.After(0, function()
+							self.nextEditBox = self:GetParent().subtitle
+						end)
+					</OnLoad>
+				</Scripts>
+			</EditBox>
+
+			<EditBox parentKey="subtitle" font="GameFontHighlightSmall" inherits="InputBoxTemplate" autoFocus="false">
+				<Size x="150" y="12"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.title" relativePoint="BOTTOM" y="-25"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="SubTitle">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="0" y="4"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						C_Timer.After(0, function()
+							self.nextEditBox = self:GetParent().radius
+							self.previousEditBox = self:GetParent().title
+						end)
+					</OnLoad>
+				</Scripts>
+			</EditBox>
+
+			<Button parentKey="ColorButton">
+				<Size x="64" y="20"/>
+				<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/InterfaceSwatch.blp"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.texture" relativePoint="BOTTOMLEFT" y="-45"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Color">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="10" y="20"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+				self:GetParent():SetColor()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<CheckButton name="$parentDiscoverable" parentKey="discoverableCheckButton" inherits="UICheckButtonTemplate">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.ColorButton" relativePoint="RIGHT" x="10"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Hidden">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="17"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.ColorButton" relativePoint="RIGHT" x="10"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:SetText("Use phase dm to display hidden pins to edit")
+						GameTooltip:Show()
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+			</CheckButton>
+
+			<EditBox parentKey="radius" font="GameFontHighlightSmall" inherits="InputBoxTemplate" autoFocus="false" numeric="true">
+				<Size x="60" y="12"/>
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.discoverableCheckButton" relativePoint="RIGHT" x="50" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Radius">
+							<Size x="60" y="12"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="20"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						C_Timer.After(0, function()
+							self.nextEditBox = self:GetParent().description.EditBox
+							self.previousEditBox = self:GetParent().subtitle
+						end)
+					</OnLoad>
+				</Scripts>
+			</EditBox>
+
+			<ScrollFrame parentKey="description" inherits="InputScrollFrameTemplate">
+				<KeyValues>
+					<!--KeyValue key="maxLetters" value="127" type="number"/-->
+					<KeyValue key="hideCharCount" value="true" type="boolean"/>
+					<KeyValue key="nextEditBox" value="" type=""/>
+				</KeyValues>
+
+				<Size x="200" y="64"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.discoverableCheckButton" relativePoint="BOTTOM" x="0" y="-40"/>
+					<Anchor point="LEFT" relativeKey="$parent" x="25"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Description">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="20"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						C_Timer.After(0, function()
+							self.EditBox.nextEditBox = self:GetParent().arcanumSpell
+							self.EditBox.previousEditBox = self:GetParent().radius
+						end)
+					</OnLoad>
+				</Scripts>
+			</ScrollFrame>
+
+			<Frame name="$parentActionTypeDropdown" parentKey="actionTypeDropdown" inherits="UIDropDownMenuTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.description" relativePoint="BOTTOM" y="-30"/>
+					<Anchor point="LEFT" x="20"/>
+					<Anchor point="RIGHT" x="-20"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="ButtonTexture" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp">
+							<Anchors>
+								<Anchor point="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Action Type">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="20" y="2"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						self.Left:Hide()
+						self.Middle:Hide()
+						self.Right:Hide()
+						self.Button:ClearAllPoints()
+						self.Button:SetPoint("RIGHT",-3,0)
+						self:GetParent():InitActionDropdown(self)
+					</OnLoad>
+				</Scripts>
+			</Frame>
+
+			<EditBox parentKey="actionValue" font="GameFontHighlightSmall" inherits="InputBoxTemplate" autoFocus="false">
+				<Size x="205" y="12"/>
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.actionTypeDropdown" relativePoint="BOTTOM" y="-25"/>
+					<Anchor point="LEFT" x="25"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Value">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="20"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+						self.previousEditBox = self:GetParent().description.EditBox
+					</OnLoad>
+				</Scripts>
+			</EditBox>
+
+			<Frame name="$parentActionValueDropdown" parentKey="actionValueDropdown" inherits="UIDropDownMenuTemplate" hidden="true">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.actionTypeDropdown" relativePoint="BOTTOM" y="-15"/>
+					<Anchor point="LEFT" x="20"/>
+					<Anchor point="RIGHT" x="-20"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="ButtonTexture" file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp">
+							<Anchors>
+								<Anchor point="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontNormalLeft" justifyH="left" text="Value">
+							<Size x="150" y="12"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="20" y="2"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad inherit="append">
+					self.Left:Hide()
+					self.Middle:Hide()
+					self.Right:Hide()
+					self.Button:ClearAllPoints()
+					self.Button:SetPoint("RIGHT",-3,0)
+							self:GetParent():InitActionValueDropdown(self)
+					</OnLoad>
+				</Scripts>
+			</Frame>
+
+
+			<Button parentKey="SaveButton" text="Save" inherits="EpsilonMap_ButtonTemplate">
+				<Size x="85" y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="20" y="15"/>
+				</Anchors>
+				<!--
+				<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp"/>
+				<PushedTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp">
+					<Color r="0.8" g="0.8" b="0.8"/>
+				</PushedTexture>
+				<HighlightTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp" alphaMode="ADD">
+					<Color r="0.5" g="0.5" b="0.5"/>
+				</HighlightTexture>
+				<NormalFont style="GameFontNormal"/>
+				<HighlightFont style="GameFontHighlight"/>
+				-->
+				<Scripts>
+					<OnClick>
+						self:GetParent():SavePin()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<Button parentKey="CancelButton" text="Cancel" inherits="EpsilonMap_ButtonTemplate">
+				<Size x="85" y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-20" y="15"/>
+				</Anchors>
+				<!--
+				<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp"/>
+				<PushedTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp">
+					<Color r="0.8" g="0.8" b="0.8"/>
+				</PushedTexture>
+				<HighlightTexture file="Interface/Addons/Epsilon_Map/Assets/UI/CartographerButton.blp" alphaMode="ADD">
+					<Color r="0.5" g="0.5" b="0.5"/>
+				</HighlightTexture>
+				<NormalFont style="GameFontNormal"/>
+				<HighlightFont style="GameFontHighlight"/>
+				-->
+			</Button>
+
+		</Frames>
+		<Scripts>
+			<OnHide method="OnHide"/>
+			<OnLoad method="OnLoad" inherit="prepend"/>
+		</Scripts>
+	</Frame>
+
+	<Button name="EpsilonMapPinPickerButton" mixin="EpsilonMap_PinPickerButtonMixin" virtual="true" movable="true" enableMouse="true">
+		<Size x="28" y="28"/>
+		<NormalTexture parentKey="NormalTexture" file="Interface/Addons/Epsilon_Map/Assets/Pins/CartographerMapMarkers.blp"/>
+		<HighlightTexture file="Interface/BUTTONS/ButtonHilight-Square" alphaMode="ADD"/>
+		<Scripts>
+			<OnShow>
+				self:Refresh()
+			</OnShow>
+			<OnClick>
+				self:SelectPinTexture(self.pickerIndex)
+			</OnClick>
+			<OnEnter method="OnEnter"/>
+			<OnDragStart method="OnDragStart"/>
+			<OnDragStop method="OnDragStop"/>
+			<OnLeave method="OnLeave"/>
+			<OnLoad intrinsicOrder="postcall">
+				LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils.AdjustDevTex(self:GetNormalTexture())
+			</OnLoad>
+		</Scripts>
+	</Button>
+
+	<Frame name="EpsilonMapPinPicker" parent="EpsilonMapSidebarMapFrame" mixin="EpsilonMap_PinPickerMixin" hidden="true" inherits="ButtonFrameTemplate" frameStrata="DIALOG" enableMouse="true" movable="true" resizable="false" toplevel="true">
+		<Size x="262" y="320" />
+		<Anchors>
+			<Anchor point="LEFT" relativePoint="RIGHT"/>
+		</Anchors>
+		<Scripts>
+			<OnLoad method="OnLoad" inherit="append"/>
+		</Scripts>
+		<Frames>
+
+			<!-- Area for icon selector. -->
+			<Frame parentKey="selectorFrame">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="5" y="-5"/>
+					<Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
+				</Anchors>
+				<Scripts>
+					<OnMouseWheel>
+		  				self.scroller:SetValue(self.scroller:GetValue() - delta * self.scroller:GetValueStep())
+					</OnMouseWheel>
+				</Scripts>
+
+				<Frames>
+
+					<!-- Scroll bar -->
+					<Slider parentKey="scroller" inherits="UIPanelScrollBarTrimTemplate" minvalue="0" maxvalue="194" defaultValue="0" valueStep="7" obeyStepOnDrag="true">
+
+						<Anchors>
+							<Anchor point="TOPRIGHT" relativeTo="EpsilonMapPinPickerInset" relativePoint="TOPRIGHT" x="2" y="-16" />
+							<Anchor point="BOTTOMRIGHT" relativeTo="EpsilonMapPinPickerInset" relativePoint="BOTTOMRIGHT" x="2" y="14" />
+						</Anchors>
+
+						<Layers>
+							<Layer level="BACKGROUND">
+
+								<!-- scroller background -->
+								<Texture setAllPoints="true">
+									<Color r="0" g="0" b="0" a="0.25"/>
+								</Texture>
+
+							</Layer>
+						</Layers>
+						<Scripts>
+							<OnValueChanged>
+								self:GetParent():GetParent():OnScroll(self)
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
+				</Frames>
+			</Frame>
+
+		</Frames>
+	</Frame>
+</Ui>
+

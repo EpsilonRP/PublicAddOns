@@ -136,10 +136,11 @@ local baseMenuList = {
 	selectmenu("Morph", {
 		action(ACTION.Morph),
 		action(ACTION.Native),
-
 		spacer(),
-
 		action(ACTION.Unmorph),
+		spacer(),
+		action(ACTION.Mount),
+		action(ACTION.Dismount),
 	}),
 
 	header("Character"),
@@ -306,6 +307,9 @@ local baseMenuList = {
 		action(ACTION.UnhideMostUI),
 		action(ACTION.FadeOutMainUI),
 		action(ACTION.FadeInMainUI),
+		spacer(),
+		action(ACTION.ToggleWorldMap),
+		action(ACTION.OpenWorldMap),
 		spacer(),
 		action(ACTION.OpenSendMail),
 		action(ACTION.SendMail),

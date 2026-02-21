@@ -193,7 +193,7 @@ end
 -- @param playSound		If true, the picker will play a sound when a colour is
 --							selected.
 --
-function EpsilonLibColourPicker_Open(returnFunc, closeOnClick, playSound)
+function EpsilonLibColourPicker_Open(returnFunc, onChangeFunc, closeOnClick, playSound)
 	EpsilonLibColourPicker.returnFunc = returnFunc or nil;
 	EpsilonLibColourPicker.playSound = playSound or nil;
 	EpsilonLibColourPicker.closeOnClick = closeOnClick or nil;
