@@ -88,7 +88,8 @@ local function rawCopyInstData(inst)
 		rot        = inst.rot,               -- rotation
 		scale      = inst.scale,             -- scale of the entire instance
 		layer      = inst.layer,             -- layer, 1-16 - Effectively translates to: SetDrawLayer("ARTWORK", layer - 9)
-		col        = inst.col,               -- color table (r,g,b,a fields) in byte (0-255) space.
+		col        = inst.col,               -- color in hex format (RRGGBB) - No Alpha
+		alpha      = inst.alpha,             -- transparency (0-1)
 		tile       = inst.tile,              -- if it should be treated as a tilable texture.
 		flipX      = inst.flipX,             -- if the texture should be flipped horizontally
 		flipY      = inst.flipY,             -- if it should be flipped vertically
@@ -2398,21 +2399,33 @@ end
 --   scale 	-- scale -- if not given, automatically uses the 'best scale' from the current map.
 --	 rot 	-- rotation in some degree or radian idk.
 --	 col 	-- color as a table of { r = 0-255, g = 0-255, b = 0-255, a = 0-255 }
+--	 flipX	-- Boolean: flip texture horizontally
+--	 flipY	-- Boolean: flip texture vertically
+--	 alpha	-- number: [0-1) transparency
+--	 tile	-- Boolean: if it should be treated as a tile texture
 -- 	 dis 	-- Boolean: disabled (hidden)
+--	 lock 	-- Boolean: locked (not selectable)
 -- }
 
 ---@class FeatureInstance
 ---@field text? string
 ---@field defID? string
 ---@field definition? table
+---@field map integer
 ---@field x number
 ---@field y number
----@field map integer
----@field scale? number
 ---@field rot? number
+---@field scale? number
 ---@field layer? integer
----@field col? { red: number, green: number, blue: number, alpha: number }
+---@field col? string"RRGGBB"
+---@field alpha? number
+---@field tile? boolean
+---@field flipX? boolean
+---@field flipY? boolean
 ---@field dis? boolean
+---@field lock? boolean
+---@field texture? Texture|nil
+---@field font? string
 
 ------------------------------------------------------------
 
