@@ -603,7 +603,7 @@
 				</Scripts>
 			</CheckButton>
 
-			<Button parentKey="BackupsManager" inherits="EpsilonMap_ButtonTemplate" text="Backups">
+			<Button parentKey="BackupsManager" inherits="EpsilonMap_ButtonTemplate" text="Feature Backups">
 				<Size y="22"/>
 				<Anchors>
 					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOM" x="4" y="28" />
