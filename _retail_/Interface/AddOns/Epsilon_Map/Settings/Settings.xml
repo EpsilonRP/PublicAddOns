@@ -603,6 +603,79 @@
 				</Scripts>
 			</CheckButton>
 
+			<Button parentKey="BackupsManager" inherits="EpsilonMap_ButtonTemplate" text="Backups">
+				<Size y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOM" x="4" y="28" />
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-8" y="28" />
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						MapTextureManager:OpenBackupsManager()
+					</OnClick>
+				</Scripts>
+			</Button>
+
+			<EditBox parentKey="MaxBackupsEditBox" inherits="InputBoxTemplate" autofocus="false" numeric="true">
+				<Size x="40" y="32"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackupsManager" relativePoint="TOPRIGHT" x="0" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString parentKey="Label" inherits="GameFontHighlight" text="Max Backups">
+							<Anchors>
+								<Anchor point="RIGHT" relativePoint="LEFT" x="-8" y="0"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						self:SetJustifyH("CENTER");
+						self:SetTextInsets(0, 4, 0, 0);
+					</OnLoad>
+					<OnShow>
+						self:SetNumber(MapTextureManager:GetMaxBackups())
+					</OnShow>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Max Backups per Phase", NORMAL_FONT_COLOR);
+						GameTooltip_AddHighlightLine(GameTooltip, "Set the maximum number of Feature backups to keep per phase.");
+						GameTooltip_AddHighlightLine(GameTooltip, "Increasing this number will allow you to keep more backups, but will use more AddOn saved variable storage space.");
+						GameTooltip_AddInstructionLine(GameTooltip, "Min: 1, Max: 10");
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+					<OnTextChanged>
+						if not userInput then return end
+						local min, max = 1, 10
+						local value = self:GetNumber()
+						if value &lt; min then
+							value = min
+							self:SetNumber(value)
+						elseif value &gt; max then
+							value = max
+							self:SetNumber(value)
+						end
+					</OnTextChanged>
+					<OnEditFocusLost>
+						local min, max = 1, 10
+						local value = self:GetNumber()
+						if value &lt; min then
+							value = min
+							self:SetNumber(value)
+						elseif value &gt; max then
+							value = max
+							self:SetNumber(value)
+						end
+						MapTextureManager:SetMaxBackups(value)
+					</OnEditFocusLost>
+				</Scripts>
+			</EditBox>
+
 			<Button parentKey="ExportFeatures" inherits="EpsilonMap_ButtonTemplate" text="Export Features">
 				<Size y="22"/>
 				<Anchors>

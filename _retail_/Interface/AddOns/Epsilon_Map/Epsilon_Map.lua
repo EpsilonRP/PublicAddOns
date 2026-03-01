@@ -126,7 +126,8 @@ end
 
 local defaults = {
 	global = {
-		backups = {}
+		backups = {},
+		maxBackups = 5,
 	},
 	char = {
 		discoveredPins = {}
@@ -138,6 +139,7 @@ function EpsilonMap:OnInitialize()
 
 	self.db = LibStub("AceDB-3.0"):New("EpsilonMapDB", defaults, true)
 	MapTextureManager:SetBackupTable(self.db.global.backups)
+	MapTextureManager:SetMaxBackups(self.db.global.maxBackups)
 	EpsilonMap.discoveredPins = self.db.char.discoveredPins
 end
 
@@ -165,8 +167,10 @@ function EpsilonMap:LoadMapFeatures(delayedRefresh)
 		if data then
 			MapTextureManager:SetFeatures(data.features or data, true, true)
 			MapTextureManager:SetCustomLayersVis(data.layers)
+			MapTextureManager:SetLastEditTime(data.date)
 		else
 			MapTextureManager:Clear()
+			MapTextureManager:SetLastEditTime(0)
 		end
 		if delayedRefresh then
 			pinFeatureLoadRace = pinFeatureLoadRace + 1
@@ -190,7 +194,21 @@ function EpsilonMap:LoadMapSettings()
 		if WorldMapFrame.ScrollContainer.zoomLevels then
 			WorldMapFrame:OnMapChanged()
 		end
-		EpsilonMapCartographerSettings:Update()
+
+		if not self:HasElevatedEditPermissions() then
+			-- no edit perms, update sidebar to pins view only & hide any settings frames that might be open
+			EpsilonMapCartographerSettings:Hide()
+			if EpsilonMapBackupsManagerFrame then EpsilonMapBackupsManagerFrame:Hide() end
+			EpsilonMapSidebarMapFrame:SetShowFeatures(false)
+			EpsilonMapSidebarMapFrame:UpdatePermissionState()
+		else
+			-- has edit perms, can keep things around, just update them
+			EpsilonMapCartographerSettings:Update()
+			if EpsilonMapBackupsManagerFrame and EpsilonMapBackupsManagerFrame:IsShown() then
+				EpsilonMapBackupsManagerFrame:Refresh()
+			end
+			EpsilonMapSidebarMapFrame:UpdatePermissionState()
+		end
 	end)
 end
 
@@ -207,6 +225,7 @@ end
 
 local phaseChangeWatcher = EpsilonLib.EventManager:Register("EPSILON_PHASE_CHANGE", function(self, event, phaseID)
 	EpsilonMap:ClearPins()
+	MapTextureManager:Clear()
 	if C_Epsilon.WipeMapBoundaryChanges then
 		C_Epsilon.WipeMapBoundaryChanges()
 	end

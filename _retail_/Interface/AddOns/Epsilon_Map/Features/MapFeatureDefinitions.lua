@@ -119,7 +119,7 @@ local charWidths = {
 	["U"] = 9,
 	["V"] = 9,
 	["W"] = 13,
-	["X"] = 8,	
+	["X"] = 8,
 	["Y"] = 9,
 	["'"] = 4,
 	["."] = 4,
@@ -624,22 +624,22 @@ genBGTerrainDefinitionsForFile("Adventure Map Parchment (Dark)", "AdventureMapPa
 genBGTerrainDefinitionsForFile("Adventure Map Background", "AdventureMapWater", "interface/adventuremap/adventuremaptilebg", 0.25)
 
 -- Category Definitions
-MTM:RegisterCategory({ id = "terrainbg", name = "Background Terrain (Tiled)", layer = 1, icon = "Terrain", definitions = bgTerrainGen, color = CreateColorFromHexString("FF9f7030"), })
-MTM:RegisterCategory({ id = "ocean", name = "Surrounding Seas", layer = 3, icon = "Oceans", color = CreateColorFromHexString("FF6f98f5"), })
-MTM:RegisterCategory({ id = "edges", name = "Coasts / Map Edges", layer = 4, icon = "Edges", color = CreateColorFromHexString("FFffbf00"), })
-MTM:RegisterCategory({ id = "mountains", name = "Mountains", layer = 5, icon = "Mountains", color = CreateColorFromHexString("FFD63434"), })
-MTM:RegisterCategory({ id = "rivers", name = "Rivers / Lakes", layer = 6, icon = "Rivers", color = CreateColorFromHexString("FF5b9326"), })
-MTM:RegisterCategory({ id = "ridges", name = "Ridges", layer = 7, icon = "Ridges", color = CreateColorFromHexString("FF9f7519"), })
-MTM:RegisterCategory({ id = "roads", name = "Roads", layer = 8, icon = "Roads", color = CreateColorFromHexString("FFA418A8"), })
-MTM:RegisterCategory({ id = "garrison", name = "Garrison Structures", layer = 9, icon = "Garrison", color = CreateColorFromHexString("FF5e999f"), })
-MTM:RegisterCategory({ id = "arch_major", name = "Major Structures", layer = 9, icon = "MajorArchitecture", color = CreateColorFromHexString("FF168d9f"), })
-MTM:RegisterCategory({ id = "arch_minor", name = "Minor Structures", layer = 10, icon = "MinorArchitecture", color = CreateColorFromHexString("FFB3B53A"), })
-MTM:RegisterCategory({ id = "foliage", name = "Plants, Tree, and Rocks", layer = 11, icon = "Foliage", color = CreateColorFromHexString("FF99FF00"), })
-MTM:RegisterCategory({ id = "misc", name = "Miscellaneous", layer = 12, icon = "Misc", color = CreateColorFromHexString("FF84B109"), })
-MTM:RegisterCategory({ id = "textart", name = "Text Art", layer = 13, icon = "TextArt", color = CreateColorFromHexString("FFEBB962"), })
-MTM:RegisterCategory({ id = "text", name = "Text", layer = 14, icon = "Text", color = CreateColorFromHexString("FFFBFF00"), })
-MTM:RegisterCategory({ id = "art", name = "Map Art / Overlays", layer = 15, icon = "Art", color = CreateColorFromHexString("FFFF8C00"), })
-MTM:RegisterCategory({ id = "stamps", name = "Stamps, Seals, Stickers", layer = 16, icon = "Stamps", color = CreateColorFromHexString("FF9762EB"), })
+MTM:RegisterCategory({ id = "terrainbg", name = "Background Terrain (Tiled)", layer = 1, icon = "Terrain", definitions = bgTerrainGen, color = CreateColorFromHexString("FF9f7030"), sort = false })
+MTM:RegisterCategory({ id = "ocean", name = "Surrounding Seas", layer = 3, icon = "Oceans", color = CreateColorFromHexString("FF6f98f5"), sort = false })
+MTM:RegisterCategory({ id = "edges", name = "Coasts / Map Edges", layer = 4, icon = "Edges", color = CreateColorFromHexString("FFffbf00"), sort = true })
+MTM:RegisterCategory({ id = "mountains", name = "Mountains", layer = 5, icon = "Mountains", color = CreateColorFromHexString("FFD63434"), sort = true })
+MTM:RegisterCategory({ id = "rivers", name = "Rivers / Lakes", layer = 6, icon = "Rivers", color = CreateColorFromHexString("FF5b9326"), sort = false })
+MTM:RegisterCategory({ id = "ridges", name = "Ridges", layer = 7, icon = "Ridges", color = CreateColorFromHexString("FF9f7519"), sort = false })
+MTM:RegisterCategory({ id = "roads", name = "Roads", layer = 8, icon = "Roads", color = CreateColorFromHexString("FFA418A8"), sort = true })
+MTM:RegisterCategory({ id = "garrison", name = "Garrison Structures", layer = 9, icon = "Garrison", color = CreateColorFromHexString("FF5e999f"), sort = false })
+MTM:RegisterCategory({ id = "arch_major", name = "Major Structures", layer = 9, icon = "MajorArchitecture", color = CreateColorFromHexString("FF168d9f"), sort = false })
+MTM:RegisterCategory({ id = "arch_minor", name = "Minor Structures", layer = 10, icon = "MinorArchitecture", color = CreateColorFromHexString("FFB3B53A"), sort = false })
+MTM:RegisterCategory({ id = "foliage", name = "Plants, Trees, and Rocks", layer = 11, icon = "Foliage", color = CreateColorFromHexString("FF99FF00"), sort = true })
+MTM:RegisterCategory({ id = "misc", name = "Miscellaneous", layer = 12, icon = "Misc", color = CreateColorFromHexString("FF84B109"), sort = false })
+MTM:RegisterCategory({ id = "textart", name = "Text Art", layer = 13, icon = "TextArt", color = CreateColorFromHexString("FFEBB962"), sort = false })
+MTM:RegisterCategory({ id = "text", name = "Text", layer = 14, icon = "Text", color = CreateColorFromHexString("FFFBFF00"), sort = false })
+MTM:RegisterCategory({ id = "art", name = "Map Art / Overlays", layer = 15, icon = "Art", color = CreateColorFromHexString("FFFF8C00"), sort = false })
+MTM:RegisterCategory({ id = "stamps", name = "Stamps, Seals, Stickers", layer = 16, icon = "Stamps", color = CreateColorFromHexString("FF9762EB"), sort = false })
 
 do -- Alphanumeric Text
 	for _, atlasInfo in ipairs(alphabetTextures) do
@@ -2247,9 +2247,6 @@ do
 	MTM:RegisterDefinition({ id = "slime_13", name = "Slime 13", catID = "rivers", file = t("Rivers\\MapLiquidSlime"), texCoords = tcCR(1, 4, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
 
 
-
-
-
 	MTM:RegisterDefinition({ id = "plant_1", name = "Plant 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 1, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "plant_2", name = "Plant 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(2, 1, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "plant_3", name = "Plant 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 1, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
@@ -2327,23 +2324,81 @@ do
 	MTM:RegisterDefinition({ id = "oasis_plant_9", name = "Oasis Plant 9", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 5, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "oasis_plant_10", name = "Oasis Plant 10", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(12, 5, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
 
-
-
-
-
-
-
-
-
-
-
-
 	MTM:RegisterDefinition({ id = "oasis_plant_11", name = "Oasis Plant 11", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 6, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "oasis_plant_12", name = "Oasis Plant 12", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 6, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "oasis_plant_13", name = "Oasis Plant 13", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 6, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
 	MTM:RegisterDefinition({ id = "oasis_plant_14", name = "Oasis Plant 14", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(12, 6, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
 
 	MTM:RegisterDefinition({ id = "oasis_plant_15", name = "Oasis Plant 15", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(14, 6, 16, 16, 0, 0, 3, 1), width = p(192, 0), height = p(64, 0) })
+
+
+	MTM:RegisterDefinition({ id = "hallowed_sunflower_1", name = "Hallowed Sunflower 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 7, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "hallowed_sunflower_2", name = "Hallowed Sunflower 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 7, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "hallowed_sunflower_3", name = "Hallowed Sunflower 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(5, 7, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "hallowed_sunflower_4", name = "Hallowed Sunflower 4", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(7, 7, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "jungle_leaf_1", name = "Jungle Leaf 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 7, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "jungle_leaf_2", name = "Jungle Leaf 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 7, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "jungle_leaf_3", name = "Jungle Leaf 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 7, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_crystal_1", name = "Tintable Crystal 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(12, 7, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "tintable_crystal_2", name = "Tintable Crystal 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(14, 7, 16, 16, 0, 0, 1, 2), width = p(64, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_crystal_3", name = "Tintable Crystal 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(15, 7, 16, 16, 0, 0, 2, 4), width = p(128, 0), height = p(256, 0) })
+
+	MTM:RegisterDefinition({ id = "tazavesh_starplant_1", name = "Tazavesh Starplant 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 8, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tazavesh_starplant_2", name = "Tazavesh Starplant 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 8, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "elven_topiary_bush", name = "Elven Topiary Bush", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 8, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "zandalari_tree_1", name = "Zandalari Tree 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 9, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "zandalari_tree_2", name = "Zandalari Tree 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 9, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "zandalari_tree_3", name = "Zandalari Tree 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(5, 9, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "zandalari_tree_4", name = "Zandalari Tree 4", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(7, 9, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "pink_jungle_plant", name = "Pink Jungle Plant", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 9, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "hyjal_star_flower", name = "Hyjal Star Flower", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 9, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "snowblossom_flower", name = "Snowblossom Flower", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 9, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "crystal_dust", name = "Crystal Dust", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(12, 9, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_crystal_4", name = "Tintable Crystal 4", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(13, 9, 16, 16, 0, 0, 2, 3), width = p(128, 0), height = p(192, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_1", name = "Tintable Rock 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 10, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_2", name = "Tintable Rock 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 10, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_3", name = "Tintable Rock 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 10, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_1", name = "Bloodwood Tree 1", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 11, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_2", name = "Bloodwood Tree 2", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 11, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_3", name = "Bloodwood Tree 3", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(5, 11, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_4", name = "Bloodwood Tree 4", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(7, 11, 16, 16, 0, 0, 1, 2), width = p(64, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_5", name = "Bloodwood Tree 5", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(8, 11, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_4", name = "Tintable Rock 4", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 11, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_5", name = "Tintable Rock 5", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 11, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_6", name = "Tintable Rock 6", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 11, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_crystal_5", name = "Tintable Crystal 5", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(15, 11, 16, 16, 0, 0, 2, 3), width = p(128, 0), height = p(192, 0) })
+	MTM:RegisterDefinition({ id = "bloodwood_tree_6", name = "Bloodwood Tree 6", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(8, 12, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_7", name = "Tintable Rock 7", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 12, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_8", name = "Tintable Rock 8", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(10, 12, 16, 16, 0, 0), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_9", name = "Tintable Rock 9", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 12, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_crystal_6", name = "Tintable Crystal 6", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(13, 12, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_10", name = "Tintable Rock 10", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 13, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_11", name = "Tintable Rock 11", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 13, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_12", name = "Tintable Rock 12", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(5, 13, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_13", name = "Tintable Rock 13", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(7, 13, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_14", name = "Tintable Rock 14", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 13, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_15", name = "Tintable Rock 15", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 13, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_16", name = "Tintable Rock 16", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 14, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_17", name = "Tintable Rock 17", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(13, 14, 16, 16, 0, 0, 4, 2), width = p(256, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_18", name = "Tintable Rock 18", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(1, 15, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_19", name = "Tintable Rock 19", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(3, 15, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_20", name = "Tintable Rock 20", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(5, 15, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_21", name = "Tintable Rock 21", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(7, 15, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_22", name = "Tintable Rock 22", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(9, 15, 16, 16, 0, 0, 2, 2), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_23", name = "Tintable Rock 23", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 15, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_24", name = "Tintable Rock 24", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(11, 16, 16, 16, 0, 0, 2, 1), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "tintable_rock_25", name = "Tintable Rock 25", catID = "foliage", file = t("MapPlants"), texCoords = tcCR(13, 16, 16, 16, 0, 0, 4, 1), width = p(256, 0), height = p(64, 0) })
+
 
 
 

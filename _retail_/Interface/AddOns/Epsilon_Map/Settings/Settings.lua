@@ -331,10 +331,10 @@ end
 
 EpsilonMap_SettingsMixin.SetCheckedState = function(self, pin)
 	local mapID = WorldMapFrame.mapID
-  local checked = true
-  if EpsilonMap.mapCleaned and EpsilonMap.mapCleaned[mapID] and EpsilonMap.mapCleaned[mapID][pin] then
-	  checked = false
-  end
+	local checked = true
+	if EpsilonMap.mapCleaned and EpsilonMap.mapCleaned[mapID] and EpsilonMap.mapCleaned[mapID][pin] then
+		checked = false
+	end
 	self:SetChecked(checked)
 end
 
@@ -405,10 +405,15 @@ function EpsilonMap_CartographerSettingsMixin:OnLoad()
 end
 
 function EpsilonMap_CartographerSettingsMixin:OnShow()
-
+	self:Update()
 end
 
 function EpsilonMap_CartographerSettingsMixin:Update()
+	local hasEditPerms = EpsilonMap:HasElevatedEditPermissions()
+	self.BackupsManager:SetEnabled(hasEditPerms)
+	self.ExportFeatures:SetEnabled(hasEditPerms)
+	self.ImportFeatures:SetEnabled(hasEditPerms)
+
 	self.AllowOfficerToEditCheckButton:GetScript("OnShow")(self.AllowOfficerToEditCheckButton)
 end
 
