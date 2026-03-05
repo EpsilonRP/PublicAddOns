@@ -79,10 +79,9 @@ local function styleTextureByDefinition(texture, definition)
 	end
 	texture:SetSize(width, height)
 
-
 	-- Masking
 	if definition.mask then
-		local maskTex = (type(definition.mask) == "string" and definition.mask) or defaultMask
+		local maskTex = ((type(definition.mask) ~= "boolean") and definition.mask) or defaultMask
 		texture.mask = texture.mask or maskPool:Acquire()
 		texture.mask:SetAllPoints(texture)
 		texture.mask:SetTexture(maskTex)
@@ -150,7 +149,7 @@ function EpsilonMap_FeaturePickerButtonMixin:OnDragStop()
 	dragIcon:Hide()
 	dragIcon:ClearAllPoints()
 	dragIcon:StopMovingOrSizing();
-	local uiScale, x, y = UIParent:GetEffectiveScale(), GetCursorPosition()
+	--local uiScale, x, y = UIParent:GetEffectiveScale(), GetCursorPosition()
 	local x, y = MapTextureManager:GetCursorCanvasPosition()
 	local scale = MapTextureManager:GetBestAutoDefaultScale()
 	local layer = (EpsilonMapFeaturePicker and EpsilonMapFeaturePicker.LayerOverrideInput) and (EpsilonMapFeaturePicker.LayerOverrideInput:GetValue() > 0 and EpsilonMapFeaturePicker.LayerOverrideInput:GetValue()) or nil
@@ -160,6 +159,18 @@ end
 function EpsilonMap_FeaturePickerButtonMixin:OnEnter()
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -16, -4)
 	GameTooltip_SetTitle(GameTooltip, self.definition.name)
+	if self.definition.tile then
+		GameTooltip_AddNormalLine(GameTooltip, "Tiled Texture: Drag & Drop Preview will not be fully accurate until placed.", true)
+	end
+	if EpsilonMapFeaturePicker.searchAll:GetChecked() then
+		GameTooltip_AddColoredDoubleLine(
+			GameTooltip,
+			"Category:",
+			(self.definition.catID and (MapTextureManager:GetCategories()[self.definition.catID].name or "Unknown")),
+			NORMAL_FONT_COLOR,
+			HIGHLIGHT_FONT_COLOR
+		)
+	end
 	GameTooltip:Show();
 end
 
@@ -182,7 +193,7 @@ function EpsilonMap_FeaturePickerMixin:SetFilter(catID, ...)
 	local categoryDefs
 	if self.searchAll:GetChecked() then
 		self.CategoryLabel:SetText("Category: All")
-		categoryDefs = MapTextureManager:GetDefinitionsOrdered()
+		categoryDefs = MapTextureManager:GetDefinitionsOrderedByCat()
 	else
 		self.CategoryLabel:SetText("Category: " .. (MapTextureManager:GetCategories()[catID].name or "Unknown"))
 		categoryDefs = MapTextureManager:GetDefinitionsInCategory(catID)

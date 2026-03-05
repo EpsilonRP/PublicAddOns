@@ -5,7 +5,6 @@
 local addon_name, ns = ...
 local EpsilonLib = EpsilonLib
 
-
 local MTM = {}
 
 MTM.definitions = {} -- Static templates; registered once
@@ -16,16 +15,17 @@ MTM.catOrder = {}    -- Order of the categories; as they are added.
 MTM.instances = {}   -- Active placed textures
 MTM.texPool = nil    -- Internal Texture pool
 MTM.maskPool = nil   -- Internal Tex Mask Pool
+MTM.lastEditTime = 0
 
 local layerVis = {}
 setmetatable(layerVis, {
 	__index = function() return true end
 })
-MTM.layerVis                     = layerVis
+MTM.layerVis                       = layerVis
 
-MTM.layerLock                    = {}
+MTM.layerLock                      = {}
 
-MTM.editor                       = {
+MTM.editor                         = {
 	enabled = false,
 	dragInstance = nil,
 	dragOffsetX = 0,
@@ -35,18 +35,19 @@ MTM.editor                       = {
 	autoSave = true,
 }
 
-MTM.highlightPool                = nil
-MTM.selected                     = nil
-MTM.ui                           = {}
+MTM.highlightPool                  = nil
+MTM.selected                       = nil
+MTM.ui                             = {}
 
-local AUTO_SAVE_IN_SECONDS       = 5
-local MAX_AUTO_BACKUPS_PER_PHASE = 5
+local AUTO_SAVE_IN_SECONDS         = 30     -- 30 seconds, not customizable yet
+local MAX_AUTO_BACKUPS_PER_PHASE   = 5      -- default, overwritten by settings
+local MIN_TIME_BETWEEN_AUTO_BACKUP = 60 * 5 -- 5 minutes
 
 -- Utils
-local ttText                     = EpsilonLib.Utils.Tooltip.ReplaceTags
+local ttText                       = EpsilonLib.Utils.Tooltip.ReplaceTags
 
-local LibSerialize               = LibStub("LibSerialize")
-local LibDeflate                 = LibStub("LibDeflate")
+local LibSerialize                 = LibStub("LibSerialize")
+local LibDeflate                   = LibStub("LibDeflate")
 
 local function compressAndSerialize(data)
 	local serialized = LibSerialize:Serialize(data)
@@ -76,6 +77,17 @@ local function resolve(v, ...)
 	end
 end
 
+-- Alphanumeric Sort - Sorts numbers in strings based on their numeric value, not character value. So "file2" comes before "file10"
+local function padnum(d) return ("%012d"):format(d) end
+local function alphanum_sort(o, key)
+	table.sort(o, function(a, b)
+		local va = key and tostring(a[key]) or tostring(a)
+		local vb = key and tostring(b[key]) or tostring(b)
+		return va:gsub("%d+", padnum) < vb:gsub("%d+", padnum)
+	end)
+	return o
+end
+
 -- Copy Raw Instance Data - Gives a clean copy with Data Only. Only data here is actually saved.
 local function rawCopyInstData(inst)
 	local copy = {
@@ -88,7 +100,8 @@ local function rawCopyInstData(inst)
 		rot        = inst.rot,               -- rotation
 		scale      = inst.scale,             -- scale of the entire instance
 		layer      = inst.layer,             -- layer, 1-16 - Effectively translates to: SetDrawLayer("ARTWORK", layer - 9)
-		col        = inst.col,               -- color table (r,g,b,a fields) in byte (0-255) space.
+		col        = inst.col,               -- color in hex format (RRGGBB) - No Alpha
+		alpha      = inst.alpha,             -- transparency (0-1)
 		tile       = inst.tile,              -- if it should be treated as a tilable texture.
 		flipX      = inst.flipX,             -- if the texture should be flipped horizontally
 		flipY      = inst.flipY,             -- if it should be flipped vertically
@@ -112,6 +125,11 @@ local UITexturePath = "Interface\\AddOns\\" .. addon_name .. "\\Assets\\UI\\"
 local t = function(...) return mapTexturesPath .. table.concat({ ... }, "\\") end
 local uiT = function(...) return UITexturePath .. table.concat({ ... }, "\\") end
 local defaultMask = t("Terrain", "MapTerrain_Mask")
+
+local timeFormatter = CreateFromMixins(SecondsFormatterMixin);
+timeFormatter:Init(1, SecondsFormatter.Abbreviation.OneLetter, false, true, true);
+timeFormatter:SetStripIntervalWhitespace(true)
+-- timeFormatter:Format(seconds, false, true)
 
 ------------------------------------------------------------
 -- Utility Accessors
@@ -180,6 +198,21 @@ end
 
 local function _reverseIndex(i, max)
 	return max - i + 1
+end
+
+local function toEpoch(datetime)
+	local year, month, day, hour, min, sec =
+		datetime:match("^(%d+)%-(%d+)%-(%d+) (%d+):(%d+):(%d+)$")
+
+	return time({
+		year  = tonumber(year),
+		month = tonumber(month),
+		day   = tonumber(day),
+		hour  = tonumber(hour),
+		min   = tonumber(min),
+		sec   = tonumber(sec),
+		isdst = false
+	})
 end
 
 ------------------------------------------------------------
@@ -259,6 +292,7 @@ function MTM:GetBestAutoDefaultScale(mapBaseScale)
 end
 
 function MTM:MarkEditorDirtyAndRequestSave()
+	self.lastEditTime = time()
 	self.editor.dirty = true
 	self:RequestSave()
 end
@@ -273,6 +307,10 @@ end
 
 function MTM:IsEditorDirty()
 	return self.editor.dirty
+end
+
+function MTM:SetLastEditTime(s)
+	self.lastEditTime = s or time()
 end
 
 ------------------------------------------------------------
@@ -310,6 +348,7 @@ function MTM:CreateTexturePool()
 		tex:SetRotation(0)
 		tex:SetVertexColor(1, 1, 1, 1)
 		tex:SetAlpha(1)
+		tex:SetScale(1)
 		tex:SetVertTile(false)
 		tex:SetHorizTile(false)
 		tex:SetDrawLayer("ARTWORK")
@@ -665,7 +704,7 @@ function MTM:CreateEditorFrame()
 		GameTooltip_SetTitle(GameTooltip, "Feature " .. (MTM:IsEditorDirty() and "Changes NOT Saved" or "Changes Saved"), NORMAL_FONT_COLOR)
 		GameTooltip_AddHighlightLine(GameTooltip, "Left-Click to Save Changes")
 		GameTooltip_AddHighlightLine(GameTooltip, "Right-Click to Toggle Auto-Save")
-		GameTooltip_AddHighlightLine(GameTooltip, "Auto-Save: " .. (MTM.editor.autoSave and ("|cff00ff00Enabled|r (%ss)"):format(AUTO_SAVE_IN_SECONDS) or "|cffff0000Disabled|r"))
+		GameTooltip_AddHighlightLine(GameTooltip, "Auto-Save: " .. (MTM.editor.autoSave and ("|cff00ff00Enabled|r (%s)"):format(timeFormatter:Format(AUTO_SAVE_IN_SECONDS, false, true)) or "|cffff0000Disabled|r"))
 		GameTooltip:Show();
 	end)
 	overlay.saveIcon:SetScript("OnUpdate", function()
@@ -1580,8 +1619,8 @@ function MTM:CreateHandles()
 		btn:ClearAllPoints()
 		btn:SetPoint("BOTTOMLEFT", inst.highlight, "TOPRIGHT")
 
-		local def = MTM:GetDefinitionOfInstance(inst)
-		if inst.text or def.tile then -- not supported on text or tile texture
+		--local def = MTM:GetDefinitionOfInstance(inst)
+		if inst.text then -- not supported on text
 			btn:Hide()
 		else
 			btn:Show()
@@ -1988,7 +2027,12 @@ function MTM:UpdateRotate()
 
 	-- Negate delta so dragging right rotates clockwise
 	inst.rot = inst._startAngle - delta
-	inst.texture:SetRotation(inst.rot)
+	local def = MTM:GetDefinitionOfInstance(inst)
+	if def.tile then
+		inst.texture.mask:SetRotation(inst.rot)
+	else
+		inst.texture:SetRotation(inst.rot)
+	end
 
 	self:HighlightInstance(inst)
 	self:PositionHandles(inst)
@@ -2207,12 +2251,30 @@ function MTM:GetDefinitionByIndex(index) -- ONLY EVER USE THIS INTERNALLY AT SES
 	return self.definitions[self.defOrder[index]]
 end
 
-function MTM:GetDefinitionsOrdered()
+function MTM:GetDefinitionsOrdered(alpha)
 	local _table = {}
 
 	for i = 1, #self.defOrder do
 		table.insert(_table, self:GetDefinitionByIndex(i))
 	end
+	if alpha then
+		alphanum_sort(_table, "name")
+	end
+	return _table
+end
+
+function MTM:GetDefinitionsOrderedByCat(includeHidden)
+	local _table = {}
+
+	for _, catID in ipairs(self.catOrder) do
+		local cat = self.categories[catID]
+		for _, def in ipairs(cat.definitions) do
+			if not def.hidden or includeHidden then
+				table.insert(_table, def)
+			end
+		end
+	end
+
 	return _table
 end
 
@@ -2225,6 +2287,27 @@ function MTM:GetSelected()
 end
 
 -- Categories
+
+local pendingSorts = {}
+local function _resortCatOnNextFrame(catID)
+	local catData = MTM.categories[catID]
+	if not catData then return end
+	if catData.sort == false then return end -- if sort is disabled for this cat, don't sort it.
+	if pendingSorts[catID] then return end -- already queued
+
+	pendingSorts[catID] = C_Timer.NewTimer(0, function()
+		alphanum_sort(MTM.categories[catID].definitions, "name")
+		pendingSorts[catID] = nil
+	end)
+end
+
+local function _resortCatNowIfQueued(catID)
+	if pendingSorts[catID] then
+		pendingSorts[catID]:Cancel()
+		pendingSorts[catID] = nil
+		alphanum_sort(MTM.categories[catID].definitions, "name")
+	end
+end
 
 function MTM:RegisterCategory(data, overwrite)
 	assert(data and (type(data) == "table"), "RegisterCategory requires a category data table. See internal documentation.")
@@ -2245,6 +2328,8 @@ function MTM:RegisterCategory(data, overwrite)
 			v.catID = data.id
 			self:RegisterDefinition(v)
 		end
+
+		_resortCatOnNextFrame(data.id)
 	else
 		data.definitions = {}
 	end
@@ -2267,6 +2352,7 @@ function MTM:AddDefToCat(id, def)
 	end
 
 	table.insert(self.categories[id].definitions, def)
+	_resortCatOnNextFrame(id)
 end
 
 function MTM:GetCategoriesList(original) -- default = gives a copy.
@@ -2274,8 +2360,19 @@ function MTM:GetCategoriesList(original) -- default = gives a copy.
 	if original then return table else return CopyTable(_table) end
 end
 
-function MTM:GetDefinitionsInCategory(categoryID)
-	return self.categories[categoryID].definitions
+function MTM:GetDefinitionsInCategory(categoryID, includeHidden)
+	_resortCatNowIfQueued(categoryID)
+	local definitions = self.categories[categoryID].definitions
+	if not includeHidden then
+		local visibleDefinitions = {}
+		for _, def in ipairs(definitions) do
+			if not def.hidden then
+				table.insert(visibleDefinitions, def)
+			end
+		end
+		return visibleDefinitions
+	end
+	return definitions
 end
 
 function MTM:GetCatForInst(inst)
@@ -2327,12 +2424,13 @@ function MTM:PositionInstance(inst)
 
 	-- Masking
 	if def.mask then
-		local maskTex = (type(def.mask) == "string" and def.mask) or defaultMask
+		local maskTex = (type(def.mask) ~= "boolean" and def.mask) or defaultMask
 		inst.texture.mask = inst.texture.mask or self.maskPool:Acquire()
 		--inst.texture.mask:SetAllPoints(inst.texture)
 		inst.texture.mask:SetPoint("CENTER", canvas, "TOPLEFT", inst.x, -inst.y)
 		inst.texture.mask:SetSize(def.width * scale, def.height * scale)
 		inst.texture.mask:SetTexture(maskTex, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		inst.texture.mask:SetRotation(def.tile and inst.rot or 0)
 		inst.texture.mask:Show()
 		inst.texture:AddMaskTexture(inst.texture.mask)
 	elseif inst.texture.mask then
@@ -2398,21 +2496,33 @@ end
 --   scale 	-- scale -- if not given, automatically uses the 'best scale' from the current map.
 --	 rot 	-- rotation in some degree or radian idk.
 --	 col 	-- color as a table of { r = 0-255, g = 0-255, b = 0-255, a = 0-255 }
+--	 flipX	-- Boolean: flip texture horizontally
+--	 flipY	-- Boolean: flip texture vertically
+--	 alpha	-- number: [0-1) transparency
+--	 tile	-- Boolean: if it should be treated as a tile texture
 -- 	 dis 	-- Boolean: disabled (hidden)
+--	 lock 	-- Boolean: locked (not selectable)
 -- }
 
 ---@class FeatureInstance
 ---@field text? string
 ---@field defID? string
 ---@field definition? table
+---@field map integer
 ---@field x number
 ---@field y number
----@field map integer
----@field scale? number
 ---@field rot? number
+---@field scale? number
 ---@field layer? integer
----@field col? { red: number, green: number, blue: number, alpha: number }
+---@field col? string"RRGGBB"
+---@field alpha? number
+---@field tile? boolean
+---@field flipX? boolean
+---@field flipY? boolean
 ---@field dis? boolean
+---@field lock? boolean
+---@field texture? Texture|nil
+---@field font? string
 
 ------------------------------------------------------------
 
@@ -2768,9 +2878,10 @@ local saveTicker
 function MTM:RequestSave()
 	if not self.editor.autoSave then return end
 	if saveTicker then saveTicker:Cancel() end
-	saveTicker = C_Timer.After(AUTO_SAVE_IN_SECONDS, function()
+	saveTicker = C_Timer.NewTimer(AUTO_SAVE_IN_SECONDS, function()
 		if not self.editor.autoSave then return end
 		if self.editor.dirty then
+			self:CreateBackup()
 			ns._addon:SaveFeatures()
 		end
 	end)
@@ -2779,6 +2890,7 @@ end
 function MTM:SaveInstant(force)
 	if saveTicker then saveTicker:Cancel() end
 	if self.editor.dirty or force then
+		self:CreateBackup()
 		ns._addon:SaveFeatures()
 	end
 end
@@ -2817,6 +2929,7 @@ function MTM:GetMTMData()
 	local data = {}
 	data.features = self:GetFeaturesData()
 	data.layers = self:GetCustomLayersVis()
+	data.date = self.lastEditTime
 
 	return data
 end
@@ -2865,43 +2978,79 @@ function MTM:AddFeatures(features, noSave, forceRefresh)
 	end
 end
 
-function MTM:SetFeatures(features, noSave, noRefresh)
+function MTM:SetFeatures(features, noSave, noRefresh, noBackup)
 	self:Clear()
 	local makeAutoBackup
 
 	-- if it's a layer-map, add each layer in order
-	if features.layers then
+	if features.layers and #features.layers > 0 then
 		for i = 1, 16, 1 do
 			local layer = features.layers[i]
-			if layer then
-				self:AddFeatures(layer, noSave)
+			if layer and #layer > 0 then
+				self:AddFeatures(layer, true)
 				makeAutoBackup = true
 			end
 		end
 	elseif #features > 0 then
 		-- not layer map, just add all the features
-		self:AddFeatures(features, noSave)
+		self:AddFeatures(features, true)
 		makeAutoBackup = true
+	elseif features and features.features and #features.features > 0 then
+		self:AddFeatures(features.features, true)
 	end
 
-	if makeAutoBackup then
+	if makeAutoBackup and not noBackup then
 		self:CreateBackup()
 	end
 
-	self:MarkEditorClean()
+	if noSave then self:MarkEditorClean() end
 	if not noRefresh then
 		self:RefreshOnNextFrame()
 	end
 end
 
 local backups = {}
-function MTM:CreateBackup()
+
+function MTM:GenerateBackup(features, layers, phaseID)
 	local backup = {}
+
+	backup.features = features or self:GetFeaturesData()
+	backup.layerVis = layers or self:GetCustomLayersVis()
+	backup.phaseID = tonumber(phaseID or C_Epsilon.GetPhaseId())
+	--backup.date = date("%Y-%m-%d %H:%M:%S")
+	backup.date = time() -- for easier sorting and comparison; convert to human readable on display instead
+
+	return backup
+end
+
+function MTM:CreateBackup()
+	-- only create backup if you have edit permissions, to avoid filling up the backup storage with useless backups (and prevent taking backups from other people's phase)
+	if not ns._addon:HasElevatedEditPermissions() then return end
+
+	--local curTime = time()
+	local lastEditTime = self.lastEditTime or time()
+
 	local phaseID = tonumber(C_Epsilon.GetPhaseId())
-	backup.features = self:GetFeaturesData()
-	backup.phaseID = phaseID
-	backup.date = date("%Y-%m-%d %H:%M:%S")
-	backup.layers = self:GetCustomLayersVis()
+	-- prevent creating backups too frequently. This is a soft limit, not a hard one, so it won't break anything, just won't create a backup if the last one was created less than min threshold to avoid overwriting recent backups with near-duplicate ones.
+	if backups[phaseID] and backups[phaseID][1] then
+		if type(backups[phaseID][1].date) ~= "number" then
+			-- convert old date format to epoch if needed
+			backups[phaseID][1].date = toEpoch(backups[phaseID][1].date) or 0
+		end
+
+		if backups[phaseID][1].date and lastEditTime == backups[phaseID][1].date then
+			-- if the last edit time is the same as the last backup time, don't create a new backup, since nothing has changed since the last one.
+			return
+		end
+
+		if ((lastEditTime - backups[phaseID][1].date) < MIN_TIME_BETWEEN_AUTO_BACKUP) then
+			-- if the last backup date (edit time) is less than the minimum threshold for auto backups, replace the last backup instead of creating a new one, to avoid filling up the backup storage with near-duplicate backups
+			backups[phaseID][1] = self:GenerateBackup(self:GetFeaturesData(), self:GetCustomLayersVis(), phaseID)
+			return
+		end
+	end
+
+	local backup = self:GenerateBackup(self:GetFeaturesData(), self:GetCustomLayersVis(), phaseID)
 
 	if not backups[phaseID] then backups[phaseID] = {} end
 	table.insert(backups[phaseID], 1, backup)
@@ -2927,14 +3076,15 @@ end
 
 function MTM:RestoreBackup(indexOrBackup, phaseID)
 	if type(indexOrBackup) == "table" then
-		self:SetFeatures(indexOrBackup.features)
+		self:SetFeatures(indexOrBackup.features, nil, nil, true)
 		return true
 	end
 
 	local backup = backups[phaseID] and backups[phaseID][indexOrBackup]
 	if not backup then return false end
-	self:SetFeatures(backup.features)
-	self:SetCustomLayersVis(backup.layers)
+	self:SetFeatures(backup.features, nil, nil, true)
+	self.lastEditTime = backup.date or 0
+	self:SetCustomLayersVis(backup.layerVis or backup.layers)
 	return true
 end
 
@@ -2942,8 +3092,18 @@ function MTM:SetBackupTable(table)
 	backups = table
 end
 
+function MTM:SetMaxBackups(num)
+	ns._addon.db.global.maxBackups = num
+	MAX_AUTO_BACKUPS_PER_PHASE = num
+end
+
+function MTM:GetMaxBackups()
+	return MAX_AUTO_BACKUPS_PER_PHASE
+end
+
 function MTM:ExportBackup(indexOrBackup, phaseID)
-	if not indexOrBackup then indexOrBackup = self:GetFeaturesData() end
+	if not indexOrBackup then indexOrBackup = self:GenerateBackup() end
+	if not phaseID then phaseID = tonumber(C_Epsilon.GetPhaseId()) end
 	local backup
 	if type(indexOrBackup) == "table" then
 		backup = indexOrBackup
@@ -2958,7 +3118,18 @@ end
 
 function MTM:ImportBackup(importString, phaseID, apply)
 	-- deserialize the table, then import to the phase backups, then apply if requested
-	local importedFeatures = deserializeAndDecompress(importString) -- TODO
+	local importedFeatures = deserializeAndDecompress(importString)
+
+	if not importedFeatures then
+		EpsilonLib.Utils.GenericDialogs.ShowAlert("Failed to import: Invalid data.")
+		return
+	end
+
+	-- convert from old format if needed
+	if importedFeatures.layers then
+		importedFeatures.layerVis = importedFeatures.layers
+		importedFeatures.layers = nil
+	end
 
 	if not phaseID then phaseID = tonumber(C_Epsilon.GetPhaseId()) end
 
@@ -2981,6 +3152,160 @@ function MTM:ShowImportDialog()
 		cancelText = "Nevermind!",
 		editBoxWidth = GetScreenWidth() * 0.5,
 	})
+end
+
+local backupsFrame
+function MTM:OpenBackupsManager()
+	if not ns._addon:HasElevatedEditPermissions() then
+		message("You don't have permission to manage backups for this phase.")
+		return
+	end
+
+	if not backupsFrame then
+		backupsFrame = CreateFrame("Frame", "EpsilonMapBackupsManagerFrame", WorldMapFrame, "ButtonFrameTemplate")
+		backupsFrame:SetSize(400, 300)
+		backupsFrame:SetPoint("BOTTOMLEFT", EpsilonMapCartographerSettings, "BOTTOMLEFT", 0, 60)
+		backupsFrame:SetClampedToScreen(true)
+		backupsFrame:SetToplevel(true)
+		backupsFrame:SetMovable(true)
+		backupsFrame:EnableMouse(true)
+		backupsFrame:SetDontSavePosition(true)
+		backupsFrame:SetFrameStrata("DIALOG")
+
+		ButtonFrameTemplate_HidePortrait(backupsFrame)
+		ButtonFrameTemplate_HideAttic(backupsFrame)
+		ButtonFrameTemplate_HideButtonBar(backupsFrame)
+		backupsFrame.TitleText:SetText("Backups Manager")
+
+		-- Create green TitleBG overlay (same as PinMixin.lua)
+		local titleBg = backupsFrame:CreateTexture(nil, "ARTWORK")
+		titleBg:SetPoint("TOPLEFT", backupsFrame.TitleBg)
+		titleBg:SetPoint("BOTTOMRIGHT", backupsFrame.TitleBg)
+		titleBg:SetColorTexture(0.184, 0.29, 0.0, 1)
+
+		EpsilonLib.Utils.Misc.AddDragBarToFrame(backupsFrame)
+
+		NineSliceUtil.ApplyLayoutByName(backupsFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+		EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(backupsFrame.Inset, backupsFrame.Inset.Bg)
+
+
+		-- Scroll view with linear layout
+		local scrollBox = CreateFrame("Frame", nil, backupsFrame, "WowScrollBoxList")
+		scrollBox:SetPoint("TOPLEFT", backupsFrame, "TOPLEFT", 12, -30)
+		scrollBox:SetPoint("BOTTOMRIGHT", backupsFrame, "BOTTOMRIGHT", -12, 12)
+
+		local scrollView = CreateScrollBoxListLinearView()
+		scrollView:SetPadding(0, 0, 0, 12, 2)
+		scrollView:SetElementExtent(30)
+
+		local function _setupElementEntryFrame(button, elementData)
+			if not button.initialized then
+				local root = button:GetParent():GetParent():GetParent():GetParent()
+				button:SetSize(330, 30)
+				button.initialized = true
+
+				button.bg = button:CreateTexture(nil, "BACKGROUND")
+				button.bg:SetPoint("TOPLEFT", button, "TOPLEFT", 3, 0)
+				button.bg:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
+				button.bg:SetTexture(t "UI\\CartographerEntryBackground1")
+				button.bg:SetTexCoord(0.21, 0.79, 0.11, 0.89)
+				button.bg:SetVertexColor(0.66, 0.66, 0.66, 0.8)
+				-- left="0.21" top="0.11" bottom="0.89" right="0.79"
+
+				local entryLabel = button:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+				button.entryLabel = entryLabel
+				entryLabel:SetPoint("TOPLEFT", button, "TOPLEFT", 10, -3)
+				entryLabel:SetJustifyH("LEFT")
+
+				local dateLabel = button:CreateFontString(nil, "ARTWORK", "ObjectiveFont")
+				button.dateLabel = dateLabel
+				dateLabel:SetPoint("TOPLEFT", button, "TOPLEFT", 10, -15)
+				dateLabel:SetJustifyH("LEFT")
+
+
+				-- Restore button
+				local restoreBtn = CreateFrame("Button", nil, button, "GameMenuButtonTemplate")
+				restoreBtn:SetPoint("RIGHT", button, "RIGHT", -4, 0)
+				restoreBtn:SetSize(90, 22)
+				restoreBtn:SetText("Restore")
+				restoreBtn:SetScript("OnClick", function()
+					MTM:RestoreBackup(button.backupData, tonumber(C_Epsilon.GetPhaseId()))
+				end)
+
+				-- Export button
+				local exportBtn = CreateFrame("Button", nil, button, "GameMenuButtonTemplate")
+				exportBtn:SetPoint("RIGHT", restoreBtn, "LEFT", -4, 0)
+				exportBtn:SetSize(90, 22)
+				exportBtn:SetText("Export")
+				exportBtn:SetScript("OnClick", function()
+					MTM:ExportBackup(button.backupData, tonumber(C_Epsilon.GetPhaseId()))
+				end)
+			end
+
+			local backupData = elementData.backup
+			button.entryLabel:SetText(("Backup %d (%d features)"):format(elementData.index, elementData.featureCount))
+
+			if backupData.date and type(backupData.date) ~= "number" then
+				backupData.date = toEpoch(backupData.date) -- convert old string dates to numeric for easier handling/comparison
+			end
+
+			button.dateLabel:SetText(("%s"):format(date("%Y-%m-%d %H:%M:%S", backupData.date)))
+			button.backupData = backupData
+		end
+
+		scrollView:SetElementInitializer(
+			"Frame",
+			nil,
+			_setupElementEntryFrame
+		)
+
+		scrollBox:SetView(scrollView)
+
+		local dataProvider = CreateDataProvider()
+		scrollBox:SetDataProvider(dataProvider)
+
+		local ARROW_TOP_BUFFER = 16
+		local scrollBar = CreateFrame("EventFrame", nil, backupsFrame, "MinimalScrollBar")
+		scrollBar:SetPoint("TOPRIGHT", scrollBox, "TOPRIGHT", 0, ARROW_TOP_BUFFER)
+		scrollBar:SetPoint("BOTTOMRIGHT", scrollBox, "BOTTOMRIGHT", 0, -ARROW_TOP_BUFFER)
+		scrollBar.Back:SetPoint("TOP", scrollBox, "TOP", 0, ARROW_TOP_BUFFER)
+		scrollBar.Forward:SetPoint("BOTTOM", scrollBox, "BOTTOM", 0, -ARROW_TOP_BUFFER)
+
+		scrollBox:GetScrollTarget():HookScript("OnUpdate", function()
+			--self:UpdateDragScroll()
+		end)
+
+		ScrollUtil.InitScrollBoxListWithScrollBar(
+			scrollBox,
+			scrollBar,
+			scrollView
+		)
+
+		local function populateBackups()
+			dataProvider:Flush()
+			local phaseID = tonumber(C_Epsilon.GetPhaseId())
+			local phaseBackups = backups[phaseID] or {}
+
+			for i, backup in ipairs(phaseBackups) do
+				dataProvider:Insert({
+					index = i,
+					backup = backup,
+					date = backup.date,
+					featureCount = #backup.features,
+				})
+			end
+		end
+
+		function backupsFrame:Refresh()
+			populateBackups()
+
+			self.TitleText:SetText("Backups Manager (Phase: " .. C_Epsilon.GetPhaseId() .. ")")
+		end
+	end
+
+	backupsFrame:Refresh()
+	backupsFrame:Show()
+	backupsFrame:Raise()
 end
 
 ------------------------------------------------------------

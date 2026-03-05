@@ -578,7 +578,7 @@ function EpsilonMap_SidebarMixin:OnLoad()
 	pinScrollBar:RegisterCallback("OnScroll", onPinScrollValueChanged, "scrollSaver")
 end
 
-function EpsilonMap_SidebarMixin:OnShow()
+function EpsilonMap_SidebarMixin:UpdatePermissionState()
 	if EpsilonMap:HasElevatedEditPermissions() then
 		self.ToggleEditor:Show()
 		self.ToggleFeatures:Show()
@@ -599,6 +599,10 @@ function EpsilonMap_SidebarMixin:OnShow()
 		self.TogglePins:SetPoint("TOPRIGHT", self.TogglePins:GetParent().Header, "BOTTOMRIGHT")
 		self.TogglePins:SetHeight(47)
 	end
+end
+
+function EpsilonMap_SidebarMixin:OnShow()
+	self:UpdatePermissionState()
 end
 
 function EpsilonMap_SidebarEntryMixin:SelectPinEntry(index)
