@@ -79,10 +79,9 @@ local function styleTextureByDefinition(texture, definition)
 	end
 	texture:SetSize(width, height)
 
-
 	-- Masking
 	if definition.mask then
-		local maskTex = (type(definition.mask) == "string" and definition.mask) or defaultMask
+		local maskTex = ((type(definition.mask) ~= "boolean") and definition.mask) or defaultMask
 		texture.mask = texture.mask or maskPool:Acquire()
 		texture.mask:SetAllPoints(texture)
 		texture.mask:SetTexture(maskTex)
@@ -160,6 +159,9 @@ end
 function EpsilonMap_FeaturePickerButtonMixin:OnEnter()
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -16, -4)
 	GameTooltip_SetTitle(GameTooltip, self.definition.name)
+	if self.definition.tile then
+		GameTooltip_AddNormalLine(GameTooltip, "Tiled Texture: Drag & Drop Preview will not be fully accurate until placed.", true)
+	end
 	if EpsilonMapFeaturePicker.searchAll:GetChecked() then
 		GameTooltip_AddColoredDoubleLine(
 			GameTooltip,

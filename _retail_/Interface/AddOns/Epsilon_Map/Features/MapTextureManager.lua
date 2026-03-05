@@ -1619,8 +1619,8 @@ function MTM:CreateHandles()
 		btn:ClearAllPoints()
 		btn:SetPoint("BOTTOMLEFT", inst.highlight, "TOPRIGHT")
 
-		local def = MTM:GetDefinitionOfInstance(inst)
-		if inst.text or def.tile then -- not supported on text or tile texture
+		--local def = MTM:GetDefinitionOfInstance(inst)
+		if inst.text then -- not supported on text
 			btn:Hide()
 		else
 			btn:Show()
@@ -2027,7 +2027,12 @@ function MTM:UpdateRotate()
 
 	-- Negate delta so dragging right rotates clockwise
 	inst.rot = inst._startAngle - delta
-	inst.texture:SetRotation(inst.rot)
+	local def = MTM:GetDefinitionOfInstance(inst)
+	if def.tile then
+		inst.texture.mask:SetRotation(inst.rot)
+	else
+		inst.texture:SetRotation(inst.rot)
+	end
 
 	self:HighlightInstance(inst)
 	self:PositionHandles(inst)
@@ -2258,13 +2263,15 @@ function MTM:GetDefinitionsOrdered(alpha)
 	return _table
 end
 
-function MTM:GetDefinitionsOrderedByCat()
+function MTM:GetDefinitionsOrderedByCat(includeHidden)
 	local _table = {}
 
 	for _, catID in ipairs(self.catOrder) do
 		local cat = self.categories[catID]
 		for _, def in ipairs(cat.definitions) do
-			table.insert(_table, def)
+			if not def.hidden or includeHidden then
+				table.insert(_table, def)
+			end
 		end
 	end
 
@@ -2353,9 +2360,19 @@ function MTM:GetCategoriesList(original) -- default = gives a copy.
 	if original then return table else return CopyTable(_table) end
 end
 
-function MTM:GetDefinitionsInCategory(categoryID)
+function MTM:GetDefinitionsInCategory(categoryID, includeHidden)
 	_resortCatNowIfQueued(categoryID)
-	return self.categories[categoryID].definitions
+	local definitions = self.categories[categoryID].definitions
+	if not includeHidden then
+		local visibleDefinitions = {}
+		for _, def in ipairs(definitions) do
+			if not def.hidden then
+				table.insert(visibleDefinitions, def)
+			end
+		end
+		return visibleDefinitions
+	end
+	return definitions
 end
 
 function MTM:GetCatForInst(inst)
@@ -2407,12 +2424,13 @@ function MTM:PositionInstance(inst)
 
 	-- Masking
 	if def.mask then
-		local maskTex = (type(def.mask) == "string" and def.mask) or defaultMask
+		local maskTex = (type(def.mask) ~= "boolean" and def.mask) or defaultMask
 		inst.texture.mask = inst.texture.mask or self.maskPool:Acquire()
 		--inst.texture.mask:SetAllPoints(inst.texture)
 		inst.texture.mask:SetPoint("CENTER", canvas, "TOPLEFT", inst.x, -inst.y)
 		inst.texture.mask:SetSize(def.width * scale, def.height * scale)
 		inst.texture.mask:SetTexture(maskTex, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		inst.texture.mask:SetRotation(def.tile and inst.rot or 0)
 		inst.texture.mask:Show()
 		inst.texture:AddMaskTexture(inst.texture.mask)
 	elseif inst.texture.mask then
