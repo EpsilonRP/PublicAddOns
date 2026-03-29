@@ -1,0 +1,196 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+
+    <!-- Edit button injected onto GossipFrame -->
+    <Button name="GossipEditorButton" parent="GossipFrame" hidden="true">
+        <Size x="28" y="28"/>
+        <Anchors>
+            <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" x="-4" y="-28"/>
+        </Anchors>
+        <NormalTexture file="Interface\AddOns\EpsilonLib\Resources\Settings_Icon"
+                       alphaMode="ADD"/>
+        <PushedTexture file="Interface\AddOns\EpsilonLib\Resources\Settings_Icon"
+                       alphaMode="ADD">
+            <Color r="0.7" g="0.7" b="0.7"/>
+        </PushedTexture>
+        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight"
+                          alphaMode="ADD"/>
+        <Scripts>
+            <OnClick>
+                GossipEditor:Toggle()
+            </OnClick>
+        </Scripts>
+    </Button>
+
+    <!-- Main editor frame -->
+	<Frame name="GossipEditorFrame" parent="UIParent"
+			frameStrata="DIALOG" hidden="true"
+			inherits="TranslucentFrameTemplate"
+			mixin="GossipEditorMixin">
+		<Size x="356" y="496"/>
+        <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="GossipFrame"
+                    relativePoint="TOPRIGHT" x="4" y="0"/>
+        </Anchors>
+
+        <Layers>
+            <Layer level="ARTWORK">
+                <!-- Title -->
+                <FontString parentKey="Title" inherits="GameFontNormal"
+                            text="Gossip Editor" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="TOP" y="-14"/>
+                    </Anchors>
+                </FontString>
+
+				<!-- Debug Notice -->
+				<!--FontString parentKey="DebugLabel" inherits="GameFontRedSmall"
+                	    	text="Debug Not Enabled" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="TOP" y="-28"/>
+                    </Anchors>
+                </FontString-->
+
+                <!-- Greeting section label -->
+                <FontString parentKey="GreetingLabel"
+                            inherits="GameFontNormalSmall"
+                            text="Greeting Text" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-40"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Options section label -->
+                <FontString parentKey="OptionsLabel"
+                            inherits="GameFontNormalSmall"
+                            text="Gossip Options" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-262"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+
+        <Frames>
+            <!-- Close button -->
+            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-4" y="-4"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Close()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+			<!-- Saving Progress Checkbox -->
+			<CheckButton parentKey="ShowSaveProgress" inherits="OptionsSmallCheckButtonTemplate" checked="true">
+				<Anchors>
+                    <Anchor point="TOPLEFT" x="8" y="-6"/>
+                </Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Show Save Steps")
+						self.tooltipText = "Shows full saving steps and progress in chat."
+					</OnLoad>
+					<OnClick>
+						if ( self:GetChecked() ) then
+							PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						else
+							PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF);
+						end
+						GossipEditor:ToggleSavingSteps(self:GetChecked())
+					</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<!-- Debug Toggle Helper button -->
+			<Button parentKey="ToggleDebug" inherits="UIPanelButtonTemplate"
+                    text="Tog Debug">
+                <Size x="80" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-40" y="-12"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:OopsPrevention("\n\rToggling Debug will force-refresh the editor, resetting it.\n\rAre you sure?", "ToggleDebug")
+                    </OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Toggle Debug");
+						local label = self.debugEnabled and "On" or "Off"
+						if self.debugEnabled == nil then label = "Unknown\n\rGossip Editor cannot detect Debug State if there is no Greeting Text or Options present" end
+						GameTooltip_AddNormalLine(GameTooltip, "Debug: " .. label);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+                </Scripts>
+            </Button>
+
+			<!-- Greeting input scroll frame -->
+			<ScrollFrame parentKey="GreetingScroll" name="$parentGreetingScroll"
+				inherits="InputScrollFrameTemplate">
+				<Size x="288" y="188"/>
+				<Anchors>
+                    <Anchor point="TOPLEFT"  x="16"  y="-56"/>
+                    <!--Anchor point="TOPRIGHT" x="-16" y="-56"/-->
+				</Anchors>
+			</ScrollFrame>
+
+            <!-- Options scroll frame -->
+			<!-- Created in Lua because FUCK THAT -->
+
+            <!-- Footer buttons -->
+            <Button parentKey="AddOption" inherits="UIPanelButtonTemplate"
+                    text="Add Option">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="16" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:AddOption()
+						GossipEditorFrame.Reset:SetEnabled(true)
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button parentKey="Reset" inherits="UIPanelButtonTemplate"
+                    text="Reset">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" x="0" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Open()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button parentKey="Save" inherits="UIPanelButtonTemplate"
+                    text="Save All">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" x="-16" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Save()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+        </Frames>
+
+		<Scripts>
+			<OnLoad method="OnLoad" />
+
+    	</Scripts>
+    </Frame>
+
+</Ui>

@@ -262,6 +262,7 @@ C_ChatInfo.RegisterAddonMessagePrefix(EPSI_ADDON_PREFIX)
 ---@param overrideMessages? boolean|fun(returnMessages):boolean An override flag on return messages; true = force show messages; false = force hide all messages including error/syntax messages; nil = follow Registered syntax; can be a function with a return of one of those options, to decide how to handle it based on the reply messages (i.e., custom error handling)
 local function sendAddonCommandBase(name, text, callbackFn, overrideMessages)
 	if not name then return error("EpsilonLib.AddonCommands.Send Usage: You must supply a name of the addon calling this as arg1.") end
+	if #text >= 250 then error("EpsilonLib.AddonCommands.Send Usage: Text cannot be >= 250 characters (AddonCommands reserves 5 bytes for tracking). #Length was: " .. #text) end
 	iterCommandCounter()
 	local commandID = CommandCounterToString(commandCounter)
 	recordCommandBufferAndLog(commandID, { realID = commandCounter, name = name, command = text, callback = callbackFn, overrideMessages = overrideMessages })

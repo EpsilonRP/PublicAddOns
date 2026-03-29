@@ -65,8 +65,14 @@ local hardOverrides = {
 	"noCancelOnEscape",
 	"exclusive",
 	"hideOnEscape",
+	"button3",
 }
 local function runOverrides(dialogTemplate, customData)
+	if customData.flipAltAndCancel then
+		customData.cancelCallback, customData.altCallback = customData.altCallback, customData.cancelCallback
+		customData.cancelText, customData.button3 = customData.button3, customData.cancelText
+	end
+
 	for i = 1, #hardOverrides do
 		local field = hardOverrides[i]
 		if customData[field] then
@@ -76,6 +82,7 @@ local function runOverrides(dialogTemplate, customData)
 			dialogTemplate[field] = nil
 		end
 	end
+
 	hideCancelIfNeeded(dialogTemplate, customData)
 end
 local function resetOverrides(dialogTemplate)
@@ -134,13 +141,19 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 		local text = self.editBox:GetText();
 		data.callback(text);
 	end,
+	OnAlt = function(self, data, from)
+		if not data then return end
+		local altCallback = data.altCallback;
+		if not altCallback then return end
+		local text = self.editBox:GetText();
+		altCallback(text, from);
+	end,
 	OnCancel = function(self, data, from)
 		if not data then return end
 		local cancelCallback = data.cancelCallback;
+		if (not cancelCallback) or (type(cancelCallback) ~= "function") then return end
 		local text = self.editBox:GetText();
-		if type(cancelCallback) == "function" then
-			cancelCallback(text, from);
-		end
+		cancelCallback(text, from);
 	end,
 	EditBoxOnEnterPressed = function(self, data)
 		local parent = self:GetParent();
@@ -166,8 +179,10 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field text_arg2? string formatted into text if provided
 ---@field callback fun(text: string) the callback when the player accepts
 ---@field cancelCallback? fun(text: string?) the callback when the player cancels / not called on accept
+---@field altCallback? fun(text: string?) the callback when the player uses the alternative action
 ---@field acceptText? string custom text for the accept button
 ---@field cancelText? string custom text for the cancel button
+---@field button3? string custom text for the third button - providing this will show a third button
 ---@field maxLetters? integer the maximum text length that can be entered
 ---@field countInvisibleLetters? boolean used in tandem with maxLetters
 ---@field inputText? string default text for the input box
@@ -176,12 +191,13 @@ StaticPopupDialogs["EPSILIB_GENERIC_INPUT_BOX"] = {
 ---@field editJustifyH? "LEFT"|"CENTER"|"RIGHT" modify editBox justifyH - default is LEFT
 ---@field editJustifyV? "TOP"|"MIDDLE"|"BOTTOM" modify editBox justifyV - default is TOP
 ---@field insertedFrame? frame frame to insert into the dialog; goes under the edit box
-
+---@field flipAltAndCancel? boolean whether or not the alt button should be on the right and the cancel button on the left instead of the default configuration
 
 ---@param customData GenericInputCustomData
 ---@param insertedFrame? frame
 local function showCustomGenericInputBox(customData, insertedFrame)
 	local template = "EPSILIB_GENERIC_INPUT_BOX"
+
 	runOverrides(StaticPopupDialogs[template], customData)
 	local shownFrame = StaticPopup_Show(template, nil, nil, customData, insertedFrame);
 	--resetOverrides(StaticPopupDialogs[template])
@@ -248,14 +264,21 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 		local text = self.insertedFrame.EditBox:GetText();
 		data.callback(text);
 	end,
+	OnAlt = function(self, data, from)
+		if not data then return end
+		local altCallback = data.altCallback;
+		local text = self.insertedFrame.EditBox:GetText();
+		if type(altCallback) ~= "function" then return end
+		altCallback(text, from);
+	end,
 	OnCancel = function(self, data, from)
 		if not data then return end
 		local cancelCallback = data.cancelCallback;
 		local text = self.insertedFrame.EditBox:GetText();
-		if type(cancelCallback) == "function" then
-			cancelCallback(text, from);
-		end
+		if type(cancelCallback) ~= "function" then return end
+		cancelCallback(text, from);
 	end,
+
 	--[[
 	EditBoxOnEnterPressed = function(self, data)
 		local parent = self:GetParent();
@@ -268,6 +291,7 @@ StaticPopupDialogs["EPSILIB_GENERIC_MULTILINE_INPUT_BOX"] = {
 	EditBoxOnTextChanged = standardNonEmptyTextHandler,
 	EditBoxOnEscapePressed = standardEditBoxOnEscapePressed,
 	--]]
+
 	hideOnEscape = 1,
 	timeout = 0,
 	exclusive = 1,
@@ -295,7 +319,13 @@ local function genMultiLineInputBoxOnDemand(width, insertedFrame)
 	multiLineInputBox:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 0, 0)
 	multiLineInputBox:SetPoint("TOPRIGHT", containerFrame, "TOPRIGHT", 0, 0)
 
+	if containerFrame.InsertedFrame and insertedFrame ~= containerFrame.InsertedFrame then -- if there is already an inserted frame and it's not the same as the one we're trying to insert, remove it
+		containerFrame.InsertedFrame:Hide()
+		containerFrame.InsertedFrame:SetParent(nil)
+		containerFrame.InsertedFrame = nil
+	end
 	if insertedFrame then
+		containerFrame.InsertedFrame = insertedFrame
 		containerFrame:SetHeight(180 + insertedFrame:GetHeight() + 10)
 		insertedFrame:SetParent(containerFrame)
 		insertedFrame:ClearAllPoints()
@@ -361,6 +391,12 @@ StaticPopupDialogs["EPSILIB_GENERIC_CONFIRMATION"] = {
 			data.callback();
 		end
 	end,
+	OnAlt = function(self, data, from)
+		if not data then return end
+		if data.altCallback then
+			data.altCallback(from);
+		end
+	end,
 	OnCancel = function(self, data, from)
 		if not data then return end
 		local cancelCallback = data.cancelCallback;
@@ -423,6 +459,14 @@ local function showGenericConfirmation(text, callback, insertedFrame)
 	return showCustomGenericConfirmation(data, insertedFrame);
 end
 
+---@param text string the text for the confirmation
+---@param callback fun()? the callback when the player accepts
+---@param insertedFrame frame?
+local function showGenericAlertConfirmation(text, callback, insertedFrame)
+	local data = { text = text, callback = callback, cancelText = false, acceptText = OKAY };
+	return showCustomGenericConfirmation(data, insertedFrame);
+end
+
 -------------------------------
 ---#endregion
 -------------------------------
@@ -468,6 +512,10 @@ StaticPopupDialogs["EPSILIB_GENERIC_DROP_DOWN"] = {
 	end,
 	OnAccept = function(self, data)
 		data.callback(self.DropDownControl:GetSelectedValue());
+	end,
+	OnAlt = function(self, data)
+		if not data.altCallback then return end
+		data.altCallback(self.DropDownControl:GetSelectedValue());
 	end,
 	OnHide = function(self)
 		self.DropDownControl:SetOptionSelectedCallback(nil);
@@ -572,6 +620,7 @@ EpsiLib.Utils.GenericDialogs = {
 
 	CustomConfirmation = showCustomGenericConfirmation,
 	GenericConfirmation = showGenericConfirmation,
+	GenericAlert = showGenericAlertConfirmation,
 
 	CustomDropDown = showCustomGenericDropDown,
 	GenericDropDown = showGenericDropDown,
