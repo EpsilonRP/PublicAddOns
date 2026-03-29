@@ -65,6 +65,7 @@ end
 local menuInfo = {
 	func = SetMapID
 }
+local parentlessMapIDs = { 997, 1022, 1032, 1033, 1034, 1035, 1036, 1037, 1158, 1170, 1334, 1335, 1336, 1337, 1343, 1347, 1362, 1366, 1379, 1408, 1409, 1467, 1504, 1521, 1523, 1611, 1614, 1643, 1645, 1658, 1705, 1726, 1727, 1728, 1762, 1922, 1923, 2046, 2055 }
 local function InitMapsDropdown(self, level)
 	local mapGroupsInMenu = {}
 	level = level or 1
@@ -82,6 +83,12 @@ local function InitMapsDropdown(self, level)
 			menuInfo.arg1 = map
 			UIDropDownMenu_AddButton(menuInfo, level);
 		end
+
+		menuInfo.hasArrow = true
+		menuInfo.text = "Parentless Maps"
+		menuInfo.value = 0
+		UIDropDownMenu_AddButton(menuInfo, level);
+
 		menuInfo.hasArrow = false
 		menuInfo.text = "Empty Map"
 		menuInfo.arg1 = nil
@@ -94,7 +101,14 @@ local function InitMapsDropdown(self, level)
 		end
 		UIDropDownMenu_AddButton(menuInfo, level);
 	else
-		local maps = C_Map.GetMapChildrenInfo(UIDROPDOWNMENU_MENU_VALUE)
+		local maps = C_Map.GetMapChildrenInfo(UIDROPDOWNMENU_MENU_VALUE) or {}
+
+		if UIDROPDOWNMENU_MENU_VALUE == 0 then
+			for _, id in ipairs(parentlessMapIDs) do
+				table.insert(maps, C_Map.GetMapInfo(id))
+			end
+		end
+
 		table.sort(maps, function(a, b) return a.name < b.name end)
 		for _, map in ipairs(maps) do
 			if not mapGroupsInMenu[map.name] then
@@ -154,11 +168,18 @@ end)
 
 EpsilonMap_SettingsMixin = {}
 
+EpsilonMap_SettingsMixin.OnEvent = function(self, event, ...)
+	if event == "AREA_POIS_UPDATED" then
+		WorldMapFrame:UnregisterEvent("AREA_POIS_UPDATED")
+	end
+end
+
 EpsilonMap_SettingsMixin.OnLoad = function(self)
 	ButtonFrameTemplate_HidePortrait(self)
 	ButtonFrameTemplate_HideAttic(self)
 	ButtonFrameTemplate_HideButtonBar(self)
 	self.TitleText:SetText("Map Settings")
+	self:RegisterEvent("AREA_POIS_UPDATED")
 
 	-- Create green TitleBG overlay (same as PinMixin.lua)
 	local titleBg = self:CreateTexture(nil, "ARTWORK")
@@ -415,6 +436,7 @@ function EpsilonMap_CartographerSettingsMixin:Update()
 	self.ImportFeatures:SetEnabled(hasEditPerms)
 
 	self.AllowOfficerToEditCheckButton:GetScript("OnShow")(self.AllowOfficerToEditCheckButton)
+	self.FavsOnTopCheckButton:GetScript("OnShow")(self.FavsOnTopCheckButton)
 end
 
 EpsilonMap_CartographerSettingsMixin.IsOfficerAllowed = EpsilonMap.GetOfficerEditAllowed

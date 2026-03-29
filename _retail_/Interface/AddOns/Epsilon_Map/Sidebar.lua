@@ -136,7 +136,9 @@ function EpsilonMap:RefreshSidebar()
 			if displayedGroups[layerIndex] == nil then displayedGroups[layerIndex] = false end
 			layerNode:SetCollapsed(not displayedGroups[layerIndex])
 
-			for _, instance in ipairs(featureGroup) do
+			--for _, instance in ipairs(featureGroup) do
+			for i = #featureGroup, 1, -1 do -- iterate in reverse instead to keep the order of features consistent with the order in which they were added to the layer
+				local instance = featureGroup[i]
 				local def = MapTextureManager:GetDefinitionOfInstance(instance)
 				local cat = MapTextureManager:GetCatForInst(instance)
 				local featureData = {

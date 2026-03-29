@@ -115,9 +115,12 @@ function EpsilonMap_FeaturePickerButtonMixin:Refresh()
 		self.definition = definition
 
 		if self:IsMouseOver() then
+			self:GetScript("OnLeave")(self)
 			self:GetScript("OnEnter")(self)
 		end
 	end
+
+	self:UpdateFavoriteState(true)
 end
 
 function EpsilonMap_FeaturePickerButtonMixin:OnClick()
@@ -156,13 +159,42 @@ function EpsilonMap_FeaturePickerButtonMixin:OnDragStop()
 	MapTextureManager:AddFeature({ x = x, y = y, scale = scale, defID = self.definition.id, layer = (layer and reverseIndex(16, layer)) })
 end
 
+local favorite_texture_hollow = { 0, 0.25, 0, 1 }
+local favorite_texture_filled = { 0.25, 0.5, 0, 1 }
+function EpsilonMap_FeaturePickerButtonMixin:UpdateFavoriteState(hideIfNoMouseOver)
+	local button = self.FavoriteButton
+	if MapTextureManager:IsDefinitionFavorited(self.definition.id) then
+		button.Icon:SetTexCoord(unpack(favorite_texture_filled))
+		button.isFav = true
+		self.isFav = true
+		button:Show()
+		return true
+	else
+		button.Icon:SetTexCoord(unpack(favorite_texture_hollow))
+		button.isFav = false
+		self.isFav = false
+		if hideIfNoMouseOver and not self:IsMouseOver() then
+			button:Hide()
+		end
+		return false
+	end
+end
+
+function EpsilonMap_FeaturePickerButtonMixin:ToggleFavorite()
+	MapTextureManager:ToggleFavorite(self.definition.id)
+	self:UpdateFavoriteState()
+end
+
 function EpsilonMap_FeaturePickerButtonMixin:OnEnter()
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -16, -4)
 	GameTooltip_SetTitle(GameTooltip, self.definition.name)
+
+	self.FavoriteButton:Show()
+
 	if self.definition.tile then
 		GameTooltip_AddNormalLine(GameTooltip, "Tiled Texture: Drag & Drop Preview will not be fully accurate until placed.", true)
 	end
-	if EpsilonMapFeaturePicker.searchAll:GetChecked() then
+	if EpsilonMapFeaturePicker.searchAll:GetChecked() or (selectedCat == "favorites") then
 		GameTooltip_AddColoredDoubleLine(
 			GameTooltip,
 			"Category:",
@@ -175,6 +207,9 @@ function EpsilonMap_FeaturePickerButtonMixin:OnEnter()
 end
 
 function EpsilonMap_FeaturePickerButtonMixin:OnLeave()
+	if not self.FavoriteButton:IsMouseOver() then
+		self:UpdateFavoriteState(true)
+	end
 	GameTooltip_Hide()
 end
 
@@ -191,7 +226,11 @@ function EpsilonMap_FeaturePickerMixin:SetFilter(catID, ...)
 	local searches = { ... }
 
 	local categoryDefs
-	if self.searchAll:GetChecked() then
+
+	if catID == "favorites" then
+		self.CategoryLabel:SetText("Category: Favorites")
+		categoryDefs = MapTextureManager:GetFavoriteDefinitions()
+	elseif self.searchAll:GetChecked() then
 		self.CategoryLabel:SetText("Category: All")
 		categoryDefs = MapTextureManager:GetDefinitionsOrderedByCat()
 	else
@@ -264,7 +303,7 @@ local ARROW_TOP_BUFFER = 16
 local function _setupCatButton(button, elementData)
 	-- One-time setup
 	if not button.initialized then
-		local root = button:GetParent():GetParent():GetParent():GetParent()
+		local root = button.root or button:GetParent():GetParent():GetParent():GetParent()
 		button:SetSize(CATEGORY_BUTTON_SIZE, CATEGORY_BUTTON_SIZE)
 
 		button:SetScript("OnEnter", function(self)
@@ -297,12 +336,12 @@ local function _setupCatButton(button, elementData)
 				local scale = UIParent:GetEffectiveScale()
 				y = y / scale
 
-				self:GetParent():GetParent():GetParent():GetParent():BeginDragScroll(y)
+				root:BeginDragScroll(y)
 			end
 		end)
 
 		button:SetScript("OnMouseUp", function(self)
-			self:GetParent():GetParent():GetParent():GetParent():EndDragScroll()
+			root:EndDragScroll()
 		end)
 
 		button:SetHighlightTexture(assetPath .. "UI\\CartographerNodeHighlight.blp")
@@ -337,6 +376,21 @@ local function _setupCatButton(button, elementData)
 
 	button.catID   = elementData.catID
 	button.catData = elementData.catData
+end
+
+function EpsilonMap_FeaturePickerMixin:CreateFavoritesButton()
+	local button = CreateFrame("Button", nil, self.selectorFrame);
+	button.root = self
+
+	_setupCatButton(button, { catID = "favorites", catData = { name = "Favorites", icon = "Favourites" } })
+
+	button:SetPoint("BOTTOMRIGHT", self.Inset, "TOPLEFT", -2, -2)
+	button:SetSize(CATEGORY_BUTTON_SIZE, CATEGORY_BUTTON_SIZE);
+
+	button:SetScript("OnMouseDown", nil)
+	button:SetScript("OnMouseUp", nil)
+
+	return button
 end
 
 function EpsilonMap_FeaturePickerMixin:InitCategoryScrollBox()
@@ -404,6 +458,8 @@ function EpsilonMap_FeaturePickerMixin:InitCategoryScrollBox()
 	self.CategorySelectionBehaviorRegistry = ScrollUtil.AddSelectionBehavior(self.scrollBox, nil)
 	-- call root.CategorySelectionBehaviorRegistry:RegisterCallback("OnSelectionChanged", func, owner, ...)
 	-- add selection by using root.CategorySelectionBehaviorRegistry:SetSelectedElementData(elementData)
+
+	self:CreateFavoritesButton()
 end
 
 function EpsilonMap_FeaturePickerMixin:BeginDragScroll(startY)

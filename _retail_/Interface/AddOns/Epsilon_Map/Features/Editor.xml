@@ -38,6 +38,50 @@
 			</Texture>
 		</Layer>
 	</Layers>
+	<Frames>
+		<Button parentKey="FavoriteButton" hidden="true">
+			<Size x="28" y="28"/>
+			<Anchors>
+				<Anchor point="TOPRIGHT" x="2" y="2"/>
+			</Anchors>
+			<HitRectInsets>
+				<AbsInset left="2" right="2" top="2" bottom="2"/>
+			</HitRectInsets>
+			<NormalTexture file="Interface/Addons/Epsilon_Map/Assets/UI/Favorites" parentKey="Icon" setAllPoints="true">
+				<TexCoords left="0.25" right="0.5" top="0" bottom="1"/>
+			</NormalTexture>
+			<HighlightTexture file="Interface/Addons/Epsilon_Map/Assets/UI/Favorites" parentKey="Highlight" alphaMode="ADD" setAllPoints="true">
+				<TexCoords left="0.5" right="0.75" top="0" bottom="1"/>
+			</HighlightTexture>
+			<Scripts>
+				<OnShow>
+					self:GetParent():UpdateFavoriteState()
+				</OnShow>
+				<OnEnter>
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+					GameTooltip_SetTitle(GameTooltip, self.isFav and "Remove Favorite" or "Add Favorite", NORMAL_FONT_COLOR);
+					--GameTooltip_AddHighlightLine(GameTooltip, self.isFav and "Click to remove this feature from your favorites." or "Click to add this feature to your favorites.", false);
+					GameTooltip_AddHighlightLine(GameTooltip, self:GetParent().definition.name, false);
+					GameTooltip:Show();
+				</OnEnter>
+				<OnLeave>
+					if not self.isFav and not self:GetParent():IsMouseOver() then
+						self:Hide()
+					end
+					GameTooltip:Hide()
+				</OnLeave>
+				<OnMouseDown>
+					self:SetSize(27, 27);
+				</OnMouseDown>
+				<OnMouseUp>
+					self:SetSize(28, 28);
+				</OnMouseUp>
+				<OnClick>
+					self:GetParent():ToggleFavorite()
+				</OnClick>
+			</Scripts>
+		</Button>
+	</Frames>
 	<Scripts>
 		<OnShow method="Refresh"/>
 		<OnClick method="OnClick"/>
@@ -50,6 +94,8 @@
 			local utils = LibStub("AceAddon-3.0"):GetAddon("Epsilon_Map")._Utils
 			utils.AdjustDevTex(self:GetNormalTexture())
 			utils.AdjustDevTex(self:GetHighlightTexture())
+			utils.AdjustDevTex(self.FavoriteButton.Icon)
+			utils.AdjustDevTex(self.FavoriteButton.Highlight)
 
 			self.NormalMask = self:CreateMaskTexture()
 			self.NormalMask:SetAllPoints(self.NormalTexture)

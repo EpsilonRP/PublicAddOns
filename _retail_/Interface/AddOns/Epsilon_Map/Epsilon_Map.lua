@@ -128,6 +128,8 @@ local defaults = {
 	global = {
 		backups = {},
 		maxBackups = 5,
+		favorites = {},
+		favsOnTop = true,
 	},
 	char = {
 		discoveredPins = {}
@@ -140,6 +142,8 @@ function EpsilonMap:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("EpsilonMapDB", defaults, true)
 	MapTextureManager:SetBackupTable(self.db.global.backups)
 	MapTextureManager:SetMaxBackups(self.db.global.maxBackups)
+	MapTextureManager:SetFavoritesTable(self.db.global.favorites)
+	MapTextureManager:SetFavsOnTop(self.db.global.favsOnTop)
 	EpsilonMap.discoveredPins = self.db.char.discoveredPins
 end
 

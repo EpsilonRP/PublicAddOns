@@ -17,6 +17,9 @@ MTM.texPool = nil    -- Internal Texture pool
 MTM.maskPool = nil   -- Internal Tex Mask Pool
 MTM.lastEditTime = 0
 
+MTM.favorites = {}   -- User Favorite Definitions, stored by DefID
+MTM.favsOnTop = true -- Whether to show favorites on top in the picker
+
 local layerVis = {}
 setmetatable(layerVis, {
 	__index = function() return true end
@@ -278,7 +281,20 @@ function MTM:ShowFogOfWarLayer()
 end
 
 function MTM:GetBestAutoDefaultScale(mapBaseScale)
-	if not mapBaseScale then mapBaseScale = WorldMapFrame.ScrollContainer.baseScale end
+	-- pulling base scale manually to ensure we always use the scale from not-full-screen
+	local frame = WorldMapFrame.ScrollContainer
+	local layers = C_Map.GetMapArtLayers(frame.mapID);
+
+	--if not mapBaseScale then mapBaseScale = WorldMapFrame.ScrollContainer.baseScale end
+	if not mapBaseScale then
+		--local frameWidth, frameHeight = frame:GetWidth(), frame:GetHeight()
+		local frameWidth, frameHeight = 697, 465
+
+		local widthScale = frameWidth / layers[1].layerWidth;
+		local heightScale = frameHeight / layers[1].layerHeight;
+		mapBaseScale = math.min(widthScale, heightScale);
+	end
+
 	if not mapBaseScale or mapBaseScale <= 0 then
 		return 1
 	end
@@ -373,6 +389,45 @@ function MTM:CreateTexturePool()
 	end
 
 	self.texPool = CreateTexturePool(canvas, "ARTWORK", 0, nil, resetter)
+
+	-- Ordered list of ALL textures ever created, in creation order
+	local creationQueue = {}
+
+	local originalAcquire = self.texPool.Acquire
+
+	-- Custom Acquire to use creation queue for order management
+	function self.texPool:Acquire()
+		-- Find the highest active index
+		local highWaterMark = 0
+		for i, obj in ipairs(creationQueue) do
+			if self.activeObjects[obj] then
+				highWaterMark = i
+			end
+		end
+
+		-- Find first inactive slot AFTER the high water mark
+		for i = highWaterMark + 1, #creationQueue do
+			local obj = creationQueue[i]
+			if not self.activeObjects[obj] then
+				self.activeObjects[obj] = true
+				self.numActiveObjects = self.numActiveObjects + 1
+				for j, inactiveObj in ipairs(self.inactiveObjects) do
+					if inactiveObj == obj then
+						table.remove(self.inactiveObjects, j)
+						break
+					end
+				end
+				return obj, false
+			end
+		end
+
+		-- Nothing free after high water mark, create new
+		local newObj, isNew = originalAcquire(self)
+		if isNew then
+			creationQueue[#creationQueue + 1] = newObj
+		end
+		return newObj, isNew
+	end
 end
 
 function MTM:CreateMaskPool()
@@ -386,6 +441,45 @@ function MTM:CreateMaskPool()
 	end
 
 	self.maskPool = CreateMaskPool(canvas, nil, nil, nil, resetter)
+
+	-- Ordered list of ALL textures ever created, in creation order
+	local creationQueue = {}
+
+	local originalAcquire = self.maskPool.Acquire
+
+	-- Custom Acquire to use creation queue for order management
+	function self.maskPool:Acquire()
+		-- Find the highest active index
+		local highWaterMark = 0
+		for i, obj in ipairs(creationQueue) do
+			if self.activeObjects[obj] then
+				highWaterMark = i
+			end
+		end
+
+		-- Find first inactive slot AFTER the high water mark
+		for i = highWaterMark + 1, #creationQueue do
+			local obj = creationQueue[i]
+			if not self.activeObjects[obj] then
+				self.activeObjects[obj] = true
+				self.numActiveObjects = self.numActiveObjects + 1
+				for j, inactiveObj in ipairs(self.inactiveObjects) do
+					if inactiveObj == obj then
+						table.remove(self.inactiveObjects, j)
+						break
+					end
+				end
+				return obj, false
+			end
+		end
+
+		-- Nothing free after high water mark, create new
+		local newObj, isNew = originalAcquire(self)
+		if isNew then
+			creationQueue[#creationQueue + 1] = newObj
+		end
+		return newObj, isNew
+	end
 end
 
 function MTM:CreateHighlightPool()
@@ -1206,7 +1300,7 @@ function MTM:HitTest()
 				local dx = cx - inst.x
 				local dy = cy - inst.y
 				local dist = math.sqrt(dx * dx + dy * dy)
-				if dist < instDist then
+				if dist <= instDist then
 					instDist = dist
 					closestInst = inst
 				end
@@ -1280,6 +1374,8 @@ function MTM:SelectInstance(inst)
 
 	self:HighlightInstance(inst)
 	self:PositionHandles(inst)
+
+	return inst
 end
 
 function MTM:Deselect()
@@ -2251,28 +2347,73 @@ function MTM:GetDefinitionByIndex(index) -- ONLY EVER USE THIS INTERNALLY AT SES
 	return self.definitions[self.defOrder[index]]
 end
 
-function MTM:GetDefinitionsOrdered(alpha)
+function MTM:GetDefinitionsOrdered(alpha, includeHidden)
 	local _table = {}
+	local _favorites = {}
+
+	local favs = {} -- hack: We just use a blank favs table if favsOnTop is disabled, to avoid the overhead of building the lookup table when we don't need it.
+	if MTM.favsOnTop then
+		favs = MTM:GetFavoritesLookup()
+	end
 
 	for i = 1, #self.defOrder do
-		table.insert(_table, self:GetDefinitionByIndex(i))
+		local def = self:GetDefinitionByIndex(i)
+		if not def.hidden or includeHidden then
+			if favs[self.defOrder[i]] then
+				table.insert(_favorites, def)
+			else
+				table.insert(_table, def)
+			end
+		end
 	end
 	if alpha then
 		alphanum_sort(_table, "name")
+		alphanum_sort(_favorites, "name")
 	end
+	for i = 1, #_favorites do
+		table.insert(_table, 1, _favorites[i])
+	end
+	return _table
+end
+
+function MTM:GetFavoriteDefinitions()
+	local _table = {}
+	local favs = MTM:GetFavorites()
+
+	for _, defID in ipairs(favs) do
+		local def = self:GetDefinitionByID(defID)
+		if def then
+			table.insert(_table, def)
+		end
+	end
+
 	return _table
 end
 
 function MTM:GetDefinitionsOrderedByCat(includeHidden)
 	local _table = {}
+	local _favorites = {}
+
+	local favs = {} -- hack: We just use a blank favs table if favsOnTop is disabled, to avoid the overhead of building the lookup table when we don't need it.
+	if MTM.favsOnTop then
+		favs = MTM:GetFavoritesLookup()
+	end
 
 	for _, catID in ipairs(self.catOrder) do
 		local cat = self.categories[catID]
 		for _, def in ipairs(cat.definitions) do
 			if not def.hidden or includeHidden then
-				table.insert(_table, def)
+				if favs[def.id] then
+					table.insert(_favorites, def)
+				else
+					table.insert(_table, def)
+				end
 			end
 		end
+	end
+
+	for i = #_favorites, 1, -1 do
+		table.insert(_table, 1, _favorites[i])
 	end
 
 	return _table
@@ -2288,6 +2429,26 @@ end
 
 -- Categories
 
+local function resortCatFavs(catID)
+	if not MTM.categories[catID] then return end
+	if not MTM.favsOnTop then return end -- if favs on top is disabled, don't do anything.
+
+	local favs = MTM:GetFavoritesLookup()
+	local _favorites = {}
+
+	for i = #MTM.categories[catID].definitions, 1, -1 do
+		local def = MTM.categories[catID].definitions[i]
+		if favs[def.id] then
+			table.insert(_favorites, 1, def)
+			table.remove(MTM.categories[catID].definitions, i)
+		end
+	end
+
+	for i = 1, #_favorites do
+		table.insert(MTM.categories[catID].definitions, 1, _favorites[i])
+	end
+end
+
 local pendingSorts = {}
 local function _resortCatOnNextFrame(catID)
 	local catData = MTM.categories[catID]
@@ -2297,6 +2458,7 @@ local function _resortCatOnNextFrame(catID)
 
 	pendingSorts[catID] = C_Timer.NewTimer(0, function()
 		alphanum_sort(MTM.categories[catID].definitions, "name")
+		--resortCatFavs(catID) -- ensure favorites are always on top, even after sorting
 		pendingSorts[catID] = nil
 	end)
 end
@@ -2363,16 +2525,24 @@ end
 function MTM:GetDefinitionsInCategory(categoryID, includeHidden)
 	_resortCatNowIfQueued(categoryID)
 	local definitions = self.categories[categoryID].definitions
-	if not includeHidden then
-		local visibleDefinitions = {}
-		for _, def in ipairs(definitions) do
-			if not def.hidden then
-				table.insert(visibleDefinitions, def)
-			end
-		end
-		return visibleDefinitions
+
+	local favs = {} -- hack: We just use a blank favs table if favsOnTop is disabled, to avoid the overhead of building the lookup table when we don't need it.
+	if MTM.favsOnTop then
+		favs = MTM:GetFavoritesLookup()
 	end
-	return definitions
+
+	local visibleDefinitions = {}
+	local favorites = {}
+	for _, def in ipairs(definitions) do
+		if not def.hidden or includeHidden then
+			local _tab = favs[def.id] and favorites or visibleDefinitions
+			table.insert(_tab, def)
+		end
+	end
+	for i = #favorites, 1, -1 do
+		table.insert(visibleDefinitions, 1, favorites[i])
+	end
+	return visibleDefinitions
 end
 
 function MTM:GetCatForInst(inst)
@@ -2551,8 +2721,9 @@ end
 ---@param params table See the Params above for available options
 ---@param noSave? boolean If true, will not request an auto save. Still marks editor dirty. Call a mark clean after bulk if needed.
 ---@param doNotRefreshSidebar? boolean If true, will not refresh the sidebar UI after adding. Must manually call a refresh if needed (i.e., after bulk actions)
+---@param selectAfterAdd? boolean If true, will select the added feature after adding it
 ---@return table|nil FeatureInstance
-function MTM:AddFeature(params, noSave, doNotRefreshSidebar)
+function MTM:AddFeature(params, noSave, doNotRefreshSidebar, selectAfterAdd)
 	local defID
 
 	-- Accept either defID or definition object
@@ -2602,12 +2773,17 @@ function MTM:AddFeature(params, noSave, doNotRefreshSidebar)
 	else
 		self:MarkEditorDirty()
 	end
+
+	if selectAfterAdd then
+		self:SelectInstance(inst)
+	end
+
 	return inst
 end
 
 function MTM:CopyInstance(inst)
 	if not inst then return end
-	return self:AddFeature(rawCopyInstData(inst))
+	return self:AddFeature(rawCopyInstData(inst), nil, nil, true)
 end
 
 -- Add Text Feature Prompt
@@ -2687,7 +2863,6 @@ end
 
 function MTM:ReleaseInstTexture(inst)
 	if not inst or not inst.texture then return end
-
 	self.texPool:Release(inst.texture)
 	inst.texture = nil
 end
@@ -2736,6 +2911,7 @@ end
 function MTM:Clear()
 	self.highlightPool:ReleaseAll()
 	self.texPool:ReleaseAll()
+	self.maskPool:ReleaseAll()
 	self.selected = nil
 	self:HideEditHandles()
 	wipe(self.instances)
@@ -2967,17 +3143,39 @@ function MTM:GetFeaturesDataByLayers()
 	return getFeaturesByLayer(true)
 end
 
-function MTM:AddFeatures(features, noSave, forceRefresh)
-	for _, feat in ipairs(features) do
-		self:AddFeature(rawCopyInstData(feat), noSave, true)
+---Add bulk features
+---@param features table Can be in the format of either a layer table (with .layers containing sub-arrays for each layer), a features wrapper (with .features containing an array of instances), or just a raw array of instances.
+---@param noSave boolean If true, will not request an auto save. Still marks editor dirty.
+---@param forceRefresh? boolean If true, will refresh the map & sidebar on the next frame.
+---@param forceBackup? boolean If true, will create a backup of the current features.
+function MTM:AddFeatures(features, noSave, forceRefresh, forceBackup)
+	if not features then return end
+
+	if features.layers then
+		if #features.layers == 0 then return end
+		for i = 1, 16 do
+			local layer = features.layers[i]
+			if layer and #layer > 0 then
+				self:AddFeatures(layer, true)
+			end
+		end
+	else
+		local list = features.features or features
+		if #list == 0 then return end
+		for _, feat in ipairs(list) do
+			self:AddFeature(rawCopyInstData(feat), noSave, true)
+		end
 	end
 
-	if forceRefresh then
-		self:RefreshOnNextFrame()
-		--ns._addon:RefreshSidebar() -- refresh all calls a sidebar refresh, dummy
-	end
+	if forceBackup then self:CreateBackup() end
+	if forceRefresh then self:RefreshOnNextFrame() end
 end
 
+---Set the features directly
+---@param features table Can be in the format of either a layer table (with .layers containing sub-arrays for each layer), a features wrapper (with .features containing an array of instances), or just a raw array of instances.
+---@param noSave? boolean If true, will not request an auto save. Still marks editor dirty.
+---@param noRefresh? boolean If true, will not refresh the map & sidebar on the next frame.
+---@param noBackup? boolean If true, will not create a backup of the current features.
 function MTM:SetFeatures(features, noSave, noRefresh, noBackup)
 	self:Clear()
 	local makeAutoBackup
@@ -3011,6 +3209,11 @@ end
 
 local backups = {}
 
+---Generate the raw backup data and return it; does not do any form of saving, only creating the backup object
+---@param features? table The raw table of feature instances; if not given, grabs current active feature data
+---@param layers? table layer visibility table; if not given, grabs current active layer visibility
+---@param phaseID? integer the phase ID; if not given, uses current phase ID
+---@return table backup the backup object containing the features, layer visibility, phaseID, and date.
 function MTM:GenerateBackup(features, layers, phaseID)
 	local backup = {}
 
@@ -3023,6 +3226,7 @@ function MTM:GenerateBackup(features, layers, phaseID)
 	return backup
 end
 
+---Creates a backup of the current features and layer visibility for the current phase, and stores it in the backups table.
 function MTM:CreateBackup()
 	-- only create backup if you have edit permissions, to avoid filling up the backup storage with useless backups (and prevent taking backups from other people's phase)
 	if not ns._addon:HasElevatedEditPermissions() then return end
@@ -3064,6 +3268,10 @@ function MTM:GetBackups()
 	return backups
 end
 
+---Delete a backup from the backups table.
+---@param indexOrBackup table|integer Either the backup object itself, or the index of the backup in the backups table for the given phaseID.
+---@param phaseID integer the phase ID of the backup to delete. Required if indexOrBackup is an index, ignored if indexOrBackup is the backup object itself (since it contains the phaseID in its data).
+---@return boolean success whether the backup was successfully deleted.
 function MTM:DeleteBackup(indexOrBackup, phaseID)
 	if type(indexOrBackup) == "table" then
 		if not indexOrBackup.phaseID or not backups[indexOrBackup.phaseID] then return false end
@@ -3074,9 +3282,13 @@ function MTM:DeleteBackup(indexOrBackup, phaseID)
 	return (table.remove(phaseID, indexOrBackup) ~= nil)
 end
 
+---Restore backup to the current active data
+---@param indexOrBackup table|integer Either the backup object itself, or the index of the backup in the backups table for the given phaseID.
+---@param phaseID integer the phase ID of the backup to use. Required if indexOrBackup is an index, ignored if indexOrBackup is the backup object itself (since it contains the phaseID in its data).
+---@return boolean success whether the backup was successfully restored.
 function MTM:RestoreBackup(indexOrBackup, phaseID)
 	if type(indexOrBackup) == "table" then
-		self:SetFeatures(indexOrBackup.features, nil, nil, true)
+		self:SetFeatures(indexOrBackup.features or indexOrBackup, nil, nil, true)
 		return true
 	end
 
@@ -3101,6 +3313,9 @@ function MTM:GetMaxBackups()
 	return MAX_AUTO_BACKUPS_PER_PHASE
 end
 
+---Export backup, showing a copy dialog for the serialized data
+---@param indexOrBackup table|integer Either the backup object itself, or the index of the backup in the backups table for the given phaseID.
+---@param phaseID integer the phase ID of the backup to use. Required if indexOrBackup is an index, ignored if indexOrBackup is the backup object itself (since it contains the phaseID in its data).
 function MTM:ExportBackup(indexOrBackup, phaseID)
 	if not indexOrBackup then indexOrBackup = self:GenerateBackup() end
 	if not phaseID then phaseID = tonumber(C_Epsilon.GetPhaseId()) end
@@ -3113,10 +3328,14 @@ function MTM:ExportBackup(indexOrBackup, phaseID)
 
 	backup = compressAndSerialize(backup)
 	EpsilonLib.Utils.GenericDialogs.CopyMultiLine(backup)
-	-- TODO: serialize the table and show a popup to copy it
 end
 
-function MTM:ImportBackup(importString, phaseID, apply)
+---Import a backup from a previously exported serialized data
+---@param importString string
+---@param phaseID? integer the phase ID to apply the backup to; if not given, uses the current phase ID. The phaseID parameter is mainly for organizational purposes in the backups table, and does not affect the functionality of applying the imported features to the map.
+---@param apply? boolean if true, will apply the imported features to the map immediately after importing. If false or nil, will only import to the backups table without applying to the map.
+---@param additive? boolean if true and apply is also true, will add the imported features to the existing features on the map instead of replacing them. Ignored if apply is false or nil.
+function MTM:ImportBackup(importString, phaseID, apply, additive)
 	-- deserialize the table, then import to the phase backups, then apply if requested
 	local importedFeatures = deserializeAndDecompress(importString)
 
@@ -3137,7 +3356,10 @@ function MTM:ImportBackup(importString, phaseID, apply)
 	table.insert(backups[phaseID], importedFeatures)
 
 	if apply then
-		self:SetFeatures(importedFeatures)
+		if additive then
+			self:AddFeatures(importedFeatures, true, true)
+		end
+		self:SetFeatures(importedFeatures, nil, nil, true)
 	end
 end
 
@@ -3150,6 +3372,11 @@ function MTM:ShowImportDialog()
 		end,
 		acceptText = "Import & Replace",
 		cancelText = "Nevermind!",
+		button3 = "Import & Add",
+		flipAltAndCancel = true,
+		callback3 = function(text)
+			MTM:ImportBackup(text, C_Epsilon.GetPhaseId(), true, true)
+		end,
 		editBoxWidth = GetScreenWidth() * 0.5,
 	})
 end
@@ -3268,8 +3495,8 @@ function MTM:OpenBackupsManager()
 		local scrollBar = CreateFrame("EventFrame", nil, backupsFrame, "MinimalScrollBar")
 		scrollBar:SetPoint("TOPRIGHT", scrollBox, "TOPRIGHT", 0, ARROW_TOP_BUFFER)
 		scrollBar:SetPoint("BOTTOMRIGHT", scrollBox, "BOTTOMRIGHT", 0, -ARROW_TOP_BUFFER)
-		scrollBar.Back:SetPoint("TOP", scrollBox, "TOP", 0, ARROW_TOP_BUFFER)
-		scrollBar.Forward:SetPoint("BOTTOM", scrollBox, "BOTTOM", 0, -ARROW_TOP_BUFFER)
+		scrollBar.Back:Hide()
+		scrollBar.Forward:Hide()
 
 		scrollBox:GetScrollTarget():HookScript("OnUpdate", function()
 			--self:UpdateDragScroll()
@@ -3306,6 +3533,58 @@ function MTM:OpenBackupsManager()
 	backupsFrame:Refresh()
 	backupsFrame:Show()
 	backupsFrame:Raise()
+end
+
+-- Favorites Management
+
+function MTM:SetFavoritesTable(table)
+	self.favorites = table
+end
+
+function MTM:SetFavsOnTop(toggle)
+	self.favsOnTop = toggle
+end
+
+function MTM:IsFavsOnTop()
+	return self.favsOnTop
+end
+
+function MTM:GetFavorites()
+	return self.favorites
+end
+
+function MTM:GetFavoritesLookup()
+	local lookup = {}
+	for _, defID in ipairs(self.favorites) do
+		lookup[defID] = true
+	end
+	return lookup
+end
+
+function MTM:IsDefinitionFavorited(defID)
+	return tContains(self.favorites, defID)
+end
+
+function MTM:AddFavorite(defID)
+	if not tContains(self.favorites, defID) then
+		table.insert(self.favorites, defID)
+		return true
+	end
+	return false
+end
+
+function MTM:RemoveFavorite(defID)
+	return tDeleteItem(self.favorites, defID) > 0
+end
+
+function MTM:ToggleFavorite(defID)
+	if self:RemoveFavorite(defID) then
+		return false
+	else
+		-- hard add since we know it's not in there, no need to do the check
+		table.insert(self.favorites, defID)
+		return true
+	end
 end
 
 ------------------------------------------------------------
