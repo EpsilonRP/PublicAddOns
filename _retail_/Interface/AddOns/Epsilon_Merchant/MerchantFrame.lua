@@ -494,7 +494,7 @@ function Epsilon_MerchantDeleteVendor()
 		-- Iterate through gossip options and remove any
 		-- that match ours.
 		--
-		for i = 1, C_GossipInfo.GetNumOptions() do
+		for i = 1, C_GossipInfo.GetNumOptions(true) do
 			local titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
 			local titleButtonText = titleButton:GetText();
 			if titleButtonText == "I want to browse your goods." then
