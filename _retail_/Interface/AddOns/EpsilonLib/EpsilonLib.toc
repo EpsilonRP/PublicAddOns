@@ -10,6 +10,7 @@
 Lib\Lib.xml
 
 Utils\EventManager.lua
+AddonCommands.lua
 Classes\Classes.xml
 
 EpsilonLib.lua

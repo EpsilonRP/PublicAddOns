@@ -118,25 +118,43 @@ local function handleCallbackAndMessages(success, data, addon)
 		data.callback = nil -- // Clear our callback so we can't call it twice on accident somehow? I don't think we can get both f & o but... Even TCLib does this to be safe
 	end
 
+	-- Evaluate overrideMessages if it's a function
 	local overrideMessages = evaluate(data.overrideMessages, success, data.returnMessages)
+	-- We are not evaluating showMessages unless needed / no override. But keeping this here for reference / debug
+	--local showMessages = evaluate(addon and addon.showMessages, success, data.returnMessages)
 
-	if overrideMessages == false then return end -- // Force block replies if this send had a force hide messages; hides errors also
+	-- Determine if we should show messages
+	local showMessages
+	if overrideMessages ~= nil then
+		-- Override is set (true or false), use it
+		showMessages = overrideMessages
+	else
+		-- No override, use addon's showMessages setting
+		showMessages = addon and evaluate(addon.showMessages, success, data.returnMessages)
+	end
 
-	local showMessages = addon and evaluate(addon.showMessages, success, data.returnMessages)
-	if overrideMessages then showMessages = true end -- Override was enabled
-	if success == false then showMessages = true end -- Force Show Messages on Failure!
-
-	if showMessages then
-		if not success and overrideMessages ~= true and (addon and addon.showMessages ~= true) then -- Command failed, not force shown, and showMessages not on - display the error message for WHY we are forcing the messages
+	-- Display messages based on tri-state logic
+	if showMessages == true then
+		-- Show all messages
+		if data.returnMessages then
+			for k, v in ipairs(data.returnMessages) do
+				SendSystemMessage(v)
+			end
+		end
+	elseif showMessages == nil then
+		-- Show error/fail messages only
+		if not success then
 			local addonName = (addon and addon.name) or data.name or "<UNKNOWN ADDON>"
-
 			local output = strconcat(("EpsiLib -> Failed Command by %s: "):format(addonName), data.command .. (data.returnMessages and "; Results:" or ""))
 			SendSystemMessage(output)
 		end
-		for k, v in ipairs(data.returnMessages) do
-			SendSystemMessage(v)
+		if data.returnMessages and not success then
+			for k, v in ipairs(data.returnMessages) do
+				SendSystemMessage(v)
+			end
 		end
 	end
+	-- showMessages == false: show nothing
 end
 
 local function recordCommandBufferAndLog(commandID, commandData)
