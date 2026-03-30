@@ -7,7 +7,8 @@ BINDING_NAME_PHASE_CODEX_OPEN = "Open Codex"
 
 EpsilonPhases.previousTempPhase = nil
 
-local function phaseInfoCallback(phase)
+local function phaseInfoCallback(phase, id)
+	if not phase then return error("Phase callback returned without phase for id ", id) end
 	tinsert(EpsilonPhases.PrivatePhases, phase)
 	EpsilonPhases:RefreshPhases()
 	privatePhasesLoaded = true
