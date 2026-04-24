@@ -9,6 +9,21 @@ local Me = Epsilon_Merchant;
 local soundIsPlaying = false;
 local gettingSound;
 
+local addonCommands = EpsilonLib.AddonCommands.Get("Epsilon_Merchant")
+local SendCommand
+if addonCommands then SendCommand = addonCommands.SendAddonCommand else
+	SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
+end
+
+local function clearMsg(text)
+	return text:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+end
+
+local acceptableNpcGuidTypes = {
+	Creature = true,
+	Vehicle = true
+}
+
 -------------------------------------------------------------------------
 -- Convert table to string
 --
@@ -62,6 +77,41 @@ local function GetUnitID( unitID )
 	id = tonumber( id );
 	return id;
 end
+
+local npc_info_str = "NPC Info: |Hcreature_entry:(%d+)|h"
+-------------------------------------------------------------------------
+--- Continues a function after either grabbing the current target GUID, or if needed, pulling from NPC info.
+---@param callback fun(id:number)
+---@param unitID? UnitId if not given, defaults to 'target'
+local function continueWithTargetNPCGUID(callback, unitID)
+	if not unitID then unitID = "target" end
+	if not callback then return error('must use a callback with continueWithTargetNPCGUID') end
+	local id = GetUnitID(unitID)
+	if not id then return end
+
+	if id > 5000000 then
+
+		SendCommand("npc info", function(success, returnMsgs)
+			if not success then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (Failed Command.)") end
+			local msg = returnMsgs[1]
+			if not msg then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No Message)") end
+			msg = clearMsg(msg)
+
+			local realGuid = tonumber(strmatch(msg, npc_info_str))
+			if realGuid then
+				--print('continueWithTargetNPCGUID_realID', realGuid)
+				callback(realGuid)
+			else
+				PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No RealGUID)");
+			end
+		end)
+
+	else
+		--print('continueWithTargetNPCGUID_trueID', id)
+		callback(id)
+	end
+end
+
 
 -------------------------------------------------------------------------
 -- Check if we own/are an officer in the current phase.
@@ -168,34 +218,42 @@ function Epsilon_Merchant_SaveSound( soundType, soundKitID )
 		return
 	end
 
+	--[[
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
 		return
 	end
-
 	id = tonumber( id )
+	--]]
+	--[[
+	local id = GetUnitID("target")
+	if not id then return end
+	--]]
+	continueWithTargetNPCGUID(function(id)
 
-	local prefix
-	if soundType == "greeting" then
-		prefix = "GREET_SOUND_"
-	elseif soundType == "farewell" then
-		prefix = "BYE_SOUND_"
-	elseif soundType == "onclick" then
-		prefix = "CLICK_SOUND_"
-	elseif soundType == "buyitem" then
-		prefix = "BUY_SOUND_"
-	end
+		local prefix
+		if soundType == "greeting" then
+			prefix = "GREET_SOUND_"
+		elseif soundType == "farewell" then
+			prefix = "BYE_SOUND_"
+		elseif soundType == "onclick" then
+			prefix = "CLICK_SOUND_"
+		elseif soundType == "buyitem" then
+			prefix = "BUY_SOUND_"
+		end
 
-	if not( soundKitID and type( soundKitID ) == "number" and id and type( id ) == "number" ) then
-		return
-	end
+		if not( soundKitID and type( soundKitID ) == "number" and id and type( id ) == "number" ) then
+			return
+		end
 
-	local key = prefix .. id
+		local key = prefix .. id
 
-	if key and soundKitID then
-		SetPhaseData( key, soundKitID );
-	end
+		if key and soundKitID then
+			SetPhaseData( key, soundKitID );
+		end
+
+	end)
 end
 
 -------------------------------------------------------------------------
@@ -211,39 +269,51 @@ function Epsilon_Merchant_PlaySound( soundType )
 		return
 	end
 
+	-- Keeping this to prevent calling on non-NPC targets
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
-	if not(unitType == "Creature") then
+	if not acceptableNpcGuidTypes[unitType] then
 		return
 	end
 
+	--[[
 	id = tonumber( id )
+	--]]
+	--[[
+	local id = GetUnitID("target")
+	if not id then return end
+	--]]
 
-	-- Send a request to the server.
-	local prefix
-	if soundType == "greeting" then
-		prefix = "GREET_SOUND_"
-	elseif soundType == "farewell" then
-		prefix = "BYE_SOUND_"
-	elseif soundType == "onclick" then
-		prefix = "CLICK_SOUND_"
-	elseif soundType == "buyitem" then
-		prefix = "BUY_SOUND_"
-	end
+	continueWithTargetNPCGUID(function(id)
 
-	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
+		-- Send a request to the server.
+		local prefix
+		if soundType == "greeting" then
+			prefix = "GREET_SOUND_"
+		elseif soundType == "farewell" then
+			prefix = "BYE_SOUND_"
+		elseif soundType == "onclick" then
+			prefix = "CLICK_SOUND_"
+		elseif soundType == "buyitem" then
+			prefix = "BUY_SOUND_"
+		end
 
-	if not messageTicketId then
-		-- vendor not found ??? uh oh...
-		return
-	end
+		local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
 
-	local register = {
-		id = messageTicketId;
-		type = "playsound";
-	}
+		if not messageTicketId then
+			-- vendor not found ??? uh oh...
+			return
+		end
 
-	tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+		local register = {
+			id = messageTicketId;
+			type = "playsound";
+		}
+
+		tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+
+	end, "target")
+
 end
 
 -------------------------------------------------------------------------
@@ -260,6 +330,7 @@ function Epsilon_Merchant_GetSound( soundType )
 		return
 	end
 
+	--[[
 	local guid = UnitGUID("target")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
@@ -267,34 +338,43 @@ function Epsilon_Merchant_GetSound( soundType )
 	end
 
 	id = tonumber( id )
+	--]]
+	--[[
+	local id = GetUnitID("target")
+	if not id then return end
+	--]]
 
-	-- Send a request to the server.
-	local prefix
-	if soundType == "greeting" then
-		prefix = "GREET_SOUND_"
-	elseif soundType == "farewell" then
-		prefix = "BYE_SOUND_"
-	elseif soundType == "onclick" then
-		prefix = "CLICK_SOUND_"
-	elseif soundType == "buyitem" then
-		prefix = "BUY_SOUND_"
-	end
+	continueWithTargetNPCGUID(function(id)
 
-	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
-	gettingSound = true;
+		-- Send a request to the server.
+		local prefix
+		if soundType == "greeting" then
+			prefix = "GREET_SOUND_"
+		elseif soundType == "farewell" then
+			prefix = "BYE_SOUND_"
+		elseif soundType == "onclick" then
+			prefix = "CLICK_SOUND_"
+		elseif soundType == "buyitem" then
+			prefix = "BUY_SOUND_"
+		end
 
-	if not messageTicketId then
-		-- vendor not found ??? uh oh...
-		return
-	end
+		local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
+		gettingSound = true;
 
-	local register = {
-		id = messageTicketId;
-		type = "loadsound";
-		soundType = soundType;
-	}
+		if not messageTicketId then
+			-- vendor not found ??? uh oh...
+			return
+		end
 
-	tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+		local register = {
+			id = messageTicketId;
+			type = "loadsound";
+			soundType = soundType;
+		}
+
+		tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+
+	end, "target")
 end
 
 -------------------------------------------------------------------------
@@ -305,6 +385,7 @@ function Epsilon_Merchant_SavePortrait( text )
 		return
 	end
 
+	--[[
 	local guid = UnitGUID("npc")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
@@ -312,25 +393,34 @@ function Epsilon_Merchant_SavePortrait( text )
 	end
 
 	id = tonumber( id )
+	--]]
+	--[[
+	local id = GetUnitID("npc")
+	if not id then return end
+	--]]
 
-	if not( text and type( text ) == "string" and string.len( text ) < 500 and id and type( id ) == "number" ) then
-		return
-	end
+	continueWithTargetNPCGUID(function(id)
 
-	local prefix = "VENDOR_TEXT_"
-	local key = prefix .. id
-
-	if key and text then
-		SetPhaseData( key, text );
-	end
-
-	if ( Epsilon_MerchantFrame:IsShown() ) then
-		if ( text ~= "" ) then
-			Epsilon_MerchantFrame_ShowPortrait(Epsilon_MerchantFrame, nil, text, -3, -42)
-		else
-			Epsilon_MerchantFrame_HidePortrait();
+		if not( text and type( text ) == "string" and string.len( text ) < 500 and id and type( id ) == "number" ) then
+			return
 		end
-	end
+
+		local prefix = "VENDOR_TEXT_"
+		local key = prefix .. id
+
+		if key and text then
+			SetPhaseData( key, text );
+		end
+
+		if ( Epsilon_MerchantFrame:IsShown() ) then
+			if ( text ~= "" ) then
+				Epsilon_MerchantFrame_ShowPortrait(Epsilon_MerchantFrame, nil, text, -3, -42)
+			else
+				Epsilon_MerchantFrame_HidePortrait();
+			end
+		end
+
+	end, "npc")
 end
 
 -------------------------------------------------------------------------
@@ -342,6 +432,7 @@ function Epsilon_Merchant_GetPortrait()
 		return
 	end
 
+	--[[
 	local guid = UnitGUID("npc")
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
 	if not(unitType == "Creature") then
@@ -349,23 +440,32 @@ function Epsilon_Merchant_GetPortrait()
 	end
 
 	id = tonumber( id )
+	--]]
+	--[[
+	local id = GetUnitID("npc")
+	if not id then return end
+	--]]
 
-	-- Send a request to the server.
-	local prefix = "VENDOR_TEXT_"
+	continueWithTargetNPCGUID(function(id)
 
-	local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
+		-- Send a request to the server.
+		local prefix = "VENDOR_TEXT_"
 
-	if not messageTicketId then
-		-- vendor not found ??? uh oh...
-		return
-	end
+		local messageTicketId = C_Epsilon.GetPhaseAddonData( prefix .. id )
 
-	local register = {
-		id = messageTicketId;
-		type = "text";
-	}
+		if not messageTicketId then
+			-- vendor not found ??? uh oh...
+			return
+		end
 
-	tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+		local register = {
+			id = messageTicketId;
+			type = "text";
+		}
+
+		tinsert( Epsilon_Merchant.RegisteredPrefixes, register );
+
+	end, "npc")
 end
 
 -------------------------------------------------------------------------
@@ -376,29 +476,38 @@ function Epsilon_Merchant_SaveOptions( options )
 		return
 	end
 
+	--[[
 	local guid = UnitGUID("npc");
 	local unitType, _, _, _, _, id, _ = strsplit("-", guid);
 	if not(unitType == "Creature" or unitType == "Vehicle") then
 		return
 	end
+	--]]
+	--[[
+	local id = GetUnitID("npc")
+	if not id then return end
+	--]]
+	continueWithTargetNPCGUID(function(id)
 
-	EPSILON_VENDOR_OPTIONS[id] = options;
+		EPSILON_VENDOR_OPTIONS[id] = options;
 
-	Epsilon_MerchantFrame_UpdateRepairButtons();
+		Epsilon_MerchantFrame_UpdateRepairButtons();
 
-	local text;
-	if options then
-		text = table_to_string( options );
-	else
-		text = "{}";
-	end
+		local text;
+		if options then
+			text = table_to_string( options );
+		else
+			text = "{}";
+		end
 
-	local prefix = "VENDOR_OPTIONS_";
-	local key = prefix .. id;
+		local prefix = "VENDOR_OPTIONS_";
+		local key = prefix .. id;
 
-	if key and text then
-		SetPhaseData( key, text );
-	end
+		if key and text then
+			SetPhaseData( key, text );
+		end
+
+	end, "npc")
 end
 
 -------------------------------------------------------------------------
@@ -771,15 +880,21 @@ function Epsilon_Merchant:OnInitialize()
 						C_Timer.After(0.01, function() SetVolumeFromNPCDistance() end);
 						PlaySound( soundKitID, "Dialog", true, true )
 					elseif prefixType == "options" then
-						text = (loadstring or load)("return "..text)()
-						local merchantID = Epsilon_MerchantFrame.merchantID or GetUnitID("npc") or GetUnitID("target");
-						EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
-						if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
-							local allowRefunds = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowRefunds ) or false;
-							local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowSellJunk ) or false;
-							Epsilon_MerchantEditor.allowRefunds:SetChecked( allowRefunds );
-							Epsilon_MerchantEditor.allowSellJunk:SetChecked( allowSellJunk );
-						end
+
+						continueWithTargetNPCGUID(function(id)
+
+							text = (loadstring or load)("return "..text)()
+							local merchantID = Epsilon_MerchantFrame.merchantID or id;
+							EPSILON_VENDOR_OPTIONS[ merchantID ] = text or {};
+							if Epsilon_MerchantEditor:IsShown() and Me.IsPhaseOwner() then
+								local allowRefunds = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowRefunds ) or false;
+								local allowSellJunk = ( EPSILON_VENDOR_OPTIONS[ merchantID ] and EPSILON_VENDOR_OPTIONS[ merchantID ].allowSellJunk ) or false;
+								Epsilon_MerchantEditor.allowRefunds:SetChecked( allowRefunds );
+								Epsilon_MerchantEditor.allowSellJunk:SetChecked( allowSellJunk );
+							end
+
+						end, "target")
+
 					elseif prefixType == "text" then
 						text = tostring( text );
 

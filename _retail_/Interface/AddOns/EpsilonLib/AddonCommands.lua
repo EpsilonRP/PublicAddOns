@@ -10,6 +10,8 @@ local _commands = {}
 ---@class RegistryData
 ---@field showMessages boolean
 ---@field name string
+---@field SendAddonCommand function
+---@field SendAddonCommandChain function
 
 ---@type { [string]: RegistryData }
 local registry = {
