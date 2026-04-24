@@ -130,6 +130,15 @@ function GossipEditorMixin:OnLoad()
 	editBox:SetText("Loading...")
 	editBox:SetEnabled(false)
 
+	editBox._insert = editBox.Insert
+	function editBox:Insert(text)
+		if self:GetText():find("||") then
+			-- If the text contains a |, we assume WYSIWYG is off and insert with || to escape it.
+			text = text:gsub("|", "||")
+		end
+		return self:_insert(text)
+	end
+
 	greetingScroll.CharCount:ClearAllPoints()
 	greetingScroll.CharCount:SetPoint("BOTTOMRIGHT", greetingScroll, "TOPRIGHT", 0, 4)
 	greetingScroll.CharCount:SetFontObject(GameFontDisable)
@@ -172,7 +181,6 @@ function GossipEditorMixin:OnLoad()
 		GameTooltip_AddHighlightLine(GameTooltip, "$p or $n = player name, %n = player's target.", false)
 		GameTooltip_AddHighlightLine(GameTooltip, " ")
 		GameTooltip_AddHighlightLine(GameTooltip, "Capitalized letter leads to the first letter being capitalized except for name, that leads to all caps")
-		GameTooltip_AddHighlightLine(GameTooltip, "Note: Gossip Editor cannot detect text tags in use. You'll need to fix them before saving again. Sorry.")
 		GameTooltip:Show();
 	end)
 	self.greetingInfo:SetScript("OnLeave", GameTooltip_Hide)
@@ -268,6 +276,14 @@ function GossipEditorMixin:OnLoad()
 					ToggleDropDownMenu(1, nil, iconDropdown, self, 0, -4)
 				end)
 
+				iconButton:SetScript("OnEnter", function(self)
+					GameTooltip:SetOwner(self, "ANCHOR_RIGHT", -16, -4)
+					GameTooltip_SetTitle(GameTooltip, "Set Icon", NORMAL_FONT_COLOR)
+					GameTooltip:Show();
+				end)
+				iconButton:SetScript("OnLeave", GameTooltip_Hide)
+
+
 				local pageLinkEditBox = CreateFrame("EditBox", nil, frame, "InputBoxScriptTemplate")
 				pageLinkEditBox:SetSize(18, 18)
 				pageLinkEditBox:SetPoint("BOTTOMLEFT")
@@ -307,7 +323,7 @@ function GossipEditorMixin:OnLoad()
 				optionText.CharCount:SetFontObject(GameFontDisableTiny)
 				optionText.EditBox:SetWidth(234)
 				optionText.EditBox:SetFontObject(SystemFont_Med2)
-				optionText.EditBox:SetMaxLetters(254 - #(baseCommand .. " option text ## "))
+				optionText.EditBox:SetMaxLetters(254 - #(baseCommand .. " opt text ## "))
 				optionText.EditBox:HookScript("OnTextChanged", function(self, userInput)
 					if userInput and self:GetText() ~= "" then
 						frame.data.text = self:GetText()
@@ -472,7 +488,7 @@ local gossipTargetGUID      = nil
 -- -- Greeting character counter ----------------------------
 
 function GossipEditor:OnGreetingChanged(editBox)
-	local text   = editBox:GetText()
+	local text   = editBox:GetText():gsub("||", "|") -- unescape | characters that may have been
 	local len    = #text
 	local blocks = splitIntoBlocks(text)
 	GossipEditorFrame.GreetingScroll.CharCount:SetText(
@@ -546,7 +562,7 @@ function GossipEditor:ToggleDebug()
 	end)
 end
 
-function GossipEditor:ToggleSavingSteps(checked)
+function GossipEditor:ToggleShowSaveProgress(checked)
 	if checked ~= nil then
 		showSaveProgress = checked
 	else
@@ -554,7 +570,7 @@ function GossipEditor:ToggleSavingSteps(checked)
 	end
 end
 
-function GossipEditor:OopsPrevention(text, callback)
+function GossipEditor:WarnForUnsavedChanges(text, callback)
 	text = "Gossip Editor may have unsaved changes. " .. (text or "\n\rAre you sure?")
 	if type(callback) == "string" then
 		local methodName = callback -- capture the string now
@@ -934,6 +950,43 @@ function GossipEditor:Save()
 		end)
 	end
 	processNextCommand()
+end
+
+-- Editor Controls
+
+function GossipEditor:OpenColorPicker(targetEditBox)
+	ColorPickerFrame.func = function()
+		if ColorPickerFrame:IsShown() then return end
+		local color = CreateColor(ColorPickerFrame:GetColorRGB())
+		local hex = color:WrapTextInColorCode("color")
+		targetEditBox:Insert(hex)
+	end
+	ColorPickerFrame.cancelFunc = function()
+		-- do nothing, just close the color picker without changing anything
+	end
+	ColorPickerFrame:Show()
+end
+
+local textureMarkupBase = "|T%s:0|t"
+local function selectIcon(path, name, id)
+	local idMarkup = textureMarkupBase:format(id)
+
+	GossipEditorFrame.GreetingScroll.EditBox:Insert(idMarkup)
+	GossipEditorFrame.Reset:SetEnabled(true)
+end
+
+function GossipEditor:OpenIconPicker(targetEditBox)
+	EpsilonLibIconPicker_Open(selectIcon, false, true, GossipEditorFrame, true)
+end
+
+function GossipEditor:ToggleWYSIWYG(editBox)
+	local text = editBox:GetText()
+	if text:find("||") then
+		-- assume WYSIWYG is off, and turn it on by replacing || with |
+		editBox:SetText(text:gsub("||", "|"))
+	else
+		editBox:SetText(text:gsub("|", "||"))
+	end
 end
 
 -- -- Hook GossipFrame to show/hide the edit button ---------
