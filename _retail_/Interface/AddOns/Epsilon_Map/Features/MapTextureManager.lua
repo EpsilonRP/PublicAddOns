@@ -1245,7 +1245,7 @@ function MTM:GetCursorCanvasPosition()
 	local scale = UIParent:GetEffectiveScale()
 	cx, cy = cx / scale, cy / scale
 
-	-- Convert cursor to normalized canvas coords (0–1)
+	-- Convert cursor to normalized canvas coords (0-1)
 	local nx, ny = container:NormalizeUIPosition(cx, cy)
 	if not nx or not ny then return 0, 0 end
 
@@ -1266,7 +1266,7 @@ function MTM:GetCenterCanvasPosition()
 	local scale = UIParent:GetEffectiveScale()
 	cx, cy = cx / scale, cy / scale
 
-	-- Convert center to normalized canvas coords (0–1)
+	-- Convert center to normalized canvas coords (0-1)
 	local nx, ny = container:NormalizeUIPosition(cx, cy)
 	if not nx or not ny then return 0, 0 end
 

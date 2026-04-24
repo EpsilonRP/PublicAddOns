@@ -485,7 +485,7 @@ function EpsilonMap_FeaturePickerMixin:UpdateDragScroll()
 
 	local deltaY = self.dragStartY - cursorY
 
-	-- Convert pixels → rows
+	-- Convert pixels to rows
 	local deltaRows = deltaY
 
 	local newOffset = self.dragStartOffset - deltaRows
