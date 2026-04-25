@@ -92,7 +92,8 @@ local function InitMapsDropdown(self, level)
 		menuInfo.hasArrow = false
 		menuInfo.text = "Empty Map"
 		menuInfo.arg1 = nil
-		if not C_Map.GetBestMapForUnit("player") or C_Map.GetBestMapForUnit("player") == 947 then
+		local bestMap = C_Map.GetBestMapForUnit("player")
+		if not bestMap or bestMap == 947 then
 			menuInfo.disabled = true
 			menuInfo.tooltipTitle = "Empty Map"
 			menuInfo.tooltipText = "To use an empty map here, choose a different map first. Then, use that as the basis to empty out"

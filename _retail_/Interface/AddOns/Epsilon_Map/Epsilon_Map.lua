@@ -494,8 +494,27 @@ C_Map.GetMapInfoAtPosition = function(mapID, cursorX, cursorY)
 end
 
 
-C_Map.GetMapInfo = function(mapID)
-	return _origGetMapInfo(mapOverrides and mapOverrides[mapID] and mapOverrides[mapID].id or mapID)
+C_Map.GetMapInfo = function(mapID, original)
+	if original then
+		return _origGetMapInfo(mapID)
+	end
+
+	local originalId = mapID
+	local override = mapOverrides and mapOverrides[mapID]
+
+	if override and override.id then
+		mapID = override.id
+	end
+
+	local mapInfo = _origGetMapInfo(mapID)
+
+	-- If this is a child map replacing its parent, fix parentMapID to avoid recursion
+	if mapInfo and mapInfo.parentMapID == originalId then
+		local origMapInfo = _origGetMapInfo(originalId)
+		mapInfo.parentMapID = origMapInfo and origMapInfo.parentMapID or 0
+	end
+
+	return mapInfo
 end
 
 -- Overwrite the base map background to an Epsilon BG
