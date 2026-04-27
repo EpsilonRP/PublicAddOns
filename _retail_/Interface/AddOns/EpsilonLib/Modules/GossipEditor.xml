@@ -169,7 +169,6 @@
                     </OnEnter>
                     <OnLeave>GameTooltip:Hide()</OnLeave>
                     <OnClick>
-						print('wtf', button)
 						if button == "RightButton" then
 							GossipEditorFrame.GreetingScroll.EditBox:Insert("|r")
 						else
@@ -207,7 +206,7 @@
             </Button>
 
             <!-- 3: (Reserved) -->
-            <Button parentKey="SideBtn_Extra1" inherits="IconButtonTemplate">
+            <Button parentKey="SideBtn_Extra1" inherits="IconButtonTemplate" hidden="true">
                 <Size x="26" y="26"/>
                 <Anchors>
                     <Anchor point="TOP" relativeKey="$parent.SideBtn_Icon"
@@ -231,7 +230,7 @@
             </Button>
 
             <!-- 4: (Reserved) -->
-            <Button parentKey="SideBtn_Extra2" inherits="IconButtonTemplate">
+            <Button parentKey="SideBtn_Extra2" inherits="IconButtonTemplate" hidden="true">
                 <Size x="26" y="26"/>
                 <Anchors>
                     <Anchor point="TOP" relativeKey="$parent.SideBtn_Extra1"
@@ -282,7 +281,7 @@
             </Button>
 
             <!-- 6: Open Conditional Page Manager -->
-            <Button parentKey="SideBtn_ConditionalPageMgr" inherits="IconButtonTemplate">
+            <Button parentKey="SideBtn_ConditionalPageMgr" inherits="IconButtonTemplate" hidden="true">
                 <Size x="26" y="26"/>
                 <Anchors>
                     <Anchor point="TOP" relativeKey="$parent.SideBtn_Preview"
