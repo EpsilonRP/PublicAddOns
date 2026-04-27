@@ -11,7 +11,7 @@
 	<Script file="Lookup.lua"/>
 	<Script file="Modify.lua"/>
 	<Script file="Cheat.lua"/>
-	<Script file="AddonCommands.lua"/>
+	<!--Script file="AddonCommands.lua"/--> <!-- Loaded in TOC instead to pre-load -->
 	<Script file="CommandDefinitions\init.lua"/>
 	<Script file="SystemMessages.lua"/>
 	<Script file="ServerMessages.lua"/>

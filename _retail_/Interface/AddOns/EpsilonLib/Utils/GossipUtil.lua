@@ -51,7 +51,7 @@ EXAMPLE DOCS:
 		return newText
 	end
 
-	EpsilonLib.Utils.Gossip:RegisterButtonHook(option_predicate, option_callback, option_filter)
+	EpsilonLib.Utils.Gossip:RegisterGreetingHook(greeting_predicate, greeting_callback, greeting_filter)
 
 --]=====]
 
@@ -85,6 +85,13 @@ local _GetNumGossipOptions = GetNumGossipOptions or C_GossipInfo.GetNumOptions;
 local _SelectGossipOption = SelectGossipOption or C_GossipInfo.SelectOption;
 local _GetGossipText = GetGossipText or C_GossipInfo.GetText;
 local _GetGossipOptions = GetGossipOptions or C_GossipInfo.GetOptions;
+
+if not _GetNumGossipOptions then
+	-- DF+ support for simplicity
+	_GetNumGossipOptions = function()
+		return #_GetGossipOptions()
+	end
+end
 
 local tinsert = tinsert
 local tremove = tremove
@@ -197,8 +204,10 @@ local function badGossipCheck()
 end
 
 local grey = CreateColor(0.8, 0.8, 0.8)
-function GetGossipText()
+function GetGossipText(original)
 	local originalText = _GetGossipText()
+	if original then return originalText end
+
 	local isReload = (originalText == lastGossipText)
 	local newText = originalText
 	local _callbacks = {}
@@ -229,7 +238,7 @@ function GetGossipText()
 	lastGossipText = originalText
 	lastGossipDupeText = originalText
 	lastGossipNumOptions = _GetNumGossipOptions()
-	lastGossipOptions = _GetGossipOptions
+	lastGossipOptions = _GetGossipOptions()
 	lastGossipNPC = UnitGUID('target')
 	lastGossipName = UnitName('target')
 
@@ -283,7 +292,7 @@ _gossip:RegisterGreetingHook(
 ---@param predicate fun(text:string, optionInfo:GossipOptionUIInfo):boolean|nil Predicate for if this hook even applies here. True = Callback & Filter apply. False = No Callback / Filter, and Hide this Option. Nil = No modifications.
 ---@param callback? fun(self:frame, button:string, down:boolean, originalText:string, optionInfo:GossipOptionUIInfo) OnClick handler callback. Passed standard OnClick, but also the originalText as the last arg.
 ---@param filter fun(newText:string, originalText?:string):newText:string Text Filter Function. Takes in newText, originalText?, and returns newText. You should only use newText to for string modifications, don't use originalText as you'll replace other hooks data, only use it for reference if needed!
----@param options table Table of Optional Modifiers. Currently only supports blockOriginalOnClick to block the SelectOption / page change.
+---@param options? table Table of Optional Modifiers. Currently only supports blockOriginalOnClick to block the SelectOption / page change.
 ---@return table hookData Table containing this hooks data. Modifiable live. Used as reference for Remove.
 function _gossip:RegisterButtonHook(predicate, callback, filter, options)
 	if type(predicate) ~= "function" then error("RegisterButtonHook Usage: Predicate must be a function: predicate(text) -> boolean.") end
@@ -318,8 +327,10 @@ function _gossip:RemoveCustomButton(hookData)
 	tDeleteItem(_customButtons, hookData)
 end
 
-local function GetGossipOptions(onlyPredCheck)
+local function GetGossipOptions(onlyPredCheck, original)
 	local options = _GetGossipOptions()
+	if original then return options end
+
 	local newOptions = {}
 
 	if dupeCheck(options) then return {} end -- dupeCheck calls a cancel in the greeting anyways
@@ -331,14 +342,25 @@ local function GetGossipOptions(onlyPredCheck)
 		local blockOriginalOnClick
 		local hideThisOption
 
+		-- Create newOption early, so we can pass originalID also
+		local newOption = CopyTable(option)
+		newOption.originalText = originalText
+		newOption.name = newText
+		--newOption.callbacks = _callbacks
+		--newOption.blockOriginalOnClick = blockOriginalOnClick
+		newOption.originalID = index
+		newOption.originalData = option
+		newOption.originalOptions = options
+
 		for j = 1, #_buttonHooks do
 			local data = _buttonHooks[j]
-			local pred = data.predicate(originalText, option)
+			local pred = data.predicate(originalText, newOption)
 			if pred then
 				tinsert(_callbacks, data.callback)
 
 				if data.filter and not onlyPredCheck then
-					newText = data.filter(newText, originalText, option)
+					newText = data.filter(newText, originalText, newOption)
+					newOption.name = newText
 				end
 
 				if data.options then
@@ -351,7 +373,7 @@ local function GetGossipOptions(onlyPredCheck)
 			end
 		end
 
-		local newOption = CopyTable(option)
+		-- set again for any changes made in the loop, and also to embed the new callbacks and blockOriginalOnClick if they were set
 		newOption.originalText = originalText
 		newOption.name = newText
 		newOption.callbacks = _callbacks
@@ -384,10 +406,10 @@ local function GetGossipOptions(onlyPredCheck)
 
 	return newOptions
 end
-overrideBaseGossipFunc("GetGossipOptions", "GetOptions", function() return GetGossipOptions() end)
+overrideBaseGossipFunc("GetGossipOptions", "GetOptions", function(original) return GetGossipOptions(nil, original) end)
 
-local function GetNumGossipOptions(real)
-	if real then return _GetNumGossipOptions() end
+local function GetNumGossipOptions(original)
+	if original then return _GetNumGossipOptions() end
 	return #GetGossipOptions(true)
 end
 overrideBaseGossipFunc("GetNumGossipOptions", "GetNumOptions", GetNumGossipOptions)
@@ -404,12 +426,15 @@ local function runTitleButtonCallbacksByIndex(index, self, button, down)
 	end
 end
 
-local function SelectGossipOption(id, text, confirmed)
+local function SelectGossipOption(id, text, confirmed, original)
+	if original then
+		_SelectGossipOption(id, text, confirmed);
+	end
 	runTitleButtonCallbacksByIndex(id, _gossip:GetTitleButton(id), GetMouseButtonClicked())
 
 	if not curGossipData.modified.options[id].blockOriginalOnClick then
 		local realID = curGossipData.modified.options[id].originalID
-		_SelectGossipOption(realID);
+		_SelectGossipOption(realID, text, confirmed);
 	end
 end
 overrideBaseGossipFunc("SelectGossipOption", "SelectOption", SelectGossipOption)
@@ -528,3 +553,247 @@ local function newForceGossip()
 	return true
 end
 overrideBaseGossipFunc("ForceGossip", "ForceGossip", newForceGossip)
+
+
+
+-- ============================================================
+--  GossipConditions Core  (Generic Basic Hook System for Dynamic Gossip Systems)
+-- ============================================================
+
+_gossip.Conditions = {
+
+	_registry = {},
+
+	-- -- Built-in condition checkers -----------------------
+	_checkers = {
+
+		-- Accepts phaseVar:value for exact match, or just phaseVar to check if truthy
+		phaseVar = function(var)
+			local var, val = strsplit(":", var)
+			if not val or val == "" then
+				local pVar = ARC.PHASE.GET(var)
+				return pVar == true or pVar == "true"
+			end
+			return ARC.PHASE.GET(var) == val
+		end,
+
+		-- Accepts comma separates list of names
+		name = function(val)
+			local charName = UnitName("player"):lower()
+
+			local names = { strsplit(",", val) }
+			local nameKeys = {}
+			for _, name in ipairs(names) do
+				local key = strtrim(name:lower()):gsub("%s+", "")
+				nameKeys[key] = true
+			end
+
+			return charName and nameKeys[charName]
+		end,
+
+
+		-- Accepts "Horde" or "Alliance" (case-insensitive), since there's no other player factions to worry about
+		faction = function(val)
+			local f = UnitFactionGroup("player")
+			return f and f:lower() == val:lower()
+		end,
+
+		-- Accepts comma separated list of races
+		race = function(val)
+			local _, raceId = UnitRace("player")
+
+			local races = { strsplit(",", val) }
+			local raceKeys = {}
+			for _, race in ipairs(races) do
+				local key = strtrim(race:lower()):gsub("%s+", "")
+				raceKeys[key] = true
+			end
+
+			return raceId and raceKeys[raceId:lower()]
+		end,
+
+		-- Accepts comma separated list of classes
+		class = function(val)
+			local _, classId = UnitClass("player")
+
+			local classes = { strsplit(",", val) }
+			local classKeys = {}
+			for _, class in ipairs(classes) do
+				local key = strtrim(class:lower()):gsub("%s+", "")
+				classKeys[key] = true
+			end
+
+			return classId and classKeys[classId:lower()]
+		end,
+
+		-- Accepts "HH:MM-HH:MM" 24-hour format; only supports game time, not real time
+		time = function(val)
+			local timeH, timeM = GetGameTime()
+			local startH, startM, endH, endM = val:match("(%d%d?):(%d%d)-(%d%d?):(%d%d)")
+			startH, startM, endH, endM = tonumber(startH), tonumber(startM), tonumber(endH), tonumber(endM)
+			if not startH or not startM or not endH or not endM then return false end
+			local startTotal = startH * 60 + startM
+			local endTotal = endH * 60 + endM
+			local currentTotal = timeH * 60 + timeM
+			if startTotal <= endTotal then -- if the range doesn't cross midnight, calculate normally
+				return currentTotal >= startTotal and currentTotal < endTotal
+			else                  -- if the range crosses midnight, calculate on each side of midnight and return true if either is satisfied
+				return currentTotal >= startTotal or currentTotal < endTotal
+			end
+		end,
+
+		-- Accepts a function that returns true or false; use for any custom logic you want
+		custom = function(val)
+			if type(val) == "function" then
+				local ok, result = pcall(val)
+				return ok and result == true
+			end
+			return false
+		end,
+	},
+
+	-- Register a new Gossip Override for NPC ID using a variants table.
+	-- Variants table is an array of overrides in priority order, with sub-tables at keys "conditions", "pages", and "options". See Examples.
+	Register = function(self, npcId, variants)
+		self._registry[npcId] = variants
+	end,
+
+	-- Add a new checker, aka: built-in-condition
+	-- Name = Key used in a variant's condition table
+	-- func = callback for the checker, should return true/false
+	AddChecker = function(self, name, func)
+		self._checkers[name] = func
+	end,
+
+	-- internal
+	_resolve = function(self, npcId)
+		local variants = self._registry[npcId]
+		if not variants then return nil end
+		for _, variant in ipairs(variants) do
+			if self:_matchesAll(variant.conditions) then
+				return variant
+			end
+		end
+		return nil
+	end,
+
+	-- internal
+	_matchesAll = function(self, conditions)
+		if not conditions or next(conditions) == nil then
+			return true
+		end
+		for condType, condVal in pairs(conditions) do
+			local checker = self._checkers[condType]
+			if not checker then return false end
+			if not checker(condVal) then return false end
+		end
+		return true
+	end,
+}
+
+-- -- Helpers -----------------------------------------------
+
+local function getCurrentNpcId()
+	local guid = UnitGUID("npc")
+	if not guid then return nil end
+	local unitType, _, _, _, _, id = strsplit("-", guid)
+	if unitType ~= "Creature" then return nil end
+	return id
+end
+
+-- -- Per-open state ----------------------------------------
+
+local currentVariant = nil
+
+-- -- Greeting hook -----------------------------------------
+
+local function findPageReplacement(text)
+	if not currentVariant or not currentVariant.pages then return nil end
+	for pattern, replacement in pairs(currentVariant.pages) do
+		if text:find(pattern) then
+			return replacement
+		end
+	end
+	return nil
+end
+
+local greeting_predicate = function(text, isReload)
+	if isReload then return false end
+
+	-- Resolve the variant here, before any other hook logic runs.
+	-- This replaces the GOSSIP_SHOW listener entirely, guaranteeing
+	-- currentVariant is populated before the filter and button hooks fire.
+	currentVariant = nil
+	local npcId = getCurrentNpcId()
+	if npcId then
+		currentVariant = _gossip.Conditions:_resolve(npcId)
+	end
+
+	if not currentVariant then return false end
+	return findPageReplacement(text) ~= nil
+end
+
+local greeting_callback = function(originalText, isReload)
+	if isReload then return end
+end
+
+local greeting_filter = function(newText, originalText)
+	local replacement = findPageReplacement(originalText)
+	if replacement then return replacement end
+	return newText
+end
+
+_gossip.Conditions._GreetingHook = _gossip:RegisterGreetingHook(
+	greeting_predicate,
+	greeting_callback,
+	greeting_filter
+)
+
+-- -- Button hook -------------------------------------------
+-- currentVariant is guaranteed set by the time any button hook
+-- fires, since the greeting predicate always runs first on open.
+
+local button_predicate = function(text, optionInfo)
+	if not currentVariant then return nil end
+
+	local entry = currentVariant.options
+		and currentVariant.options[optionInfo.originalID]
+
+	if entry == nil then return nil end
+	if entry == false then return false end
+	return true
+end
+
+local button_callback = function(self, button, down, originalText, optionInfo)
+	if not currentVariant then return end
+	local entry = currentVariant.options
+		and currentVariant.options[optionInfo.originalID]
+
+	if type(entry) == "table" and type(entry.callback) == "function" then
+		local ok, err = pcall(entry.callback, self, button, down, originalText, optionInfo)
+		if not ok then
+			print("|cffff4444GossipConditions button callback error:|r " .. tostring(err))
+		end
+	end
+end
+
+local button_filter = function(newText, originalText, optionInfo)
+	if not currentVariant then return nil end
+	local entry = currentVariant.options
+		and currentVariant.options[optionInfo.originalID]
+
+	-- assume our entry is normal handler (nil|false|string) and then adjust for table if needed
+	local text = currentVariant.options[optionInfo.originalID]
+	if type(entry) == "table" then
+		text = entry.text
+	end
+
+	if type(text) == "string" then return text end
+	return newText
+end
+
+_gossip.Conditions._ButtonHook = _gossip:RegisterButtonHook(
+	button_predicate,
+	button_callback,
+	button_filter
+)

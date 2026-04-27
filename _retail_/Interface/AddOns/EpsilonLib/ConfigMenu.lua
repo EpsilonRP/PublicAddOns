@@ -165,7 +165,7 @@ addonLogUpdateData = function()
 		for i = #commandLog, 1, -1 do
 			local entry = commandLog[i]
 			local returnMessages = entry.returnMessages
-			if #returnMessages == 0 then returnMessages = { "n/a" } end
+			if not returnMessages or #returnMessages == 0 then returnMessages = { "n/a" } end
 			tinsert(data, {
 				cols = {
 					{ value = date("%H:%M:%S", entry.time) },

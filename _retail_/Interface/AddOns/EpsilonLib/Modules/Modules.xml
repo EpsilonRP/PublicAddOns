@@ -8,4 +8,7 @@
 	<Script file="UnitPopupMenus.lua"/>
 	<Script file="SpellBookUI.lua"/>
 
+	<Script file="GossipEditor.lua"/>
+	<Include file="GossipEditor.xml"/>
+
 </Ui>

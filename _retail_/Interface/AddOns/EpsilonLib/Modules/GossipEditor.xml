@@ -1,0 +1,363 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+
+    <!-- Edit button injected onto GossipFrame -->
+    <Button name="GossipEditorButton" parent="GossipFrame" hidden="true">
+        <Size x="28" y="28"/>
+        <Anchors>
+            <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" x="-4" y="-28"/>
+        </Anchors>
+        <NormalTexture file="Interface\AddOns\EpsilonLib\Resources\Settings_Icon"
+                       alphaMode="ADD"/>
+        <PushedTexture file="Interface\AddOns\EpsilonLib\Resources\Settings_Icon"
+                       alphaMode="ADD">
+            <Color r="0.7" g="0.7" b="0.7"/>
+        </PushedTexture>
+        <HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight"
+                          alphaMode="ADD"/>
+        <Scripts>
+            <OnClick>
+                GossipEditor:Toggle()
+            </OnClick>
+        </Scripts>
+    </Button>
+
+    <!-- Main editor frame -->
+	<Frame name="GossipEditorFrame" parent="UIParent"
+			frameStrata="DIALOG" hidden="true"
+			inherits="TranslucentFrameTemplate"
+			mixin="GossipEditorMixin">
+		<Size x="356" y="496"/>
+        <Anchors>
+            <Anchor point="TOPLEFT" relativeTo="GossipFrame"
+                    relativePoint="TOPRIGHT" x="4" y="0"/>
+        </Anchors>
+
+        <Layers>
+            <Layer level="ARTWORK">
+                <!-- Title -->
+                <FontString parentKey="Title" inherits="GameFontNormal"
+                            text="Gossip Editor" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="TOP" y="-14"/>
+                    </Anchors>
+                </FontString>
+
+				<!-- Debug Notice -->
+				<!--FontString parentKey="DebugLabel" inherits="GameFontRedSmall"
+                	    	text="Debug Not Enabled" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="TOP" y="-28"/>
+                    </Anchors>
+                </FontString-->
+
+                <!-- Greeting section label -->
+                <FontString parentKey="GreetingLabel"
+                            inherits="GameFontNormalSmall"
+                            text="Greeting Text" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-40"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Options section label -->
+                <FontString parentKey="OptionsLabel"
+                            inherits="GameFontNormalSmall"
+                            text="Gossip Options" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-262"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+
+        <Frames>
+            <!-- Close button -->
+            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-4" y="-4"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Close()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+			<!-- Saving Progress Checkbox -->
+			<CheckButton parentKey="ShowSaveProgress" inherits="OptionsSmallCheckButtonTemplate" checked="true">
+				<Anchors>
+                    <Anchor point="TOPLEFT" x="8" y="-6"/>
+                </Anchors>
+				<Scripts>
+					<OnLoad>
+						self.Text:SetText("Show Save Steps")
+						self.tooltipText = "Shows full saving steps and progress in chat."
+					</OnLoad>
+					<OnClick>
+						if ( self:GetChecked() ) then
+							PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						else
+							PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF);
+						end
+						GossipEditor:ToggleShowSaveProgress(self:GetChecked())
+					</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<!-- Debug Toggle Helper button -->
+			<Button parentKey="ToggleDebug" inherits="UIPanelButtonTemplate"
+                    text="Tog Debug">
+                <Size x="80" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-40" y="-12"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:WarnForUnsavedChanges("\n\rToggling Debug will force-refresh the editor, resetting it.\n\rAre you sure?", "ToggleDebug")
+                    </OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip_SetTitle(GameTooltip, "Toggle Debug");
+						local label = self.debugEnabled and "On" or "Off"
+						if self.debugEnabled == nil then label = "Unknown\n\rGossip Editor cannot detect Debug State if there is no Greeting Text or Options present" end
+						GameTooltip_AddNormalLine(GameTooltip, "Debug: " .. label);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide();
+					</OnLeave>
+                </Scripts>
+            </Button>
+
+			<!-- Greeting input scroll frame -->
+			<ScrollFrame parentKey="GreetingScroll" name="$parentGreetingScroll"
+				inherits="InputScrollFrameTemplate">
+				<Size x="288" y="188"/>
+				<Anchors>
+                    <Anchor point="TOPLEFT"  x="16"  y="-56"/>
+                    <!--Anchor point="TOPRIGHT" x="-16" y="-56"/-->
+				</Anchors>
+			</ScrollFrame>
+
+            <!-- Greeting sidebar buttons (right of GreetingScroll) -->
+
+            <!-- 1: Color -->
+            <Button parentKey="SideBtn_Color" inherits="IconButtonTemplate">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentGreetingScroll"
+                            relativePoint="TOPRIGHT" x="9" y="0"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="colorblind-colorwheel" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="colorblind-colorwheel" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+					<OnLoad>
+						self:RegisterForClicks("RightButtonUp", "LeftButtonUp")
+					</OnLoad>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "Insert Color Tag", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Left Click: Insert a '||cff' hex color code into the greeting text.", false)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Right Click: Insert a '||r' color reset tag.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+                    <OnClick>
+						if button == "RightButton" then
+							GossipEditorFrame.GreetingScroll.EditBox:Insert("|r")
+						else
+	                        GossipEditor:OpenColorPicker(GossipEditorFrame.GreetingScroll.EditBox)
+						end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <!-- 2: Icon / Texture Tag -->
+            <Button parentKey="SideBtn_Icon" inherits="IconButtonTemplate">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.SideBtn_Color"
+                            relativePoint="BOTTOM" x="0" y="-4"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="talenttree-torghast-logo" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="talenttree-torghast-logo" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "Insert Icon Tag", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Insert an ||T..icon..||t icon tag into the greeting text.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+                    <OnClick>
+                        GossipEditor:OpenIconPicker(GossipEditorFrame.GreetingScroll.EditBox)
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <!-- 3: (Reserved) -->
+            <Button parentKey="SideBtn_Extra1" inherits="IconButtonTemplate" hidden="true">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.SideBtn_Icon"
+                            relativePoint="BOTTOM" x="0" y="-4"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="common-icon-forwardarrow" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="common-icon-forwardarrow" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "(Reserved)", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Not yet assigned.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+                </Scripts>
+            </Button>
+
+            <!-- 4: (Reserved) -->
+            <Button parentKey="SideBtn_Extra2" inherits="IconButtonTemplate" hidden="true">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.SideBtn_Extra1"
+                            relativePoint="BOTTOM" x="0" y="-4"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="common-icon-forwardarrow" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="common-icon-forwardarrow" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "(Reserved)", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Not yet assigned.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+                </Scripts>
+            </Button>
+
+            <!-- 5: Toggle WYSIWYG Preview -->
+            <Button parentKey="SideBtn_Preview" inherits="IconButtonTemplate">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.SideBtn_Extra2"
+                            relativePoint="BOTTOM" x="0" y="-4"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="communities-icon-invitemail" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="communities-icon-invitemail" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "Toggle WYSIWYG Preview", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Toggle any escape sequence tags to more easily edit them.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+					<OnClick>
+						GossipEditor:ToggleWYSIWYG(GossipEditorFrame.GreetingScroll.EditBox)
+					</OnClick>
+                </Scripts>
+            </Button>
+
+            <!-- 6: Open Conditional Page Manager -->
+            <Button parentKey="SideBtn_ConditionalPageMgr" inherits="IconButtonTemplate" hidden="true">
+                <Size x="26" y="26"/>
+                <Anchors>
+                    <Anchor point="TOP" relativeKey="$parent.SideBtn_Preview"
+                            relativePoint="BOTTOM" x="0" y="-4"/>
+                </Anchors>
+                <NormalTexture parentKey="Icon" atlas="AutoQuest-Badge-Campaign" useAtlasSize="false">
+                    <Size x="20" y="20"/>
+                </NormalTexture>
+                <HighlightTexture atlas="AutoQuest-Badge-Campaign" useAtlasSize="false" alphaMode="ADD">
+                    <Size x="20" y="20"/>
+                </HighlightTexture>
+                <Scripts>
+                    <OnEnter>
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip_SetTitle(GameTooltip, "Conditional Page Manager", NORMAL_FONT_COLOR)
+                        GameTooltip_AddHighlightLine(GameTooltip, "Open the Conditional Page Manager to set up", false)
+                        GameTooltip_AddHighlightLine(GameTooltip, "condition-based gossip page overrides for this NPC.", false)
+                        GameTooltip:Show()
+                    </OnEnter>
+                    <OnLeave>GameTooltip:Hide()</OnLeave>
+                    <OnClick>
+                        GossipEditor:OpenConditionalPageManager()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <!-- Options scroll frame -->
+			<!-- Created in Lua because FUCK THAT -->
+
+            <!-- Footer buttons -->
+            <Button parentKey="AddOption" inherits="UIPanelButtonTemplate"
+                    text="Add Option">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="16" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:AddOption()
+						GossipEditorFrame.Reset:SetEnabled(true)
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button parentKey="Reset" inherits="UIPanelButtonTemplate"
+                    text="Reset">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" x="0" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Open()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button parentKey="Save" inherits="UIPanelButtonTemplate"
+                    text="Save All">
+                <Size x="100" y="24"/>
+                <Anchors>
+                    <Anchor point="BOTTOMRIGHT" x="-16" y="14"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        GossipEditor:Save()
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+        </Frames>
+
+		<Scripts>
+			<OnLoad method="OnLoad" />
+
+    	</Scripts>
+    </Frame>
+
+</Ui>

@@ -562,6 +562,7 @@
 			<OnShow method="OnShow"/>
 			<OnMouseDown method="StartMoving"/>
 			<OnMouseUp method="StopMovingOrSizing"/>
+			<OnEvent method="OnEvent"/>
 		</Scripts>
 	</Frame>
 
@@ -602,6 +603,34 @@
 					</OnShow>
 				</Scripts>
 			</CheckButton>
+
+			<CheckButton parentKey="FavsOnTopCheckButton" inherits="OptionsBaseCheckButtonTemplate" text="Show Favorite Features at Top">
+				<Size x="20" y="20"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="18" y="-60"/>
+				</Anchors>
+				<ButtonText parentKey="Text">
+					<Anchors>
+   						<Anchor point="LEFT" relativePoint="RIGHT" />
+					</Anchors>
+				</ButtonText>
+				<NormalFont style="GameFontHighlightSmall"/>
+				<DisabledFont style="GameFontDisableSmall"/>
+
+				<Scripts>
+					<OnLoad>
+						self.tooltipText = "If enabled, favorite features will be displayed at the top of their category." ..
+							"\n\rFavorites will not be resorted until you click the category again or change categories."
+					</OnLoad>
+					<OnClick>
+						MapTextureManager:SetFavsOnTop( self:GetChecked() )
+					</OnClick>
+					<OnShow>
+						self:SetChecked( MapTextureManager:IsFavsOnTop() )
+					</OnShow>
+				</Scripts>
+			</CheckButton>
+
 
 			<Button parentKey="BackupsManager" inherits="EpsilonMap_ButtonTemplate" text="Feature Backups">
 				<Size y="22"/>

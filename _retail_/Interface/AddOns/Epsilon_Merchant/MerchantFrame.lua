@@ -7,7 +7,11 @@ local addonName, ns = ...
 local addon_path = "Interface/AddOns/" .. addonName
 
 local Me = Epsilon_Merchant;
-local SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
+local addonCommands = EpsilonLib.AddonCommands.Get("Epsilon_Merchant")
+local SendCommand
+if addonCommands then SendCommand = addonCommands.SendAddonCommand else
+	SendCommand = EpsilonLib.AddonCommands.Register("Epsilon_Merchant");
+end
 
 -------------------------------------------------------------------------------
 -- Static Popup Dialogs
@@ -146,6 +150,61 @@ StaticPopupDialogs["EPSILON_MERCHANT_SELL_JUNK"] = {
 	hideOnEscape = true,
 	enterClicksFirstButton = true,
 }
+
+-------------------------------------------------------------------------------
+-- UTILITY FUNCTIONS
+-------------------------------------------------------------------------------
+
+local function clearMsg(text)
+	return text:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+end
+
+local function GetUnitID( unitID )
+	if not( UnitExists( unitID )) then
+		return
+	end
+
+	local guid = UnitGUID( unitID )
+	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
+	if not( (unitType == "Creature" or unitType == "Vehicle") and id ) then
+		return
+	end
+
+	id = tonumber( id );
+	return id;
+end
+
+local npc_info_str = "NPC Info: |Hcreature_entry:(%d+)|h"
+
+---Continues a function after either grabbing the current target GUID, or if needed, pulling from NPC info.
+---@param callback fun(id:number)
+---@param unitID? UnitId if not given, defaults to 'target'
+local function continueWithTargetNPCGUID(callback, unitID)
+	if not unitID then unitID = "target" end
+	if not callback then return error('must use a callback with continueWithTargetNPCGUID') end
+	local id = GetUnitID(unitID)
+	if not id then return error('Failed to retrieve GetUnitID (recursion saver)') end
+
+	if id > 5000000 then
+
+		SendCommand("npc info", function(success, returnMsgs)
+			if not success then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (Failed Command.)") end
+			local msg = returnMsgs[1]
+			if not msg then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No Message)") end
+			msg = clearMsg(msg)
+
+			local realGuid = tonumber(strmatch(msg, npc_info_str))
+			if realGuid then
+				callback(realGuid)
+			else
+				PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No RealGUID)");
+			end
+		end)
+
+	else
+		callback(id)
+	end
+end
 
 -------------------------------------------------------------------------------
 -- MERCHANT INFO FUNCTIONS
@@ -494,7 +553,7 @@ function Epsilon_MerchantDeleteVendor()
 		-- Iterate through gossip options and remove any
 		-- that match ours.
 		--
-		for i = 1, C_GossipInfo.GetNumOptions() do
+		for i = 1, C_GossipInfo.GetNumOptions(true) do
 			local titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
 			local titleButtonText = titleButton:GetText();
 			if titleButtonText == "I want to browse your goods." then
@@ -954,10 +1013,13 @@ local function add_vendor_predicate(options)
 	return not hasMerchant
 end
 
-local function add_vendor_callback()
-	local guid = UnitGUID("target")
-	local unitType, _, _, _, _, id, _ = strsplit("-", guid)
-	Epsilon_MerchantFrame.merchantID = id;
+local function add_vendor_callback(id)
+	if not tonumber(id) then
+		continueWithTargetNPCGUID(add_vendor_callback)
+	end
+	id = tostring(id) -- why the fuck is this using stringy ID? idk- but thats how it be
+
+	Epsilon_MerchantFrame.merchantID = tostring(id);
 	Epsilon_MerchantFrame.addingVendor = true;
 	SendChatMessage( ".phase forge npc gossip option add I want to browse your goods.", "GUILD" );
 	SendChatMessage( ".phase forge npc gossip option icon "..C_GossipInfo.GetNumOptions(true).." 1", "GUILD" );
@@ -1002,58 +1064,62 @@ function Epsilon_MerchantFrame_OnEvent(self, event, ...)
 				return
 			end
 
-			-- Iterate through gossip options to find if ours already exists...
-			--
-			local found = false;
-			local function runChecks()
-				for i = 1, C_GossipInfo.GetNumOptions() do
-					titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
-					titleButtonIcon = titleButton.Icon:GetTexture();
-					local titleButtonText = titleButton:GetText();
-					titleIndex = titleIndex + 1;
-					if id and titleButtonText == "I want to browse your goods." then
-						-- ...and it does! :D
-						--
-						found = true;
-						if not( titleButtonIcon == 132060 ) then
-							titleButton.Icon:SetTexture(132060);
+			continueWithTargetNPCGUID(function(id)
+
+				-- Iterate through gossip options to find if ours already exists...
+				--
+				local found = false;
+				local function runChecks()
+					for i = 1, C_GossipInfo.GetNumOptions() do
+						titleButton = EpsilonLib.Utils.Gossip:GetTitleButton(i);
+						titleButtonIcon = titleButton.Icon:GetTexture();
+						local titleButtonText = titleButton:GetText();
+						titleIndex = titleIndex + 1;
+						if id and titleButtonText == "I want to browse your goods." then
+							-- ...and it does! :D
+							--
+							found = true;
+							if not( titleButtonIcon == 132060 ) then
+								titleButton.Icon:SetTexture(132060);
+							end
+							if not EPSILON_VENDOR_DATA[id] then
+								EPSILON_VENDOR_DATA[id] = {};
+							end
+							Epsilon_MerchantFrame.merchantID = id;
+							--[[ -- Now handled dynamically by EpsilonLib above.
+							titleButton:SetScript("OnClick", function()
+								Epsilon_MerchantFrame:Show()
+								MerchantFrame:Show()
+								MerchantFrame:SetAlpha(0)
+								MerchantFrame:EnableMouse(false)
+								MerchantFrame.selectedTab = 2
+								GossipFrame:SetAlpha(0)
+								GossipFrame:EnableMouse(false)
+							end)
+							--]]
+							--GossipTitleButtonAddVendor:Hide()
+							if Me.IsPhaseOwner() and C_Epsilon.IsDM then
+								GossipTitleButtonRemoveVendor:Show()
+							end
+							break
 						end
-						if not EPSILON_VENDOR_DATA[id] then
-							EPSILON_VENDOR_DATA[id] = {};
-						end
-						Epsilon_MerchantFrame.merchantID = id;
-						--[[ -- Now handled dynamically by EpsilonLib above.
-						titleButton:SetScript("OnClick", function()
-							Epsilon_MerchantFrame:Show()
-							MerchantFrame:Show()
-							MerchantFrame:SetAlpha(0)
-							MerchantFrame:EnableMouse(false)
-							MerchantFrame.selectedTab = 2
-							GossipFrame:SetAlpha(0)
-							GossipFrame:EnableMouse(false)
-						end)
-						--]]
-						--GossipTitleButtonAddVendor:Hide()
-						if Me.IsPhaseOwner() and C_Epsilon.IsDM then
-							GossipTitleButtonRemoveVendor:Show()
-						end
-						break
+					end
+					if found then
+						Epsilon_Merchant_GetOptions()
+						Epsilon_Merchant_LoadVendor()
+					elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
+						--GossipTitleButtonAddVendor:Show()
+						GossipTitleButtonRemoveVendor:Hide()
 					end
 				end
-				if found then
-					Epsilon_Merchant_GetOptions()
-					Epsilon_Merchant_LoadVendor()
-				elseif not( found ) and Me.IsPhaseOwner() and C_Epsilon.IsDM then
-					--GossipTitleButtonAddVendor:Show()
-					GossipTitleButtonRemoveVendor:Hide()
-				end
-			end
 
-			if ImmersionFrame then
-				C_Timer.After(0, runChecks)
-			else
-				runChecks()
-			end
+				if ImmersionFrame then
+					C_Timer.After(0, runChecks)
+				else
+					runChecks()
+				end
+
+			end, "npc")
 		end
 	elseif ( event == "GOSSIP_CLOSED" ) then
 		Epsilon_Merchant_PlaySound( "farewell" )

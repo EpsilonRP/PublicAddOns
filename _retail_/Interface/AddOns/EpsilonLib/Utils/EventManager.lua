@@ -46,6 +46,10 @@ function EventManager:Register(event, callback, runOnce)
 	return callback, refTable
 end
 
+function EventManager:OnNext(event, callback)
+	self:Register(event, callback, true)
+end
+
 ---@param reference function|table
 ---@param event? FrameEvent|string
 function EventManager:Remove(reference, event)

@@ -36,6 +36,7 @@ local phaseOverviewCallbacks = {}
 local currentOverviewOrder = {}
 local wipeOverview = true
 
+local sendAddonCommand, sendAddonChain = EpsiLib.AddonCommands.Register("EPSILIB_PHASE_INFO", false)
 --#endregion
 --#region Event Handlers
 
@@ -59,7 +60,7 @@ local function _handleAndAssignPhaseDataTable(phaseData, isOverview)
 	local callbacks = phaseLoadCallbacks[phaseID]
 	if callbacks then
 		for _, callback in ipairs(callbacks) do
-			callback(_phase)
+			callback(_phase, phaseID)
 		end
 		phaseLoadCallbacks[phaseID] = nil -- Clear it
 	end
@@ -119,7 +120,24 @@ EpsiLib.EventManager:Register("CHAT_MSG_ADDON", OnPhaseOverviewDataReceived)
 ---Requests a Phase's Info by ID. Does not handle callback, as that should be handled by wherever calls this instead.
 ---@param id string|integer
 function Phase:RequestPhaseInfo(id)
-	EpsiLib.AddonCommands.SendByChat("phase info " .. id .. " addon")
+	--EpsiLib.AddonCommands.SendByChat("phase info " .. id .. " addon")
+	sendAddonCommand("phase info " .. id .. " addon",
+		function(success)
+			if not success then
+				--print("Failed to request phase info for ID ", id)
+				-- run callbacks with nil to prevent hanging callbacks if request failed
+				local callbacks = phaseLoadCallbacks[id]
+				--CreateFromInfo(id, name, icon, message, info, desc, tags, color, background)
+				local phase = Phase:CreateFromInfo(id, "Unknown Phase (" .. id .. ")", "inv_misc_questionmark", "Couldn't load phase info.", "This phase may not exist, or there was an error retrieving the data (you may not have permission to enter / view this phase, i.e., blacklisted or not whitelisted).", "Couldn't load phase info.", "", 0, 162) -- create a placeholder phase so we can at least return something to prevent errors in callbacks
+				if callbacks then
+					for _, callback in ipairs(callbacks) do
+						callback(phase, id)
+					end
+					phaseLoadCallbacks[id] = nil -- Clear it
+				end
+			end
+			-- else, we will receive the data via our CHAT_MSG_ADDON handler and handle it there, so nothing to do here
+		end)
 end
 
 ---Requests the current Phase Overview list from the server, handling the callback once the entire list / phases are loaded. Callback is passed the currentOverviewOrder and Phase.Store as its 2 args for immediate access.
@@ -127,7 +145,8 @@ end
 function Phase:RequestOverview(callback)
 	-- means a phase overview is in progress atm
 	if not wipeOverview then return end
-	EpsiLib.AddonCommands.SendByChat("phase overview addon")
+	--EpsiLib.AddonCommands.SendByChat("phase overview addon")
+	sendAddonCommand("phase overview addon")
 	if callback then
 		tinsert(phaseOverviewCallbacks, callback)
 	end
