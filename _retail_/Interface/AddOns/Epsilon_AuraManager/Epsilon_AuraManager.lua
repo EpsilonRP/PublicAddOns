@@ -896,6 +896,10 @@ function Epsilon_AuraManager:OnInitialize()
 		end
 	end)
 
+	hooksecurefunc(GameTooltip, "SetSpellByID", function(_, spellID)
+		return SetSpellTooltip(spellID)
+	end)
+
 	-- [AURA ICON HOOKS]
 	-- For replacing aura icons in the BuffFrame:
 	hooksecurefunc("AuraButton_Update", function(buttonName, index, filter, texture, count, debuffType, duration, expirationTime, timeMod)
