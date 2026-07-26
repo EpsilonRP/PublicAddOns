@@ -489,6 +489,7 @@ local numPullouts = 1
 local function genPulloutButton(parent, name, width, height)
 	--local f = CreateFrame("Frame", "OTPullout" .. numPullouts, parent, "ObjectToolboxPulloutTemplate")
 	local f = CreateFrame("Frame", nil, parent, "ObjectToolboxPulloutTemplate")
+	EpsilonLib.Utils.Misc.AdjustDevTex(ADDON_NAME, f.Background)
 	numPullouts = numPullouts + 1
 	f._height = height + 32
 	f:SetSize(width, height + 32)
