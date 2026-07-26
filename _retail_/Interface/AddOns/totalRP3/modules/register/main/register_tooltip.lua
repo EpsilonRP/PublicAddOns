@@ -487,7 +487,7 @@ local function writeTooltipsforGlances(info, colors)
 			if glanceInfo then
 				-- build glance on next available glance builder
 				local builder = glanceTooltipBuilders[n];
-				local titleText = "|TInterface\\Icons\\" .. glanceInfo.IC .. ":30:30|t " .. (glanceInfo.TI or "")
+				local titleText = "|TInterface\\Icons\\" .. (glanceInfo.IC or "inv_misc_questionmark") .. ":30:30|t " .. (glanceInfo.TI or "")
 				builder:AddLine(titleText, colors.MAIN, getMainLineFontSize() - 2, true)
 				builder:AddLine(strsub(glanceInfo.TX or "", 1, 100), colors.TITLE, getSubLineFontSize() - 2, true);
 				builder:Build();
