@@ -22,9 +22,13 @@ local function init()
 
 		local onClick = function(self, button)
 			if button == "RightButton" then
-				if not OPNewOptionsFrame:IsShown() then OPNewOptionsFrame:Show() else OPNewOptionsFrame:Hide() end
+				if IsShiftKeyDown() then
+					SlashCmdList.OM_SHOWCLOSE()
+				else
+					if not OPNewOptionsFrame:IsShown() then OPNewOptionsFrame:Show() else OPNewOptionsFrame:Hide() end
+				end
 			elseif button == "LeftButton" then
-				SlashCmdList.OM_SHOWCLOSE()
+				ObjectToolboxFrame:Toggle()
 			elseif button == "MiddleButton" then
 				if OPPanelPopout:IsShown() then
 					OPPanelPopout:Hide()
@@ -39,12 +43,10 @@ local function init()
 			onClick,
 			icon,
 			{
-				" ",
-				"/om - Toggle UI",
-				" ",
-				"|cffFFD700Left-Click|r to toggle the main UI!",
-				"|cffFFD700Middle-Click|r to toggle the Selected Object panel!",
-				"|cffFFD700Right-Click|r for Options, Changelog, and the Help Manual!",
+				"|cffFFD700Left-Click|r to toggle the Building Tools window",
+				"|cffFFD700Middle-Click|r to toggle the Selected Object panel",
+				"|cffFFD700Right-Click|r for Options, Changelog, and the Help Manual",
+				"|cffFFD700Shift+Right-Click|r for Original ObjectMover",
 				" ",
 				"Mouse over most UI Elements to see tooltips for help! (Like this one!)",
 				tooltip.createDoubleLine(" ", addonName .. " v" .. addonVersion, nil, nil, nil, 0.8, 0.8, 0.8),

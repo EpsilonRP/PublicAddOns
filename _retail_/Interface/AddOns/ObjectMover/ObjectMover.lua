@@ -308,6 +308,9 @@ function loadMasterTable()
 	if isNotDefined(OPMasterTable.Options["useOverlayMethod"]) then OPMasterTable.Options["useOverlayMethod"] = false end
 	if isNotDefined(OPMasterTable.Options["autoUpdateRot"]) then OPMasterTable.Options["autoUpdateRot"] = true end
 	if isNotDefined(OPMasterTable.Options["autoUpdateTint"]) then OPMasterTable.Options["autoUpdateTint"] = true end
+	if isNotDefined(OPMasterTable.Options["autoUpdateScale"]) then OPMasterTable.Options["autoUpdateScale"] = true end
+	if isNotDefined(OPMasterTable.Options["autoUpdateObjectID"]) then OPMasterTable.Options["autoUpdateObjectID"] = true end
+
 
 	if not OPMasterTable.ParamPresetKeys then OPMasterTable.ParamPresetKeys = { "Building Tile", "Fine Positioning" } end
 	if not OPMasterTable.ParamPresetContent then
@@ -387,9 +390,9 @@ OPAddon_OnLoad:SetScript("OnEvent", function(self, event, name)
 			OPPanel4Manager:Show();
 			OPPanel4Manager:Hide();
 			OPMainFrame:Hide();
-			if OPMasterTable.Options["autoShow"] then OPMainFrame:Show() end
-			if OPMasterTable.Options["autoShowPopout"] then OPPanelPopout:Show() end
-			if OPMasterTable.Options["wasPopoutShown"] == 1 then OPPanelPopout:Show() end
+			--if OPMasterTable.Options["autoShow"] then OPMainFrame:Show() end
+			--if OPMasterTable.Options["autoShowPopout"] then OPPanelPopout:Show() end
+			--if OPMasterTable.Options["wasPopoutShown"] == 1 then OPPanelPopout:Show() end
 		end)
 
 		-- Create our ModelScene handler frame for use later in auto-dimensions
@@ -661,6 +664,7 @@ function OPMainFrame_OnShow(self)
 			elseif crev > lrev then showChangelog = true end
 			--]]
 
+			--[[ -- Disabled forced Changelog for 8.0.0
 			if OPMasterTable.Options["LastVersion"] ~= addonVersion then
 				OPNewOptionsFrame:Show()
 				PanelTemplates_SetTab(OPNewOptionsFrame, 2);
@@ -672,6 +676,7 @@ function OPMainFrame_OnShow(self)
 					" detected as being ~= last version seen (" .. OPMasterTable.Options["LastVersion"] ..
 					")")
 			end
+			--]]
 
 			OPMasterTable.Options["LastVersion"] = addonVersion
 		else

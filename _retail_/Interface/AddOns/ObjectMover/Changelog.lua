@@ -1,4 +1,14 @@
 ObjectMoverChangelog = [[
+#v8.0.0 (July 25th, 2026)
+	- NEW: A fully re-written from scratch Building Tools menu!
+	This contains all* of the previous functionality from Object
+	Mover into a newer, dynamic panel.
+
+	Found something missing? Report it to MindScape!
+	You can also open the old ObjectMover panel with "/om".
+
+## _________________________________________________
+
 #v7.2.2 (September 25th, 2022)
 	- UPDATED: Group Rotation support re-done; now more reliable, and
 	      it works when you select/spawn a group/bp right away. Also
