@@ -374,7 +374,7 @@ function SpellListFrame_OnEvent(self, event, ...)
 	if event == "ADDON_LOADED" and (...) == Name then
 		self:UnregisterEvent(event);
 		Addon.Options = SpellList_Options;
-		Addon.Options.MaxSpellID = math.max(Addon.Options.MaxSpellID, Addon.MaxSpellID);
+		Addon.Options.MaxSpellID = math.max((Addon.Options.MaxSpellID or Addon.MaxSpellID), Addon.MaxSpellID);
 
 		SpellBookFrame.SpellListButton = CreateFrame("Button", nil, SpellBookFrame, "UIPanelButtonTemplate")
 		local SpellListButton = SpellBookFrame.SpellListButton

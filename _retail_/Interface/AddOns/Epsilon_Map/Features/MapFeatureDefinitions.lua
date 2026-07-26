@@ -408,6 +408,8 @@ local alphabetTextures = {
 	{ name = "Friz Quadrata Map (Tint)",   tag = "font_frizqt_tint",       file = t("Text", "AtlasAlphabetFrizQuadrataTint"), },
 	{ name = "Friz Quadrata Clean",        tag = "font_frizqt_clean",      file = t("Text", "AtlasAlphabetFrizQuadrataGold"), },
 	{ name = "Friz Quadrata Clean (Tint)", tag = "font_frizqt_clean_tint", file = t("Text", "AtlasAlphabetFrizQuadrataPlainTint"), },
+	{ name = "Lifecraft Gold",             tag = "font_lifecraft",         file = t("Text", "AtlasAlphabetLifecraftYellow"), },
+	{ name = "Lifecraft (Tint)",           tag = "font_lifecraft_tint",    file = t("Text", "AtlasAlphabetLifecraftTint"), },
 }
 local defaultFont = "font_frizqt"
 
@@ -2052,8 +2054,15 @@ do
 	MTM:RegisterDefinition({ id = "large_first_ones_ruin", name = "Large First Ones Ruin", catID = "arch_major", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(4, 1, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
 	MTM:RegisterDefinition({ id = "large_pandaren_gate", name = "Large Pandaren Gate", catID = "arch_major", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(1, 2, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
 	MTM:RegisterDefinition({ id = "large_earthen_dwarf_keep", name = "Large Earthen Dwarf Keep", catID = "arch_major", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(2, 2, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
-
-
+	MTM:RegisterDefinition({ id = "epsilon_circular_frame_1", name = "Epsilon Circular Frame 1", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(3, 2, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "epsilon_circular_frame_2", name = "Epsilon Circular Frame 2", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(4, 2, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_1", name = "Astral Rift 1", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(1, 3, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_2", name = "Astral Rift 2", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(2, 3, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_3", name = "Astral Rift 3", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(3, 3, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "apertus", name = "Apertus", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(4, 3, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_debris_1", name = "Astral Rift Debris 1", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(1, 4, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_debris_2", name = "Astral Rift Debris 2", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(2, 4, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "astral_rift_debris_3", name = "Astral Rift Debris 3", catID = "art", file = t("Architecture\\MapBigArchitecture2"), texCoords = tcCR(3, 4, 4, 4, 0, 0), width = p(128, 0), height = p(128, 0) })
 
 
 
@@ -2643,7 +2652,7 @@ do
 	MTM:RegisterDefinition({ id = "draconic_corner_1", name = "Draconic Corner 1", catID = "art", file = t("MapCorners"), texCoords = tcCR(6, 3, 8, 4, 1, 1), width = p(256, 1), height = p(256, 1) })
 	MTM:RegisterDefinition({ id = "draconic_corner_2", name = "Draconic Corner 2", catID = "art", file = t("MapCorners"), texCoords = tcCR(7, 3, 8, 4, 1, 1), width = p(256, 1), height = p(256, 1) })
 	MTM:RegisterDefinition({ id = "shadowlands_corner", name = "Shadowlands Corner", catID = "art", file = t("MapCorners"), texCoords = tcCR(8, 3, 8, 4, 1, 1), width = p(256, 1), height = p(256, 1) })
-
+	MTM:RegisterDefinition({ id = "epsilon_stone_corner", name = "Epsilon Stone Corner", catID = "art", file = t("MapCorners"), texCoords = tcCR(1, 4, 8, 4, 1, 1), width = p(256, 1), height = p(256, 1) })
 
 
 
@@ -2674,6 +2683,82 @@ do
 	MTM:RegisterDefinition({ id = "edge_bottomlefttop", name = "Bottom Left Top", catID = "ocean", file = t("IslandPieces\\BottomLeftTop"), texCoords = nil, width = p(1024, 12.5), height = p(1024, 0) })
 	MTM:RegisterDefinition({ id = "edge_bottomrighttop", name = "Bottom Right Top", catID = "ocean", file = t("IslandPieces\\BottomRightTop"), texCoords = nil, width = p(1024, 12.5), height = p(1024, 0) })
 	MTM:RegisterDefinition({ id = "edge_east", name = "East", catID = "ocean", file = t("IslandPieces\\East"), texCoords = nil, width = p(1024, 12.5), height = p(1024, 0) })
+
+
+	MTM:RegisterDefinition({ id = "anniversary_balloons", name = "Anniversary Balloons", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(1, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "anniversary_balloon", name = "Anniversary Balloon", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(3, 1, 16, 16, 0, 0, 1, 2), width = p(32, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "anniversary_balloon_(tint)", name = "Anniversary Balloon (Tint)", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(4, 1, 16, 16, 0, 0, 1, 2), width = p(32, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "starway_dome", name = "Starway Dome", catID = "arch_major", file = t("MapGridAnniversary"), texCoords = tcCR(5, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "floating_rocks_1", name = "Floating Rocks 1", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(7, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "floating_rocks_2", name = "Floating Rocks 2", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(9, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "floating_rocks_3", name = "Floating Rocks 3", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(11, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "floating_rocks_4", name = "Floating Rocks 4", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(13, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "floating_rocks_5", name = "Floating Rocks 5", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(15, 1, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "clouds_1", name = "Clouds 1", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(1, 3, 16, 16, 0, 0, 4, 2), width = p(128, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "clouds_2", name = "Clouds 2", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(5, 3, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "clouds_3", name = "Clouds 3", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(7, 3, 16, 16, 0, 0, 4, 2), width = p(128, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_1", name = "Tree Cluster 1", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(11, 3, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_2", name = "Tree Cluster 2", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(13, 3, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_3", name = "Tree Cluster 3", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(15, 3, 16, 16, 0, 0), width = p(32, 0), height = p(32, 0) })
+	MTM:RegisterDefinition({ id = "tree_cluster_4", name = "Tree Cluster 4", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(16, 3, 16, 16, 0, 0), width = p(32, 0), height = p(32, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_5", name = "Tree Cluster 5", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(15, 4, 16, 16, 0, 0), width = p(32, 0), height = p(32, 0) })
+	MTM:RegisterDefinition({ id = "tree_cluster_6", name = "Tree Cluster 6", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(16, 4, 16, 16, 0, 0), width = p(32, 0), height = p(32, 0) })
+	MTM:RegisterDefinition({ id = "tree_cluster_7", name = "Tree Cluster 7", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(1, 5, 16, 16, 0, 0, 4, 4), width = p(128, 0), height = p(128, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_8", name = "Tree Cluster 8", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(5, 5, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_9", name = "Tree Cluster 9", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(7, 5, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_10", name = "Tree Cluster 10", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(9, 5, 16, 16, 0, 0, 2, 1), width = p(64, 0), height = p(32, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_11", name = "Tree Cluster 11", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(11, 5, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_12", name = "Tree Cluster 12 ", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(13, 5, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "tree_cluster_13", name = "Tree Cluster 13", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(15, 5, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_1", name = "Rock Seam 1", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(5, 7, 16, 16, 0, 0, 6, 2), width = p(192, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_2", name = "Rock Seam 2", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(11, 7, 16, 16, 0, 0, 6, 2), width = p(192, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_3", name = "Rock Seam 3", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(1, 9, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_4", name = "Rock Seam 4", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(3, 9, 16, 16, 0, 0, 6, 2), width = p(192, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_5", name = "Rock Seam 5", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(9, 9, 16, 16, 0, 0, 6, 2), width = p(192, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_6", name = "Rock Seam 6", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(15, 9, 16, 16, 0, 0, 2, 6), width = p(64, 0), height = p(192, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_7", name = "Rock Seam 7", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(1, 11, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_8", name = "Rock Seam 8", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(3, 11, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_9", name = "Rock Seam 9", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(5, 11, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_10", name = "Rock Seam 10", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(7, 11, 16, 16, 0, 0, 6, 2), width = p(192, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "rock_seam_11", name = "Rock Seam 11", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(13, 11, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+
+	MTM:RegisterDefinition({ id = "spatial_vortex", name = "Spatial Vortex", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(1, 13, 16, 16, 0, 0, 4, 4), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "rock_spiral", name = "Rock Spiral", catID = "ridges", file = t("MapGridAnniversary"), texCoords = tcCR(5, 13, 16, 16, 0, 0, 4, 4), width = p(128, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "blooming_flower", name = "Blooming Flower", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(9, 13, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "central_nexus", name = "Central Nexus", catID = "arch_major", file = t("MapGridAnniversary"), texCoords = tcCR(11, 13, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "crystal_scar_1", name = "Crystal Scar 1", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(13, 13, 16, 16, 0, 0, 2, 4), width = p(64, 0), height = p(128, 0) })
+	MTM:RegisterDefinition({ id = "powerful_orb_1", name = "Powerful Orb 1", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(9, 15, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "powerful_orb_2", name = "Powerful Orb 2", catID = "art", file = t("MapGridAnniversary"), texCoords = tcCR(11, 15, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
+	MTM:RegisterDefinition({ id = "crystal_scar_2", name = "Crystal Scar 2", catID = "foliage", file = t("MapGridAnniversary"), texCoords = tcCR(15, 15, 16, 16, 0, 0, 2, 2), width = p(64, 0), height = p(64, 0) })
 end
 
 -- Build Blizz after Epsi so ours always take precedence in the UI list

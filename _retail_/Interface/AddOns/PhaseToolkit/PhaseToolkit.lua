@@ -8,12 +8,117 @@ local addonName, ns = ...
 local LibDeflate = LibStub:GetLibrary("LibDeflate");
 local AceSerializer = LibStub:GetLibrary("AceSerializer-3.0");
 PhaseToolkit = {}
+
+--DATA STRUCTURE TIME
+--[[
+categoryLIST={
+
+	{
+		id=1, 						<= valorised by PTK_LAST_MAX_ID_CATEGORY_NPC + 1
+		name="Category Name", 		<= user input
+		members={1,2,3,4,5} 		<= list of creatureId for unique properties
+	},
+	{
+		id=2,
+		name="Category Name",
+		members={1,2,3,4,5}
+	},
+	...
+]]
+
 PhaseToolkit.NPCcategoryList={}
 PhaseToolkit.TELEcategoryList={}
+PhaseToolkit.CopyNpcNameEnabled=false
+PhaseToolkit.CopyNpcCustomisationEnabled=false
+PhaseToolkit.CopyNpcGearEnabled=false
+PhaseToolkit.CopyNpcWeaponsEnabled=false
+PhaseToolkit.SelectedCategory=nil
+PhaseToolkit.lastPhaseID=169
+PhaseToolkit.deployingFrameBaseSize=300
+PhaseToolkit.npcListView = PhaseToolkit.npcListView or {}
+PhaseToolkit.CurrenttextToLookForNpc = PhaseToolkit.CurrenttextToLookForNpc or ""
+
+local deployingFrameContext={
+	["NPCFORGE"]={},
+	["PHASEOPTION"]={},
+	["NPCLIST"]={},
+	["TELELIST"]={},
+	["ITEMFORGE"]={},
+	["NONE"]={id="NONE"},
+}
+
+PhaseToolkit.context=deployingFrameContext.NONE
+
+function PhaseToolkit.SetDeployingContext(context)
+	PhaseToolkit.context=context
+end
+
+function PhaseToolkit.GetDeployingContext()
+	return PhaseToolkit.context
+end
+
+function PhaseToolkit.hideContext()
+	for _,object in pairs(PhaseToolkit.context) do
+		if object and object.Hide then
+			object:Hide()
+		end
+	end
+	PhaseToolkit.context = deployingFrameContext.NONE
+end
+
+local function hideContext(context)
+	if context and #context>0 then
+		for _,object in pairs(context) do
+			if object and object.Hide then
+				object:Hide()
+			end
+		end
+	end
+end
+
+local function showContext(context)
+	if context and #context>0 then
+		for _,object in pairs(context) do
+			if object and object.Show then
+				if not object.isHiddenByDefault then
+					object:Show()
+				end
+			end
+		end
+	end
+end
+
+function PhaseToolkit.changeContext(newcontext)
+	PhaseToolkit.context = newcontext
+	hideContext(PhaseToolkit.context)
+	PhaseToolkit.DeployingFrame:handleDeployingFrameState()
+end
+
+
+
+function PhaseToolkit.extendDeployingFrame(newSize)
+	if newSize and newSize > PhaseToolkit.deployingFrameBaseSize then
+		PhaseToolkit.DeployingFrame:SetHeight(newSize)
+	else
+		PhaseToolkit.DeployingFrame:SetHeight(PhaseToolkit.deployingFrameBaseSize)
+	end
+end
+
+
+
 local PTK_NPC_CATEGORY_LIST="PTK_NPC_CATEGORY_LIST";
 local PTK_TELE_CATEGORY_LIST="PTK_TELE_CATEGORY_LIST";
 local PTK_LAST_MAX_ID_CATEGORY_NPC="PTK_LAST_MAX_ID_CATEGORY";
 local PTK_LAST_MAX_ID_CATEGORY_TELE="PTK_LAST_MAX_ID_CATEGORY_TELE";
+
+
+function PhaseToolkit.CompressForUpload(categoryList)
+	local compressedValue=""
+	compressedValue = AceSerializer:Serialize(categoryList)
+	compressedValue= LibDeflate:CompressDeflate(compressedValue, {level = 9})
+	compressedValue = LibDeflate:EncodeForWoWChatChannel(compressedValue)
+	return compressedValue;
+end
 
 local function dump(obj, indent)
     indent = indent or 0
@@ -70,21 +175,342 @@ function PhaseToolkit.getCategoryByIdGENERIC(categoryId,type)
 	end
 end
 
+local function checkIfCreatureInSelectedCategory(creature)
+	if(creature) then
+		if(PhaseToolkit.SelectedCategory) then
+			for _, id in ipairs(PhaseToolkit.SelectedCategory.members) do
+				if id == creature.IdCreature then
+					return true
+				end
+			end
+			return false
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+
+local function checkIfTeleInSelectedCategory(tele)
+	if tele then
+		if PhaseToolkit.TELEselectedCategory then
+			for _, member in ipairs(PhaseToolkit.TELEselectedCategory.members) do
+				if member == tele then
+					return true
+				end
+			end
+			return false
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+
+--- Retrieves the index of a specific member in a list of category members.
+---
+--- @param categoryMembersList table A list of category members to search through.
+--- @param memberId any The ID of the member to find in the list.
+--- @return number|nil The index of the member in the list if found, or nil if not found.
+local function getIndexOfMembers(categoryMembersList,memberId)
+	for index, member in ipairs(categoryMembersList) do
+		if member == memberId then
+			return index
+		end
+	end
+	return -1
+end
+--- Checks if a string is present in an array.
+---@param array table The array to search through.
+---@param searchString string The string to search for.
+---@return integer True if the string is found, false otherwise.
+local function isStringInArray(array, searchString)
+	for index, value in ipairs(array) do
+		if value == searchString then
+			return index;
+		end
+	end
+	return -1;
+end
+
+--- Retrieves a creature from the creature list by its ID.
+---@param npcId number The ID of the creature to retrieve.
+---@return table|nil The creature object if found, or nil if not found.
+function PhaseToolkit.GetCreatureById(npcId)
+	for _, creature in ipairs(PhaseToolkit.creatureList) do
+		if creature.IdCreature == npcId then
+			return creature
+		end
+	end
+	return nil
+end
+
+function PhaseToolkit.CreateNewNpcCategory(name,funcToCall)
+    -- Fetch the last max ID from the server
+    EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_NPC, function(data)
+        local lastMaxId = tonumber(data) or 0
+        local newCategoryId = lastMaxId + 1
+
+        -- Create the new category
+        local newCategory = {
+            id = newCategoryId,
+            name = name,
+            members = {}
+        }
+
+        -- Add the new category to the local category list
+        table.insert(PhaseToolkit.NPCcategoryList, newCategory)
+
+        -- Update the server with the new max ID
+        EpsilonLib.PhaseAddonData.Set(PTK_LAST_MAX_ID_CATEGORY_NPC, tostring(newCategoryId))
+		PhaseToolkit.saveNpcCategoryDataToServer()
+		funcToCall()
+    end)
+end
+
+local function showContent(content)
+	content = content or {}
+	for _, frame in ipairs(content) do
+		if frame and frame.Show then
+			frame:Show()
+		end
+	end
+end
+
+local function hideContent(content)
+	content = content or {}
+	for _, frame in ipairs(content) do
+		if frame and frame.Hide then
+			frame:Hide()
+		end
+	end
+end
+
+function PhaseToolkit.getNpcCategoryFromPhaseData(funcToCall)
+	EpsilonLib.PhaseAddonData.Get(PTK_NPC_CATEGORY_LIST, function(data)
+		if data then
+			local decoded = LibDeflate:DecodeForWoWChatChannel(data)
+			if decoded then
+				local decompressed = LibDeflate:DecompressDeflate(decoded)
+				if decompressed then
+					local success, result = AceSerializer:Deserialize(decompressed)
+					if success then
+						PhaseToolkit.NPCcategoryList = result
+					else
+						print("An error occured or no NPC category is saved to Phase")
+						PhaseToolkit.NPCcategoryList = {}
+					end
+				else
+					print("An error occured or no NPC category is saved to Phase")
+					PhaseToolkit.NPCcategoryList = {}
+				end
+			else
+				print("An error occured or no NPC category is saved to Phase")
+				PhaseToolkit.NPCcategoryList = {}
+			end
+		else
+			PhaseToolkit.NPCcategoryList = {}
+		end
+		funcToCall()
+	end)
+end
+
+function PhaseToolkit.saveNpcCategoryDataToServer()
+	local serializedData = PhaseToolkit.CompressForUpload(PhaseToolkit.NPCcategoryList)
+	EpsilonLib.PhaseAddonData.Set(PTK_NPC_CATEGORY_LIST, serializedData, function(success)
+		if success then
+			print("Category data successfully saved to the server.")
+		else
+			print("Failed to save category data to the server.")
+		end
+	end)
+end
+
+
+local function SetCroppedTextWithTooltip(ownerFrame, fontString, fullText, maxWidth)
+    fullText = tostring(fullText or "")
+    maxWidth = tonumber(maxWidth) or 0
+
+    fontString:SetWordWrap(false)
+    fontString:SetNonSpaceWrap(true)
+    fontString:SetText(fullText)
+
+    if maxWidth <= 0 or fontString:GetStringWidth() <= maxWidth then
+        ownerFrame.fullText = nil
+        return
+    end
+
+    local ellipsis = "..."
+    local left, right = 0, #fullText
+    local best = ellipsis
+
+    while left <= right do
+        local mid = math.floor((left + right) / 2)
+        local candidate = string.sub(fullText, 1, mid) .. ellipsis
+        fontString:SetText(candidate)
+
+        if fontString:GetStringWidth() <= maxWidth then
+            best = candidate
+            left = mid + 1
+        else
+            right = mid - 1
+        end
+    end
+
+    fontString:SetText(best)
+    ownerFrame.fullText = fullText
+end
+
+local function isKeyInArray(array, key)
+	for _, value in ipairs(array) do
+		if value == key then
+			return true
+		end
+	end
+	return false
+end
+
+local function deleteKeyFromArray(array, key)
+	for index, value in ipairs(array) do
+		if value == key then
+			table.remove(array, index)
+		end
+	end
+	return array
+end
+--- Builds a command string for the item forge action.
+--- @param action string The action to perform (e.g., class, bonding,name).
+--- @param itemLinkList table<itemLink> The item link  list to be used in the command.
+--- @param value? string The value associated with the action.
+local function buildItemForgeCommand(action,itemLinkList,value)
+	--itemLinkList can be empty if the action is create
+	if not itemLinkList or (#itemLinkList ==0 and action~="create") or not action then
+		print("Error, buildItemForgeCommand missing parameters " .. (not itemLinkList and "itemLink " or "").. (#itemLinkList == 0 and "itemLinkList is empty " or "") .. (not action and "action " or ""))
+		return nil
+	end
+
+	local baseCommand = "f i s "
+	value = value or ""
+
+	return baseCommand .. action .. " " .. table.concat(itemLinkList, " ") .. " " .. value
+end
+
+--- take bool, return on or off
+--- @param value boolean The boolean value to transform.
+--- @return string Returns "on" if the value is true, "off" if the value is false.
+local function transformBoolToOnOff(value)
+	if value then
+		return "on"
+	else
+		return "off"
+	end
+end
+
+---comment send the command via SendChatMessage to go trough the limitation of  sendAddonCmd size limit
+---@param message string The message to be sent in chunks.
+local function sendItemDescriptionInChunk(message)
+    local maxLength = 240 - (string.len("f i s de ") + string.len(PhaseToolkit.itemCreatorData.itemLink))
+    local messageLength = #message
+
+    -- Si le message tient dans un seul chunk, on l'envoie tel quel
+    if messageLength <= maxLength then
+        SendChatMessage("." .. message, "GUILD")
+        return
+    end
+
+    local isFirst = true
+    local currentChunk = ""
+
+    for word in message:gmatch("%S+") do
+        -- Cas limite : un mot seul dépasse déjà maxLength, on doit le forcer à passer
+        if #word > maxLength then
+            -- On envoie d'abord ce qu'on a accumulé
+            if #currentChunk > 0 then
+                SendChatMessage((isFirst and "." or "") .. currentChunk, "GUILD")
+                isFirst = false
+                currentChunk = ""
+            end
+            -- Puis on découpe le mot trop long brutalement (dernier recours)
+            local pos = 1
+            while pos <= #word do
+                local piece = string.sub(word, pos, pos + maxLength - 1)
+                SendChatMessage((isFirst and "." or "") .. piece, "GUILD")
+                isFirst = false
+                pos = pos + maxLength
+            end
+        else
+            local candidate = (#currentChunk > 0) and (currentChunk .. " " .. word) or word
+
+            if #candidate > maxLength then
+                -- Le mot ne rentre pas dans le chunk courant : on envoie le chunk et on repart
+                SendChatMessage((isFirst and "." or "") .. currentChunk, "GUILD")
+                isFirst = false
+                currentChunk = word
+            else
+                currentChunk = candidate
+            end
+        end
+    end
+
+    -- Envoyer ce qu'il reste
+    if #currentChunk > 0 then
+        SendChatMessage((isFirst and "." or "") .. currentChunk, "GUILD")
+    end
+end
+
 -- ============================== GLOBAL VARIABLES ============================== --
 PhaseToolkit.LargeurMax = 170
 PhaseToolkit.HauteurMax = 220
 PhaseToolkit.OpenedCustomFrame = nil
-PhaseToolkit.SelectedRace = 1
+PhaseToolkit.SelectedRace = nil
 PhaseToolkit.SelectedGender = "male"
-PhaseToolkit.SelectedMeteo = "normal"
+PhaseToolkit.SelectedMeteo = { text = "Normal",           value = "normal" }
 PhaseToolkit.IsPhaseWhitelist = nil
 PhaseToolkit.MapIconInfo = {
 	["MinimapButtonPos"] = {
 		["minimapPos"] = 207
 	},
 }
-PhaseToolkit.itemCreatorData={}
+PhaseToolkit.AutoRefreshNPC = false
+PhaseToolkit.itemCreatorData={
+	itemLink=nil,
+	itemDisplaySourceLink = nil,
+	itemAppearanceID= nil,
+	selectedItemSubClass=nil,
+	selectedInventoryType=nil,
+	selectedItemClass=nil,
+	selectedItemSheath=nil,
+	selectedItemQuality=nil,
+	selectedItemBonding=nil,
+	itemName=nil,
+	itemDescription=nil,
+	selectedIcon=nil,
+	characterWhitelist = {},
+	phaseWhitelistForMember = {},
+	phaseWhitelistForOfficer = {},
+	itemProperty={
+		["adder"]=false,
+		["additem"]={
+			["anyone"]=false,
+			["character"]=false,
+			["member"]=false,
+			["officer"]=false
+		},
+		["copy"]=false,
+		["creator"]=false,
+		["info"]=false,
+		["lookup"]=false
+	}
+}
+
+PhaseToolkit.itemCreatorData.selectedRows = {}
+
+
 PhaseToolkit.CommandToSend={}
+PhaseToolkit.CustomFieldLocks={}
+
 PhaseToolkit.additemOption={
 	{text="Anyone",value=false},
 	{text="Character",value=false},
@@ -100,9 +526,6 @@ PhaseToolkit.npcCurrentPage=nil
 PhaseToolkit.TELEFrameWidth=nil
 PhaseToolkit.TELEFrameHeight=nil
 
-PhaseToolkit.itemCreatorData.whitelistedChar={}
-PhaseToolkit.itemCreatorData.whitelistedPhaseForMember={}
-PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer={}
 PhaseToolkit.GeneralStat = {
 	["complexion"] = 1,
 	["face"] = 1,
@@ -322,13 +745,1734 @@ PhaseToolkit.Races = {
 	["Northrend Skeleton"] = 20,
 	["Ice troll"] = 21,
 }
+
+local raceGenderCategory = {
+    ["Human"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Stubble",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["BodyMark"] = {
+                    "Scars",
+                    "Complexion"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["BodyMark"] = {
+                    "Complexion",
+                    "Makeup",
+                    "Scars"
+                }
+            }
+        }
+    },
+    ["Orc"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Stubble",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings"
+                },
+                ["Body"] = {
+                    "Body",
+                    "Hand (Left)",
+                    "Hand (Right)",
+                    "Posture"
+                },
+                ["BodyMark"] = {
+                    "Grime",
+                    "Scars",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings"
+                },
+                ["Body"] = {
+                    "Body",
+                    "Hand (Left)",
+                    "Hand (Right)"
+                },
+                ["BodyMark"] = {
+                    "Scars",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["Dwarf"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Mustache",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Feather",
+                    "Earrings",
+                    "Piercings",
+                    "Hand Jewelry",
+                    "Jewelry Color",
+                    "Feather Color"
+                },
+                ["Body"] = {
+                    "Body Shape"
+                },
+                ["BodyMark"] = {
+                    "Garment",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows"
+                },
+                ["Jewelry"] = {
+                    "Feather",
+                    "Earrings",
+                    "Piercings",
+                    "Jewelry Color",
+                    "Feather Color"
+                },
+                ["BodyMark"] = {
+                    "Garment",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["NightElf"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard",
+                    "Vines",
+                    "Vine Color"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Blindfold",
+                    "Headdress",
+                    "Earrings",
+                    "Necklace",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["Body"] = {
+                    "Body Shape",
+                    "Body Type",
+                    "Fur Color"
+                },
+                ["BodyMark"] = {
+                    "Scars",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color",
+                    "Runes",
+                    "Runes Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Vines",
+                    "Vine Color"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Blindfold",
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Piercings",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["Body"] = {
+                    "Body Type",
+                    "Fur Color"
+                },
+                ["BodyMark"] = {
+                    "Scars",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color",
+                    "Runes",
+                    "Runes Color"
+                }
+            }
+        }
+    },
+    ["Undead"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Type",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Face Features"
+                },
+                ["Body"] = {
+                    "Skin Type",
+                    "Spine",
+                    "Ribs",
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Left)",
+                    "Leg (Right)"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Type",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient"
+                },
+                ["Jewelry"] = {
+                    "Face Features",
+                    "Necklace",
+                    "Earrings",
+                    "Piercings"
+                },
+                ["Body"] = {
+                    "Skin Type",
+                    "Spine",
+                    "Hips",
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Left)",
+                    "Leg (Right)"
+                }
+            }
+        }
+    },
+    ["Tauren"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Horn Style",
+                    "Horn Color",
+                    "Horn Decoration",
+                    "Grime",
+                    "Scars"
+                },
+                ["Hair"] = {
+                    "Mane",
+                    "Foremane",
+                    "Hair",
+                    "Sideburns",
+                    "Goatee",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Nose Ring",
+                    "Jewelry Color",
+                    "Accent Color",
+                    "Gem Color",
+                    "Flower"
+                },
+                ["Body"] = {
+                    "Tail",
+                    "Tail Decoration"
+                },
+                ["BodyMark"] = {
+                    "Horn Markings",
+                    "Face Paint",
+                    "Body Paint",
+                    "Paint Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Horn Style",
+                    "Horn Color",
+                    "Grime",
+                    "Scars"
+                },
+                ["Hair"] = {
+                    "Mane",
+                    "Foremane",
+                    "Hair",
+                    "Hair Decoration"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Nose Ring",
+                    "Jewelry Color",
+                    "Accent Color",
+                    "Gem Color",
+                    "Flower"
+                },
+                ["Body"] = {
+                    "Tail",
+                    "Tail Decoration"
+                },
+                ["BodyMark"] = {
+                    "Horn Markings",
+                    "Face Paint",
+                    "Body Paint",
+                    "Paint Color"
+                }
+            }
+        }
+    },
+    ["Gnome"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Scars"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Streaks",
+                    "Hair Gradient",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Goggles",
+                    "Earrings",
+                    "Piercings",
+                    "Wrist Jewelry",
+                    "Jewelry Color",
+                    "Accent Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Scars",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Streaks",
+                    "Hair Gradient",
+                    "Eyebrows",
+                    "Hair Accessory"
+                },
+                ["Jewelry"] = {
+                    "Goggles",
+                    "Earrings",
+                    "Piercings",
+                    "Wrist Jewelry",
+                    "Jewelry Color",
+                    "Accent Color"
+                }
+            }
+        }
+    },
+    ["Troll"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks",
+                    "Tusk Decoration",
+                    "Eyebrows"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Highlight",
+                    "Hair Gradient",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Nose Piercing",
+                    "Mouth Piercing"
+                },
+                ["Body"] = {
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Right)",
+                    "Leg (Left)",
+                    "Jewelry Color",
+                    "Accent Color"
+                },
+                ["BodyMark"] = {
+                    "Bandages",
+                    "Tattoo Style",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Highlight",
+                    "Hair Gradient"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Brow Piercing",
+                    "Nose Piercing",
+                    "Mouth Piercing"
+                },
+                ["Body"] = {
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Left)",
+                    "Leg (Right)",
+                    "Jewelry Color",
+                    "Accent Color"
+                },
+                ["BodyMark"] = {
+                    "Bandages",
+                    "Tattoo Style",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["Goblin"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Markings",
+                    "Nose",
+                    "Chin",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Grime",
+                    "Stubble"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Hair Streaks",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Earrings",
+                    "Nose Ring",
+                    "Jewelry Color",
+                    "Leg Jewelry",
+                    "Wrist Jewelry",
+                    "Necklace"
+                },
+                ["Body"]={
+                    "Body Type"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Markings",
+                    "Nose",
+                    "Chin",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Grime"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Hair Streaks",
+                    "Eyebrows"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Nose Ring",
+                    "Jewelry Color",
+                    "Wrist Jewelry",
+                    "Leg Jewelry",
+
+                },
+                ["Body"] = {
+                    "Body Shape",
+                    "Body Type"
+                }
+            }
+        }
+    },
+    ["BloodElf"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard",
+                    "Stubble"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Blindfold",
+                    "Headdress",
+                    "Earrings",
+                    "Jewelry Color",
+                    "Accent Color",
+                    "Gem Color"
+                },
+                ["BodyMark"] = {
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color",
+                    "Runes",
+                    "Rune Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Blindfold",
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Jewelry Color",
+                    "Accent Color",
+                    "Gem Color"
+                },
+                ["Body"] = {
+                    "Armbands",
+                    "Bracelets"
+                },
+                ["BodyMark"] = {
+                    "Body Tattoo",
+                    "Tattoo Color",
+                    "Runes",
+                    "Runes Color"
+                }
+            }
+        }
+    },
+    ["Draenei"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tendrils"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Stubble",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Horn Decoration",
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["Body"] = {
+                    "Body Shape",
+                    "Tail",
+                    "Trims"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tendrils",
+                    "Face Tendrils"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Headdress",
+                    "Hair Decoration"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Horn Accessories",
+                    "Necklace",
+                    "Earrings",
+                    "Jewelry Color",
+                    "Gem Color"
+                },
+                ["Body"] = {
+                    "Tail",
+                    "Trims"
+                }
+            }
+        }
+    },
+    ["Worgen"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Fur Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ear Style",
+                    "Secondary Ear Style",
+                    "Fangs"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Mane",
+                    "Foremane",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Body"] = {
+                    "Body Fur",
+                    "Claws",
+                    "Tail"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Fur Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ear Style",
+                    "Secondary Ear Style",
+                    "Fangs"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Accents",
+                    "Mane",
+                    "Foremane"
+                },
+                ["Body"] = {
+                    "Body Fur",
+                    "Claws",
+                    "Tail"
+                }
+            }
+        }
+    },
+    ["Pandaren"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Accent Color",
+                    "Eyebrows",
+                    "Mustache",
+                    "Beard",
+                    "Sideburns"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Earrings"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Accent Color",
+                    "Hair Color"
+                },
+                ["Body"] = {
+                    "Tail"
+                }
+            }
+        }
+    },
+    ["Nightborne"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Mustache",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Earrings",
+                    "Face Jewelry",
+                    "Jaw Jewelry",
+                    "Chin Jewelry",
+                    "Jewelry Color"
+                },
+                ["BodyMark"] = {
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Luminous Hands"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Shape",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Hair Decoration"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Face Jewelry",
+                    "Jaw Jewelry",
+                    "Chin Jewelry",
+                    "Jewelry Color"
+                },
+                ["BodyMark"] = {
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Luminous Hands"
+                }
+            }
+        }
+    },
+    ["Highmountain"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Horn Style",
+                    "Horn Color",
+                    "Horn Wraps",
+                    "Horn Decoration",
+                    "Horn Markings"
+                },
+                ["Hair"] = {
+                    "Foremane",
+                    "Hair",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Nose Piercing",
+                    "Feather"
+                },
+                ["Body"] = {
+                    "Tail",
+                    "Tail Decoration"
+                },
+                ["BodyMark"] = {
+                    "Face Paint",
+                    "Body Paint",
+                    "Body Paint Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Horn Style",
+                    "Horn Color",
+                    "Horn Wraps",
+                    "Horn Decoration",
+                    "Horn Markings"
+                },
+                ["Hair"] = {
+                    "Foremane",
+                    "Hair",
+                    "Hair Decoration"
+                },
+                ["Jewelry"] = {
+                    "Headdress",
+                    "Necklace",
+                    "Earrings",
+                    "Nose Piercing",
+                    "Feather"
+                },
+                ["Body"] = {
+                    "Tail",
+                    "Tail Decoration"
+                },
+                ["BodyMark"] = {
+                    "Body Paint",
+                    "Face Paint",
+                    "Body Paint Color"
+                }
+            }
+        }
+    },
+    ["VoidElf"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Tentacles"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Stubble",
+                    "Facial Hair"
+                },
+                ["BodyMark"] = {
+                    "Face Markings",
+                    "Body Markings"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Tentacles"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color"
+                },
+                ["Jewelry"] = {
+                    "Earrings"
+                },
+                ["BodyMark"] = {
+                    "Face Markings",
+                    "Body Markings"
+                }
+            }
+        }
+    },
+    ["Lightforged"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Eye Type",
+                    "Tendrils"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Decoration",
+                    "Eyebrows",
+                    "Facial Hair"
+                },
+                ["Jewelry"] = {
+                    "Jewelry Color"
+                },
+                ["BodyMark"] = {
+                    "Face Rune",
+                    "Body Rune",
+                    "Horn Decoration",
+                    "Tail"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Eye Type",
+                    "Tendrils"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Decoration",
+                    "Headdress"
+                },
+                ["Jewelry"] = {
+                    "Horns",
+                    "Horn Decoration",
+                    "Necklace",
+                    "Earrings",
+                    "Jaw Decoration",
+                    "Jewelry Color"
+                },
+                ["BodyMark"] = {
+                    "Face Rune",
+                    "Body Rune",
+                    "Tail"
+                }
+            }
+        }
+    },
+    ["Zandalari"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks",
+                    "Bandages",
+                    "Eyebrows",
+                    "Face Tattoo"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Hair Highlight",
+                    "Accent Color",
+                    "Beard",
+                    "Sideburns",
+                    "Mustache",
+                },
+                ["Jewelry"] = {
+                    "Jewelry Color",
+                    "Ear Gauge",
+                    "Piercings"
+                },
+                ["BodyMark"] = {
+                    "Tattoo",
+                    "Tattoo Style",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks",
+                    "Bandages",
+                    "Face Tattoo"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Gradient",
+                    "Hair Highlight",
+                    "Accent Color",
+                },
+                ["Jewelry"] = {
+                    "Jewelry Color",
+                    "Necklace",
+                    "Earrings",
+                    "Ear Gauge",
+                    "Piercings"
+                },
+                ["BodyMark"] = {
+                    "Body Tattoo",
+                    "Tattoo",
+                    "Tattoo Style",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["Kul tiran"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Eyebrows",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard",
+                    "Stubble"
+                },
+                ["BodyMark"] = {
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings"
+                },
+                ["BodyMark"] = {
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["DarkIron"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Eye Color",
+                    "Eye Type",
+                    "Secondary Eye Color",
+                    "Face"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Facial Hair"
+                },
+                ["Jewelry"] = {
+                    "Piercings"
+                },
+                ["BodyMark"] = {
+                    "Tattoo"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Eye Color",
+                    "Eye Type",
+                    "Secondary Eye Color",
+                    "Face"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color"
+                },
+                ["Jewelry"] = {
+                    "Piercings"
+                },
+                ["BodyMark"] = {
+                    "Tattoo"
+                }
+            }
+        }
+    },
+    ["Vulpera"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Fur Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Snout"
+                },
+                ["Jewelry"] = {
+                    "Earrings"
+                },
+                ["BodyMark"] = {
+                    "Pattern",
+                    "Pattern Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Fur Color",
+                    "Face",
+                    "Eye Type",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Ears",
+                    "Snout"
+                },
+                ["Jewelry"] = {
+                    "Earrings"
+                },
+                ["BodyMark"] = {
+                    "Pattern",
+                    "Pattern Color"
+                }
+            }
+        }
+    },
+    ["Mag'har"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Tusks"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings"
+                },
+                ["Body"] = {
+                    "Body Piercings",
+                    "Hand (Left)",
+                    "Hand (Right)",
+                    "Posture"
+                },
+                ["BodyMark"] = {
+                    "Grime",
+                    "Scars",
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Face Shape",
+                    "Eye Color",
+                    "Secondary Eye Color"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color"
+                },
+                ["Jewelry"] = {
+                    "Necklace",
+                    "Earrings",
+                    "Piercings"
+                },
+                ["Body"] = {
+                    "Body Piercings",
+                    "Hand (Left)",
+                    "Hand (Right)"
+                },
+                ["BodyMark"] = {
+                    "Face Tattoo",
+                    "Body Tattoo",
+                    "Tattoo Color"
+                }
+            }
+        }
+    },
+    ["Mechagnome"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Scars"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Streaks",
+                    "Hair Gradient",
+                    "Eyebrows",
+                    "Mustache",
+                    "Sideburns",
+                    "Beard"
+                },
+                ["Jewelry"] = {
+                    "Face Modification",
+                    "Ear Modification",
+                    "Chin Modification",
+                    "Chest Modification",
+                    "Optics"
+                },
+                ["Body"] = {
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Left)",
+                    "Leg (Right)",
+                    "Paint Color"
+                }
+            },
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color",
+                    "Face",
+                    "Eye Color",
+                    "Secondary Eye Color",
+                    "Scars"
+                },
+                ["Hair"] = {
+                    "Hair Style",
+                    "Hair Color",
+                    "Hair Streaks",
+                    "Hair Gradient",
+                    "Eyebrows"
+                },
+                ["Jewelry"] = {
+                    "Face Modification",
+                    "Ear Modification",
+                    "Chin Modification",
+                    "Chest Modification",
+                    "Optics"
+                },
+                ["Body"] = {
+                    "Arm (Left)",
+                    "Arm (Right)",
+                    "Leg (Left)",
+                    "Leg (Right)",
+                    "Paint Color"
+                }
+            }
+        }
+    },
+
+    ["Naga"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skin Color"
+                }
+            }
+        }
+    },
+    ["Thin Human"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Hairstyle",
+                    "Facialhair",
+                    "Haircolor",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Fel Orc"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Broken"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Haircolor",
+                    "Hairstyle",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Skeleton"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Vrykul"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Facialhair",
+                    "Haircolor",
+                    "Hairstyle",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Tuskarr"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Facialhair",
+                    "Haircolor",
+                    "Hairstyle",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Forest Troll"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Face",
+                    "Facialhair",
+                    "Haircolor",
+                    "Hairstyle",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Taunka"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Facialhair",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Northrend Skeleton"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Facialhair",
+                    "Haircolor",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    },
+
+    ["Ice troll"] = {
+        ["MALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                    "Facialhair",
+                    "Haircolor",
+                    "Hairstyle",
+                    "Skincolor"
+                }
+            }
+        },
+        ["FEMALE"] = {
+            ["CATEGORY"] = {
+                ["Head"] = {
+                }
+            }
+        }
+    }
+}
+
 PhaseToolkit.InfoCustom = {
 	["Human"] = {
 		["male"] = {
 			["complexion"] = 5,
 			["face"] = 24,
 			["haircolor"] = 48,
-			["eyecolor"] = 89,
+			["eyecolor"] = 135,
 			["jewelrycolor"] = 5,
 			["faceshape"] = 4,
 			["mustache"] = 12,
@@ -342,7 +2486,7 @@ PhaseToolkit.InfoCustom = {
 			["necklace"] = 3,
 			["sideburns"] = 8,
 			["secondaryeyecolor"] = 88,
-			["eyetype"] = 4,
+			["eyetype"] = 5,
 			["stubble"] = 13,
 			["hairstyle"] = 74,
 			["beard"] = 21,
@@ -351,7 +2495,7 @@ PhaseToolkit.InfoCustom = {
 			["complexion"] = 5,
 			["face"] = 30,
 			["haircolor"] = 48,
-			["eyecolor"] = 89,
+			["eyecolor"] = 135,
 			["jewelrycolor"] = 5,
 			["faceshape"] = 3,
 			["earrings"] = 11,
@@ -362,7 +2506,7 @@ PhaseToolkit.InfoCustom = {
 			["ears"] = 4,
 			["necklace"] = 6,
 			["makeup"] = 10,
-			["eyetype"] = 4,
+			["eyetype"] = 5,
 			["secondaryeyecolor"] = 88,
 			["scars"] = 12,
 			["hairstyle"] = 70,
@@ -370,13 +2514,13 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Orc"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 22,
+			["secondaryeyecolor"] = 30,
 			["tattoocolor"] = 11,
 			["face"] = 9,
 			["bodytattoo"] = 13,
-			["eyecolor"] = 23,
+			["eyecolor"] = 77,
 			["hand(left)"] = 9,
-			["faceshape"] = 3,
+			["faceshape"] = 4,
 			["mustache"] = 5,
 			["earrings"] = 8,
 			["tusks"] = 7,
@@ -384,7 +2528,7 @@ PhaseToolkit.InfoCustom = {
 			["eyebrows"] = 5,
 			["haircolor"] = 36,
 			["facetattoo"] = 18,
-			["skincolor"] = 40,
+			["skincolor"] = 45,
 			["grime"] = 4,
 			["sideburns"] = 12,
 			["scars"] = 5,
@@ -396,35 +2540,37 @@ PhaseToolkit.InfoCustom = {
 			["stubble"] = 2,
 			["hairstyle"] = 33,
 			["beard"] = 18,
+			["eyetype"] = 3,
 		},
 		["female"] = {
-			["secondaryeyecolor"] = 22,
+			["secondaryeyecolor"] = 30,
 			["tattoocolor"] = 11,
 			["face"] = 9,
 			["haircolor"] = 36,
-			["eyecolor"] = 23,
+			["eyecolor"] = 77,
 			["hand(left)"] = 6,
-			["faceshape"] = 2,
+			["faceshape"] = 3,
 			["earrings"] = 17,
 			["piercings"] = 5,
 			["facetattoo"] = 17,
 			["ears"] = 2,
 			["necklace"] = 5,
-			["skincolor"] = 40,
+			["skincolor"] = 45,
 			["scars"] = 5,
 			["hand(right)"] = 6,
 			["bodytattoo"] = 13,
 			["body"] = 7,
 			["hairstyle"] = 45,
+			["eyetype"] = 3,
 		}
 	},
 	["Dwarf"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 25,
+			["secondaryeyecolor"] = 33,
 			["tattoocolor"] = 8,
 			["garment"] = 3,
 			["haircolor"] = 20,
-			["eyecolor"] = 26,
+			["eyecolor"] = 80,
 			["bodyshape"] = 2,
 			["feathercolor"] = 9,
 			["faceshape"] = 2,
@@ -441,6 +2587,7 @@ PhaseToolkit.InfoCustom = {
 			["bodytattoo"] = 9,
 			["hairstyle"] = 27,
 			["beard"] = 28,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["piercings"] = 9,
@@ -450,15 +2597,16 @@ PhaseToolkit.InfoCustom = {
 			["tattoocolor"] = 8,
 			["face"] = 10,
 			["bodytattoo"] = 10,
-			["eyecolor"] = 26,
+			["eyecolor"] = 80,
 			["skincolor"] = 23,
-			["secondaryeyecolor"] = 25,
+			["secondaryeyecolor"] = 33,
 			["feathercolor"] = 9,
 			["jewelrycolor"] = 7,
 			["hairstyle"] = 45,
 			["haircolor"] = 20,
 			["earrings"] = 14,
 			["garment"] = 3,
+			["eyetype"] = 3,
 		}
 	},
 	["NightElf"] = {
@@ -466,7 +2614,7 @@ PhaseToolkit.InfoCustom = {
 			["secondaryeyecolor"] = 40,
 			["scars"] = 7,
 			["haircolor"] = 30,
-			["eyecolor"] = 41,
+			["eyecolor"] = 87,
 			["blindfold"] = 12,
 			["jewelrycolor"] = 14,
 			["runes"] = 7,
@@ -491,7 +2639,7 @@ PhaseToolkit.InfoCustom = {
 			["ears"] = 5,
 			["necklace"] = 4,
 			["earrings"] = 6,
-			["eyetype"] = 2,
+			["eyetype"] = 3,
 			["facetattoo"] = 16,
 			["bodytype"] = 2,
 		},
@@ -499,7 +2647,7 @@ PhaseToolkit.InfoCustom = {
 			["secondaryeyecolor"] = 40,
 			["scars"] = 7,
 			["haircolor"] = 30,
-			["eyecolor"] = 41,
+			["eyecolor"] = 87,
 			["blindfold"] = 12,
 			["jewelrycolor"] = 14,
 			["piercings"] = 8,
@@ -522,17 +2670,17 @@ PhaseToolkit.InfoCustom = {
 			["necklace"] = 4,
 			["earrings"] = 11,
 			["headdress"] = 4,
-			["eyetype"] = 2,
+			["eyetype"] = 3,
 			["bodytype"] = 2,
 		}
 	},
 	["Undead"] = {
 		["male"] = {
 			["leg(left)"] = 2,
-			["secondaryeyecolor"] = 20,
+			["secondaryeyecolor"] = 28,
 			["hairgradient"] = 13,
 			["facetype"] = 11,
-			["eyecolor"] = 20,
+			["eyecolor"] = 74,
 			["facefeatures"] = 5,
 			["mustache"] = 6,
 			["hairstyle"] = 41,
@@ -549,13 +2697,14 @@ PhaseToolkit.InfoCustom = {
 			["haircolor"] = 17,
 			["face"] = 11,
 			["beard"] = 8,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["leg(left)"] = 2,
 			["hips"] = 4,
 			["hairgradient"] = 13,
 			["haircolor"] = 17,
-			["eyecolor"] = 20,
+			["eyecolor"] = 74,
 			["facefeatures"] = 4,
 			["earrings"] = 2,
 			["piercings"] = 15,
@@ -566,19 +2715,20 @@ PhaseToolkit.InfoCustom = {
 			["ears"] = 2,
 			["necklace"] = 7,
 			["skintype"] = 3,
-			["secondaryeyecolor"] = 20,
+			["secondaryeyecolor"] = 28,
 			["leg(right)"] = 2,
 			["face"] = 10,
 			["facetype"] = 5,
 			["hairstyle"] = 47,
+			["eyetype"] = 3,
 		}
 	},
 	["Tauren"] = {
 		["male"] = {
 			["mane"] = 5,
-			["secondaryeyecolor"] = 17,
+			["secondaryeyecolor"] = 25,
 			["tail"] = 4,
-			["eyecolor"] = 18,
+			["eyecolor"] = 72,
 			["jewelrycolor"] = 8,
 			["accentcolor"] = 18,
 			["gemcolor"] = 8,
@@ -602,13 +2752,16 @@ PhaseToolkit.InfoCustom = {
 			["horndecoration"] = 8,
 			["foremane"] = 12,
 			["bodypaint"] = 8,
+			["eyetype"] = 3,
+			["grime"] = 4,
+			["scars"] = 9,
 		},
 		["female"] = {
 			["mane"] = 2,
 			["hornmarkings"] = 3,
-			["secondaryeyecolor"] = 17,
+			["secondaryeyecolor"] = 25,
 			["face"] = 4,
-			["eyecolor"] = 18,
+			["eyecolor"] = 72,
 			["flower"] = 2,
 			["paintcolor"] = 21,
 			["jewelrycolor"] = 8,
@@ -628,6 +2781,9 @@ PhaseToolkit.InfoCustom = {
 			["foremane"] = 11,
 			["facepaint"] = 9,
 			["bodypaint"] = 8,
+			["eyetype"] = 3,
+			["grime"] = 4,
+			["scars"] = 9,
 		}
 	},
 	["Gnome"] = {
@@ -636,7 +2792,7 @@ PhaseToolkit.InfoCustom = {
 			["goggles"] = 2,
 			["face"] = 7,
 			["haircolor"] = 74,
-			["eyecolor"] = 32,
+			["eyecolor"] = 86,
 			["jewelrycolor"] = 5,
 			["accentcolor"] = 7,
 			["mustache"] = 24,
@@ -646,19 +2802,20 @@ PhaseToolkit.InfoCustom = {
 			["skincolor"] = 23,
 			["ears"] = 3,
 			["sideburns"] = 6,
-			["secondaryeyecolor"] = 31,
+			["secondaryeyecolor"] = 39,
 			["scars"] = 7,
 			["hairgradient"] = 20,
 			["hairstyle"] = 63,
 			["hairstreaks"] = 75,
 			["beard"] = 13,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["wristjewelry"] = 2,
 			["goggles"] = 2,
 			["hairgradient"] = 20,
 			["haircolor"] = 74,
-			["eyecolor"] = 32,
+			["eyecolor"] = 86,
 			["jewelrycolor"] = 5,
 			["accentcolor"] = 7,
 			["earrings"] = 22,
@@ -666,29 +2823,30 @@ PhaseToolkit.InfoCustom = {
 			["eyebrows"] = 19,
 			["skincolor"] = 23,
 			["ears"] = 3,
-			["secondaryeyecolor"] = 31,
+			["secondaryeyecolor"] = 39,
 			["scars"] = 7,
 			["face"] = 7,
 			["hairaccessory"] = 2,
 			["hairstyle"] = 59,
 			["hairstreaks"] = 75,
+			["eyetype"] = 3,
 		}
 	},
 	["Troll"] = {
 		["male"] = {
 			["nosepiercing"] = 7,
-			["secondaryeyecolor"] = 23,
+			["secondaryeyecolor"] = 31,
 			["hairgradient"] = 11,
 			["haircolor"] = 43,
-			["eyecolor"] = 24,
+			["eyecolor"] = 78,
 			["jewelrycolor"] = 12,
 			["accentcolor"] = 27,
 			["bandages"] = 9,
 			["eyebrows"] = 2,
-			["sideburns"] = 7,
+			["sideburns"] = 14,
 			["mouthpiercing"] = 4,
 			["leg(right)"] = 18,
-			["beard"] = 18,
+			["beard"] = 17,
 			["hairhighlight"] = 36,
 			["tattoostyle"] = 3,
 			["mustache"] = 4,
@@ -705,14 +2863,15 @@ PhaseToolkit.InfoCustom = {
 			["bodytattoo"] = 9,
 			["skincolor"] = 36,
 			["earrings"] = 11,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["leg(left)"] = 25,
 			["tusks"] = 10,
-			["secondaryeyecolor"] = 23,
+			["secondaryeyecolor"] = 31,
 			["face"] = 6,
 			["bodytattoo"] = 10,
-			["eyecolor"] = 24,
+			["eyecolor"] = 78,
 			["tattoocolor"] = 43,
 			["tattoostyle"] = 3,
 			["jewelrycolor"] = 12,
@@ -733,45 +2892,62 @@ PhaseToolkit.InfoCustom = {
 			["hairgradient"] = 11,
 			["leg(right)"] = 25,
 			["earrings"] = 12,
+			["eyetype"] = 3,
 		}
 	},
 	["Goblin"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 24,
-			["face"] = 7,
+			["secondaryeyecolor"] = 43,
+			["face"] = 12,
 			["haircolor"] = 68,
-			["eyecolor"] = 25,
+			["eyecolor"] = 91,
 			["jewelrycolor"] = 8,
 			["nose"] = 11,
 			["mustache"] = 9,
 			["earrings"] = 9,
 			["eyebrows"] = 2,
-			["skincolor"] = 20,
+			["skincolor"] = 28,
 			["ears"] = 10,
 			["sideburns"] = 8,
 			["chin"] = 6,
 			["nosering"] = 5,
 			["hairgradient"] = 20,
-			["hairstyle"] = 50,
+			["hairstyle"] = 58,
 			["beard"] = 12,
+			["hairstreaks"] = 75,
+			["eyetype"] = 4,
+			["bodytype"] = 2,
+			["grime"] = 5,
+			["facemarkings"] = 6,
+			["necklace"] = 5,
+			["wristjewelry"] = 2,
+			["legjewelry"] = 2,
+			["stubble"] = 2,
 		},
 		["female"] = {
-			["skincolor"] = 16,
+			["skincolor"] = 24,
 			["eyebrows"] = 20,
 			["nosering"] = 9,
-			["secondaryeyecolor"] = 24,
+			["secondaryeyecolor"] = 43,
 			["hairgradient"] = 20,
 			["face"] = 10,
 			["haircolor"] = 68,
-			["eyecolor"] = 25,
+			["eyecolor"] = 91,
 			["bodyshape"] = 2,
-			["necklace"] = 7,
+			["necklace"] = 11,
 			["jewelrycolor"] = 8,
-			["hairstyle"] = 48,
+			["hairstyle"] = 52,
 			["nose"] = 9,
-			["ears"] = 7,
+			["ears"] = 10,
 			["earrings"] = 13,
 			["chin"] = 7,
+			["hairstreaks"] = 75,
+			["eyetype"] = 4,
+			["bodytype"] = 2,
+			["grime"] = 4,
+			["facemarkings"] = 10,
+			["wristjewelry"] = 2,
+			["legjewelry"] = 2,
 		}
 	},
 	["BloodElf"] = {
@@ -780,7 +2956,7 @@ PhaseToolkit.InfoCustom = {
 			["tattoocolor"] = 10,
 			["face"] = 12,
 			["bodytattoo"] = 17,
-			["eyecolor"] = 41,
+			["eyecolor"] = 87,
 			["blindfold"] = 12,
 			["jewelrycolor"] = 3,
 			["accentcolor"] = 5,
@@ -791,7 +2967,7 @@ PhaseToolkit.InfoCustom = {
 			["eyebrows"] = 4,
 			["hairgradient"] = 18,
 			["facetattoo"] = 22,
-			["skincolor"] = 34,
+			["skincolor"] = 35,
 			["gemcolor"] = 6,
 			["sideburns"] = 5,
 			["horns"] = 7,
@@ -799,7 +2975,7 @@ PhaseToolkit.InfoCustom = {
 			["runecolor"] = 6,
 			["headdress"] = 3,
 			["hairstyle"] = 54,
-			["eyetype"] = 2,
+			["eyetype"] = 3,
 			["stubble"] = 2,
 			["haircolor"] = 40,
 			["beard"] = 23,
@@ -810,7 +2986,7 @@ PhaseToolkit.InfoCustom = {
 			["tattoocolor"] = 10,
 			["face"] = 12,
 			["bodytattoo"] = 17,
-			["eyecolor"] = 41,
+			["eyecolor"] = 87,
 			["blindfold"] = 12,
 			["jewelrycolor"] = 3,
 			["accentcolor"] = 5,
@@ -819,13 +2995,13 @@ PhaseToolkit.InfoCustom = {
 			["runes"] = 12,
 			["headdress"] = 3,
 			["gemcolor"] = 6,
-			["skincolor"] = 33,
+			["skincolor"] = 34,
 			["hairgradient"] = 18,
 			["ears"] = 4,
 			["necklace"] = 5,
 			["horns"] = 7,
 			["bracelets"] = 6,
-			["eyetype"] = 2,
+			["eyetype"] = 3,
 			["runescolor"] = 6,
 			["hairstyle"] = 63,
 			["haircolor"] = 40,
@@ -833,10 +3009,10 @@ PhaseToolkit.InfoCustom = {
 	},
 	["Draenei"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 28,
+			["secondaryeyecolor"] = 36,
 			["face"] = 10,
 			["haircolor"] = 52,
-			["eyecolor"] = 28,
+			["eyecolor"] = 82,
 			["bodyshape"] = 3,
 			["jewelrycolor"] = 10,
 			["faceshape"] = 2,
@@ -856,12 +3032,13 @@ PhaseToolkit.InfoCustom = {
 			["stubble"] = 5,
 			["hairstyle"] = 34,
 			["beard"] = 17,
+			["eyetype"] = 3,
 		},
 		["female"] = {
-			["secondaryeyecolor"] = 28,
+			["secondaryeyecolor"] = 36,
 			["horns"] = 19,
 			["haircolor"] = 52,
-			["eyecolor"] = 28,
+			["eyecolor"] = 82,
 			["facetendrils"] = 4,
 			["hairdecoration"] = 2,
 			["earrings"] = 6,
@@ -876,14 +3053,15 @@ PhaseToolkit.InfoCustom = {
 			["trims"] = 2,
 			["jewelrycolor"] = 10,
 			["hairstyle"] = 36,
+			["eyetype"] = 3,
 		}
 	},
 	["Worgen"] = {
 		["male"] = {
 			["mane"] = 4,
-			["secondaryeyecolor"] = 22,
+			["secondaryeyecolor"] = 30,
 			["face"] = 7,
-			["eyecolor"] = 23,
+			["eyecolor"] = 77,
 			["claws"] = 2,
 			["faceshape"] = 2,
 			["earstyle"] = 18,
@@ -896,12 +3074,13 @@ PhaseToolkit.InfoCustom = {
 			["fangs"] = 2,
 			["foremane"] = 10,
 			["beard"] = 12,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["mane"] = 3,
-			["secondaryeyecolor"] = 22,
+			["secondaryeyecolor"] = 30,
 			["face"] = 16,
-			["eyecolor"] = 23,
+			["eyecolor"] = 77,
 			["claws"] = 2,
 			["faceshape"] = 2,
 			["earstyle"] = 20,
@@ -913,6 +3092,7 @@ PhaseToolkit.InfoCustom = {
 			["fangs"] = 2,
 			["furcolor"] = 19,
 			["foremane"] = 11,
+			["eyetype"] = 3,
 		}
 	},
 	["Gilnean"] = {
@@ -935,31 +3115,36 @@ PhaseToolkit.InfoCustom = {
 		["male"] = {
 			["skincolor"] = 18,
 			["eyebrows"] = 5,
-			["mustache"] = 7,
-			["secondaryeyecolor"] = 19,
-			["eyecolor"] = 20,
+			["mustache"] = 8,
+			["secondaryeyecolor"] = 27,
+			["eyecolor"] = 74,
 			["face"] = 21,
-			["hairstyle"] = 22,
-			["beard"] = 20,
+			["hairstyle"] = 25,
+			["beard"] = 21,
+			["eyetype"] = 3,
+			["sideburns"] = 9,
+			["accentcolor"] = 6,
 		},
 		["female"] = {
 			["tail"] = 2,
 			["skincolor"] = 18,
-			["hairstyle"] = 20,
-			["secondaryeyecolor"] = 19,
+			["hairstyle"] = 23,
+			["secondaryeyecolor"] = 27,
 			["haircolor"] = 16,
 			["face"] = 20,
 			["earrings"] = 6,
-			["eyecolor"] = 19,
+			["eyecolor"] = 74,
+			["eyetype"] = 3,
+			["accentcolor"] = 6,
 		}
 	},
 	["Nightborne"] = {
 		["male"] = {
 			["jawjewelry"] = 5,
-			["secondaryeyecolor"] = 21,
+			["secondaryeyecolor"] = 29,
 			["facejewelry"] = 4,
 			["bodytattoo"] = 7,
-			["eyecolor"] = 22,
+			["eyecolor"] = 76,
 			["jewelrycolor"] = 3,
 			["eyeshape"] = 2,
 			["mustache"] = 4,
@@ -974,13 +3159,14 @@ PhaseToolkit.InfoCustom = {
 			["hairstyle"] = 16,
 			["chinjewelry"] = 5,
 			["beard"] = 4,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["jawjewelry"] = 2,
-			["secondaryeyecolor"] = 21,
+			["secondaryeyecolor"] = 29,
 			["facejewelry"] = 5,
 			["bodytattoo"] = 7,
-			["eyecolor"] = 22,
+			["eyecolor"] = 76,
 			["jewelrycolor"] = 3,
 			["hairdecoration"] = 2,
 			["eyeshape"] = 2,
@@ -995,17 +3181,18 @@ PhaseToolkit.InfoCustom = {
 			["face"] = 12,
 			["hairstyle"] = 16,
 			["chinjewelry"] = 4,
+			["eyetype"] = 3,
 		}
 	},
 	["Highmountain"] = {
 		["male"] = {
 			["nosepiercing"] = 5,
 			["hornmarkings"] = 2,
-			["secondaryeyecolor"] = 17,
+			["secondaryeyecolor"] = 25,
 			["face"] = 5,
-			["eyecolor"] = 18,
+			["eyecolor"] = 72,
 			["hornwraps"] = 3,
-			["hornstyle"] = 9,
+			["hornstyle"] = 10,
 			["taildecoration"] = 4,
 			["tail"] = 3,
 			["skincolor"] = 10,
@@ -1019,16 +3206,17 @@ PhaseToolkit.InfoCustom = {
 			["facepaint"] = 4,
 			["horndecoration"] = 8,
 			["beard"] = 9,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["nosepiercing"] = 4,
 			["hornmarkings"] = 2,
-			["secondaryeyecolor"] = 17,
+			["secondaryeyecolor"] = 25,
 			["face"] = 4,
-			["eyecolor"] = 18,
+			["eyecolor"] = 72,
 			["hornwraps"] = 2,
 			["hairdecoration"] = 4,
-			["hornstyle"] = 8,
+			["hornstyle"] = 9,
 			["earrings"] = 5,
 			["taildecoration"] = 5,
 			["tail"] = 2,
@@ -1043,15 +3231,16 @@ PhaseToolkit.InfoCustom = {
 			["hair"] = 9,
 			["horndecoration"] = 2,
 			["bodypaint"] = 4,
+			["eyetype"] = 3,
 		}
 	},
 	["VoidElf"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 19,
+			["secondaryeyecolor"] = 33,
 			["bodymarkings"] = 3,
 			["face"] = 12,
 			["haircolor"] = 40,
-			["eyecolor"] = 20,
+			["eyecolor"] = 80,
 			["ears"] = 3,
 			["facialhair"] = 8,
 			["tentacles"] = 2,
@@ -1059,19 +3248,21 @@ PhaseToolkit.InfoCustom = {
 			["stubble"] = 2,
 			["hairstyle"] = 13,
 			["facemarkings"] = 11,
+			["eyetype"] = 3,
 		},
 		["female"] = {
-			["secondaryeyecolor"] = 19,
+			["secondaryeyecolor"] = 33,
 			["bodymarkings"] = 3,
 			["face"] = 12,
 			["haircolor"] = 40,
-			["eyecolor"] = 20,
+			["eyecolor"] = 80,
 			["ears"] = 3,
 			["facemarkings"] = 11,
 			["tentacles"] = 2,
 			["skincolor"] = 29,
 			["earrings"] = 5,
 			["hairstyle"] = 11,
+			["eyetype"] = 3,
 		}
 	},
 	["Lightforged"] = {
@@ -1089,6 +3280,9 @@ PhaseToolkit.InfoCustom = {
 			["tendrils"] = 7,
 			["hairstyle"] = 13,
 			["tail"] = 2,
+			["eyetype"] = 3,
+			["secondaryeyecolor"] = 8,
+			["eyecolor"] = 62,
 		},
 		["female"] = {
 			["horns"] = 13,
@@ -1108,30 +3302,46 @@ PhaseToolkit.InfoCustom = {
 			["necklace"] = 2,
 			["face"] = 10,
 			["hairstyle"] = 13,
+			["eyetype"] = 3,
+			["secondaryeyecolor"] = 8,
+			["eyecolor"] = 62,
 		}
 	},
 	["Zandalari"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 7,
-			["haircolor"] = 6,
-			["eyecolor"] = 9,
+			["secondaryeyecolor"] = 31,
+			["haircolor"] = 49,
+			["eyecolor"] = 76,
 			["hairstyle"] = 12,
 			["piercings"] = 6,
-			["skincolor"] = 6,
+			["skincolor"] = 36,
 			["tusks"] = 7,
 			["tattoocolor"] = 8,
 			["eargauge"] = 3,
 			["face"] = 6,
 			["tattoo"] = 4,
+			["eyetype"] = 3,
+			["jewelrycolor"] = 12,
+			["accentcolor"] = 27,
+			["bandages"] = 9,
+			["eyebrows"] = 2,
+			["sideburns"] = 14,
+			["hairgradient"] = 11,
+			["beard"] = 17,
+			["hairhighlight"] = 36,
+			["tattoostyle"] = 3,
+			["mustache"] = 4,
+			["facetattoo"] = 14,
+			["tattoocolor"] = 43,
 
 		},
 		["female"] = {
-			["secondaryeyecolor"] = 7,
-			["haircolor"] = 6,
-			["eyecolor"] = 9,
+			["secondaryeyecolor"] = 31,
+			["haircolor"] = 49,
+			["eyecolor"] = 76,
 			["earrings"] = 2,
 			["piercings"] = 4,
-			["skincolor"] = 6,
+			["skincolor"] = 36,
 			["tusks"] = 7,
 			["tattoocolor"] = 8,
 			["necklace"] = 2,
@@ -1139,34 +3349,51 @@ PhaseToolkit.InfoCustom = {
 			["eargauge"] = 3,
 			["face"] = 6,
 			["hairstyle"] = 10,
+			["eyetype"] = 3,
+			["bodytattoo"] = 9,
+			["hairgradient"] = 11,
+			["jewelrycolor"] = 12,
+			["accentcolor"] = 27,
+			["bandages"] = 9,
+			["hairhighlight"] = 36,
+			["tattoostyle"] = 3,
+			["facetattoo"] = 14,
+			["tattoocolor"] = 43,
 		}
 	},
 	["Kul tiran"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 28,
+			["secondaryeyecolor"] = 85,
 			["face"] = 7,
 			["bodytattoo"] = 6,
-			["eyecolor"] = 29,
-			["mustache"] = 4,
-			["hairstyle"] = 6,
-			["skincolor"] = 20,
-			["sideburns"] = 2,
+			["eyecolor"] = 103,
+			["mustache"] = 13,
+			["hairstyle"] = 34,
+			["skincolor"] = 21,
+			["sideburns"] = 8,
 			["tattoocolor"] = 8,
 			["haircolor"] = 48,
-			["beard"] = 4,
+			["beard"] = 24,
+			["eyetype"] = 5,
+			["ears"] = 2,
+			["eyebrows"] = 19,
+			["stubble"] = 13,
 		},
 		["female"] = {
-			["secondaryeyecolor"] = 28,
+			["secondaryeyecolor"] = 85,
 			["haircolor"] = 49,
-			["eyecolor"] = 29,
+			["eyecolor"] = 103,
 			["earrings"] = 7,
 			["eyebrows"] = 2,
-			["skincolor"] = 20,
+			["skincolor"] = 21,
 			["necklace"] = 7,
 			["tattoocolor"] = 8,
 			["face"] = 7,
 			["bodytattoo"] = 6,
 			["hairstyle"] = 10,
+			["eyetype"] = 5,
+			["ears"] = 2,
+			["eyebrows"] = 25,
 		}
 	},
 	["Thin Human"] = {
@@ -1189,7 +3416,9 @@ PhaseToolkit.InfoCustom = {
 			["hairstyle"] = 8,
 			["face"] = 10,
 			["haircolor"] = 6,
-			["eyecolor"] = 4,
+			["eyecolor"] = 58,
+			["eyetype"] = 3,
+			["secondaryeyecolor"] = 8,
 		},
 		["female"] = {
 			["piercings"] = 7,
@@ -1198,42 +3427,46 @@ PhaseToolkit.InfoCustom = {
 			["hairstyle"] = 11,
 			["face"] = 10,
 			["haircolor"] = 6,
-			["eyecolor"] = 4,
+			["eyecolor"] = 58,
+			["eyetype"] = 3,
+			["secondaryeyecolor"] = 8,
 		}
 	},
 	["Vulpera"] = {
 		["male"] = {
 			["pattern"] = 3,
-			["secondaryeyecolor"] = 23,
+			["secondaryeyecolor"] = 31,
 			["face"] = 6,
 			["patterncolor"] = 8,
-			["eyecolor"] = 24,
+			["eyecolor"] = 78,
 			["ears"] = 6,
 			["furcolor"] = 9,
 			["snout"] = 6,
 			["earrings"] = 2,
+			["eyetype"] = 3,
 		},
 		["female"] = {
 			["pattern"] = 3,
-			["secondaryeyecolor"] = 23,
+			["secondaryeyecolor"] = 31,
 			["face"] = 6,
 			["patterncolor"] = 8,
-			["eyecolor"] = 24,
+			["eyecolor"] = 78,
 			["ears"] = 8,
 			["furcolor"] = 9,
 			["snout"] = 6,
 			["earrings"] = 2,
+			["eyetype"] = 3,
 		}
 	},
 	["Mag'har"] = {
 		["male"] = {
-			["secondaryeyecolor"] = 19,
+			["secondaryeyecolor"] = 27,
 			["tattoocolor"] = 11,
 			["face"] = 9,
 			["haircolor"] = 36,
-			["eyecolor"] = 20,
+			["eyecolor"] = 74,
 			["hand(left)"] = 8,
-			["faceshape"] = 3,
+			["faceshape"] = 4,
 			["mustache"] = 5,
 			["earrings"] = 6,
 			["piercings"] = 7,
@@ -1260,12 +3493,12 @@ PhaseToolkit.InfoCustom = {
 			["bodypiercings"] = 2,
 			["face"] = 9,
 			["bodytattoo"] = 13,
-			["eyecolor"] = 20,
-			["secondaryeyecolor"] = 19,
+			["eyecolor"] = 74,
+			["secondaryeyecolor"] = 27,
 			["necklace"] = 5,
 			["hand(left)"] = 6,
 			["hand(right)"] = 6,
-			["faceshape"] = 2,
+			["faceshape"] = 3,
 			["hairstyle"] = 46,
 			["earrings"] = 17,
 			["haircolor"] = 36,
@@ -1274,11 +3507,11 @@ PhaseToolkit.InfoCustom = {
 	["Mechagnome"] = {
 		["male"] = {
 			["leg(left)"] = 4,
-			["secondaryeyecolor"] = 32,
+			["secondaryeyecolor"] = 40,
 			["chestmodification"] = 4,
 			["hairgradient"] = 20,
 			["haircolor"] = 74,
-			["eyecolor"] = 32,
+			["eyecolor"] = 86,
 			["paintcolor"] = 45,
 			["arm(right"] = 9,
 			["mustache"] = 24,
@@ -1299,11 +3532,11 @@ PhaseToolkit.InfoCustom = {
 		},
 		["female"] = {
 			["leg(left)"] = 4,
-			["secondaryeyecolor"] = 32,
+			["secondaryeyecolor"] = 40,
 			["chestmodification"] = 4,
 			["hairgradient"] = 20,
 			["haircolor"] = 74,
-			["eyecolor"] = 32,
+			["eyecolor"] = 86,
 			["paintcolor"] = 45,
 			["hairstreaks"] = 75,
 			["facemodification"] = 18,
@@ -1417,12 +3650,64 @@ PhaseToolkit.InfoCustom = {
 		}
 	},
 }
+
 PhaseToolkit.Genre = {
 	"male",
 	"female"
 }
+
+
+PhaseToolkit.itemSubtypeToSubclassIdWeapon = {
+    ["One-Handed Axes"]    = 0,
+    ["Two-Handed Axes"]    = 1,
+    ["Bows"]               = 2,
+    ["Guns"]               = 3,
+    ["One-Handed Maces"]   = 4,
+    ["Two-Handed Maces"]   = 5,
+    ["Polearms"]           = 6,
+    ["One-Handed Swords"]  = 7,
+    ["Two-Handed Swords"]  = 8,
+    ["Warglaives"]         = 9,
+    ["Staves"]             = 10,
+    ["Bear Claws"]         = 11,
+    ["CatClaws"]           = 12,
+    ["Fist Weapons"]       = 13,
+    ["Miscellaneous"]      = 14,
+    ["Daggers"]            = 15,
+    ["Thrown"]             = 16,
+    ["Crossbows"]          = 18,
+    ["Wands"]              = 19,
+    ["Fishing Poles"]      = 20,
+}
+
+PhaseToolkit.itemSubtypeToSubclassIdArmor = {
+    ["Miscellaneous"] = 0,
+    ["Cloth"]         = 1,
+    ["Leather"]       = 2,
+    ["Mail"]          = 3,
+    ["Plate"]         = 4,
+    ["Cosmetic"]      = 5,
+    ["Shields"]       = 6,
+    ["Relic"]         = 11,
+}
+
+PhaseToolkit.itemSubtypeToSubclassIdKey = {
+    ["Key"]      = 0,
+    ["Lockpick"] = 1,
+}
+
+PhaseToolkit.itemSubtypeToSubclassIdMisc = {
+    ["Junk"]           = 0,
+    ["Reagent"] 	   = 1,
+	["Companion Pet"]  = 2,
+	["Holiday"]        = 3,
+	["Other"]          = 4,
+	["Mount"]          = 5,
+	["Mount Equipment"]= 6,
+}
+
 PhaseToolkit.itemClass={
-	{name="Item Class",classId=-1,subclass={}},
+	{name="None",classId=-1,subclass={}},
 	{name="Weapon",classId=2,subclass={
 		{name="Axe 1h",subclassId=0},
 		{name="Axe 2h",subclassId=1},
@@ -1460,10 +3745,13 @@ PhaseToolkit.itemClass={
 		{name="Lockpick",subclassId=1},
 	}},
 	{name="Miscellaneous",classId=15,subclass={
-		{name="Book",subclassId=0},
-		{name="Leatherworking",subclassId=1},
-		{name="Engineering",subclassId=3},
-		{name="Blacksmithing",subclassId=4},
+		{name="Junk",subclassId=0},
+		{name="Reagent",subclassId=1},
+		{name="Companion Pet",subclassId=2},
+		{name="Holiday",subclassId=3},
+		{name="Other",subclassId=4},
+		{name="Mount",subclassId=5},
+		{name="Mount Equipment",subclassId=6},
 	}},
 }
 
@@ -1478,7 +3766,6 @@ local function filterInventoryTypeByClass(ClassId)
 end
 
 PhaseToolkit.itemInventoryType={
-	{name="Inventory type",inventoryTypeId=-1,usableFor=-1},
 	{name="Non equippable",inventoryTypeId=0,usableFor=-1},
 	{name="Head",inventoryTypeId=1,usableFor=4},
 	{name="Neck",inventoryTypeId=2,usableFor=4},
@@ -1510,7 +3797,6 @@ PhaseToolkit.itemInventoryType={
 }
 
 PhaseToolkit.itemBonding={
-	{name="Bonding",bondingId=  -1},
 	{name="No bonding",bondingId=0},
 	{name="When picked up",bondingId=1},
 	{name="When equipped",bondingId=2},
@@ -1519,7 +3805,6 @@ PhaseToolkit.itemBonding={
 }
 
 PhaseToolkit.itemQuality={
-	{name="Quality",qualityId=-1},
 	{name="Poor",qualityId=0},
 	{name="Common",qualityId=1},
 	{name="Uncommon",qualityId=2},
@@ -1532,7 +3817,6 @@ PhaseToolkit.itemQuality={
 }
 
 PhaseToolkit.itemSheath={
-	{name="Sheath",sheathId=-1},
 	{name="Invisible",sheathId=0},
 	{name="Back right",sheathId=1},
 	{name="Back left",sheathId=2},
@@ -1601,18 +3885,17 @@ PhaseToolkit.infoPerDisplay = {
 	["90786"] = { race = "Mechagnome", sexe = "male" },
 	["90787"] = { race = "Mechagnome", sexe = "female" },
 }
+
 PhaseToolkit.Toggleslist = {
-	{ "Cheats" },
-	{ "Flight" },
-	{ "Knockback" },
-	{ "Listed" },
-	{ "Modify" },
-	{ "Mounting" },
-	{ "Objects" },
-	{ "Silence" },
-	{ "Teleport" },
-}
-PhaseToolkit.Toggleslist_checked = {
+	 "Cheats",
+	"Flight" ,
+	 "Knockback",
+	 "Listed",
+	 "Modify",
+	 "Mounting",
+	 "Objects",
+	 "Silence",
+	 "Teleport",
 }
 
 PhaseToolkit.PhaseId = 0
@@ -1633,6 +3916,78 @@ PhaseToolkit.tempChatFrame = nil
 PhaseToolkit.npcToDeletePrompt=""
 PhaseToolkit.teleToDelete=nil
 
+local textureBasePath = "Interface\\AddOns\\"..addonName.."\\assets\\customPortrait\\"
+local firstColumnIcon = {
+	{name="Human",raceid="1",texturemale="",atlasmale="raceicon128-human-male",atlasfemale="raceicon128-human-female"},
+	{name="Orc",raceid="2",texturemale="",atlasmale="raceicon128-orc-male",atlasfemale="raceicon128-orc-female"},
+	{name="Dwarf",raceid="3",texturemale="",atlasmale="raceicon128-dwarf-male",atlasfemale="raceicon128-dwarf-female"},
+	{name="NightElf",raceid="4",texturemale="",atlasmale="raceicon128-nightelf-male",atlasfemale="raceicon128-nightelf-female"},
+	{name="Undead",raceid="5",texturemale="",atlasmale="raceicon128-undead-male",atlasfemale="raceicon128-undead-female"},
+	{name="Tauren",raceid="6",texturemale="",atlasmale="raceicon128-tauren-male",atlasfemale="raceicon128-tauren-female"},
+	{name="Gnome",raceid="7",texturemale="",atlasmale="raceicon128-gnome-male",atlasfemale="raceicon128-gnome-female"},
+	{name="Troll",raceid="8",texturemale="",atlasmale="raceicon128-troll-male",atlasfemale="raceicon128-troll-female"},
+	{name="Goblin",raceid="9",texturemale="",atlasmale="raceicon128-goblin-male",atlasfemale="raceicon128-goblin-female"},
+	{name="BloodElf",raceid="10",texturemale="",atlasmale="raceicon128-bloodelf-male",atlasfemale="raceicon128-bloodelf-female"},
+	{name="Draenei",raceid="11",texturemale="",atlasmale="raceicon128-draenei-male",atlasfemale="raceicon128-draenei-female"},
+}
+
+local secondColumnIcon = {
+
+	{name="Worgen",raceid="22",texturemale="",atlasmale="raceicon128-worgen-male",atlasfemale="raceicon128-worgen-female"},
+	{name="Pandaren",raceid="24",texturemale="",atlasmale="raceicon128-pandaren-male",atlasfemale="raceicon128-pandaren-female"},
+	{name="Nightborne",raceid="27",texturemale="",atlasmale="raceicon128-nightborne-male",atlasfemale="raceicon128-nightborne-female"},
+	{name="Lightforged",raceid="30",texturemale="",atlasmale="raceicon128-lightforged-male",atlasfemale="raceicon128-lightforged-female"},
+	{name="Zandalari",raceid="31",texturemale="",atlasmale="raceicon128-zandalari-male",atlasfemale="raceicon128-zandalari-female"},
+	{name="Kul tiran",raceid="32",texturemale="",atlasmale="raceicon128-kultiran-male",atlasfemale="raceicon128-kultiran-female"},
+	{name="DarkIron",raceid="34",texturemale="",atlasmale="raceicon128-darkirondwarf-male",atlasfemale="raceicon128-darkirondwarf-female"},
+}
+
+local thirdColumnIcon = {
+	{name="Mag'har",raceid="36",texturemale="",atlasmale="raceicon128-magharorc-male",atlasfemale="raceicon128-magharorc-female"},
+	{name="Mechagnome",raceid="37",texturemale="",atlasmale="raceicon128-mechagnome-male",atlasfemale="raceicon128-mechagnome-female"},
+	{name="Highmountain",raceid="28",texturemale="",atlasmale="raceicon128-highmountain-male",atlasfemale="raceicon128-highmountain-female"},
+	{name="VoidElf",raceid="29",texturemale="",atlasmale="raceicon128-voidelf-male",atlasfemale="raceicon128-voidelf-female"},
+	{name="Vulpera",raceid="35",texturemale="",atlasmale="raceicon128-vulpera-male",atlasfemale="raceicon128-vulpera-female"},
+	{name="Naga",raceid="13",texturemale=textureBasePath.."Naga_male.blp",texturefemale=textureBasePath.."Naga_female.blp",atlasmale="",atlasfemale=""},
+	{name="Thin Human",raceid="33",texturemale=textureBasePath.."thin_human.blp",atlasmale="",atlasfemale=""},
+	{name="Fel Orc",raceid="12",texturemale=textureBasePath.."felorc.blp",atlasmale="",atlasfemale=""},
+	{name="Broken",raceid="14",texturemale=textureBasePath.."broken.blp",atlasmale="",atlasfemale=""},
+	{name="Skeleton",raceid="15",texturemale=textureBasePath.."Skeleton.blp",atlasmale="",atlasfemale=""},
+	{name="Vrykul",raceid="16",texturemale=textureBasePath.."Vrykul_male.blp",atlasmale="",atlasfemale=""},
+}
+
+local extraRaceIcon = {
+	{name="Tuskarr",raceid="17",texturemale=textureBasePath.."tuskarr.blp",atlasmale="",atlasfemale=""},
+	{name="Forest Troll",raceid="18",texturemale=textureBasePath.."forest_troll.blp",atlasmale="",atlasfemale=""},
+	{name="Taunka",raceid="19",texturemale=textureBasePath.."taunka.blp",atlasmale="",atlasfemale=""},
+	{name="Northrend Skeleton",raceid="20",texturemale=textureBasePath.."northrend_skeleton.blp",atlasmale="",atlasfemale=""},
+	{name="Ice troll",raceid="21",texturemale=textureBasePath.."ice_troll.blp",atlasmale="",atlasfemale=""},
+}
+
+local function getRaceDataFromRaceName(raceName)
+	for _, data in ipairs(firstColumnIcon) do
+		if data.name == raceName then
+			return data
+		end
+	end
+	for _, data in ipairs(secondColumnIcon) do
+		if data.name == raceName then
+			return data
+		end
+	end
+	for _, data in ipairs(thirdColumnIcon) do
+		if data.name == raceName then
+			return data
+		end
+	end
+	for _, data in ipairs(extraRaceIcon) do
+		if data.name == raceName then
+			return data
+		end
+	end
+	return nil -- Not found, should not happen if used correctly
+end
+
 -- // EpsilonLib for AddOnCommands:
 local sendAddonCmd, sendAddonCommandChain
 
@@ -1652,7 +4007,7 @@ else
 		print("Something went wrong with epsilib... report this please")
 		SendChatMessage("." .. command, "GUILD")
 	end
-	
+
 	-- Fallback function for sendAddonCommandChain if EpsilonLib is not available
 	function sendAddonCommandChain(commands, callbackFn, forceShowMessages)
 		if EpsilonLib and EpsilonLib.AddonCommands then
@@ -1669,7 +4024,7 @@ else
 				SendChatMessage("." .. command, "GUILD")
 			end)
 		end
-		
+
 		if callbackFn then
 			C_Timer.After(#commands * 0.5 + 1, function()
 				callbackFn(true, {})
@@ -1749,11 +4104,16 @@ function PhaseToolkit.ToggleMainFrame()
 end
 
 function PhaseToolkit.ChangeNpcRace(RaceId)
-	sendAddonCmd("phase forge npc outfit race " .. RaceId, nil)
+	if UnitExists("target") and not UnitIsPlayer("target") then
+		sendAddonCmd("phase forge npc outfit race " .. RaceId, nil)
+	end
 end
 
 function PhaseToolkit.ChangeNpcGender(GenderString)
-	sendAddonCmd("phase forge npc outfit gender " .. GenderString, nil)
+	-- if we have a target and it's a NPC we change
+	if UnitExists("target") and not UnitIsPlayer("target") then
+		sendAddonCmd("phase forge npc outfit gender " .. GenderString, nil,false)
+	end
 end
 
 function PhaseToolkit.CountElements(tbl)
@@ -1803,10 +4163,10 @@ local function getClassByClassID(classID)
 	end
 end
 
-local function getBindingObject(bindingID)
+local function getBindingObject(bindName)
 	for _,binding in ipairs(PhaseToolkit.itemBonding) do
-		if(binding.bondingId==bindingID) then
-			return binding
+		if(bindName:lower():find(binding.name:lower())) then
+			return binding.bondingId
 		end
 	end
 end
@@ -1823,7 +4183,7 @@ local function getWeaponTypeId(weapontypeSTR,inventoryType)
 
 	--for this we make two pass,one with looking only for the weaponTypeSTR wich is for example "warglaives"
 	-- if we don't find it,we search for 1h and 2h version
-	for _,weapontypeOBJ in ipairs(PhaseToolkit.itemClass[PhaseToolkit.itemCreatorData.itemClass].subclass) do
+	for _,weapontypeOBJ in ipairs(PhaseToolkit.itemClass[PhaseToolkit.itemCreatorData.selectedItemClass].subclass) do
 		if(string.lower(weapontypeOBJ.name)==string.lower(weapontypeSTR)) then
 			returnObj= weapontypeOBJ
 		end
@@ -1834,7 +4194,7 @@ local function getWeaponTypeId(weapontypeSTR,inventoryType)
 
 	--Second pass looking for 1h or 2h u know only if we didn't got it the first time
 	if(returnObj==nil or returnObj=={}) then
-		for _,weapontypeOBJ in ipairs(PhaseToolkit.itemClass[PhaseToolkit.itemCreatorData.itemClass].subclass) do
+		for _,weapontypeOBJ in ipairs(PhaseToolkit.itemClass[PhaseToolkit.itemCreatorData.selectedItemClass].subclass) do
 			weapontypeSTR=string.trim(weapontypeSTR)
 			if(containsAll(weapontypeOBJ.name,subString)) then
 				returnObj= weapontypeOBJ
@@ -1849,8 +4209,8 @@ function PhaseToolkit.SelectRaceFrame()
 		PhaseToolkit.CreateCustomFrame()
 	end
 
-	PhaseToolkit.NombreDeLigne = math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) / 3)))
-	PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace))
+	PhaseToolkit.NombreDeLigne = math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace.raceid)][PhaseToolkit.SelectedGender]) / 3)))
+	PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace.raceid))
 	if PhaseToolkit.CustomFrame:IsShown() and PhaseToolkit.showCustomButton.currentIcon == "450905" then
 		PhaseToolkit.switchOpenCustomGridButton(PhaseToolkit.showCustomButton)
 	end
@@ -1933,10 +4293,22 @@ function PhaseToolkit.RemoveDuplicates(creatureList)
 	local seenIds = {}
 
 	for _, creature in ipairs(creatureList) do
-		if not seenIds[creature.IdCreature] then
-			-- Add the creature to the new list if its ID hasn't been seen yet
+		local uniqueKey = nil
+
+		if type(creature) == "table" then
+			if creature.IdCreature ~= nil then
+				uniqueKey = "npc:" .. tostring(creature.IdCreature)
+			elseif creature.NomCreature ~= nil then
+				uniqueKey = "npcname:" .. tostring(creature.NomCreature)
+			end
+		elseif creature ~= nil then
+			uniqueKey = "value:" .. tostring(creature)
+		end
+
+		if uniqueKey and not seenIds[uniqueKey] then
+			-- Add the entry to the new list if its unique key hasn't been seen yet
 			table.insert(uniqueCreatures, creature)
-			seenIds[creature.IdCreature] = true -- Mark the ID as already seen
+			seenIds[uniqueKey] = true
 		end
 	end
 
@@ -1954,7 +4326,7 @@ function PhaseToolkit.DisableComponent(self)
 	self:EnableMouse(false);
 end
 
-function PhaseToolkit.EnableCompoment(self)
+function PhaseToolkit.EnableComponent(self)
 	self:SetAlpha(1);
 	self:EnableMouse(true);
 end
@@ -1974,6 +4346,9 @@ function PhaseToolkit.RegisterTooltip(frame, tooltip)
 end
 
 function PhaseToolkit.RemoveStringFromTable(t, strToRemove)
+	if type(t) ~= "table" then
+		return
+	end
 	for i = #t, 1, -1 do -- Traverse the table in reverse order
 		if t[i] == strToRemove then
 			table.remove(t, i)
@@ -1982,6 +4357,9 @@ function PhaseToolkit.RemoveStringFromTable(t, strToRemove)
 end
 
 function PhaseToolkit.RemoveCreatureById(creatureList, creatureId)
+	if type(creatureList) ~= "table" then
+		return
+	end
 	for i = #creatureList, 1, -1 do
 		if creatureList[i]["IdCreature"] == creatureId then
 			table.remove(creatureList, i)
@@ -1991,17 +4369,19 @@ function PhaseToolkit.RemoveCreatureById(creatureList, creatureId)
 end
 
 function PhaseToolkit.RandomiseNpc()
-	for attribute, value in pairs(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) do
-		local randomValue = math.random(1, value)
-		PhaseToolkit.GeneralStat[attribute] = randomValue
-		sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. randomValue, nil)
+	for attribute, value in pairs(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace.raceid)][PhaseToolkit.SelectedGender]) do
+		if(not PhaseToolkit.CustomFieldLocks[attribute]) then
+			local randomValue = math.random(1, value)
+			PhaseToolkit.GeneralStat[attribute] = randomValue
+			sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. randomValue, nil)
+		end
 	end
 	if (PhaseToolkit.CustomFrame ~= nil) then
 		if PhaseToolkit.CustomFrame:IsShown() then
 			PhaseToolkit.CustomFrame:Hide()
 			PhaseToolkit.CustomFrame = nil
 			PhaseToolkit.CreateCustomFrame()
-			PhaseToolkit.CreateCustomGrid(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender])
+			PhaseToolkit.CreateCustomGrid(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace.raceid)][PhaseToolkit.SelectedGender])
 			PhaseToolkit.CustomFrame:Show()
 		end
 	end
@@ -2015,137 +4395,17 @@ function PhaseToolkit.UserHasPermission()
 	return C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()
 end
 
-
+local function cleanHighlights()
+	for _,row in ipairs(PhaseToolkit.itemCreatorData.selectedRows) do
+		row.highlight:Hide()
+	end
+end
 
 -- ============================== FONCTIONS ² ============================== --
-
-function PhaseToolkit.ShowRaceDropDown(DropDown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(DropDown, self.value)
-		PhaseToolkit.SelectedRace = self.value
-		PhaseToolkit.ChangeNpcRace(self.value)
-		PhaseToolkit.SelectRaceFrame()
-	end
-
-	local racesList = {}
-	for name, value in pairs(PhaseToolkit.Races) do
-		table.insert(racesList, { name = name, value = value })
-	end
-
-	table.sort(racesList, function(a, b) return a.value < b.value end)
-
-	UIDropDownMenu_Initialize(DropDown, function()
-		for _, race in ipairs(racesList) do
-			local info = UIDropDownMenu_CreateInfo()
-			info.text = PhaseToolkit.CurrentLang[race.name]
-			info.value = race.value
-
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-
-	UIDropDownMenu_SetWidth(DropDown, 120)
-	UIDropDownMenu_SetButtonWidth(DropDown, 124)
-	if PhaseToolkit.SelectedNpcInfo ~= nil then
-		UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.Races[PhaseToolkit.SelectedNpcInfo.race])
-	else
-		UIDropDownMenu_SetSelectedValue(DropDown, 1)
-	end
-end
-
-function PhaseToolkit.ShowGenderDropDown(DropDown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(DropDown, self.value)
-		PhaseToolkit.SelectedGender = self.value
-		PhaseToolkit.ChangeNpcGender(self.value)
-		PhaseToolkit.SelectRaceFrame()
-	end
-
-	UIDropDownMenu_Initialize(DropDown, function()
-		for i = 1, #PhaseToolkit.Genre do
-			local info = UIDropDownMenu_CreateInfo()
-
-			if not PhaseToolkit.ModeFR then
-				info.text = PhaseToolkit.CurrentLang[PhaseToolkit.Genre[i]]
-			else
-				info.text = PhaseToolkit.Genre[i]
-			end
-
-			info.value = PhaseToolkit.Genre[i]
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(DropDown, 120)
-	UIDropDownMenu_SetButtonWidth(DropDown, 124)
-
-	if PhaseToolkit.SelectedNpcInfo ~= nil then
-		UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.SelectedNpcInfo.sexe)
-	else
-		UIDropDownMenu_SetSelectedValue(DropDown, "male")
-	end
-end
-
-function PhaseToolkit.ResizeAdditionalButtonFrame()
-	if (not PhaseToolkit.ModeFR) then
-		PhaseToolkit.AdditionalButtonFrame:SetSize(145, 65)
-		PhaseToolkit.AdditionalButtonFrame:SetPoint("BOTTOMLEFT", PhaseToolkit.LangageTogMainFrame, "TOPLEFT", -5, 0)
-	else
-		PhaseToolkit.AdditionalButtonFrame:SetSize(135, 65)
-		PhaseToolkit.AdditionalButtonFrame:SetPoint("BOTTOMLEFT", PhaseToolkit.LangageTogMainFrame, "TOPLEFT", 0, 0)
-	end
-
-	PhaseOptionLabel:SetText(PhaseToolkit.CurrentLang["Phase Option"] or "Phase Options")
-end
-
 local function getItemInfoFromHyperlink(link)
 	local strippedItemLink, itemID = link:match("|Hitem:((%d+).-)|h");
 	if itemID then
 		return tonumber(itemID), strippedItemLink;
-	end
-end
-
-function PhaseToolkit.TranslateWeatherIntensity()
-	if (GlobalNPCCUSTOMISER_SliderFrame ~= nil) then
-		_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Low']:SetText(PhaseToolkit.IntensiteMeteoMin)
-		_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'High']:SetText(IntensiteMeteoMax)
-		_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText(PhaseToolkit.CurrentLang['Intensity'] or 'Intensity')
-	end
-end
-
-function PhaseToolkit.ShowMeteoDropDown(DropDown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(DropDown, self.value)
-		PhaseToolkit.SelectedMeteo = self.value
-		PhaseToolkit.ChangePhaseWeather()
-	end
-
-	UIDropDownMenu_Initialize(DropDown, function()
-		for _, meteo in ipairs(PhaseToolkit.Meteo) do
-			local info = UIDropDownMenu_CreateInfo()
-
-			if not PhaseToolkit.ModeFR then
-				info.text = PhaseToolkit.CurrentLang[meteo.text]
-			else
-				info.text = meteo.text
-			end
-
-			info.value = meteo.value
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(DropDown, 120)
-	UIDropDownMenu_SetButtonWidth(DropDown, 124)
-
-	if not PhaseToolkit.ModeFR then
-		UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.SelectedMeteo)
-	else
-		UIDropDownMenu_SetSelectedValue(DropDown, PhaseToolkit.SelectedMeteo)
 	end
 end
 
@@ -2156,30 +4416,30 @@ end
 -- Normal equipment is stored with their slot and extracted object ID
 -- Weapons are detected and stored separately with their numeric slot :
 --   - Slot 0 = Main hand (main hand, mainhand)
---   - Slot 1 = Off hand (off hand, offhand) 
+--   - Slot 1 = Off hand (off hand, offhand)
 --   - Slot 2 = Ranged (ranged, bow, gun, crossbow)
 -- Application :
 --   - Normal equipment: .ph f n out equip ITEMID
 --   - Weapons: .ph fo np weapon ITEMID SLOT
 --   - Name: .ph f n name NPCNAME
 function PhaseToolkit.CopyNpcCustomisation()
-	
+
 	if not UnitExists("target") or UnitIsPlayer("target") then
 		print("You need to target an NPC to copy their customisations.")
 		return
 	end
 
 	-- Check if at least one copy option is enabled
-	if not (PhaseToolkit.CopyName or PhaseToolkit.CopyCustomization or PhaseToolkit.CopyEquipment or PhaseToolkit.CopyWeapons) then
+	if not (PhaseToolkit.CopyNpcNameEnabled or PhaseToolkit.CopyNpcCustomisationEnabled or PhaseToolkit.CopyNpcGearEnabled or PhaseToolkit.CopyNpcWeaponsEnabled) then
 		print("|cffff0000Error: No copy options are enabled. Please enable at least one option in the copy settings.|r")
 		return
 	end
 
 	-- Create a table to store customization information
 	local outfitInformation = {}
-	
+
 	-- Get the targeted NPC name (only if copy name is enabled)
-	if PhaseToolkit.CopyName then
+	if PhaseToolkit.CopyNpcNameEnabled then
 		local npcName = UnitName("target")
 		if npcName then
 			outfitInformation["_name"] = npcName
@@ -2188,36 +4448,36 @@ function PhaseToolkit.CopyNpcCustomisation()
 			return
 		end
 	end
-	
+
 	-- Check that sendAddonCmd exists
 	if not sendAddonCmd then
 		print("|cffff0000Error: sendAddonCmd function not found|r")
 		return
 	end
-	
+
 	-- Get info via "npc info"
 	sendAddonCmd("npc info", function(isSuccessful, responses)
 		if not isSuccessful or not responses then
-			print("|cffff0000Error: 'npc info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+			print("|cffff0000Error: 'npc info' command failed. You need to be in the origin phase of the creature to gather info, and must be either its creator or a Phase officer|r")
 			return
 		end
-		
+
 		-- Initialize structures (only if needed)
-		if PhaseToolkit.CopyEquipment then
+		if PhaseToolkit.CopyNpcGearEnabled then
 			outfitInformation["_equipment"] = {}
 		end
-		if PhaseToolkit.CopyWeapons then
+		if PhaseToolkit.CopyNpcWeaponsEnabled then
 			outfitInformation["_weapons"] = {}
 		end
-		
+
 		-- Parse each line
 		for _, line in ipairs(responses) do
 			local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
 			-- Also clean item links
 			cleanLine = cleanLine:gsub("|H[^|]*|h", ""):gsub("|h", "")
-			
+
 			-- DisplayID for race/gender
-			if PhaseToolkit.CopyCustomization then
+			if PhaseToolkit.CopyNpcCustomisationEnabled then
 				local displayID = string.match(cleanLine, "DisplayID: (%d+)")
 				if displayID then
 					local identity = PhaseToolkit.infoPerDisplay[displayID]
@@ -2229,34 +4489,34 @@ function PhaseToolkit.CopyNpcCustomisation()
 			end
 
 			local slot, itemData = string.match(cleanLine, "^([^:]+):%s*%[(.+)")
-			if slot and itemData and (PhaseToolkit.CopyEquipment or PhaseToolkit.CopyWeapons) then
+			if slot and itemData and (PhaseToolkit.CopyNpcGearEnabled or PhaseToolkit.CopyNpcWeaponsEnabled) then
 				slot = slot:gsub("^%s+", ""):gsub("%s+$", "")
-				
+
 				-- Filter lines that are not really equipment
 				if not (string.find(slot, "NPC") or string.find(slot, "Info")) then
-				
+
 				-- Use existing function to extract ID from item link
 				local itemID, strippedLink = getItemInfoFromHyperlink(line)
-				
+
 				if itemID then
 					local slotLower = string.lower(slot)
 					if slotLower:find("main") or slotLower:find("off") or slotLower:find("ranged") then
 						-- This is a weapon slot
-						if PhaseToolkit.CopyWeapons then
+						if PhaseToolkit.CopyNpcWeaponsEnabled then
 							if not outfitInformation["_weapons"] then
 								outfitInformation["_weapons"] = {}
 							end
 							if slotLower:find("main") then
 								outfitInformation["_weapons"]["0"] = itemID
 							elseif slotLower:find("off") then
-								outfitInformation["_weapons"]["1"] = itemID  
+								outfitInformation["_weapons"]["1"] = itemID
 							elseif slotLower:find("ranged") then
 								outfitInformation["_weapons"]["2"] = itemID
 							end
 						end
 					else
 						-- This is equipment slot
-						if PhaseToolkit.CopyEquipment then
+						if PhaseToolkit.CopyNpcGearEnabled then
 							if not outfitInformation["_equipment"] then
 								outfitInformation["_equipment"] = {}
 							end
@@ -2267,39 +4527,39 @@ function PhaseToolkit.CopyNpcCustomisation()
 				end
 			end
 		end  -- End of for loop
-		
+
 		-- Check if we need to get customizations
-		if PhaseToolkit.CopyCustomization then
+		if PhaseToolkit.CopyNpcCustomisationEnabled then
 			-- Now get customizations via "ph f n out info"
 			sendAddonCmd("ph f n out info", function(isSuccessful2, responses2)
-				
+
 				if not isSuccessful2 then
-					print("|cffff0000Error: 'ph f n out info' command failed, You need to be in the creature's origin phase to gather info and be it's creator or a Phase officer|r")
+					print("|cffff0000Error: 'ph f n out info' command failed. You need to be in the origin phase of the creature & either be it's creator or a Phase Officer to gather info.|r")
 					return
 				end
-				
+
 				if not responses2 then
 					print("|cffff0000Error: No responses from 'ph f n out info' command|r")
 					return
 				end
-				
+
 				if #responses2 == 0 then
 					print("|cffff0000Error: Empty responses from 'ph f n out info' command|r")
 					return
 				end
-				
-				
+
+
 				-- Initialize customizations (only if copy customization is enabled)
-				if PhaseToolkit.CopyCustomization then
+				if PhaseToolkit.CopyNpcCustomisationEnabled then
 					outfitInformation["_customizations"] = {}
 				end
-				
+
 				-- Parse customizations from response (only if enabled)
-				if PhaseToolkit.CopyCustomization then
+				if PhaseToolkit.CopyNpcCustomisationEnabled then
 					for _, line in ipairs(responses2) do
 						-- Clean color codes
 						local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
-						
+
 						-- Only parse "Character Select IDs" lines, ignore "Internal IDs"
 						if string.find(cleanLine, "%(Character Select IDs%)") then
 							-- Parse lines of format: "(Character Select IDs) Option: tattoocolor, Choice(s): 5,)"
@@ -2310,7 +4570,7 @@ function PhaseToolkit.CopyNpcCustomisation()
 								local numValue = tonumber(choiceValue)
 								if numValue then
 									if numValue>200 then
-										 outfitInformation["_customizations"][optionName] = 1 
+										 outfitInformation["_customizations"][optionName] = 1
 									else
 										outfitInformation["_customizations"][optionName] = numValue
 									end
@@ -2319,7 +4579,7 @@ function PhaseToolkit.CopyNpcCustomisation()
 						end
 					end
 				end
-				
+
 				-- Serialize and show data
 				PhaseToolkit.SerializeAndShowOutfitData(outfitInformation)
 			end, false)
@@ -2332,7 +4592,7 @@ end
 
 -- Helper function to serialize and show outfit data
 function PhaseToolkit.SerializeAndShowOutfitData(outfitInformation)
-	local serializedData = AceSerializer:Serialize(outfitInformation)	
+	local serializedData = AceSerializer:Serialize(outfitInformation)
 	if serializedData then
 		-- We have the data so we show them to the user using the OPEN_OUTFIT_COPY_POPUP
 		StaticPopup_Show("OPEN_OUTFIT_COPY_POPUP", nil, nil, { serializedData = serializedData })
@@ -2356,22 +4616,22 @@ function PhaseToolkit.ApplyNpcCustomisation(serializedData)
 		print("No data to apply.")
 		return
 	end
-	
+
 	if not UnitExists("target") or UnitIsPlayer("target") then
 		print("You need to target an NPC to apply customisations.")
 		return
 	end
-	
+
 	-- Deserialize data
 	local success, deserializedData = AceSerializer:Deserialize(serializedData)
 	if not success or not deserializedData then
 		print("Invalid outfit data format.")
 		return
 	end
-	
+
 	-- Build commands
 	local commands = {}
-	
+
 	-- VERY IMPORTANT: Race and gender FIRST, otherwise everything else will fail!
 	if deserializedData["_race"] and deserializedData["_gender"] then
 		-- Use PhaseToolkit.Races to convert race name to ID
@@ -2381,12 +4641,12 @@ function PhaseToolkit.ApplyNpcCustomisation(serializedData)
 			table.insert(commands, "ph f n out gender " .. deserializedData["_gender"])
 		end
 	end
-	
+
 	-- Apply name if available
 	if deserializedData["_name"] and deserializedData["_name"] ~= "" then
 		table.insert(commands, "ph f n name " .. deserializedData["_name"])
 	end
-	
+
 	-- Apply customizations
 	if deserializedData["_customizations"] and type(deserializedData["_customizations"]) == "table" then
 		local customizationCount = 0
@@ -2397,7 +4657,7 @@ function PhaseToolkit.ApplyNpcCustomisation(serializedData)
 			end
 		end
 	end
-	
+
 	-- Apply normal equipment
 	if deserializedData["_equipment"] and type(deserializedData["_equipment"]) == "table" then
 		local equipmentCount = 0
@@ -2410,7 +4670,7 @@ function PhaseToolkit.ApplyNpcCustomisation(serializedData)
 			end
 		end
 	end
-	
+
 	-- Apply weapons with special command
 	if deserializedData["_weapons"] and type(deserializedData["_weapons"]) == "table" then
 		local weaponCount = 0
@@ -2425,17 +4685,17 @@ function PhaseToolkit.ApplyNpcCustomisation(serializedData)
 			end
 		end
 	end
-	
+
 	-- Send all commands in sequential chain
 	if #commands > 0 then
 		sendAddonCommandChain(commands, function(success, allReturnMessages)
 			if not success then
 				print("Some commands failed during NPC customisation application.")
-				
+
 				-- Identify the command that failed
 				local totalCommands = #commands
 				local returnedMessages = (allReturnMessages and #allReturnMessages) or 0
-				
+
 				if returnedMessages < totalCommands then
 					-- The chain stopped, the failed command is the next one
 					local failedCommandIndex = returnedMessages
@@ -2458,15 +4718,15 @@ function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
 		print("No outfit data provided.")
 		return
 	end
-	
+
 	if not UnitExists("target") or UnitIsPlayer("target") then
 		print("You need to target an NPC to apply customisations.")
 		return
 	end
-	
+
 	-- Build commands directly from outfitInformation
 	local commands = {}
-	
+
 	-- VERY IMPORTANT: Race and gender FIRST, otherwise everything else will fail!
 	if outfitInformation["_race"] and outfitInformation["_gender"] then
 		-- Use PhaseToolkit.Races to convert race name to ID
@@ -2477,12 +4737,12 @@ function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
 			print("🧬 Race/Gender commands added first: " .. outfitInformation["_race"] .. " (ID:" .. raceID .. ") " .. outfitInformation["_gender"])
 		end
 	end
-	
+
 	-- Apply the name if available
 	if outfitInformation["_name"] and outfitInformation["_name"] ~= "" then
 		table.insert(commands, "ph f n name " .. outfitInformation["_name"])
 	end
-	
+
 	-- Apply the customizations
 	if outfitInformation["_customizations"] and type(outfitInformation["_customizations"]) == "table" then
 		for optionName, choiceValue in pairs(outfitInformation["_customizations"]) do
@@ -2491,7 +4751,7 @@ function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
 			end
 		end
 	end
-	
+
 	-- Apply normal equipment
 	if outfitInformation["_equipment"] and type(outfitInformation["_equipment"]) == "table" then
 		for slot, itemData in pairs(outfitInformation["_equipment"]) do
@@ -2502,7 +4762,7 @@ function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
 			end
 		end
 	end
-	
+
 	-- Apply weapons with the special command
 	if outfitInformation["_weapons"] and type(outfitInformation["_weapons"]) == "table" then
 		for weaponSlot, itemData in pairs(outfitInformation["_weapons"]) do
@@ -2513,17 +4773,17 @@ function PhaseToolkit.ApplyNpcCustomisationDirect(outfitInformation)
 			end
 		end
 	end
-	
+
 	-- Send the commands
 	if #commands > 0 then
 		sendAddonCommandChain(commands, function(success, allReturnMessages)
 			if not success then
 				print("Some commands failed during NPC customisation application.")
-				
+
 				-- Identify the command that failed
 				local totalCommands = #commands
 				local returnedMessages = (allReturnMessages and #allReturnMessages) or 0
-				
+
 				if returnedMessages < totalCommands then
 					-- The chain stopped, the failed command is the next one
 					local failedCommandIndex = returnedMessages
@@ -2576,8 +4836,10 @@ end
 
 
 -- ============================== MAIN FRAME ============================== --
-PhaseToolkit.NombreDeLigne = math.ceil(((PhaseToolkit.CountElements(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender]) / 3)))
+PhaseToolkit.NombreDeLigne = 1
 PhaseToolkit.HauteurDispoCustomFrame = ((PhaseToolkit.NombreDeLigne - 1) * 65)
+
+
 PhaseToolkit.NPCCustomiserMainFrame = CreateFrame("Frame", "NPCCustomiserMainFrame", UIParent, "PortraitFrameTemplate")
 ButtonFrameTemplateMinimizable_HidePortrait(PhaseToolkit.NPCCustomiserMainFrame)
 NineSliceUtil.ApplyLayoutByName(PhaseToolkit.NPCCustomiserMainFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
@@ -2587,7 +4849,7 @@ EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(PhaseToolkit.NPCCustomiserMai
 PhaseToolkit.NPCCustomiserMainFrame.Bg:SetAlpha(0.975)
 PhaseToolkit.NPCCustomiserMainFrame:SetToplevel(true)
 
-PhaseToolkit.NPCCustomiserMainFrame:SetSize(PhaseToolkit.LargeurMax, PhaseToolkit.HauteurMax)
+PhaseToolkit.NPCCustomiserMainFrame:SetSize(260,70)
 PhaseToolkit.NPCCustomiserMainFrame:SetPoint("CENTER")
 PhaseToolkit.NPCCustomiserMainFrame:SetMovable(true)
 PhaseToolkit.NPCCustomiserMainFrame:EnableMouse(true)
@@ -2648,471 +4910,6 @@ local function sendMessageInChunks(message)
     end
 end
 
-
-
-function PhaseToolkit.recreateFrameModule()
-	if (PhaseToolkit.moduleForPhaseAccessFrame ~= nil) then
-		PhaseToolkit.moduleForPhaseAccessFrame:Hide()
-		PhaseToolkit.moduleForPhaseAccessFrame = nil
-	end
-	PhaseToolkit.createPhaseAccessFrame()
-	if (PhaseToolkit.moduleForMetteoSettingsFrame ~= nil) then PhaseToolkit.moduleForMetteoSettingsFrame:Hide() end
-	PhaseToolkit.createMeteoSettingsFrame()
-	if (PhaseToolkit.moduleForTimeSliderFrame ~= nil) then PhaseToolkit.moduleForTimeSliderFrame:Hide() end
-	PhaseToolkit.createTimeSettingsFrame()
-	if (PhaseToolkit.moduleForSetStartingFrame ~= nil) then PhaseToolkit.moduleForSetStartingFrame:Hide() end
-	PhaseToolkit.createSetStartingFrame()
-	if (PhaseToolkit.moduleForTogglesFrame ~= nil) then PhaseToolkit.moduleForTogglesFrame:Hide() end
-	PhaseToolkit.createTogglesFrame()
-	if (PhaseToolkit.moduleForPhaseSetNameFrame ~= nil) then PhaseToolkit.moduleForPhaseSetNameFrame:Hide() end
-	PhaseToolkit.createPhaseSetNameFrame()
-	if (PhaseToolkit.moduleForPhaseSetDescriptionFrame ~= nil) then PhaseToolkit.moduleForPhaseSetDescriptionFrame:Hide() end
-	PhaseToolkit.createPhaseSetDescriptionFrame()
-	if (PhaseToolkit.moduleforMotdFrame ~= nil) then PhaseToolkit.moduleforMotdFrame:Hide() end
-	PhaseToolkit.createMotdFrame()
-end
-
-function PhaseToolkit.switchOpenCustomGridButton(button)
-	if (PhaseToolkit.showCustomButton.currentIcon == "450905") then
-		PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowlup")
-		PhaseToolkit.showCustomButton.icon:SetAllPoints()
-		PhaseToolkit.showCustomButton.currentIcon = "450907"
-		if (PhaseToolkit.CustomFrame ~= nil) then
-			PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace))
-		else
-			PhaseToolkit.CreateCustomFrame()
-			PhaseToolkit.ToggleCustomFrame(PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace))
-		end
-	else
-		PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowdown")
-		PhaseToolkit.showCustomButton.icon:SetAllPoints()
-		PhaseToolkit.showCustomButton.currentIcon = "450905"
-		PhaseToolkit.CustomFrame:Hide()
-		PhaseToolkit.CustomFrame = nil
-	end
-end
-
-function PhaseToolkit.openCopySettings()
-	-- If the copy frame is already open, close it
-	if (PhaseToolkit.copySettingsFrame ~= nil) then
-		if (PhaseToolkit.copySettingsFrame:IsShown()) then
-			PhaseToolkit.copySettingsFrame:Hide()
-			PhaseToolkit.copySettingsFrame = nil
-			return
-		end
-	else
-		PhaseToolkit.copySettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
-		PhaseToolkit.copySettingsFrame:SetBackdrop({
-			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-			edgeSize = 16,
-			insets = { left = 5, right = 5, top = 5, bottom = 5 },
-		})
-		PhaseToolkit.copySettingsFrame:SetSize(170, 180)
-		PhaseToolkit.copySettingsFrame:SetPoint("TOPLEFT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, 0)
-
-
-		-- now we need checkboxes to allow the copy of : 
-		-- name
-		-- customization
-		-- equipment
-		-- weapons
-		local copyNameCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
-		copyNameCheckbox:SetPoint("TOPLEFT", PhaseToolkit.copySettingsFrame, "TOPLEFT", 5, -15)
-		--create a label on the right side of the checkbox
-		copyNameCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Name"] or "Copy Name")
-		copyNameCheckbox.Text:SetFontObject("GameFontNormal")
-		--scripts
-		copyNameCheckbox:SetScript("OnClick", function(self)
-			PhaseToolkit.CopyName = self:GetChecked()
-			PhaseToolKitConfig["CopyName"] = PhaseToolkit.CopyName
-		end)
-
-		copyNameCheckbox:SetChecked(PhaseToolkit.CopyName or false)
-
-		local copyCustomizationCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
-		copyCustomizationCheckbox:SetPoint("TOPLEFT", copyNameCheckbox, "BOTTOMLEFT", 0, -10)
-		--create a label on the right side of the checkbox
-		copyCustomizationCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Customization"] or "Copy Customization")
-		copyCustomizationCheckbox.Text:SetFontObject("GameFontNormal")
-		--scripts
-		copyCustomizationCheckbox:SetScript("OnClick", function(self)
-			PhaseToolkit.CopyCustomization = self:GetChecked()
-			PhaseToolKitConfig["CopyCustomization"] = PhaseToolkit.CopyCustomization
-		end)	
-
-		copyCustomizationCheckbox:SetChecked(PhaseToolkit.CopyCustomization or false)
-
-		local copyEquipmentCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
-		copyEquipmentCheckbox:SetPoint("TOPLEFT", copyCustomizationCheckbox, "BOTTOMLEFT", 0, -10)
-		--create a label on the right side of the checkbox
-		copyEquipmentCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Armor"] or "Copy Armor")
-		copyEquipmentCheckbox.Text:SetFontObject("GameFontNormal")
-		--scripts
-		copyEquipmentCheckbox:SetScript("OnClick", function(self)
-			PhaseToolkit.CopyEquipment = self:GetChecked()
-			PhaseToolKitConfig["CopyEquipment"] = PhaseToolkit.CopyEquipment
-		end)	
-		copyEquipmentCheckbox:SetChecked(PhaseToolkit.CopyEquipment or false)
-
-		local copyWeaponsCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.copySettingsFrame, "InterfaceOptionsCheckButtonTemplate")
-		copyWeaponsCheckbox:SetPoint("TOPLEFT", copyEquipmentCheckbox, "BOTTOMLEFT", 0, -10)
-		--create a label on the right side of the checkbox
-		copyWeaponsCheckbox.Text:SetText(PhaseToolkit.CurrentLang["Copy Weapons"] or "Copy Weapons")
-		copyWeaponsCheckbox.Text:SetFontObject("GameFontNormal")
-		--scripts
-		copyWeaponsCheckbox:SetScript("OnClick", function(self)
-			PhaseToolkit.CopyWeapons = self:GetChecked()
-			PhaseToolKitConfig["CopyWeapons"] = PhaseToolkit.CopyWeapons
-		end)	
-		copyWeaponsCheckbox:SetChecked(PhaseToolkit.CopyWeapons or false)	
-
-		PhaseToolkit.copySettingsFrame:Show()
-	end
-end	
-
-function PhaseToolkit.createCustomParamFrame()
-	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
-		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
-			PhaseToolkit.PhaseOptionFrame:Hide()
-			PhaseToolkit.PhaseOptionFrame = nil
-		end
-	end
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if PhaseToolkit.TELEFrame:IsShown() then
-			PhaseToolkit.TELEFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.CustomMainFrame ~= nil) then
-		if (PhaseToolkit.CustomMainFrame:IsShown()) then
-			PhaseToolkit.CustomMainFrame:Hide()
-			PhaseToolkit.CustomMainFrame = nil
-		else
-			PhaseToolkit.CustomMainFrame:Show()
-		end
-	else
-		PhaseToolkit.CustomMainFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
-		PhaseToolkit.CustomMainFrame:SetBackdrop({
-			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-			edgeSize = 16,
-			insets = { left = 5, right = 5, top = 5, bottom = 5 },
-		})
-		PhaseToolkit.CustomMainFrame:SetSize(190, 130)
-		PhaseToolkit.CustomMainFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
-
-
-		PhaseToolkit.CustomMainFrame:SetScript("OnShow", function()
-			if (PhaseToolkit.AutoRefreshNPC) then
-				PhaseToolkit.CustomMainFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-			end
-		end)
-
-		PhaseToolkit.CustomMainFrame:SetScript("OnHide", function()
-			PhaseToolkit.CustomMainFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
-		end)
-
-		PhaseToolkit.CustomMainFrame:SetScript("OnEvent", function(self, event)
-			-- If we change target while Phase toolkit is opened, and it's a npc we take data
-			if (event == "PLAYER_TARGET_CHANGED" and not UnitIsPlayer("target") and UnitExists("target")) then
-				sendAddonCmd("npc info", PhaseToolkit.parseForDisplayId, false)
-			end
-		end)
-
-		PhaseToolkit.RaceDropDown = CreateFrame("Frame", "RaceDropDown", PhaseToolkit.CustomMainFrame, "UIDropDownMenuTemplate")
-		PhaseToolkit.RaceDropDown:SetSize(200, 30)
-		PhaseToolkit.RaceDropDown:SetPoint("TOPLEFT", PhaseToolkit.CustomMainFrame, "TOPLEFT", -5, -5)
-
-		PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
-
-		PhaseToolkit.GenreDropDown = CreateFrame("Frame", "GenreDropDown", PhaseToolkit.CustomMainFrame, "UIDropDownMenuTemplate")
-		PhaseToolkit.GenreDropDown:SetSize(200, 30)
-		PhaseToolkit.GenreDropDown:SetPoint("TOPLEFT", PhaseToolkit.RaceDropDown, "BOTTOMLEFT", 0, 5)
-
-		PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
-
-		local autoUpdateNpcInfoCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.GenreDropDown, "InterfaceOptionsCheckButtonTemplate")
-		autoUpdateNpcInfoCheckbox:SetPoint("TOPLEFT", PhaseToolkit.GenreDropDown, "BOTTOMLEFT", 15, 0)
-
-		autoUpdateNpcInfoCheckbox.Text:SetText(PhaseToolkit.CurrentLang["auto update Npc"] or "Auto Update NPC")
-		autoUpdateNpcInfoCheckbox.tooltipText = PhaseToolkit.CurrentLang["AutoRefreshNPCTooltip"] or "Automatically refresh race & gender to match the selected NPC when changing target"
-
-		autoUpdateNpcInfoCheckbox:SetScript("OnClick", function(self)
-			PhaseToolkit.AutoRefreshNPC = self:GetChecked()
-			PhaseToolKitConfig["AutoRefreshNPC"] = PhaseToolkit.AutoRefreshNPC
-			if (not PhaseToolkit.AutoRefreshNPC and PhaseToolkit.CustomMainFrame ~= nil) then
-				PhaseToolkit.CustomMainFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
-			end
-			if (PhaseToolkit.AutoRefreshNPC and PhaseToolkit.CustomMainFrame ~= nil) then
-				PhaseToolkit.CustomMainFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-			end
-		end)
-
-		autoUpdateNpcInfoCheckbox:SetChecked(false)
-
-
-		PhaseToolkit.showCustomButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		PhaseToolkit.showCustomButton:SetSize(25, 25)
-		PhaseToolkit.showCustomButton:SetPoint("BOTTOMLEFT", PhaseToolkit.CustomMainFrame, "BOTTOMLEFT", 7.5, 7.5)
-		PhaseToolkit.showCustomButton.icon = PhaseToolkit.showCustomButton:CreateTexture(nil, "OVERLAY")
-		PhaseToolkit.showCustomButton.icon:SetTexture("Interface\\Icons\\misc_arrowdown")
-		PhaseToolkit.showCustomButton.icon:SetAllPoints()
-		PhaseToolkit.showCustomButton.currentIcon = "450905"
-		PhaseToolkit.showCustomButton:SetScript("OnClick", PhaseToolkit.switchOpenCustomGridButton)
-		PhaseToolkit.RegisterTooltip(PhaseToolkit.showCustomButton, "Show Custom Option")
-
-		local AllRandomButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		AllRandomButton:SetSize(25, 25)
-		AllRandomButton:SetPoint("LEFT", PhaseToolkit.showCustomButton, "RIGHT", 5, 0)
-		AllRandomButton.icon = AllRandomButton:CreateTexture(nil, "OVERLAY")
-		AllRandomButton.icon:SetTexture("Interface\\Icons\\inv_misc_dice_01")
-		AllRandomButton.icon:SetAllPoints()
-		AllRandomButton:SetScript("OnClick", function()
-			PhaseToolkit.RandomiseNpc()
-		end)
-		PhaseToolkit.RegisterTooltip(AllRandomButton, "Randomise customisations")
-
-
-		local SetNpcName = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		SetNpcName:SetSize(25, 25)
-		SetNpcName:SetPoint("LEFT", AllRandomButton, "RIGHT", 5, 0)
-		SetNpcName.icon = SetNpcName:CreateTexture(nil, "OVERLAY")
-		SetNpcName.icon:SetTexture("Interface\\Icons\\inv_inscriptionlanathelquill")
-		SetNpcName.icon:SetAllPoints()
-		SetNpcName:SetScript("OnClick", function()
-			PhaseToolkit.PromptForNPCName()
-		end)
-		PhaseToolkit.RegisterTooltip(SetNpcName, "Set NPC name")
-
-
-		local SetNpcSubName = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		SetNpcSubName:SetSize(25, 25)
-		SetNpcSubName:SetPoint("LEFT", SetNpcName, "RIGHT", 5, 0)
-		SetNpcSubName.icon = SetNpcSubName:CreateTexture(nil, "OVERLAY")
-		SetNpcSubName.icon:SetTexture("Interface\\Icons\\inv_inscription_82_contract_ankoan")
-		SetNpcSubName.icon:SetAllPoints()
-		SetNpcSubName:SetScript("OnClick", function()
-			PhaseToolkit.PromptForNPCSubName()
-		end)
-		PhaseToolkit.RegisterTooltip(SetNpcSubName, "Set NPC Subname")
-
-		-- Button to copy NPC outfit
-		local CopyNpcOutfitButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		CopyNpcOutfitButton:SetSize(25, 25)
-		CopyNpcOutfitButton:SetPoint("LEFT", SetNpcSubName, "RIGHT", 5, 0)
-		CopyNpcOutfitButton.icon = CopyNpcOutfitButton:CreateTexture(nil, "OVERLAY")
-		CopyNpcOutfitButton.icon:SetTexture("Interface\\Icons\\inv_misc_note_06")
-		CopyNpcOutfitButton.icon:SetAllPoints()
-		CopyNpcOutfitButton:SetScript("OnClick", function()
-			PhaseToolkit.CopyNpcCustomisation()
-		end)
-		PhaseToolkit.RegisterTooltip(CopyNpcOutfitButton, "Copy NPC Outfit (Race, Gender, Equipment, Weapons, Customizations, Name)")
-
-		-- Button to paste NPC outfit
-		local PasteNpcOutfitButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		PasteNpcOutfitButton:SetSize(25, 25)
-		PasteNpcOutfitButton:SetPoint("LEFT", CopyNpcOutfitButton, "RIGHT", 5, 0)
-		PasteNpcOutfitButton.icon = PasteNpcOutfitButton:CreateTexture(nil, "OVERLAY")
-		PasteNpcOutfitButton.icon:SetTexture("Interface\\Icons\\inv_inscription_parchment")
-		PasteNpcOutfitButton.icon:SetAllPoints()
-		PasteNpcOutfitButton:SetScript("OnClick", function()
-			PhaseToolkit.PasteNpcCustomisation()
-		end)
-		PhaseToolkit.RegisterTooltip(PasteNpcOutfitButton, "Paste NPC Outfit")
-
-		local changeCopyInfoButton = CreateFrame("Button", nil, PhaseToolkit.CustomMainFrame, "UIPanelButtonTemplate")
-		changeCopyInfoButton:SetSize(25, 25)
-		changeCopyInfoButton:SetPoint("BOTTOM", PasteNpcOutfitButton, "TOP",0,5)
-		changeCopyInfoButton.icon = changeCopyInfoButton:CreateTexture(nil, "OVERLAY")
-		--gear icon
-		changeCopyInfoButton.icon:SetTexture("Interface\\Icons\\inv_misc_enggizmos_30")
-		changeCopyInfoButton.icon:SetAllPoints()
-		changeCopyInfoButton:SetScript("OnClick", function()
-			PhaseToolkit.openCopySettings()
-		end)
-		PhaseToolkit.RegisterTooltip(changeCopyInfoButton, "Change Copy Info")
-
-		PhaseToolkit.CustomMainFrame:Hide()
-		PhaseToolkit.CustomMainFrame:Show()
-	end
-end
-
-function PhaseToolkit.ShowItemBondingDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.bonding=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set bonding "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		for _, itemBonding in ipairs(PhaseToolkit.itemBonding) do
-			local info = UIDropDownMenu_CreateInfo()
-			info.text=itemBonding.name
-			info.value = itemBonding.bondingId
-
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 120)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-
-end
-
-function PhaseToolkit.ShowItemQualityDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.quality=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set quality "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		for _, quality in ipairs(PhaseToolkit.itemQuality) do
-			local info = UIDropDownMenu_CreateInfo()
-
-			info.text=quality.name
-			info.value = quality.qualityId
-
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 120)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-end
-
-function PhaseToolkit.ShowItemSheathDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.sheath=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set sheath "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		for _, sheath in ipairs(PhaseToolkit.itemSheath) do
-			local info = UIDropDownMenu_CreateInfo()
-
-			info.text=sheath.name
-			info.value = sheath.sheathId
-
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 120)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-end
-
-function PhaseToolkit.ShowItemInventoryDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.inventoryType=self.value
-
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set inventory "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local tableau={}
-		if(PhaseToolkit.itemCreatorData.itemClass==-1) then
-			tableau=PhaseToolkit.itemInventoryType
-		else
-			tableau = filterInventoryTypeByClass(PhaseToolkit.itemCreatorData.itemClass)
-		end
-
-		for _, inventoryType in ipairs(tableau) do
-			local info = UIDropDownMenu_CreateInfo()
-
-			info.text=inventoryType.name
-			info.value = inventoryType.inventoryTypeId
-
-			info.func = OnClick
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 120)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-end
-
-function PhaseToolkit.ShowItemClassDropdown(_dropdown,_subDropdown)
-	local function OnClick(self,realvalue,subClass)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.EnableCompoment(_subDropdown)
-		PhaseToolkit.ShowItemSubClassDropdown(_subDropdown,subClass)
-		PhaseToolkit.itemCreatorData.itemClass=realvalue
-		-- For certain class we disable sheath and stackable itemcreator buttons
-		--and we get rid of the inventoryType dropdown if we are not in those two option,cause yes.
-		-- and why bother with giving a displayID cause It's not equippable
-		if(PhaseToolkit.itemCreatorData.itemClass==2 or PhaseToolkit.itemCreatorData.itemClass==4) then
-			PhaseToolkit.DisableComponent(PhaseToolkit.itemCreatorCheckboxStackable)
-			UIDropDownMenu_EnableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
-			PhaseToolkit.EnableCompoment(PhaseToolkit.itemdisplayIdEditBox)
-
-		else
-			PhaseToolkit.EnableCompoment(PhaseToolkit.itemCreatorCheckboxStackable)
-			UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
-			PhaseToolkit.DisableComponent(PhaseToolkit.itemdisplayIdEditBox)
-		end
-		-- if we reset to default data ,wich would be ignorer but hey..you know why im doing this è_é
-		if(PhaseToolkit.itemCreatorData.itemClass==-1) then
-			UIDropDownMenu_DisableDropDown(_subDropdown)
-		else
-			UIDropDownMenu_EnableDropDown(_subDropdown)
-		end
-		-- in case we are not making a weapon, we don't care about sheath,so now it's gone :)
-		if(PhaseToolkit.itemCreatorData.itemClass~=2) then
-			UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemSheathDropdown)
-		else
-			UIDropDownMenu_EnableDropDown(PhaseToolkit.ItemSheathDropdown)
-		end
-		-- if we have a link already,we send the command right away cause..Mindscape asked nicely
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.itemCreatorData.itemClass~=-1) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set class "..itemLink..PhaseToolkit.itemCreatorData.itemClass,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		for _, itemClass in ipairs(PhaseToolkit.itemClass) do
-			local info = UIDropDownMenu_CreateInfo()
-
-			info.text=itemClass.name
-			info.value = itemClass.classId
-
-			info.func = function(self)OnClick(self,info.value,itemClass.subclass) end
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 120)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-end
-
 function PhaseToolkit.ShowItemSubClassDropdown(_subclass,subclass)
 	local function OnClick(self,realvalue)
 		UIDropDownMenu_SetSelectedValue(_subclass, self.value)
@@ -3153,104 +4950,18 @@ local function updateBagContents()
     return currentItems
 end
 
-local function resetItemCreatorData()
-	for key in pairs(PhaseToolkit.itemCreatorData) do
-		PhaseToolkit.itemCreatorData[key] = nil
-	end
-end
-
-local function resetForgeUI()
-	local editboxes = {
-		"itemIdField", "nameInputBox", "DescriptionInputBox", "itemdisplayIdEditBox", "iconIdEditBox",
-	}
-	for _, box in ipairs(editboxes) do
-		box = PhaseToolkit[box]
-		box:SetText("")
-	end
-
-
-	do
-		-- Item Class
-		local classObj=getClassByClassID(-1)
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemClassDropdown,classObj.classId)
-		UIDropDownMenu_SetText(PhaseToolkit.ItemClassDropdown,classObj.name)
-
-		-- Subclass
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSubClassDropdown,0)
-		UIDropDownMenu_SetText(PhaseToolkit.ItemSubClassDropdown,"")
-		UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemSubClassDropdown)
-
-		-- Inv Type
-		local position =getInventoryTypePosition("Inventory type");
-		if(position~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemInventoryTypeDropdown,position)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemInventoryTypeDropdown,"Inventory type")
-			UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemInventoryTypeDropdown)
-		end
-
-		-- Quality
-		local quality = getQualityObject(-1)
-		if(quality~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemQualityDropdown,quality.qualityId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemQualityDropdown,quality.name)
-		end
-
-		-- Binding
-		local binding = getBindingObject(-1)
-		if(binding~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemBondingDropdown,binding.bondingId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemBondingDropdown,binding.name)
-		end
-
-		-- Sheath
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSheathDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.ItemSheathDropdown,"Sheath")
-		UIDropDownMenu_DisableDropDown(PhaseToolkit.ItemSheathDropdown)
-
-		-- Adder
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.adderOptionDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.adderOptionDropdown,"Adder")
-
-		-- Additem
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.addItemOptionDropdownButton,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.addItemOptionDropdownButton,"Additem")
-
-		-- Copy
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.copyOptionDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.copyOptionDropdown,"Copy")
-
-		-- Copy
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.creatorOptionDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.creatorOptionDropdown,"Creator")
-
-		-- Info
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.infoOptionDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.infoOptionDropdown,"Info")
-
-		-- Lookup
-		UIDropDownMenu_SetSelectedValue(PhaseToolkit.lookupOptionDropdown,-1)
-		UIDropDownMenu_SetText(PhaseToolkit.lookupOptionDropdown,"Lookup")
-	end
-
-end
-
-local function resetForge()
-	resetItemCreatorData()
-	resetForgeUI()
-end
-
 -- Function to forge the item with all the data needed
 function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 	local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
 	local CommandsToSend = {}
-	
+
 	-- Collect all commands to send
 	if(PhaseToolkit.itemCreatorData.itemName~=nil) then
 		table.insert(CommandsToSend, "forge item set name "..itemLink..PhaseToolkit.itemCreatorData.itemName)
 	end
 
 	if(PhaseToolkit.itemCreatorData.itemDescription~=nil) then
-		local maxDescriptionSize=240-(string.len("f i s de ")+string.len(itemLink))
+		local maxDescriptionSize=238-(string.len("f i s de ")+string.len(itemLink))
 		if(string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize) then
 			-- Note: sendMessageInChunks will need to be handled separately
 			table.insert(CommandsToSend, "f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
@@ -3258,45 +4969,45 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			table.insert(CommandsToSend, "f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
 		end
 	end
-	
-	if(PhaseToolkit.itemCreatorData.itemClass~=nil and PhaseToolkit.itemCreatorData.itemClass~=-1) then
-		table.insert(CommandsToSend, "forge item set class "..itemLink..PhaseToolkit.itemCreatorData.itemClass)
+
+	if(PhaseToolkit.itemClass~=nil and PhaseToolkit.itemClass~=-1) then
+		table.insert(CommandsToSend, "forge item set class "..itemLink..PhaseToolkit.itemClass)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.itemSubClass~=nil and PhaseToolkit.itemCreatorData.itemSubClass~=-1) then
-		--apparently if itemclass is 4 (armor) subclass 5 (cosmetic) isn't valid 
+		--apparently if itemclass is 4 (armor) subclass 5 (cosmetic) isn't valid
 		-- so we set to 0 (generic) instead to avoid error spam
-		if(PhaseToolkit.itemCreatorData.itemClass==4 and PhaseToolkit.itemCreatorData.itemSubClass==5) then
+		if(PhaseToolkit.itemClass==4 and PhaseToolkit.itemCreatorData.itemSubClass==5) then
 			PhaseToolkit.itemCreatorData.itemSubClass=0
 		end
 		table.insert(CommandsToSend, "forge item set subclass "..itemLink..PhaseToolkit.itemCreatorData.itemSubClass)
 
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.inventoryType~=nil and PhaseToolkit.itemCreatorData.inventoryType~=-1) then
 		table.insert(CommandsToSend, "forge item set inventorytype "..itemLink..PhaseToolkit.itemCreatorData.inventoryType)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.itemDisplayLink~=nil and PhaseToolkit.itemCreatorData.itemDisplayLink~=-1) then
 		table.insert(CommandsToSend, "forge item set display "..itemLink..PhaseToolkit.itemCreatorData.itemDisplayLink)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.bonding~=nil and PhaseToolkit.itemCreatorData.bonding~=-1) then
 		table.insert(CommandsToSend, "forge item set bonding "..itemLink..PhaseToolkit.itemCreatorData.bonding)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.quality~=nil and PhaseToolkit.itemCreatorData.quality~=-1) then
 		table.insert(CommandsToSend, "forge item set quality "..itemLink..PhaseToolkit.itemCreatorData.quality)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.sheath~=nil and PhaseToolkit.itemCreatorData.sheath~=-1) then
 		table.insert(CommandsToSend, "forge item set sheath "..itemLink..PhaseToolkit.itemCreatorData.sheath)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.itemIconIdOrLink~=nil and PhaseToolkit.itemCreatorData.itemIconIdOrLink~=-1) then
 		table.insert(CommandsToSend, "forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.stackable~=nil and PhaseToolkit.itemCreatorData.stackable~=-1) then
 		local value=1
 		if(PhaseToolkit.itemCreatorData.stackable==true) then
@@ -3306,11 +5017,11 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		end
 		table.insert(CommandsToSend, "forge item set stackable "..itemLink..value)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.adder~=nil and PhaseToolkit.itemCreatorData.adder~=-1) then
 		table.insert(CommandsToSend, "forge item set property adder"..itemLink..PhaseToolkit.itemCreatorData.adder)
 	end
-	
+
 	if(PhaseToolkit.additemOption~=nil) then
 		for _,option in ipairs(PhaseToolkit.additemOption) do
 			local value=""
@@ -3318,35 +5029,35 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 			table.insert(CommandsToSend, "forge item set property additem "..option.text..itemLink..value)
 		end
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.copy~=nil and PhaseToolkit.itemCreatorData.copy~=-1) then
 		table.insert(CommandsToSend, "forge item set property copy"..itemLink..PhaseToolkit.itemCreatorData.copy)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.creator~=nil and PhaseToolkit.itemCreatorData.creator~=-1) then
 		table.insert(CommandsToSend, "forge item set property creator"..itemLink..PhaseToolkit.itemCreatorData.creator)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.info~=nil and PhaseToolkit.itemCreatorData.info~=-1) then
 		table.insert(CommandsToSend, "forge item set property info"..itemLink..PhaseToolkit.itemCreatorData.info)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.lookup~=nil and PhaseToolkit.itemCreatorData.lookup~=-1) then
 		table.insert(CommandsToSend, "forge item set property lookup"..itemLink..PhaseToolkit.itemCreatorData.lookup)
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.whitelistedChar~=nil and #PhaseToolkit.itemCreatorData.whitelistedChar>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedChar do
 			table.insert(CommandsToSend, "forge item set whitelist character add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedChar[i])
 		end
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.whitelistedPhaseForMember~=nil and #PhaseToolkit.itemCreatorData.whitelistedPhaseForMember>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForMember do
 			table.insert(CommandsToSend, "forge item set whitelist member add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForMember[i])
 		end
 	end
-	
+
 	if(PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer~=nil and #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer>0) then
 		for  i=1 , #PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer do
 			table.insert(CommandsToSend, "forge item set whitelist officer add"..itemLink..PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer[i])
@@ -3358,12 +5069,12 @@ function PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
 		sendAddonCommandChain(CommandsToSend, function(success, allReturnMessages)
 			-- Command chain completed
 			PhaseToolkit.itemCreatorData.itemLink=nil
-			
+
 			-- Reset everything after all commands are done
 			for key in pairs(PhaseToolkit.itemCreatorData) do
 				PhaseToolkit.itemCreatorData[key] = nil
 			end
-			
+
 			if success then
 				print("Item Forging done !\nyou can use your item !")
 			else
@@ -3401,17 +5112,42 @@ function PhaseToolkit.updateItemLink()
 	end)
 end
 
+local function getClassFromClassString(classString)
+	for _, class in ipairs(PhaseToolkit.itemClass) do
+		if class.name == classString then
+			return class.classId
+		end
+	end
+	return nil -- Return nil if not found
+end
 
+local function getSubClassCompTableFromClassId(classID)
+	local retour = nil
+	if classID then
+		if classID == 2 then
+			retour = PhaseToolkit.itemSubtypeToSubclassIdWeapon
+		elseif classID == 4 then
+			retour = PhaseToolkit.itemSubtypeToSubclassIdArmor
+		elseif classID == 15 then
+			retour = PhaseToolkit.itemSubtypeToSubclassIdMisc
+		elseif classID == 13 then
+			retour = PhaseToolkit.itemSubtypeToSubclassIdKey
+		end
+	end
+	return retour
+end
 
-function PhaseToolkit.insertSpaces(inputString)
-    local result = {}
-    local length = #inputString
-
-    for i = 1, length, 27 do
-        table.insert(result, inputString:sub(i, i + 26)) -- Takes 27 characters at each iteration
-    end
-
-    return table.concat(result, " ") -- Combines segments with a space
+local function getSubClassFromSubClassString(subclassString,classID)
+	local compTable = getSubClassCompTableFromClassId(classID)
+	if compTable then
+		for compString,value in pairs(compTable) do
+			print("Comparing: "..compString.." with "..subclassString)
+			if compString == subclassString then
+				return value
+			end
+		end
+	end
+	return nil -- Return nil if not found
 end
 
 local function updateFields(itemLink)
@@ -3419,6 +5155,7 @@ local function updateFields(itemLink)
 	local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType,
 	itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType,
 	expacID, setID, isCraftingReagent= GetItemInfo(itemId)
+
 
 	local isBindingDetected=false
 	local isWeaponDetected=false
@@ -3449,25 +5186,16 @@ local function updateFields(itemLink)
             table.insert(content, rightText:GetText())
         end
     end
-
-	--InventoryClass is primordial cause used after, and technically first in the workflow
+	classID = getClassFromClassString(itemType)
 	if(classID~=nil) then
-		PhaseToolkit.itemCreatorData.itemClass=classID
-		--now that we have this,we get the correct value and correct text
-		local classObj=getClassByClassID(classID)
-		if(classObj~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemClassDropdown,classObj.classId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemClassDropdown,classObj.name)
-			PhaseToolkit.ShowItemSubClassDropdown(PhaseToolkit.ItemSubClassDropdown,classObj.subclass)
-			PhaseToolkit.EnableCompoment(PhaseToolkit.ItemSubClassDropdown)
-
-			if(classObj.classId==2 or classObj.classId==4) then
-				PhaseToolkit.DisableComponent(PhaseToolkit.itemCreatorCheckboxStackable)
-			else
-				PhaseToolkit.EnableCompoment(PhaseToolkit.itemCreatorCheckboxStackable)
-			end
-		end
+		PhaseToolkit.itemCreatorData.selectedItemClass=classID
 	end
+
+	subclassID = getSubClassFromSubClassString(itemSubType,classID)
+	if(subclassID~=nil) then
+		PhaseToolkit.itemCreatorData.selectedItemSubClass=subclassID
+	end
+
 	if(content[3]~=nil) then
 		if(string.find(string.lower(content[3]),"bind") or string.find(string.lower(content[3]),"quest")) then
 			isBindingDetected=true
@@ -3494,14 +5222,6 @@ local function updateFields(itemLink)
 		inventoryTypeLabel=content[4]
 		weapontype=content[4]
 	end
-	if(not isApparenceCollectedtest and not isDamagePerSecond) then
-		description=content[8]
-	else
-		description=""
-	end
-	if(classID==4) then
-		description=content[6]
-	end
 
 	-- IN CASE WE REAAAALLLY didn't find the description..we try it all.
 	if(description==nil or description=="") then
@@ -3514,17 +5234,9 @@ local function updateFields(itemLink)
 
 	if(description~=nil and description~="") then
 		description=description:match('^"(.*)"$') or description
-		PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetText(description)
+		PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame:SetText(description)
 	end
 
-	--subclass thing
-	if(weapontype~=nil and weapontype~="") then
-		local weaponTypeObj=getWeaponTypeId(weapontype,inventoryTypeLabel)
-		if(weaponTypeObj~=nil)then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemSubClassDropdown,weaponTypeObj.subclassId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemSubClassDropdown,weaponTypeObj.name)
-		end
-	end
 
 	if(inventoryTypeLabel~=nil and inventoryTypeLabel~="") then
 		if(string.lower(inventoryTypeLabel):find("one")~=nil) then
@@ -3532,1948 +5244,3432 @@ local function updateFields(itemLink)
 		end
 		local position =getInventoryTypePosition(inventoryTypeLabel);
 		if(position~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemInventoryTypeDropdown,position)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemInventoryTypeDropdown,inventoryTypeLabel)
+			PhaseToolkit.itemCreatorData.selectedInventoryType=position
 		end
 	end
 
 	if(itemQuality~=nil and itemQuality~="") then
 		local quality = getQualityObject(itemQuality)
 		if(quality~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemQualityDropdown,quality.qualityId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemQualityDropdown,quality.name)
+			PhaseToolkit.itemCreatorData.selectedItemQuality=quality.qualityId
 		end
 	end
 
-	if(bindType~=nil and bindType~="") then
-		local binding = getBindingObject(bindType)
+	if(isBindingDetected) then
+		local binding = getBindingObject(content[3])
 		if(binding~=nil) then
-			UIDropDownMenu_SetSelectedValue(PhaseToolkit.ItemBondingDropdown,binding.bondingId)
-			UIDropDownMenu_SetText(PhaseToolkit.ItemBondingDropdown,binding.name)
+			PhaseToolkit.itemCreatorData.selectedItemBonding=binding
 		end
 	end
 
-	PhaseToolkit.nameInputBox:SetText(itemName)
+	PhaseToolkit.DeployingFrame.itemForgeNameInput:SetText(itemName)
 
 	C_Timer.After(1, function()
 		PhaseToolkit.ModifyItemData=true
 	  end)
 
+	PhaseToolkit.refreshAllItemCreatorScrollFrame()
+
 end
 
-function PhaseToolkit.createItemCreatorFrame()
-	if (PhaseToolkit.ItemCreatorFrame ~= nil) then
-		if (PhaseToolkit.ItemCreatorFrame:IsShown()) then
-			PhaseToolkit.ItemCreatorFrame:Hide()
-		else
-			PhaseToolkit.ItemCreatorFrame:Show()
+
+
+-- DeployingFrameCreation
+local animClipFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame);
+animClipFrame:SetSize(PhaseToolkit.NPCCustomiserMainFrame:GetWidth()*3, PhaseToolkit.deployingFrameBaseSize);
+animClipFrame:SetPoint("TOP", PhaseToolkit.NPCCustomiserMainFrame, "BOTTOM", 0, 10);
+animClipFrame:SetClipsChildren(true)
+-- hook script down below to ensure that we follow sizing on DeployingFrame
+
+PhaseToolkit.DeployingFrame = CreateFrame("Frame", nil, animClipFrame, "PortraitFrameTemplate");
+PhaseToolkit.DeployingFrame:SetSize(PhaseToolkit.NPCCustomiserMainFrame:GetWidth(), PhaseToolkit.deployingFrameBaseSize);
+PhaseToolkit.DeployingFrame:SetPoint("TOP", PhaseToolkit.NPCCustomiserMainFrame, "BOTTOM", 0, 60);
+ButtonFrameTemplateMinimizable_HidePortrait(PhaseToolkit.DeployingFrame)
+NineSliceUtil.ApplyLayoutByName(PhaseToolkit.DeployingFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+EpsilonLib.Utils.NineSlice.CropNineSliceCorners(PhaseToolkit.DeployingFrame.NineSlice, 0.8, true)
+EpsilonLib.Utils.NineSlice.CropNineSliceCorners(PhaseToolkit.DeployingFrame.NineSlice, 0.4)
+EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(PhaseToolkit.DeployingFrame, PhaseToolkit.DeployingFrame.Bg)
+PhaseToolkit.DeployingFrame.NineSlice.TopEdge:Hide()
+PhaseToolkit.DeployingFrame.NineSlice.TopLeftCorner:Hide()
+PhaseToolkit.DeployingFrame.NineSlice.TopRightCorner:Hide()
+PhaseToolkit.DeployingFrame.TitleBg:Hide()
+PhaseToolkit.DeployingFrame.CloseButton:Hide()
+PhaseToolkit.DeployingFrame:Hide()
+PhaseToolkit.DeployingFrame.isDeployed = false;
+PhaseToolkit.DeployingFrame.OffsetFromTop=-40;
+PhaseToolkit.DeployingFrame.activeDeployingContext = nil
+PhaseToolkit.DeployingFrame.lastDeployingContext = "npc_forge"
+PhaseToolkit.DeployingFrame.pendingDeployingContext = nil
+
+hooksecurefunc(PhaseToolkit.DeployingFrame, "SetSize", function(self, ...)
+    animClipFrame:SetSize(...)
+end)
+hooksecurefunc(PhaseToolkit.DeployingFrame, "SetHeight", function(self, ...)
+    animClipFrame:SetHeight(...)
+end)
+
+--DeployingFrame Anim
+
+local function createDeployRetractAnimsForFrame(frame, offsetX, offsetY, scripts)
+	local panel, OFFSET_X, OFFSET_Y = frame, offsetX, offsetY
+
+	if not panel.animGroupDeploy then
+		local AnimationGroup = panel.animGroupDeploy or panel:CreateAnimationGroup("DeployAnimation");
+		panel.animGroupDeploy = AnimationGroup
+
+		local snapToStart = AnimationGroup.SnapToStart or AnimationGroup:CreateAnimation("Translation")
+		AnimationGroup.SnapToStart = snapToStart
+		snapToStart:SetOrder(1)
+		snapToStart:SetOffset(OFFSET_X, OFFSET_Y)
+		snapToStart:SetDuration(0)
+
+		local fadeIn = AnimationGroup.FadeIn or AnimationGroup:CreateAnimation("Alpha");
+		AnimationGroup.FadeIn = fadeIn
+		fadeIn:SetOrder(2);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local slideIn = AnimationGroup.SlideIn or AnimationGroup:CreateAnimation("Translation")
+		AnimationGroup.SlideIn = slideIn
+		slideIn:SetOrder(2)
+		slideIn:SetOffset(-OFFSET_X, -OFFSET_Y)
+		slideIn:SetDuration(0.5)
+		slideIn:SetSmoothing("OUT")
+
+		if scripts.onPlayDeploy then
+			AnimationGroup:SetScript("OnPlay", scripts.onPlayDeploy);
 		end
-		return
+		if scripts.onFinishedDeploy then
+			AnimationGroup:SetScript("OnFinished", scripts.onFinishedDeploy);
+		end
 	end
 
-	PhaseToolkit.ItemCreatorFrame = CreateFrame("Frame", "ItemCreatorFrame", PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
-	PhaseToolkit.ItemCreatorFrame:SetSize(350,515)
-	PhaseToolkit.ItemCreatorFrame:SetPoint("TOPRIGHT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", -5, 0)
-	PhaseToolkit.ItemCreatorFrame:EnableMouse(true);
+	if not panel.animGroupRetract then
+		local AnimationGroup = panel.animGroupRetract or panel:CreateAnimationGroup("RetractAnimation");
+		panel.animGroupRetract = AnimationGroup
 
-	PhaseToolkit.ItemCreatorFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("IN")
 
+		local slideOut = AnimationGroup.SlideOut or AnimationGroup:CreateAnimation("Translation")
+		AnimationGroup.SlideOut = slideOut
+		slideOut:SetOrder(1)
+		slideOut:SetOffset(OFFSET_X, OFFSET_Y)
+		slideOut:SetDuration(0.5)
+		slideOut:SetSmoothing("IN")
 
-	-- Creation of the Utility belt
-
-	local utilityBelt=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	utilityBelt:SetSize(340,35)
-	utilityBelt:SetPoint("TOP", PhaseToolkit.ItemCreatorFrame, "TOP", 0,-5)
-
-	utilityBelt:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	--field for the itemID
-
-	PhaseToolkit.itemIdField = CreateFrame("EditBox", "ItemIdField", utilityBelt, "InputBoxTemplate")
-	PhaseToolkit.itemIdField:SetSize(150, 30)
-	PhaseToolkit.itemIdField:SetPoint("BOTTOMLEFT",utilityBelt,"BOTTOMLEFT",12.5,2.5)
-	PhaseToolkit.itemIdField:SetAutoFocus(false)
-	PhaseToolkit.itemIdField:SetScript("OnEnterPressed",function(self)
-		PhaseToolkit.itemCreatorData.itemLink=self:GetText()
-		self:ClearFocus()
-	end)
-
-	PhaseToolkit.itemIdField:SetScript("OnTextChanged",function()
-		if(PhaseToolkit.itemIdField:GetText()=="") then
-			PhaseToolkit.EnableCompoment(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON)
-			PhaseToolkit.DisableComponent(PhaseToolkit.ApplyDescriptionButton)
-			PhaseToolkit.itemCreatorData.itemLink=nil
+		if scripts.onPlayRetract then
+			AnimationGroup:SetScript("OnPlay", scripts.onPlayRetract);
 		end
-	end)
-
-	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
-
-	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.itemIdField:HasFocus() then
-			PhaseToolkit.itemIdField:Insert(link)
-			PhaseToolkit.itemCreatorData.itemLink=PhaseToolkit.itemIdField:GetText()
-			PhaseToolkit.DisableComponent(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON)
-			PhaseToolkit.EnableCompoment(PhaseToolkit.ApplyDescriptionButton)
-			updateFields(PhaseToolkit.itemCreatorData.itemLink)
-		else
-			orig_ChatEdit_InsertLink(link)
+		if scripts.onFinishedRetract then
+			AnimationGroup:SetScript("OnFinished", scripts.onFinishedRetract);
 		end
 	end
 
-	local labelforItem=utilityBelt:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	labelforItem:SetText("Edit Item Link")
-	labelforItem:SetPoint("LEFT",PhaseToolkit.itemIdField,"RIGHT",5,0)
+end
 
+createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame, 0, 60, {
+	onPlayDeploy = function()
+		animClipFrame:SetClipsChildren(true)
+		PhaseToolkit.DeployingFrame:Show()
+		PhaseToolkit.DeployingFrame:SetFrameLevel(PhaseToolkit.NPCCustomiserMainFrame:GetFrameLevel()-1)
+		hideContext(PhaseToolkit.DeployingFrame.activeDeployingContext)
+	end,
+	onFinishedDeploy = function()
+		if(PhaseToolkit.context and #PhaseToolkit.context>0) then
+			showContext(PhaseToolkit.context)
+		end
+		animClipFrame:SetClipsChildren(false)
+		PhaseToolkit.DeployingFrame:SetFrameLevel(PhaseToolkit.NPCCustomiserMainFrame:GetFrameLevel()-1)
+		PhaseToolkit.DeployingFrame.isDeployed = true;
+	end,
+	onPlayRetract = function()
+		animClipFrame:SetClipsChildren(true)
+		PhaseToolkit.DeployingFrame:SetFrameLevel(PhaseToolkit.NPCCustomiserMainFrame:GetFrameLevel()-1)
+		if(PhaseToolkit.context and #PhaseToolkit.context>0) then
+			hideContext(PhaseToolkit.context)
+		end
+	end,
+	onFinishedRetract = function()
+		animClipFrame:SetClipsChildren(false)
+		PhaseToolkit.DeployingFrame:SetFrameLevel(PhaseToolkit.NPCCustomiserMainFrame:GetFrameLevel()-1)
+        PhaseToolkit.DeployingFrame:Hide()
+        PhaseToolkit.DeployingFrame.isDeployed = false;
+	end,
+})
 
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON=CreateFrame("Button",nil,utilityBelt,"UIPanelButtonTemplate");
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:SetSize(25, 25)
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:SetPoint("RIGHT", utilityBelt, "RIGHT", -20, 0)
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON.icon = PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:CreateTexture(nil, "OVERLAY")
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON.icon:SetAllPoints()
+PhaseToolkit.DeployingFrame.PlayDeployAnimation = function()
+	local panel = PhaseToolkit.DeployingFrame
+	local AnimationGroup = panel.animGroupDeploy
+	AnimationGroup:Play();
+end
 
-	PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON:SetScript("OnClick", function()
-		if(PhaseToolkit.itemCreatorData.itemLink==nil) then
-			PhaseToolkit.previousItems = updateBagContents()
-			PhaseToolkit.ItemCreatorFrame:RegisterEvent("BAG_UPDATE")
+PhaseToolkit.DeployingFrame.PlayRetractAnimation = function()
+	local panel = PhaseToolkit.DeployingFrame
+	local AnimationGroup = panel.animGroupRetract
+    AnimationGroup:Play();
+end
 
+PhaseToolkit.DeployingFrame.handleDeployingFrameState = function(self)
+	if self.isDeployed then
+		self:PlayRetractAnimation();
+	else
+		self:PlayDeployAnimation();
+	end
+end
 
-			PhaseToolkit.ItemCreatorFrame:SetScript("OnEvent",function() C_Timer.After(1, function()
-					for _, itemID in ipairs(PhaseToolkit.currentItems) do
-						if not tContains(PhaseToolkit.previousItems, itemID) then
-							local itemName, itemLink = GetItemInfo(itemID)
+local function Lerp(a, b, t) return a + (b - a) * t end
 
-							if itemLink == nil then
-								-- ItemLink failed. Let's generate a fake link.
-								itemLink = minItemLink:format(tonumber(itemID), "TempLink")
-							end
+local function SetAtlasVerticalHalf(tex, atlasName, side) -- "LEFT" ou "RIGHT"
+    tex:SetAtlas(atlasName, true) -- IMPORTANT: d'abord SetAtlas
 
-							PhaseToolkit.itemCreatorData.itemLink=itemLink
-							PhaseToolkit.BLOODFORTHEITEMFORGEGOD()
-						end
-					end
-					PhaseToolkit.previousItems = PhaseToolkit.currentItems
-				end)
-			end);
+    -- 8 coords (UL, LL, UR, LR)
+    local ulx, uly, llx, lly, urx, ury, lrx, lry = tex:GetTexCoord()
 
-			SendChatMessage(".forge item create")
-			C_Timer.After(1, function()
-				PhaseToolkit.currentItems=updateBagContents()
+    -- milieu entre gauche et droite (sur le bord haut et bas)
+    local mtx, mty = Lerp(ulx, urx, 0.5), Lerp(uly, ury, 0.5)
+    local mbx, mby = Lerp(llx, lrx, 0.5), Lerp(lly, lry, 0.5)
+
+    if side == "LEFT" then
+        -- UL, LL, (milieu haut), (milieu bas)
+        tex:SetTexCoord(ulx, uly, llx, lly, mtx, mty, mbx, mby)
+    else
+        -- (milieu haut), (milieu bas), UR, LR
+        tex:SetTexCoord(mtx, mty, mbx, mby, urx, ury, lrx, lry)
+    end
+end
+
+local function activateNpcCustomHighlights()
+	if PhaseToolkit.DeployingFrame.CustomCategoryButtons then
+		for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
+			button:SetScript("OnEnter",function()
+				button.Highlight:Show()
 			end)
 		end
-
-	end)
-
-
-	PhaseToolkit.RegisterTooltip(PhaseToolkit.GIVEBLOODTOTHEFORGINGGODBUTTON, "FORGE ! (may take some time)")
-
-	-- Reset Button
-	PhaseToolkit.ResetForgeButton=CreateFrame("Button",nil,utilityBelt,"UIPanelButtonTemplate");
-	PhaseToolkit.ResetForgeButton:SetSize(25, 25)
-	PhaseToolkit.ResetForgeButton:SetPoint("RIGHT", utilityBelt, "RIGHT", -20-25-10, 0)
-	PhaseToolkit.ResetForgeButton.icon = PhaseToolkit.ResetForgeButton:CreateTexture(nil, "OVERLAY")
-	PhaseToolkit.ResetForgeButton.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
-	PhaseToolkit.ResetForgeButton.icon:SetAllPoints()
-	PhaseToolkit.ResetForgeButton.icon2 = PhaseToolkit.ResetForgeButton:CreateTexture(nil, "OVERLAY", nil, select(2,PhaseToolkit.ResetForgeButton.icon:GetDrawLayer())+1)
-	PhaseToolkit.ResetForgeButton.icon2:SetAtlas("common-icon-redx")
-	PhaseToolkit.ResetForgeButton.icon2:SetAllPoints()
-
-	PhaseToolkit.RegisterTooltip(PhaseToolkit.ResetForgeButton, "Reset Forge")
-	PhaseToolkit.ResetForgeButton:SetScript("OnClick", function()
-		resetForge()
-		--updateFields()
-	end)
-
-
-
-	-- Information Name
-
-	local informationFrame=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	informationFrame:SetSize(340,150)
-	informationFrame:SetPoint("TOP", utilityBelt, "BOTTOM", 0,0)
-
-	informationFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	PhaseToolkit.nameInputBox = CreateFrame("EditBox", "itemNameField", informationFrame, "InputBoxTemplate")
-	PhaseToolkit.nameInputBox:SetSize(310, 30)
-	PhaseToolkit.nameInputBox:SetPoint("TOP",informationFrame,"TOP",0,-15)
-	PhaseToolkit.nameInputBox:SetAutoFocus(false)
-
-	PhaseToolkit.nameInputBox:SetScript("OnTextChanged", function(self)
-		PhaseToolkit.itemCreatorData.itemName=self:GetText();
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.ModifyItemData) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			PhaseToolkit.updateItemLink()
-			sendAddonCmd("forge item set name "..itemLink..self:GetText(),nil,false)
-		end
-	end)
-	local maxDescriptionSize=254
-
-	local labelfornameInputBox = informationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelfornameInputBox:SetPoint("TOP", PhaseToolkit.nameInputBox, "TOP", 0, 10)
-	labelfornameInputBox:SetText("Item Name")
-
-	local DescriptionFrame  = CreateFrame("FRAME", nil, informationFrame, "BackdropTemplate")
-	DescriptionFrame:SetPoint("TOP", PhaseToolkit.nameInputBox, "BOTTOM", 0, -15)
-	DescriptionFrame:SetSize(330, 85)
-
-	PhaseToolkit.DescriptionInputBox  = CreateFrame("FRAME", "$parentEdit", DescriptionFrame, "EpsilonInputScrollTemplate")
-	PhaseToolkit.DescriptionInputBox:SetPoint("TOP", PhaseToolkit.nameInputBox, "BOTTOM", 0, -15)
-	PhaseToolkit.DescriptionInputBox:SetSize(330, 85)
-	PhaseToolkit.DescriptionInputBox.SetText = function(self, ...)
-		PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetText(...)
 	end
+end
 
-	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEnterPressed", function(self)
-		self:ClearFocus()
-	end)
-	PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:SetScript("OnEditFocusLost", function(self)
-		PhaseToolkit.itemCreatorData.itemDescription=self:GetText();
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.ModifyItemData) then
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-				maxDescriptionSize=254-(string.len("f i s de ")+string.len(" "..PhaseToolkit.itemCreatorData.itemLink.." "))
-			end
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			if((string.len(self:GetText())<maxDescriptionSize)) then
-				sendAddonCmd("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
-				PhaseToolkit.HideTooltip()
-				self:SetScript("OnEnter",nil)
-				self:SetScript("OnLeave",nil)
-			else
-				local border = DescriptionFrame:CreateTexture(nil, "BACKGROUND")
-				border:SetColorTexture(1, 0, 0, 1) -- red (R, G, B, Alpha)
-				border:SetPoint("TOPLEFT", -2, 2)
-				border:SetPoint("BOTTOMRIGHT", 2, -2)
-				PhaseToolkit.ShowTooltip(self,"Your description is too big and will be send in multiple part\nclick the Apply description button on the top-right")
-				self:SetScript("OnEnter",function(self)
-					PhaseToolkit.ShowTooltip(self,"Your description is too big and will be send in multiple part\nclick the Apply description button on the top-right")
-				end)
-				self:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+local function getSelectedGender()
+	local gender = "MALE"
+	if (PhaseToolkit.DeployingFrame.NpcGenderSlider:GetValue() == 1) then
+        gender = "FEMALE"
+    end
+	return gender
+end
 
-				C_Timer.After(1.5, function()
-					border:SetColorTexture(1, 0, 0, 0)
-				 end)
-			end
-
-		end
-	end)
-
-	local labelDescriptionInputBox = informationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelDescriptionInputBox:SetPoint("TOP", PhaseToolkit.DescriptionInputBox, "TOP", 0, 15)
-	labelDescriptionInputBox:SetText("Item Description")
-
-	PhaseToolkit.ApplyDescriptionButton=CreateFrame("Button",nil,DescriptionFrame,"UIPanelButtonTemplate")
-	PhaseToolkit.ApplyDescriptionButton:SetSize(20,20)
-	PhaseToolkit.ApplyDescriptionButton:SetPoint("LEFT", labelDescriptionInputBox, "RIGHT", 80, 0)
-	PhaseToolkit.ApplyDescriptionButton.icon = PhaseToolkit.ApplyDescriptionButton:CreateTexture(nil, "OVERLAY")
-	PhaseToolkit.ApplyDescriptionButton.icon:SetTexture("Interface\\Icons\\achievement_quests_completed_twilighthighlands")
-	PhaseToolkit.ApplyDescriptionButton.icon:SetAllPoints()
-
-	PhaseToolkit.RegisterTooltip(PhaseToolkit.ApplyDescriptionButton, "Apply the description !\nusefull if you copy/pasted\n or if your description is BIG")
-
-	PhaseToolkit.ApplyDescriptionButton:SetScript("OnClick",function(self)
-		PhaseToolkit.itemCreatorData.itemDescription=PhaseToolkit.DescriptionInputBox.ScrollFrame.EditBox:GetText();
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			if(string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize) then
-				sendMessageInChunks("f i s de "..itemLink..PhaseToolkit.itemCreatorData.itemDescription)
-			else
-				sendAddonCmd("forge item set description "..itemLink..PhaseToolkit.itemCreatorData.itemDescription,nil,false)
+local function buildCustomDatasetForCategory(category)
+	if (PhaseToolkit.SelectedRace) then
+		local raceName= PhaseToolkit.SelectedRace.name
+		local categoryField = raceGenderCategory[raceName][getSelectedGender()]["CATEGORY"][category]
+		local customs = PhaseToolkit.InfoCustom[raceName][getSelectedGender():lower()]
+		local dataset = {}
+		-- We get rid of spaces, and uppercase letter
+		local concatFields = table.concat(categoryField,","):gsub(" ",""):lower()
+		local fields = strsplittable(",",concatFields)
+		for fieldName,fieldValue in pairs (customs) do
+			local cleanName = string.gsub(fieldName,"_",""):lower()
+			if(fields and tContains(fields,cleanName))then
+				dataset[fieldName]=fieldValue
 			end
 		end
-	end)
-
-
-
-
-	-- Main property Frame
-
-	local mainProperty=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	mainProperty:SetSize(170,150)
-	mainProperty:SetPoint("TOPLEFT", informationFrame, "BOTTOMLEFT", 0,0)
-
-	mainProperty:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	PhaseToolkit.ItemClassDropdown = CreateFrame("Frame", nil, mainProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemClassDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemClassDropdown:SetPoint("TOPLEFT", mainProperty, "TOPLEFT", -10,-5)
-
-	PhaseToolkit.ItemSubClassDropdown = CreateFrame("Frame", nil, mainProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemSubClassDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemSubClassDropdown:SetPoint("TOPLEFT", mainProperty, "TOPLEFT", -10,-30)
-	PhaseToolkit.DisableComponent(PhaseToolkit.ItemSubClassDropdown);
-
-	PhaseToolkit.ShowItemClassDropdown(PhaseToolkit.ItemClassDropdown,PhaseToolkit.ItemSubClassDropdown)
-
-	PhaseToolkit.ItemInventoryTypeDropdown = CreateFrame("Frame", nil, mainProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemInventoryTypeDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemInventoryTypeDropdown:SetPoint("TOPLEFT", mainProperty, "TOPLEFT", -10,-55)
-
-	PhaseToolkit.ShowItemInventoryDropdown(PhaseToolkit.ItemInventoryTypeDropdown)
-
-	PhaseToolkit.itemdisplayIdEditBox = CreateFrame("EditBox", "displayIdEditBox", mainProperty, "InputBoxTemplate")
-	PhaseToolkit.itemdisplayIdEditBox:SetSize(150, 30)
-	PhaseToolkit.itemdisplayIdEditBox:SetPoint("TOPLEFT",PhaseToolkit.ItemInventoryTypeDropdown,"BOTTOMLEFT",20,-10)
-	PhaseToolkit.itemdisplayIdEditBox:SetAutoFocus(false)
-
-	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnTextChanged",function()
-		if(PhaseToolkit.itemdisplayIdEditBox:GetText()=="") then
-			PhaseToolkit.itemCreatorData.itemDisplayLink=nil
-		end
-	end)
-
-	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
-
-	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.itemdisplayIdEditBox:HasFocus() then
-			PhaseToolkit.itemdisplayIdEditBox:Insert(link)
-			PhaseToolkit.itemCreatorData.itemDisplayLink=PhaseToolkit.itemdisplayIdEditBox:GetText()
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set display "..itemLink..PhaseToolkit.itemCreatorData.itemDisplayLink,nil,false)
-			end
-		else
-			orig_ChatEdit_InsertLink(link)
-		end
+		return dataset
+	else
+		return nil
 	end
-	local LabeldisplayEditBox=mainProperty:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	LabeldisplayEditBox:SetText(PhaseToolkit.CurrentLang["Display ID from:"])
-	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.itemdisplayIdEditBox, "TOPLEFT", 5, 0)
+end
 
-	PhaseToolkit.RegisterTooltip(PhaseToolkit.itemdisplayIdEditBox, "Item Link")
+local function getPaddingForLanguage()
+	local currentLang= PhaseToolKitConfig["CurrentLang"]
+	local padding = 0
+	if (currentLang == "English") then
+		padding = 0
+	elseif (currentLang == "French") then
+		padding = 150
+	elseif (currentLang == "Spanish") then
+		padding = 50
+	elseif (currentLang == "German") then
+		padding = 50
+	elseif (currentLang == "Portuguese") then
+		padding = 50
+	elseif (currentLang == "Russian") then
+		padding = 50
+	end
+	return padding
+end
 
-	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEnterPressed",function(self)
-		self:ClearFocus()
-	end)
-	PhaseToolkit.itemdisplayIdEditBox:SetScript("OnEditFocusLost",function(self)
-		if(self:GetText()~=nil) then
-			local itemName,itemLink =GetItemInfo(self:GetText())
-			PhaseToolkit.itemCreatorData.DisplayLink=itemLink
-		end
-	end)
+local function CustomizeNpc(fieldName,value)
+	if(PhaseToolkit.CustomFieldLocks[fieldName]) then
+		return
+	end
+	if( UnitExists("target") and UnitIsPlayer("target")==false) then
+		sendAddonCmd("phase forge npc out custom "..fieldName.." "..value, nil)
+	end
+end
 
-	-- display property Frame
+local function isCategoryExistingOnRace()
+	if(PhaseToolkit.SelectedRace and PhaseToolkit.SelectedCategory)then
+		local raceName= PhaseToolkit.SelectedRace.name
+		local category=PhaseToolkit.SelectedCategory.LinkedCategory
+		return raceGenderCategory[raceName][getSelectedGender()]["CATEGORY"][category]~=nil
+	else
+		return false
+	end
+end
 
-	local displayProperty=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	displayProperty:SetSize(170,150)
-	displayProperty:SetPoint("TOPLEFT", mainProperty, "TOPRIGHT",0,0)
+local function deployCustomPanel()
+	local AnimationGroup = PhaseToolkit.customPanel:CreateAnimationGroup("DeployRacePanelAnimation");
 
-	displayProperty:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
+	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+	fadeIn:SetOrder(1);
+	fadeIn:SetFromAlpha(0);
+	fadeIn:SetToAlpha(1);
+	fadeIn:SetDuration(0.5);
+	fadeIn:SetSmoothing("OUT")
 
-	PhaseToolkit.ItemBondingDropdown = CreateFrame("Frame", nil, displayProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemBondingDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemBondingDropdown:SetPoint("TOPLEFT", displayProperty, "TOPLEFT", -10,-5)
+	local scaleUp= AnimationGroup:CreateAnimation("Scale");
+	scaleUp:SetOrder(1);
+	scaleUp:SetFromScale(0.0,1.0);
+	scaleUp:SetToScale(1.0,1.0);
+	scaleUp:SetDuration(0.5);
+	scaleUp:SetSmoothing("OUT")
+	scaleUp:SetOrigin("LEFT",0,0)
 
-	PhaseToolkit.ShowItemBondingDropdown(PhaseToolkit.ItemBondingDropdown)
+	AnimationGroup:SetScript("OnPlay", function()
+		hideContent(PhaseToolkit.customPanel.contentToManage)
+		hideContent(PhaseToolkit.customPanel.activeCells)
+		PhaseToolkit.customPanel:Show()
+	end);
 
-	PhaseToolkit.ItemQualityDropdown = CreateFrame("Frame", nil, displayProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemQualityDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemQualityDropdown:SetPoint("TOPLEFT", displayProperty, "TOPLEFT", -10,-30)
+	AnimationGroup:SetScript("OnFinished", function()
+		showContent(PhaseToolkit.customPanel.contentToManage)
+		-- FIX: on ne montre QUE les cellules actives du dataset courant,
+		-- pas toutes les cellules jamais créées (sinon des cellules d'un
+		-- dataset précédent, plus grand, réapparaissent à la réouverture).
+		showContent(PhaseToolkit.customPanel.activeCells)
+	end);
 
-	PhaseToolkit.ShowItemQualityDropdown(PhaseToolkit.ItemQualityDropdown)
+	AnimationGroup:Play();
+end
 
-	PhaseToolkit.ItemSheathDropdown = CreateFrame("Frame", nil, displayProperty, "UIDropDownMenuTemplate")
-	PhaseToolkit.ItemSheathDropdown:SetSize(160, 30)
-	PhaseToolkit.ItemSheathDropdown:SetPoint("TOPLEFT", displayProperty, "TOPLEFT", -10,-55)
+local function retractCustomPanel()
+	local AnimationGroup = PhaseToolkit.customPanel:CreateAnimationGroup("DeployRacePanelAnimation");
 
-	PhaseToolkit.ShowItemSheathDropdown(PhaseToolkit.ItemSheathDropdown)
+	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+	fadeIn:SetOrder(1);
+	fadeIn:SetFromAlpha(1);
+	fadeIn:SetToAlpha(0);
+	fadeIn:SetDuration(0.5);
+	fadeIn:SetSmoothing("OUT")
 
+	local scaleUp= AnimationGroup:CreateAnimation("Scale");
+	scaleUp:SetOrder(1);
+	scaleUp:SetFromScale(1.0,1.0);
+	scaleUp:SetToScale(0.0,1.0);
+	scaleUp:SetDuration(0.5);
+	scaleUp:SetSmoothing("OUT")
+	scaleUp:SetOrigin("LEFT",0,0)
 
-	PhaseToolkit.itemCreatorCheckboxStackable = CreateFrame("CheckButton", "CheckboxStackable", displayProperty, "ChatConfigCheckButtonTemplate")
-	PhaseToolkit.itemCreatorCheckboxStackable:SetPoint("BOTTOMLEFT",displayProperty,"BOTTOMLEFT",5,5)
-	PhaseToolkit.itemCreatorCheckboxStackable:SetSize(26, 26)
+	AnimationGroup:SetScript("OnPlay", function()
+		hideContent(PhaseToolkit.customPanel.contentToManage)
+		hideContent(PhaseToolkit.customPanel.activeCells)
+	end);
 
-	PhaseToolkit.iteeCreatorEditBoxStackable=CreateFrame("EditBox", "itemCreatorEditBoxStackable", PhaseToolkit.itemCreatorCheckboxStackable, "InputBoxTemplate")
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetSize(50, 30)
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 80, 0)
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetAutoFocus(false)
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetNumeric(true)
-	PhaseToolkit.iteeCreatorEditBoxStackable:Hide()
+	AnimationGroup:SetScript("OnFinished", function()
+		PhaseToolkit.customPanel:Hide()
+	end);
 
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetScript("OnEnterPressed",function(self)
-		if(self:GetText()~="") then
-			local valeur=self:GetText()
-			if(tonumber(self:GetText())>10000) then
-				PhaseToolkit.iteeCreatorEditBoxStackable:SetText("10000")
-				valeur="10000"
-			end
-			PhaseToolkit.itemCreatorData.stackablecount=tonumber(valeur)
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set stackable "..itemLink..valeur,nil,false)
-			end
-		else
-			PhaseToolkit.itemCreatorData.stackablecount=nil
-		end
-		self:ClearFocus()
-	end)
-
-	PhaseToolkit.iteeCreatorEditBoxStackable:SetScript("OnEscapePressed",function(self)
-		self:ClearFocus()
-	end)
-
-	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetText("Stackable")
-	PhaseToolkit.itemCreatorCheckboxStackable.Text:SetPoint("LEFT", PhaseToolkit.itemCreatorCheckboxStackable, "RIGHT", 5, 0)
-
-	PhaseToolkit.itemCreatorCheckboxStackable:SetScript("OnClick", function(self)
-		if self:GetChecked() then
-			PhaseToolkit.itemCreatorData.stackable=true
-			PhaseToolkit.iteeCreatorEditBoxStackable:Show()
-		else
-			PhaseToolkit.itemCreatorData.stackable=false
-			PhaseToolkit.iteeCreatorEditBoxStackable:Hide()
-		end
-	end)
+	AnimationGroup:Play();
+end
 
 
-	PhaseToolkit.iconIdEditBox = CreateFrame("EditBox", "iconIdEditBox", displayProperty, "InputBoxTemplate")
-	PhaseToolkit.iconIdEditBox:SetSize(150, 30)
-	PhaseToolkit.iconIdEditBox:SetPoint("TOPLEFT",PhaseToolkit.ItemSheathDropdown,"BOTTOMLEFT",20,-10)
-	PhaseToolkit.iconIdEditBox:SetAutoFocus(false)
+local function buildCustomPanelForDataset(dataset,category,refreshOnly)
+	local paddingForLangageReason=getPaddingForLanguage()
+	if(PhaseToolkit.DeployingFrame )then
+		local panelContent = (PhaseToolkit.customPanel and PhaseToolkit.customPanel.contentToManage) or {}
+		if(not PhaseToolkit.customPanel) then
+			local Panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+			Panel:SetSize(PhaseToolkit.DeployingFrame:GetWidth()+200, 245);
+			Panel:SetPoint("LEFT", PhaseToolkit.DeployingFrame, "RIGHT", 0, -27.5);
+			ButtonFrameTemplateMinimizable_HidePortrait(Panel)
+			NineSliceUtil.ApplyLayoutByName(Panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(Panel.NineSlice, 0.8, true)
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(Panel.NineSlice, 0.4)
+			EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(Panel, Panel.Bg)
+			Panel:SetFrameStrata("LOW")
+			local titleBgColor = Panel:CreateTexture(nil, "BACKGROUND")
+			local color = CreateColorFromHexString("80FF7100")
+			titleBgColor:SetPoint("TOPLEFT", Panel.TitleBg)
+			titleBgColor:SetPoint("BOTTOMRIGHT", Panel.TitleBg, -0, 0)
+			titleBgColor:SetColorTexture(color:GetRGBA())
+			Panel.TitleBgColor = titleBgColor
 
-
-    PhaseToolkit.iconIdPickerButton = CreateFrame("Button", nil, displayProperty, "UIPanelButtonTemplate")
-    PhaseToolkit.iconIdPickerButton:SetSize(40,20)
-    PhaseToolkit.iconIdPickerButton:SetFrameLevel(PhaseToolkit.iconIdEditBox:GetFrameLevel()+1)
-    PhaseToolkit.iconIdPickerButton.Text:SetText("Select")
-    PhaseToolkit.iconIdPickerButton:SetNormalFontObject("GameFontNormalSmall")
-    PhaseToolkit.iconIdPickerButton:SetDisabledFontObject("GameFontDisableSmall")
-    PhaseToolkit.iconIdPickerButton:SetHighlightFontObject("GameFontHighlightSmall")
-    PhaseToolkit.iconIdPickerButton:SetPoint("BOTTOMRIGHT", PhaseToolkit.iconIdEditBox, "TOPRIGHT", 0, -4)
-    PhaseToolkit.iconIdPickerButton:SetScript("OnClick", function(self)
-        --EpsilonLibIconPicker_Open(returnFunc, closeOnClick, playSound, attachFrame, hidePortrait)
-        EpsilonLibIconPicker_Open(function(path, name, id)
-            if id then
-				PhaseToolkit.iconIdEditBox:SetText(id)
-				PhaseToolkit.itemCreatorData.itemIconIdOrLink=id
-				-- if we are live editing, we save and apply the new icon
-				if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-					local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-					sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,updateContainers,false)
-				end
-			end
-        end, true, true, false, true):SetPoint("LEFT", PhaseToolkit.iconIdPickerButton, "RIGHT", 20, 0)
-    end)
-
-	local function saveItemIconIdOrLink(idOrLink)
-		if idOrLink and idOrLink ~= "" then
-			if not tonumber(idOrLink) then
-				-- It's not an number ID, probably. Try it as a Link
-				local itemName, itemLink = GetItemInfo(idOrLink)
-				if itemLink then
-					-- Valid link, use it
-					PhaseToolkit.itemCreatorData.itemIconIdOrLink=itemLink
+			Panel.gridMaster =CreateFrame("Frame", nil, Panel)
+			Panel.gridMaster:SetPoint("TOPLEFT", Panel, "TOPLEFT", 10, -5)
+			Panel.gridMaster:SetPoint("BOTTOMRIGHT", Panel, "BOTTOMRIGHT", -10, 5)
+			Panel.gridMaster:SetFrameLevel(Panel:GetFrameLevel()+1)
+			Panel.gridMaster:SetSize(100,100)
+			Panel.TitleText:SetText("Category : "..category)
+			Panel.randomizeCategoryButton = CreateFrame("Button", nil, Panel, "UIPanelButtonTemplate")
+			Panel.randomizeCategoryButton:SetSize(18, 18)
+			Panel.randomizeCategoryButton:SetPoint("RIGHT", Panel.TitleText, "LEFT", -4, 0)
+			Panel.randomizeCategoryButton.icon  = Panel.randomizeCategoryButton:CreateTexture(nil, "ARTWORK")
+			Panel.randomizeCategoryButton.icon:SetAllPoints(Panel.randomizeCategoryButton)
+			Panel.randomizeCategoryButton.icon:SetAtlas("charactercreate-icon-dice")
+			Panel.randomizeCategoryButton:SetScript("OnClick", function(self)
+				local parentPanel = self:GetParent()
+				if(not parentPanel.currentDataset) then
 					return
 				end
-			else
-				-- Just save the ID or possibly weird link to try it lol
-				PhaseToolkit.itemCreatorData.itemIconIdOrLink = idOrLink
-			end
-		else
-			-- Link was blank, nil it to be sure
-			PhaseToolkit.itemCreatorData.itemIconIdOrLink=nil
-		end
-	end
 
-	PhaseToolkit.iconIdEditBox:SetScript("OnTextChanged",function(self)
-		saveItemIconIdOrLink(self:GetText())
-	end)
-
-	PhaseToolkit.iconIdEditBox:SetScript("OnEditFocusLost",function(self)
-		local idOrLink = self:GetText()
-		if(idOrLink and idOrLink~="") then
-			saveItemIconIdOrLink(idOrLink)
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set icon "..itemLink..PhaseToolkit.itemCreatorData.itemIconIdOrLink,updateContainers,false)
-			end
-		end
-	end)
-	PhaseToolkit.iconIdEditBox:SetScript("OnEnterPressed",function(self)
-		self:ClearFocus()
-	end)
-
-	local orig_ChatEdit_InsertLink = ChatEdit_InsertLink
-
-	ChatEdit_InsertLink = function(link)
-		if PhaseToolkit.iconIdEditBox:HasFocus() then
-			PhaseToolkit.iconIdEditBox:Insert(link)
-		else
-			orig_ChatEdit_InsertLink(link)
-		end
-	end
-	local LabeldisplayEditBox=displayProperty:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	LabeldisplayEditBox:SetText(PhaseToolkit.CurrentLang["Icon from:"])
-	LabeldisplayEditBox:SetPoint("BOTTOMLEFT", PhaseToolkit.iconIdEditBox, "TOPLEFT", 5, 0)
-
-	PhaseToolkit.RegisterTooltip(PhaseToolkit.iconIdEditBox, "Item Link or ID")
-
-	-- item property Frame
-
-	local itemProperty=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	itemProperty:SetSize(170,170)
-	itemProperty:SetPoint("TOPLEFT", mainProperty, "BOTTOMLEFT", 0,0)
-
-	itemProperty:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	local adderOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	adderOptionDropdown:SetSize(100, 30)
-	adderOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-5)
-	PhaseToolkit.adderOptionDropdown = adderOptionDropdown
-	PhaseToolkit.ShowadderOptionDropdown(adderOptionDropdown)
-	PhaseToolkit.RegisterTooltip(adderOptionDropdown, "Controls if the item contains a '<Made by Character>' tag when added.\n\nEnabling this will disable the Creator tag property.")
-
-	local addItemOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	addItemOptionDropdown:SetSize(100, 30)
-	addItemOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-30)
-	PhaseToolkit.addItemOptionDropdownButton = addItemOptionDropdown
-	PhaseToolkit.addItemOptionDropdown(addItemOptionDropdown)
-	PhaseToolkit.RegisterTooltip(addItemOptionDropdown, "Controls who is allowed to add this item.\n\nIf Member / Officer is enabled, will only work for Phases specifically added to the Member / Officer whitelist (use the buttons to the right!)")
-
-	local copyOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	copyOptionDropdown:SetSize(100, 30)
-	copyOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-55)
-	PhaseToolkit.copyOptionDropdown = copyOptionDropdown
-	PhaseToolkit.copyItemOptionDropdown(copyOptionDropdown)
-	PhaseToolkit.RegisterTooltip(copyOptionDropdown, "Controls who is allowed to copy or clone this item via 'forge item copy/clone'.")
-
-	local creatorOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	creatorOptionDropdown:SetSize(100, 30)
-	creatorOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-80)
-	PhaseToolkit.creatorOptionDropdown = creatorOptionDropdown
-	PhaseToolkit.creatorItemOptionDropdown(creatorOptionDropdown)
-	PhaseToolkit.RegisterTooltip(creatorOptionDropdown, "When enabled, adds a <Made by $CreatorCharacterName> to the item.\n\nEnabling this will disable the Adder tag property.")
-
-	local infoOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	infoOptionDropdown:SetSize(100, 30)
-	infoOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-105)
-	PhaseToolkit.infoOptionDropdown = infoOptionDropdown
-	PhaseToolkit.infoItemOptionDropdown(infoOptionDropdown)
-	PhaseToolkit.RegisterTooltip(infoOptionDropdown, "Sets if information for this item is visible to others.")
-
-	local lookupOptionDropdown = CreateFrame("Frame", nil, itemProperty, "UIDropDownMenuTemplate")
-	lookupOptionDropdown:SetSize(100, 30)
-	lookupOptionDropdown:SetPoint("TOPLEFT", itemProperty, "TOPLEFT", -10,-130)
-	PhaseToolkit.lookupOptionDropdown = lookupOptionDropdown
-	PhaseToolkit.lookupItemOptionDropdown(lookupOptionDropdown)
-	PhaseToolkit.RegisterTooltip(lookupOptionDropdown, "Sets if the item shows in '.lookup itemforge' for others. Will always show for the creator of the item.")
-
-	-- Whitelist Frame
-
-	local Whitelist=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	Whitelist:SetSize(170,170)
-	Whitelist:SetPoint("TOPLEFT", itemProperty, "TOPRIGHT",0,0)
-
-	Whitelist:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	local addCharToWhitelist=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	addCharToWhitelist:SetSize(40, 40)
-	addCharToWhitelist:SetPoint("TOPLEFT", Whitelist, "TOPLEFT", 20, -10)
-	addCharToWhitelist.icon = addCharToWhitelist:CreateTexture(nil, "OVERLAY")
-	addCharToWhitelist.icon:SetTexture("Interface\\Icons\\inv_misc_grouplooking")
-	addCharToWhitelist.icon:SetAllPoints()
-	addCharToWhitelist:SetScript("OnClick", function()
-		PhaseToolkit.openAddCharToWhitelistFrame()
-	end)
-
-	PhaseToolkit.RegisterTooltip(addCharToWhitelist, "Add a character to the item's whitelist, so they can add the item.")
-
-	local seeCharAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	seeCharAddedToListButton:SetSize(35, 35)
-	seeCharAddedToListButton:SetPoint("LEFT", addCharToWhitelist, "RIGHT", 20, 0)
-	seeCharAddedToListButton.icon = seeCharAddedToListButton:CreateTexture(nil, "OVERLAY")
-	seeCharAddedToListButton.icon:SetTexture("Interface\\Icons\\inv_misc_paperbundle04c")
-	seeCharAddedToListButton.icon:SetAllPoints()
-	seeCharAddedToListButton:SetScript("OnClick", function()
-		PhaseToolkit.openWhitelistFor("character",false)
-	end)
-	PhaseToolkit.RegisterTooltip(seeCharAddedToListButton, "Show a list of currently whitelisted characters.")
-
-	local addMemberToWhitelist=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	addMemberToWhitelist:SetSize(40, 40)
-	addMemberToWhitelist:SetPoint("TOP", addCharToWhitelist, "BOTTOM", 0, -10)
-	addMemberToWhitelist.icon = addMemberToWhitelist:CreateTexture(nil, "OVERLAY")
-	addMemberToWhitelist.icon:SetTexture("Interface\\Icons\\inv_misc_groupneedmore")
-	addMemberToWhitelist.icon:SetAllPoints()
-	addMemberToWhitelist:SetScript("OnClick", function()
-		PhaseToolkit.openAddMemberToWhitelistFrame()
-	end)
-	PhaseToolkit.RegisterTooltip(addMemberToWhitelist, "Add a Phase to the 'Members' Whitelist, allowing that Phases' members to add the item.")
-
-	local seeMemberAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	seeMemberAddedToListButton:SetSize(35, 35)
-	seeMemberAddedToListButton:SetPoint("LEFT", addMemberToWhitelist, "RIGHT", 20, 0)
-	seeMemberAddedToListButton.icon = seeMemberAddedToListButton:CreateTexture(nil, "OVERLAY")
-	seeMemberAddedToListButton.icon:SetTexture("Interface\\Icons\\inv_misc_paperbundle04c")
-	seeMemberAddedToListButton.icon:SetAllPoints()
-	seeMemberAddedToListButton:SetScript("OnClick", function()
-		PhaseToolkit.openWhitelistFor("member",false)
-	end)
-	PhaseToolkit.RegisterTooltip(seeMemberAddedToListButton, "Show a list of Phases currently on the 'Members' Whitelist.")
-
-
-	local addOfficerToWhitelist=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	addOfficerToWhitelist:SetSize(40, 40)
-	addOfficerToWhitelist:SetPoint("TOP", addMemberToWhitelist, "BOTTOM", 0, -10)
-	addOfficerToWhitelist.icon = addOfficerToWhitelist:CreateTexture(nil, "OVERLAY")
-	addOfficerToWhitelist.icon:SetTexture("Interface\\Icons\\ability_pvp_gladiatormedallion")
-	addOfficerToWhitelist.icon:SetAllPoints()
-	addOfficerToWhitelist:SetScript("OnClick", function()
-		PhaseToolkit.openAddOfficerToWhitelistFrame()
-	end)
-	PhaseToolkit.RegisterTooltip(addOfficerToWhitelist, "Add a Phase to the 'Officers' Whitelist, allowing that Phases' officers to add the item.")
-
-	local seeOfficerAddedToListButton=CreateFrame("Button",nil,Whitelist,"UIPanelButtonTemplate");
-	seeOfficerAddedToListButton:SetSize(35, 35)
-	seeOfficerAddedToListButton:SetPoint("LEFT", addOfficerToWhitelist, "RIGHT", 20, 0)
-	seeOfficerAddedToListButton.icon = seeOfficerAddedToListButton:CreateTexture(nil, "OVERLAY")
-	seeOfficerAddedToListButton.icon:SetTexture("Interface\\Icons\\inv_misc_paperbundle04c")
-	seeOfficerAddedToListButton.icon:SetAllPoints()
-	seeOfficerAddedToListButton:SetScript("OnClick", function()
-		PhaseToolkit.openWhitelistFor("officer",false)
-	end)
-	PhaseToolkit.RegisterTooltip(seeOfficerAddedToListButton, "Show a list of Phases currently on the 'Officers' Whitelist.")
-
-end
-
-local function updateWhitelistDisplay(typeOfWhitelist, data)
-    -- Clean existing content
-    if PhaseToolkit.listFrame.content then
-        PhaseToolkit.listFrame.content:Hide()
-        PhaseToolkit.listFrame.content = nil
-    end
-
-    -- Content to scroll
-    local content = CreateFrame("Frame", nil, PhaseToolkit.listFrame.scrollFrame)
-    content:SetSize(100, 30 * (#data or 1)) -- Adjust height based on number of elements
-    PhaseToolkit.listFrame.content = content
-	local tableau={}
-
-    local maxTextWidth = 0 -- To determine the maximum width
-
-    for i, value in ipairs(data) do
-        -- Text for the element
-        local text = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetPoint("TOPLEFT", 10, -30 * (i - 1) - 10)
-        text:SetText(value)
-
-		 -- Calculate text width
-		 local textWidth = text:GetStringWidth()
-		 if textWidth > maxTextWidth then
-			 maxTextWidth = textWidth+30
-		 end
-
-        -- Delete button
-        local deleteButton = CreateFrame("Button", nil, content, "UIPanelCloseButton")
-        deleteButton:SetSize(30, 30)
-        deleteButton:SetPoint("LEFT",text,"RIGHT", 10,0)
-
-        -- Cross icon and deletion
-        deleteButton:SetScript("OnClick", function()
-            table.remove(data, i) -- Remove element from table
-            updateWhitelistDisplay(typeOfWhitelist, data) -- Update the list
-        end)
-    end
-
-    -- Link content to ScrollFrame
-    PhaseToolkit.listFrame.scrollFrame:SetScrollChild(content)
-
-	-- Adjust PhaseToolkit.listFrame size if necessary
-    local newWidth = math.max(150, maxTextWidth + 50) -- Minimum width + margin
-    PhaseToolkit.listFrame:SetWidth(newWidth)
-end
-
-local function getDataFromWhitelistType(typeOfWhitelist)
-	local data={}
-		if(typeOfWhitelist=="character") then
-			data=PhaseToolkit.itemCreatorData.whitelistedChar
-		elseif typeOfWhitelist=="member" then
-			data=PhaseToolkit.itemCreatorData.whitelistedPhaseForMember
-		elseif typeOfWhitelist=="officer" then
-			data=PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer
-		end
-		return data
-end
-
-function PhaseToolkit.openWhitelistFor(typeOfWhitelist,updating)
-	if (PhaseToolkit.listFrame ~= nil) then
-			updateWhitelistDisplay(typeOfWhitelist,getDataFromWhitelistType(typeOfWhitelist))
-			PhaseToolkit.listFrame:Show()
-	else
-		-- Main frame
-		PhaseToolkit.listFrame = CreateFrame("Frame", "MyScrollableFrame", PhaseToolkit.ItemCreatorFrame, "BasicFrameTemplateWithInset")
-		PhaseToolkit.listFrame:SetSize(150, 200)
-		PhaseToolkit.listFrame:SetPoint("BOTTOMLEFT", PhaseToolkit.ItemCreatorFrame, "BOTTOMRIGHT", 5, 0)
-
-		-- ScrollFrame
-		local scrollFrame = CreateFrame("ScrollFrame", nil, PhaseToolkit.listFrame, "UIPanelScrollFrameTemplate")
-		scrollFrame:SetPoint("TOPLEFT", 10, -30)
-		scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
-		PhaseToolkit.listFrame.scrollFrame = scrollFrame
-
-		PhaseToolkit.currentWhitelistType=typeOfWhitelist
-		-- Initialize the display
-		updateWhitelistDisplay(typeOfWhitelist, getDataFromWhitelistType(typeOfWhitelist))
-	end
-end
-
-function PhaseToolkit.ShowadderOptionDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.adder=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set property adder "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local info = UIDropDownMenu_CreateInfo()
-		local info2=UIDropDownMenu_CreateInfo()
-		local info3=UIDropDownMenu_CreateInfo()
-
-		info.text="Adder"
-		info2.text="On"
-		info3.text="Off"
-
-		info.value = -1
-		info2.value = "on"
-		info3.value="off"
-
-		info.func = OnClick
-		info2.func = OnClick
-		info3.func = OnClick
-
-		UIDropDownMenu_AddButton(info)
-		UIDropDownMenu_AddButton(info2)
-		UIDropDownMenu_AddButton(info3)
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-end
-
-function PhaseToolkit.addItemOptionDropdown(_dropdown)
-
-	UIDropDownMenu_Initialize(_dropdown, function(self)
-		local info = UIDropDownMenu_CreateInfo()
-
-		for _,additemOption in ipairs(PhaseToolkit.additemOption) do
-			info.text = additemOption.text
-			info.arg1 = strlower(additemOption.text)
-			info.value = additemOption.value
-			info.func = function(self, arg1, arg2)
-				additemOption.value = not additemOption.value
-				if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-					local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-					local realValue= (self.checked==true and "on") or "off"
-					sendAddonCmd("forge item set property additem "..arg1.." "..itemLink..realValue,nil,true)
-				end
-			end
-
-			local check = false;
-
-			if additemOption.value then
-				check = true;
-			end
-			info.isNotRadio = true
-			info.keepShownOnClick = true
-			info.checked = check;
-			UIDropDownMenu_AddButton(info)
-		end
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetText(_dropdown, "Additem");
-end
-
-function PhaseToolkit.copyItemOptionDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.copy=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set property copy "..itemLink..self.value,nil,false)
-		end
-
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local info = UIDropDownMenu_CreateInfo()
-		local info2=UIDropDownMenu_CreateInfo()
-		local info3=UIDropDownMenu_CreateInfo()
-
-		info.text="Copy"
-		info2.text="On"
-		info3.text="Off"
-
-		info.value = -1
-		info2.value = "on"
-		info3.value="off"
-
-		info.func = OnClick
-		info2.func = OnClick
-		info3.func = OnClick
-
-		UIDropDownMenu_AddButton(info)
-		UIDropDownMenu_AddButton(info2)
-		UIDropDownMenu_AddButton(info3)
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-
-end
-
-function PhaseToolkit.creatorItemOptionDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.creator=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set property creator "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local info = UIDropDownMenu_CreateInfo()
-		local info2=UIDropDownMenu_CreateInfo()
-		local info3=UIDropDownMenu_CreateInfo()
-
-		info.text="Creator"
-		info2.text="On"
-		info3.text="Off"
-
-		info.value = -1
-		info2.value = "on"
-		info3.value="off"
-
-		info.func = OnClick
-		info2.func = OnClick
-		info3.func = OnClick
-
-		UIDropDownMenu_AddButton(info)
-		UIDropDownMenu_AddButton(info2)
-		UIDropDownMenu_AddButton(info3)
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-
-end
-
-function PhaseToolkit.infoItemOptionDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.info=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set property info "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local info = UIDropDownMenu_CreateInfo()
-		local info2=UIDropDownMenu_CreateInfo()
-		local info3=UIDropDownMenu_CreateInfo()
-
-		info.text="Info"
-		info2.text="On"
-		info3.text="Off"
-
-		info.value = -1
-		info2.value = "on"
-		info3.value="off"
-
-		info.func = OnClick
-		info2.func = OnClick
-		info3.func = OnClick
-
-		UIDropDownMenu_AddButton(info)
-		UIDropDownMenu_AddButton(info2)
-		UIDropDownMenu_AddButton(info3)
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-
-end
-
-function PhaseToolkit.lookupItemOptionDropdown(_dropdown)
-	local function OnClick(self)
-		UIDropDownMenu_SetSelectedValue(_dropdown, self.value)
-		PhaseToolkit.itemCreatorData.lookup=self.value
-		if(PhaseToolkit.itemCreatorData.itemLink~=nil) then
-			local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-			sendAddonCmd("forge item set property lookup "..itemLink..self.value,nil,false)
-		end
-	end
-
-	UIDropDownMenu_Initialize(_dropdown, function()
-		local info = UIDropDownMenu_CreateInfo()
-		local info2=UIDropDownMenu_CreateInfo()
-		local info3=UIDropDownMenu_CreateInfo()
-
-		info.text="Lookup"
-		info2.text="On"
-		info3.text="Off"
-
-		info.value = -1
-		info2.value = "on"
-		info3.value="off"
-
-		info.func = OnClick
-		info2.func = OnClick
-		info3.func = OnClick
-
-		UIDropDownMenu_AddButton(info)
-		UIDropDownMenu_AddButton(info2)
-		UIDropDownMenu_AddButton(info3)
-	end)
-
-	UIDropDownMenu_SetWidth(_dropdown, 140)
-	UIDropDownMenu_SetButtonWidth(_dropdown, 124)
-	UIDropDownMenu_SetSelectedValue(_dropdown,-1)
-
-end
-
-function PhaseToolkit.CreateAdditionalButtonFrame()
-	if (PhaseToolkit.AdditionalButtonFrame ~= nil) then
-		if (PhaseToolkit.AdditionalButtonFrame:IsShown()) then
-			PhaseToolkit.AdditionalButtonFrame:Hide()
-		else
-			PhaseToolkit.AdditionalButtonFrame:Show()
-		end
-	end
-	PhaseToolkit.AdditionalButtonFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
-	PhaseToolkit.AdditionalButtonFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	if (not PhaseToolkit.ModeFR) then
-		PhaseToolkit.AdditionalButtonFrame:SetSize(145, 160)
-		PhaseToolkit.AdditionalButtonFrame:SetPoint("TOP", PhaseToolkit.NPCCustomiserMainFrame, "TOP", 0, -30)
-	else
-		PhaseToolkit.AdditionalButtonFrame:SetSize(135, 160)
-		PhaseToolkit.AdditionalButtonFrame:SetPoint("TOP", PhaseToolkit.NPCCustomiserMainFrame, "TOP", 0, -30)
-	end
-
-	local NpcCustomPanelButton = CreateFrame("Button", nil, PhaseToolkit.AdditionalButtonFrame, "UIPanelButtonTemplate")
-	NpcCustomPanelButton:SetSize(25, 25)
-	NpcCustomPanelButton:SetPoint("TOPRIGHT", PhaseToolkit.AdditionalButtonFrame, "TOPRIGHT", -7.5, -7.5)
-	NpcCustomPanelButton.icon = NpcCustomPanelButton:CreateTexture(nil, "OVERLAY")
-	NpcCustomPanelButton.icon:SetTexture("Interface\\Icons\\inv_helm_mask_fittedalpha_b_01_nightborne_02")
-	NpcCustomPanelButton.icon:SetAllPoints()
-	NpcCustomPanelButton:SetScript("OnClick", function()
-		PhaseToolkit.createCustomParamFrame()
-	end)
-
-	NpcCustomLabel = PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	NpcCustomLabel:SetPoint("RIGHT", NpcCustomPanelButton, "LEFT", -2.5, 2.5)
-	NpcCustomLabel:SetText(PhaseToolkit.CurrentLang["Npc custom"] or "NPC Customize")
-
-	local PhaseOptionButton = CreateFrame("Button", nil, PhaseToolkit.AdditionalButtonFrame, "UIPanelButtonTemplate")
-	PhaseOptionButton:SetSize(25, 25)
-	PhaseOptionButton:SetPoint("TOP", NpcCustomPanelButton, "BOTTOM", 0, -5)
-	PhaseOptionButton.icon = PhaseOptionButton:CreateTexture(nil, "OVERLAY")
-	PhaseOptionButton.icon:SetTexture("Interface\\Icons\\INV_MISC_GEAR_01")
-	PhaseOptionButton.icon:SetAllPoints()
-	PhaseOptionButton:SetScript("OnClick", function()
-		PhaseToolkit.CreatePhaseOptionFrame()
-	end)
-
-	PhaseOptionLabel = PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	PhaseOptionLabel:SetPoint("RIGHT", PhaseOptionButton, "LEFT", -2.5, 2.5)
-	PhaseOptionLabel:SetText(PhaseToolkit.CurrentLang["Phase Option"] or "Phase Options")
-
-	local PhaseNpcList = CreateFrame("Button", nil, PhaseToolkit.AdditionalButtonFrame, "UIPanelButtonTemplate")
-	PhaseNpcList:SetSize(25, 25)
-	PhaseNpcList:SetPoint("TOP", PhaseOptionButton, "BOTTOM", 0, -5)
-	PhaseNpcList.icon = PhaseNpcList:CreateTexture(nil, "OVERLAY")
-	PhaseNpcList.icon:SetTexture("Interface\\Icons\\INV_SCROLL_08")
-	PhaseNpcList.icon:SetAllPoints()
-	PhaseNpcList:SetScript("OnClick", function()
-		PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-	end)
-
-	PhaseOptionLabel = PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	PhaseOptionLabel:SetPoint("RIGHT", PhaseNpcList, "LEFT", -2.5, 2.5)
-	PhaseOptionLabel:SetText(PhaseToolkit.CurrentLang["NPC List"] or "NPC List")
-
-	local PhaseTeleList = CreateFrame("Button", nil, PhaseToolkit.AdditionalButtonFrame, "UIPanelButtonTemplate")
-	PhaseTeleList:SetSize(25, 25)
-	PhaseTeleList:SetPoint("TOP", PhaseNpcList, "BOTTOM", 0, -5)
-	PhaseTeleList.icon = PhaseTeleList:CreateTexture(nil, "OVERLAY")
-	PhaseTeleList.icon:SetTexture("Interface\\Icons\\INV_ARCHAEOLOGY_80_WITCH_BOOK")
-	PhaseTeleList.icon:SetAllPoints()
-	PhaseTeleList:SetScript("OnClick", function()
-		PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
-	end)
-
-	PhaseOptionTeleLabel = PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	PhaseOptionTeleLabel:SetPoint("RIGHT", PhaseTeleList, "LEFT", -2.5, 2.5)
-	PhaseOptionTeleLabel:SetText(PhaseToolkit.CurrentLang["Tele List"] or "Tele List")
-
-
-	local ItemCreatorButton = CreateFrame("Button", nil, PhaseToolkit.AdditionalButtonFrame, "UIPanelButtonTemplate")
-	ItemCreatorButton:SetSize(25, 25)
-	ItemCreatorButton:SetPoint("TOP", PhaseTeleList, "BOTTOM", 0, -5)
-	ItemCreatorButton.icon = ItemCreatorButton:CreateTexture(nil, "OVERLAY")
-	ItemCreatorButton.icon:SetTexture("Interface\\Icons\\inv_blacksmithing_modifiedcraftingreagent_silver")
-	ItemCreatorButton.icon:SetAllPoints()
-	ItemCreatorButton:SetScript("OnClick", function()
-		PhaseToolkit.createItemCreatorFrame()
-	end)
-
-	ItemCreatorButtonLabel = PhaseToolkit.AdditionalButtonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	ItemCreatorButtonLabel:SetPoint("RIGHT", ItemCreatorButton, "LEFT", -2.5, 2.5)
-	ItemCreatorButtonLabel:SetText(PhaseToolkit.CurrentLang["Item Creator"] or "Item Creator")
-
-end
-
-function PhaseToolkit.openAddCharToWhitelistFrame()
-	if (PhaseToolkit.AddCharToWhitelistFrame ~= nil) then
-		if (PhaseToolkit.AddCharToWhitelistFrame:IsShown()) then
-			PhaseToolkit.AddCharToWhitelistFrame:Hide()
-		else
-			PhaseToolkit.AddCharToWhitelistFrame:Show()
-		end
-		return
-	end
-
-	PhaseToolkit.AddCharToWhitelistFrame=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	PhaseToolkit.AddCharToWhitelistFrame:SetSize(170, 80)
-	PhaseToolkit.AddCharToWhitelistFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "BOTTOMLEFT", 0, -0.5)
-	PhaseToolkit.AddCharToWhitelistFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16
-	})
-
-	local labelForCharAdding=PhaseToolkit.AddCharToWhitelistFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	labelForCharAdding:SetText("Add character named :\n(Case Sensitive)")
-	labelForCharAdding:SetPoint("TOP",PhaseToolkit.AddCharToWhitelistFrame,"TOP",0,-5)
-
-	local editBoxForName=CreateFrame("EditBox",nil,PhaseToolkit.AddCharToWhitelistFrame,"InputBoxTemplate")
-	editBoxForName:SetSize(150,30)
-	editBoxForName:SetPoint("TOPLEFT",PhaseToolkit.AddCharToWhitelistFrame,"TOPLEFT",15,-30)
-	editBoxForName:SetAutoFocus(true)
-	editBoxForName:SetScript("OnEscapePressed",function(self)
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddCharToWhitelistFrame()
-	end)
-	editBoxForName:SetScript("OnEnterPressed",function(self)
-		if(self:GetText()~=nil and self:GetText()~="") then
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.itemCreatorData.itemLink~="") then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set whitelist character add"..itemLink..self:GetText())
-			else
-				tinsert(PhaseToolkit.itemCreatorData.whitelistedChar,self:GetText())
-				PhaseToolkit.openWhitelistFor("character",true)
-			end
-			self:ClearFocus()
-		end
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddCharToWhitelistFrame()
-	end)
-
-
-end
-
-function PhaseToolkit.openAddMemberToWhitelistFrame()
-	if (PhaseToolkit.AddMemberToWhitelistFrame ~= nil) then
-		if (PhaseToolkit.AddMemberToWhitelistFrame:IsShown()) then
-			PhaseToolkit.AddMemberToWhitelistFrame:Hide()
-		else
-			PhaseToolkit.AddMemberToWhitelistFrame:Show()
-		end
-		return
-	end
-
-	PhaseToolkit.AddMemberToWhitelistFrame=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	PhaseToolkit.AddMemberToWhitelistFrame:SetSize(170, 80)
-	PhaseToolkit.AddMemberToWhitelistFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "BOTTOMLEFT", 0, -0.5)
-	PhaseToolkit.AddMemberToWhitelistFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16
-	})
-
-	local labelForPhaseMemberID=PhaseToolkit.AddMemberToWhitelistFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	labelForPhaseMemberID:SetText("Phase ID\nMembers of this phase\nWill be whitelisted")
-	labelForPhaseMemberID:SetPoint("TOP",PhaseToolkit.AddMemberToWhitelistFrame,"TOP",0,-5)
-
-	local editBoxForPhaseId=CreateFrame("EditBox",nil,PhaseToolkit.AddMemberToWhitelistFrame,"InputBoxTemplate")
-	editBoxForPhaseId:SetSize(150,30)
-	editBoxForPhaseId:SetPoint("TOPLEFT",PhaseToolkit.AddMemberToWhitelistFrame,"TOPLEFT",15,-40)
-	editBoxForPhaseId:SetAutoFocus(true)
-	editBoxForPhaseId:SetNumeric(true)
-	editBoxForPhaseId:SetScript("OnEscapePressed",function(self)
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddMemberToWhitelistFrame()
-	end)
-	editBoxForPhaseId:SetScript("OnEnterPressed",function(self)
-		if(self:GetNumber()~=nil and self:GetNumber()~=0) then
-
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.itemCreatorData.itemLink~="") then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set whitelist member add"..itemLink..self:GetText())
-			else
-				tinsert(PhaseToolkit.itemCreatorData.whitelistedPhaseForMember,self:GetText())
-				PhaseToolkit.openWhitelistFor("member",true)
-			end
-			self:ClearFocus()
-		end
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddMemberToWhitelistFrame()
-	end)
-
-
-end
-
-function PhaseToolkit.openAddOfficerToWhitelistFrame()
-	if (PhaseToolkit.AddOfficerToWhitelistFrame ~= nil) then
-		if (PhaseToolkit.AddOfficerToWhitelistFrame:IsShown()) then
-			PhaseToolkit.AddOfficerToWhitelistFrame:Hide()
-		else
-			PhaseToolkit.AddOfficerToWhitelistFrame:Show()
-		end
-		return
-	end
-
-	PhaseToolkit.AddOfficerToWhitelistFrame=CreateFrame("Frame",nil,PhaseToolkit.ItemCreatorFrame,"BackdropTemplate")
-	PhaseToolkit.AddOfficerToWhitelistFrame:SetSize(170, 80)
-	PhaseToolkit.AddOfficerToWhitelistFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "BOTTOMLEFT", 0, -0.5)
-	PhaseToolkit.AddOfficerToWhitelistFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16
-	})
-
-	local labelAddOfficerToWhitelistFrame=PhaseToolkit.AddOfficerToWhitelistFrame:CreateFontString(nil,"OVERLAY","GameFontNormal")
-	labelAddOfficerToWhitelistFrame:SetText("Phase ID\nOfficer of this phase\nWill be whitelisted")
-	labelAddOfficerToWhitelistFrame:SetPoint("TOP",PhaseToolkit.AddOfficerToWhitelistFrame,"TOP",0,-5)
-
-	local editBoxForPhaseId=CreateFrame("EditBox",nil,PhaseToolkit.AddOfficerToWhitelistFrame,"InputBoxTemplate")
-	editBoxForPhaseId:SetSize(150,30)
-	editBoxForPhaseId:SetPoint("TOPLEFT",PhaseToolkit.AddOfficerToWhitelistFrame,"TOPLEFT",15,-40)
-	editBoxForPhaseId:SetAutoFocus(true)
-	editBoxForPhaseId:SetNumeric(true)
-	editBoxForPhaseId:SetScript("OnEscapePressed",function(self)
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddOfficerToWhitelistFrame()
-	end)
-	editBoxForPhaseId:SetScript("OnEnterPressed",function(self)
-		if(self:GetNumber()~=nil and self:GetNumber()~=0) then
-			if(PhaseToolkit.itemCreatorData.itemLink~=nil and PhaseToolkit.itemCreatorData.itemLink~="") then
-				local itemLink=" "..PhaseToolkit.itemCreatorData.itemLink.." "
-				sendAddonCmd("forge item set whitelist officer add"..itemLink..self:GetText(),nil,false)
-			else
-				tinsert(PhaseToolkit.itemCreatorData.whitelistedPhaseForOfficer,self:GetText())
-				PhaseToolkit.openWhitelistFor("officer",true)
-			end
-			self:ClearFocus()
-		end
-		self:ClearFocus()
-		self:SetText("")
-		PhaseToolkit.openAddOfficerToWhitelistFrame()
-	end)
-
-end
-
----@param newLang string The name of the language from LangList
-function PhaseToolkit.changeLang(newLang)
-	--PhaseToolkit.CurrentLang = newLang
-	PhaseToolkit.CurrentLang = ns.getLangTabByString(newLang) -- Since we now only pass the language name, pull the table instead
-	PhaseToolkit:CreateAdditionalButtonFrame()
-	PhaseToolkit:TranslateWeatherIntensity()
-	if (PhaseToolkit.CustomFrame ~= nil) then
-		if (PhaseToolkit.CustomFrame:IsShown()) then
-			PhaseToolkit.CustomFrame:Hide()
-			PhaseToolkit.CustomFrame = nil
-			PhaseToolkit:CreateCustomFrame()
-			PhaseToolkit.CreateCustomGrid(PhaseToolkit.InfoCustom[PhaseToolkit.GetRaceNameByID(PhaseToolkit.SelectedRace)][PhaseToolkit.SelectedGender])
-			PhaseToolkit.CustomFrame:Show()
-		end
-	end
-
-	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
-		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
-			PhaseToolkit.PhaseOptionFrame:Hide()
-			PhaseToolkit.PhaseOptionFrame = nil
-			PhaseToolkit.CreatePhaseOptionFrame()
-			PhaseToolkit.PhaseOptionFrame:Show()
-		end
-	end
-
-	if (PhaseToolkit.GenreDropDown ~= nil) then
-		PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
-	end
-	if (PhaseToolkit.RaceDropDown ~= nil) then
-		PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
-	end
-	if (PhaseToolkit.MeteoDropDown ~= nil) then
-		PhaseToolkit.ShowMeteoDropDown(PhaseToolkit.MeteoDropDown)
-	end
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-			PhaseToolkit.PNJFrame = nil
-			PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-			PhaseToolkit.PNJFrame:Show()
-		end
-	end
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if (PhaseToolkit.TELEFrame:IsShown()) then
-			PhaseToolkit.TELEFrame:Hide()
-			PhaseToolkit.TELEFrame = nil
-			PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
-			PhaseToolkit.TELEFrame:Show()
-		end
-	end
-end
-
--- -- -- -- -- -- -- -- -- -- -- --
---#region Listes
--- -- -- -- -- -- -- -- -- -- -- --
-local function checkIfCreatureInSelectedCategory(creature)
-	if(creature) then
-		if(PhaseToolkit.NPCselectedCategory) then
-			for _, member in ipairs(PhaseToolkit.NPCselectedCategory.members) do
-				if member == creature.IdCreature then
-					return true
-				end
-			end
-			return false
-		else
-			return false
-		end
-	else
-		return false
-	end
-end
-
-local function checkIfTeleInSelectedCategory(tele)
-	if tele then
-		if PhaseToolkit.TELEselectedCategory then
-			for _, member in ipairs(PhaseToolkit.TELEselectedCategory.members) do
-				if member == tele then
-					return true
-				end
-			end
-			return false
-		else
-			return false
-		end
-	else
-		return false
-	end
-end
-
---- Retrieves the index of a specific member in a list of category members.
----
---- @param categoryMembersList table A list of category members to search through.
---- @param memberId any The ID of the member to find in the list.
---- @return number|nil The index of the member in the list if found, or nil if not found.
-local function getIndexOfMembers(categoryMembersList,memberId)
-	for index, member in ipairs(categoryMembersList) do
-		if member == memberId then
-			return index
-		end
-	end
-	return -1
-end
---- Checks if a string is present in an array.
----@param array table The array to search through.
----@param searchString string The string to search for.
----@return integer True if the string is found, false otherwise.
-local function isStringInArray(array, searchString)
-	for index, value in ipairs(array) do
-		if value == searchString then
-			return index;
-		end
-	end
-	return -1;
-end
-
---- Retrieves a creature from the creature list by its ID.
----@param npcId number The ID of the creature to retrieve.
----@return table|nil The creature object if found, or nil if not found.
-function PhaseToolkit.GetCreatureById(npcId)
-	for _, creature in ipairs(PhaseToolkit.creatureList) do
-		if creature.IdCreature == npcId then
-			return creature
-		end
-	end
-	return nil
-end
---================================= Frame for Lists ===============================--
-function PhaseToolkit.CreateNpcListFrame(_creatureList)
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if (PhaseToolkit.TELEFrame:IsShown()) then
-			PhaseToolkit.TELEFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PhaseOptionFrame ~= nil and PhaseToolkit.PhaseOptionFrame:IsShown()) then
-		PhaseToolkit.PhaseOptionFrame:Hide()
-	end
-	if (PhaseToolkit.CustomFrame ~= nil and PhaseToolkit.CustomFrame:IsShown()) then
-		PhaseToolkit.CustomFrame:Hide()
-	end
-	if (PhaseToolkit.CustomMainFrame ~= nil) then
-		if (PhaseToolkit.CustomMainFrame:IsShown()) then
-			PhaseToolkit.CustomMainFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-			if PhaseToolkit.categoryPanelNPC ~= nil then
-				PhaseToolkit.categoryPanelNPC:Hide()
-				PhaseToolkit.categoryPanelNPC = nil
-				for i = 1, 7 do
-					local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
-					if blueprintFrame then
-						blueprintFrame:Hide()
-						_G["PTK_CATEGORY_FRAME"..i] = nil
-					end
-				end
-			end
-		else
-			PhaseToolkit.PNJFrame:Show()
-		end
-		return
-	end
-
-
-	-- Function that returns the maximum width of a creature name in pixels
-	function PhaseToolkit.GetMaxNameWidth(creatureTable)
-		-- Create a temporary FontString object to measure text sizes
-		local tempFontString = PhaseToolkit.NPCCustomiserMainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-
-		-- Variable to store the maximum width found
-		local maxWidth = 0
-
-		-- Browse through the creature table
-		for _, creature in ipairs(creatureTable) do
-			-- Assign the creature name to the FontString
-			tempFontString:SetText(creature["NomCreature"])
-
-			-- Get the pixel width of the name and compare with the current maximum width
-			local nameWidth = tempFontString:GetStringWidth()
-			if nameWidth > maxWidth then
-				maxWidth = nameWidth
-			end
-		end
-
-		-- Return the maximum width
-		return maxWidth
-	end
-
-	local currentPage=1
-	if(PhaseToolkit.NPCListCurrentPage) then
-		currentPage=PhaseToolkit.NPCListCurrentPage
-	end
-
-
-
-	local totalPages = math.ceil(#PhaseToolkit.creatureList / PhaseToolkit.itemsPerPageNPC)
-	if(PhaseToolkit.NPCListCurrentPage) then
-		if PhaseToolkit.NPCListCurrentPage<=totalPages then
-			currentPage=PhaseToolkit.NPCListCurrentPage
-		else
-			currentPage=totalPages
-		end
-	end
-
-	function PhaseToolkit.CreerFenetreLignesParPage()
-		if NewNumberOfLineframe ~= nil then
-			if NewNumberOfLineframe:IsShown() then
-				NewNumberOfLineframe:Hide()
-				NewNumberOfLineframe = nil
-			end
-		end
-
-		NewNumberOfLineframe = CreateFrame("Frame", "LignesParPageFrame", PhaseToolkit.PNJFrame, "BackdropTemplate")
-		NewNumberOfLineframe:SetSize(315, 80)
-		NewNumberOfLineframe:SetPoint("BOTTOM", PhaseToolkit.PNJFrame, "TOP", 0, 10)
-		NewNumberOfLineframe:SetBackdrop({
-			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-			edgeSize = 16
-		})
-
-		local title = NewNumberOfLineframe:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-		title:SetPoint("TOP", 0, -10)
-		title:SetText(PhaseToolkit.CurrentLang["How many lines per pages ?"] or "How many lines per pages ?")
-
-		local editBox = CreateFrame("EditBox", nil, NewNumberOfLineframe, "InputBoxTemplate")
-		editBox:SetSize(100, 30)
-		editBox:SetPoint("TOP", title, "BOTTOM", 0, -10)
-		editBox:SetNumeric(true)
-		editBox:SetMaxLetters(2)
-		editBox:SetAutoFocus(true)
-
-		editBox:SetScript("OnEscapePressed", function()
-			editBox:SetAutoFocus(false)
-			editBox:ClearFocus()
-		end)
-
-		local function validerNouveauLineNumber()
-			editBox:ClearFocus()
-			local nombreLignes = tonumber(editBox:GetText())
-
-			if nombreLignes and nombreLignes > 0 then
-				PhaseToolkit.itemsPerPageNPC = nombreLignes
-				NewNumberOfLineframe:Hide()
-				PhaseToolkit.PNJFrame:Hide()
-				PhaseToolkit.PNJFrame = nil
-				if (PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.filteredCreatureList)
-				else
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-				end
-			else
-				print(PhaseToolkit.CurrentLang["Enter a valid number"] or "Enter a valid number")
-			end
-		end
-
-		editBox:SetScript("OnEnterPressed", validerNouveauLineNumber)
-
-
-		local validerButton = CreateFrame("Button", nil, NewNumberOfLineframe, "UIPanelButtonTemplate")
-		validerButton:SetSize(80, 30)
-		validerButton:SetPoint("LEFT", editBox, "RIGHT", 10, 0)
-		validerButton:SetText(PhaseToolkit.CurrentLang["Confirm"] or "Confirm")
-
-
-		validerButton:SetScript("OnClick", validerNouveauLineNumber)
-
-		NewNumberOfLineframe:Show()
-	end
-
-	PhaseToolkit.PNJFrame = CreateFrame("Frame", "PNJListFrame", PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
-	PhaseToolkit.PNJFrame:SetSize(620, (PhaseToolkit.itemsPerPageNPC * 30) + 80)
-	PhaseToolkit.PNJFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
-	PhaseToolkit.PNJFrame:EnableMouse(true);
-
-	PhaseToolkit.PNJFrame:SetScript("OnHide", function()
-		-- Sauvegarder la page actuelle quand on ferme la frame
-		PhaseToolkit.NPCListCurrentPage = currentPage
-		
-		if PhaseToolkit.categoryPanelNPC ~= nil then
-			if PhaseToolkit.categoryPanelNPC:IsShown() then
-				PhaseToolkit.categoryPanelNPC:Hide()
-			end
-			for i = 1, 7 do
-				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
-				if blueprintFrame then
-					blueprintFrame:Hide()
-					_G["PTK_CATEGORY_FRAME"..i] = nil
-				end
-			end
-		end
-	end)
-
-	local ButtonToFetch = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	ButtonToFetch:SetSize(15, 15)
-	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -30, -3.5)
-	ButtonToFetch.icon = ButtonToFetch:CreateTexture(nil, "OVERLAY")
-	ButtonToFetch.icon:SetAtlas("poi-door-arrow-down")
-	ButtonToFetch.icon:SetSize(14, 14)
-	ButtonToFetch.icon:SetPoint("CENTER", ButtonToFetch, "CENTER", 0, 0)
-	ButtonToFetch:SetScript("OnClick", function()
-		PhaseToolkit.IsCurrentlyFilteringNpcViaText = false
-		PhaseToolkit.filteredCreatureList = {}
-		PhaseToolkit.NPCListCurrentPage=currentPage
-		if PhaseToolkit.categoryPanelNPC then
-			PhaseToolkit.categoryPanelNPC:Hide()
-			for i = 1, 7 do
-				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
-				if blueprintFrame then
-					blueprintFrame:Hide()
-					_G["PTK_CATEGORY_FRAME"..i] = nil
-				end
-			end
-		end
-		PhaseToolkit.PhaseNpcListSystemMessageCounter()
-	end)
-	PhaseToolkit.RegisterTooltip(ButtonToFetch, "Fetch Npc List info")
-
-	local CategoryButton=CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	CategoryButton:SetSize(15, 15)
-	CategoryButton:SetPoint("LEFT", ButtonToFetch, "LEFT", -20, 0)
-	CategoryButton.icon = CategoryButton:CreateTexture(nil, "OVERLAY")
-	CategoryButton.icon:SetAtlas("adventureguide-icon-whatsnew")
-	CategoryButton.icon:SetSize(14, 14)
-	CategoryButton.icon:SetPoint("CENTER", CategoryButton, "CENTER", 0, 0)
-	CategoryButton:SetScript("OnClick", function()
-		PhaseToolkit.openNpcCategoryPanel()
-	end)
-	PhaseToolkit.RegisterTooltip(CategoryButton, "Open the Category Panel")
-
-	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	ButtonToChangeNumberOfLine:SetSize(15, 15)
-	ButtonToChangeNumberOfLine:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPLEFT", 5, -3.5)
-	ButtonToChangeNumberOfLine.icon = ButtonToChangeNumberOfLine:CreateTexture(nil, "OVERLAY")
-	ButtonToChangeNumberOfLine.icon:SetTexture("Interface\\Icons\\trade_engineering")
-	ButtonToChangeNumberOfLine.icon:SetAllPoints()
-	ButtonToChangeNumberOfLine:SetScript("OnClick", PhaseToolkit.CreerFenetreLignesParPage)
-
-	local function collectAllNpcsFromCategories()
-		local allNpcs = {}
-		if PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-			for _,categoryID in ipairs(PhaseToolkit.NPCcategoryToFilterPool) do
-				local category = PhaseToolkit.getCategoryByIdGENERIC(categoryID,"NPC")
-				if category and category.members then
-					for _,npcId in ipairs(category.members) do
-						local npc = PhaseToolkit.GetCreatureById(npcId)
-						if npc then
-							-- Check if the NPC is already in the list
-							local isAlreadyInList = false
-							for _,existingNpc in ipairs(allNpcs) do
-								if existingNpc.IdCreature == npc.IdCreature then
-									isAlreadyInList = true
-									break
-								end
-							end
-							-- If not, add it to the list
-							if not isAlreadyInList then
-								table.insert(allNpcs, npc)
-							end
+				for fieldName, maxValue in pairs(parentPanel.currentDataset) do
+					local maxNumericValue = tonumber(maxValue)
+					if(maxNumericValue and maxNumericValue >= 1 and not PhaseToolkit.CustomFieldLocks[fieldName]) then
+						local randomValue = math.random(1, maxNumericValue)
+						CustomizeNpc(fieldName, randomValue)
+						if(parentPanel.fieldCellByName and parentPanel.fieldCellByName[fieldName] and parentPanel.fieldCellByName[fieldName].modifyPart and parentPanel.fieldCellByName[fieldName].modifyPart.editBox) then
+							parentPanel.fieldCellByName[fieldName].modifyPart.editBox:SetNumber(randomValue)
 						end
 					end
 				end
-			end
+			end)
+			-- Uniquement le contenu STATIQUE ici (toujours visible dès que le panel est ouvert)
+			tinsert(panelContent, Panel.randomizeCategoryButton)
+			tinsert(panelContent, Panel.gridMaster)
+			tinsert(panelContent, Panel.TitleText)
 
+			PhaseToolkit.RegisterTooltip(Panel.randomizeCategoryButton, "Randomize this category")
+			PhaseToolkit.customPanel = Panel
+			deployCustomPanel()
+		else
+			if( PhaseToolkit.customPanel:IsShown() and not refreshOnly) then
+			--if the panel is visible )
+				if(PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory == category and not refreshOnly)then
+					-- if we click on the same category, we hide the panel
+					retractCustomPanel()
+				else
+					-- if we click on another category while the panel is visible, we update it with the new category
+					PhaseToolkit.customPanel.TitleText:SetText("Category : "..category)
+				end
+			else
+				-- if we click on another category while the panel is hidden, we show it with the new category
+				deployCustomPanel()
+				PhaseToolkit.customPanel.TitleText:SetText("Category : "..category)
+			end
 		end
-		return allNpcs
-	end
 
-	local function SearchAndFindNpcByText(self)
-		if self:GetText() ~= nil and self:GetText() ~= "" then
-			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then
-				sourceList=collectAllNpcsFromCategories()
-			end
-			PhaseToolkit.filteredCreatureList = {}
-			PhaseToolkit.CurrenttextToLookForNpc = self:GetText()
-			PhaseToolkit.IsCurrentlyFilteringNpcViaText = true
+		--now that we have the visibility of the panel handled we need to update the content now !
+		--everything will be in a grid 3x3 cause max is 9 fields per category, so we need to calculate the size of each cell based on the number of fields
+		PhaseToolkit.customPanel.currentDataset = dataset
+		local datasetSize = 0
+		for k,v in pairs(dataset) do
+			datasetSize = datasetSize +1
+		end
+		local numColumns = math.min(3, datasetSize)
+		local numRows = math.ceil(datasetSize/numColumns)
+		local cellWidth = (PhaseToolkit.customPanel.gridMaster:GetWidth() - (numColumns -1)*5) / numColumns
+		local cellHeight = (PhaseToolkit.customPanel.gridMaster:GetHeight() - (numRows -1)*5) / numRows
+		local index = 0
 
-			for _, creature in ipairs(sourceList) do
-				if string.find(string.lower(creature["NomCreature"]), string.lower(PhaseToolkit.CurrenttextToLookForNpc)) then
-					table.insert(PhaseToolkit.filteredCreatureList, creature)
+		local function bindCustomCellHandlers(cell, maxValue)
+			cell.modifyPart.editBox:SetScript("OnEnterPressed", function()
+				if(PhaseToolkit.CustomFieldLocks[cell.fieldToModify]) then
+					cell.modifyPart.editBox:ClearFocus()
+					return
+				end
+				local text = cell.modifyPart.editBox:GetText()
+				local number = tonumber(text)
+				if number and number >= 1 and number <= maxValue then
+					CustomizeNpc(cell.fieldToModify, number)
+					cell.modifyPart.editBox:ClearFocus()
+				end
+			end)
+
+			cell.modifyPart.minusButton:SetScript("OnClick", function()
+				if(PhaseToolkit.CustomFieldLocks[cell.fieldToModify]) then
+					return
+				end
+				local currentValue = cell.modifyPart.editBox:GetNumber()
+				if(cell.modifyPart.editBox:GetNumber() == 1)then
+					currentValue = maxValue
+					cell.modifyPart.editBox:SetNumber(currentValue)
+					CustomizeNpc(cell.fieldToModify, currentValue)
+					return
+				end
+				if currentValue > 1 then
+					cell.modifyPart.editBox:SetNumber(currentValue - 1)
+					CustomizeNpc(cell.fieldToModify, currentValue - 1)
+				end
+			end)
+
+			cell.modifyPart.plusButton:SetScript("OnClick", function()
+				if(PhaseToolkit.CustomFieldLocks[cell.fieldToModify]) then
+					return
+				end
+				local currentValue = cell.modifyPart.editBox:GetNumber()
+				if(cell.modifyPart.editBox:GetNumber() == maxValue)then
+					currentValue = 1
+					cell.modifyPart.editBox:SetNumber(currentValue )
+					CustomizeNpc(cell.fieldToModify, currentValue )
+					return
+				end
+				if currentValue < maxValue then
+					cell.modifyPart.editBox:SetNumber(currentValue + 1)
+					CustomizeNpc(cell.fieldToModify, currentValue + 1)
+				end
+			end)
+
+			cell.modifyPart.randomButton:SetScript("OnClick", function()
+				if(PhaseToolkit.CustomFieldLocks[cell.fieldToModify]) then
+					return
+				end
+				local randomValue = math.random(1, maxValue)
+				cell.modifyPart.editBox:SetNumber(randomValue)
+				CustomizeNpc(cell.fieldToModify, randomValue)
+			end)
+
+			cell.modifyPart.lockButton:SetScript("OnClick", function()
+				PhaseToolkit.CustomFieldLocks[cell.fieldToModify] = not PhaseToolkit.CustomFieldLocks[cell.fieldToModify]
+				if(cell.modifyPart.UpdateLockState) then
+					cell.modifyPart.UpdateLockState()
+				end
+			end)
+
+			cell.modifyPart.UpdateLockState = function()
+				local isLocked = PhaseToolkit.CustomFieldLocks[cell.fieldToModify] == true
+				if(isLocked) then
+					cell.modifyPart.editBox:Disable()
+					cell.modifyPart.editBox:ClearFocus()
+				else
+					cell.modifyPart.editBox:Enable()
+				end
+				cell.modifyPart.minusButton:SetEnabled(not isLocked)
+				cell.modifyPart.plusButton:SetEnabled(not isLocked)
+				cell.modifyPart.randomButton:SetEnabled(not isLocked)
+
+				local alpha = isLocked and 0.4 or 1
+				cell.modifyPart.minusButton:SetAlpha(alpha)
+				cell.modifyPart.plusButton:SetAlpha(alpha)
+				cell.modifyPart.randomButton:SetAlpha(alpha)
+				if (cell.modifyPart.lockButton.icon) then
+					cell.modifyPart.lockButton.icon:SetDesaturated(not isLocked)
+				end
+				if (not isLocked) then
+					cell.modifyPart.lockButton.icon:SetVertexColor(0.5, 0.5, 0.5, 1)
+				else
+					cell.modifyPart.lockButton.icon:SetVertexColor(1, 1, 1, 1)
 				end
 			end
-			PhaseToolkit.PNJFrame:Hide()
-			PhaseToolkit.PNJFrame = nil
-			PhaseToolkit.CreateNpcListFrame(PhaseToolkit.filteredCreatureList)
-		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringNpcViaText == true then
-			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool>0) then
-				sourceList=collectAllNpcsFromCategories()
+
+			if(cell.modifyPart.UpdateLockState) then
+				cell.modifyPart.UpdateLockState()
 			end
-			PhaseToolkit.PNJFrame:Hide()
-			PhaseToolkit.PNJFrame = nil
-			PhaseToolkit.CurrenttextToLookForNpc = ""
-			PhaseToolkit.IsCurrentlyFilteringNpcViaText = false
-			PhaseToolkit.CreateNpcListFrame(sourceList)
+		end
+
+		--We need to create the cell if it doesn't exist, else we just update cell content, to avoid creating new frames every time we click on a category
+		for i = 0, 8 do
+			local cellName = "Cell"..i
+			local cell = PhaseToolkit.customPanel.gridMaster[cellName]
+			if(cell)then
+				cell:Hide()
+			end
+		end
+
+		local sortedFieldNames = {}
+		for fieldName in pairs(dataset) do
+			tinsert(sortedFieldNames, fieldName)
+		end
+		table.sort(sortedFieldNames)
+
+		local fieldCellByName = {}
+		-- FIX: liste des cellules effectivement utilisées par CE dataset,
+		-- utilisée par deployCustomPanel pour ne réafficher qu'elles.
+		local activeCells = {}
+
+		for _, fieldName in ipairs(sortedFieldNames) do
+			local fieldValue = dataset[fieldName]
+			local row = math.floor(index/numColumns)
+			local column = index % numColumns
+			local cellName = "Cell"..index
+			local cell = PhaseToolkit.customPanel.gridMaster[cellName]
+			local isNewCell = (cell == nil)
+
+			if(isNewCell)then
+				cell = CreateFrame("Frame", nil, PhaseToolkit.customPanel.gridMaster)
+				cell.Text = cell:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+				cell.Text:SetPoint("CENTER", cell, "CENTER", 0, 0)
+				PhaseToolkit.customPanel.gridMaster[cellName]=cell
+				cell.modifyPart={}
+				cell.modifyPart.background = cell:CreateTexture(nil, "BACKGROUND")
+				cell.modifyPart.background:SetPoint("TOP",cell.Text,"BOTTOM",0,-2)
+				cell.modifyPart.editBox = CreateFrame("EditBox", nil, cell, "InputBoxTemplate")
+				cell.modifyPart.editBox:SetPoint("CENTER",cell.modifyPart.background,"CENTER",-10,0)
+				cell.modifyPart.editBox:SetSize(30, 20)
+				cell.modifyPart.editBox:SetAutoFocus(false)
+				cell.modifyPart.maxValue = cell:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+				cell.modifyPart.maxValue:SetPoint("LEFT", cell.modifyPart.editBox, "RIGHT", 5, 0)
+
+				cell.modifyPart.minusButton = CreateFrame("Button", nil, cell)
+				cell.modifyPart.minusButton:SetSize(20, 20)
+				cell.modifyPart.minusButton:SetPoint("RIGHT", cell.modifyPart.editBox, "LEFT", -5, 0)
+				cell.modifyPart.minusButton.Icon = cell.modifyPart.minusButton:CreateTexture(nil, "OVERLAY")
+				cell.modifyPart.minusButton.Icon:SetAtlas("charactercreate-customize-backbutton")
+				cell.modifyPart.minusButton.Icon:SetSize(20, 20)
+				cell.modifyPart.minusButton.Icon:SetPoint("CENTER", cell.modifyPart.minusButton, "CENTER", 0, 0)
+
+				cell.modifyPart.plusButton = CreateFrame("Button", nil, cell)
+				cell.modifyPart.plusButton:SetSize(20, 20)
+				cell.modifyPart.plusButton:SetPoint("LEFT", cell.modifyPart.editBox, "RIGHT",30, 0)
+				cell.modifyPart.plusButton.Icon = cell.modifyPart.plusButton:CreateTexture(nil, "OVERLAY")
+				cell.modifyPart.plusButton.Icon:SetAtlas("charactercreate-customize-nextbutton")
+				cell.modifyPart.plusButton.Icon:SetSize(20, 20)
+				cell.modifyPart.plusButton.Icon:SetPoint("CENTER", cell.modifyPart.plusButton, "CENTER", 0, 0)
+
+				cell.modifyPart.randomButton = CreateFrame("Button", nil, cell, "UIPanelButtonTemplate")
+				cell.modifyPart.randomButton:SetSize(18, 18)
+				cell.modifyPart.randomButton:SetPoint("RIGHT",cell.Text, "LEFT", -3, 0)
+				cell.modifyPart.randomButton.icon = cell.modifyPart.randomButton:CreateTexture(nil, "ARTWORK")
+				cell.modifyPart.randomButton.icon:SetAllPoints(cell.modifyPart.randomButton)
+				cell.modifyPart.randomButton.icon:SetAtlas("charactercreate-icon-dice")
+				cell.modifyPart.randomButton.icon:SetSize(15, 15)
+				PhaseToolkit.RegisterTooltip(cell.modifyPart.randomButton, "Randomize this field")
+
+				cell.modifyPart.lockButton = CreateFrame("Button", nil, cell, "UIPanelButtonTemplate")
+				cell.modifyPart.lockButton:SetSize(18, 18)
+				cell.modifyPart.lockButton:SetPoint("LEFT", cell.Text, "RIGHT", 3, 0)
+				cell.modifyPart.lockButton.icon = cell.modifyPart.lockButton:CreateTexture(nil, "ARTWORK")
+				cell.modifyPart.lockButton.icon:SetAllPoints(cell.modifyPart.lockButton)
+				cell.modifyPart.lockButton.icon:SetAtlas("AdventureMapIcon-Lock")
+				cell.modifyPart.lockButton.icon:SetSize(15, 15)
+				cell.modifyPart.lockButton.icon:SetDesaturated(true)
+				PhaseToolkit.RegisterTooltip(cell.modifyPart.lockButton, "Lock/unlock this field")
+
+				-- FIX: on ne met plus les cellules dans panelContent/contentToManage,
+				-- sinon deployCustomPanel les réaffiche toutes indistinctement.
+			else
+				cell:Show()
+			end
+
+			cell:SetSize(cellWidth, cellHeight)
+			cell:SetPoint("TOPLEFT", PhaseToolkit.customPanel.gridMaster, "TOPLEFT", column*(cellWidth+5), -row*(cellHeight+5))
+			cell.modifyPart.background:SetSize(cellWidth, 35)
+			cell.modifyPart.background:SetAtlas("charactercreate-customize-dropdownbox-hover")
+
+			cell.fieldToModify = fieldName
+			cell.modifyPart.maxValue:SetText("/ "..fieldValue)
+			cell.modifyPart.editBox:SetNumber(1)
+
+			bindCustomCellHandlers(cell, fieldValue)
+
+			local displayText = PhaseToolkit.CurrentLang[fieldName] or fieldName
+			local numberOfWords = #strsplittable(" ", displayText)
+			if(numberOfWords>=2)then
+				local text = string.gsub(displayText," ","\n")
+				cell.Text:SetText(text)
+				if(numberOfWords==3)then
+					cell.Text:SetPoint("CENTER", cell, "CENTER", 0, 14)
+				elseif (numberOfWords==2)then
+					cell.Text:SetPoint("CENTER", cell, "CENTER", 0, 7.5)
+				end
+			else
+				cell.Text:SetText(displayText)
+				cell.Text:SetPoint("CENTER", cell, "CENTER", 0, 0)
+			end
+
+			index = index + 1
+			fieldCellByName[fieldName] = cell
+			tinsert(activeCells, cell)
+		end
+
+		PhaseToolkit.customPanel.fieldCellByName = fieldCellByName
+		PhaseToolkit.customPanel.contentToManage = panelContent
+		-- FIX: la liste des cellules actives est remplacée à chaque appel,
+		-- donc elle reflète toujours exactement le dataset courant.
+		PhaseToolkit.customPanel.activeCells = activeCells
+	end
+end
+
+local function getCategoryFromLinkedCategory(linked)
+	for _, button in pairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
+		if(button.LinkedCategory == linked)then
+			return button
 		end
 	end
+end
 
-	if (PhaseToolkit.creatureList ~= nil and PhaseToolkit.IsTableEmpty(PhaseToolkit.creatureList) == false) then
-		PhaseToolkit.LookupInNpcListEditBox = CreateFrame("EditBox", nil, PhaseToolkit.PNJFrame, "InputBoxTemplate")
+local function getAssociativeTableCount(table)
+	local count = 0
+	for _ in pairs(table) do
+		count = count + 1
+	end
+	return count
+end
 
-		if (PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) < 190) then
-			PhaseToolkit.LookupInNpcListEditBox:SetSize(190, 20)
+local function updateCustomCategoryButtons()
+	local selectedRace = PhaseToolkit.SelectedRace
+	if selectedRace and selectedRace.raceid then
+		if PhaseToolkit.DeployingFrame.CustomCategoryButtons then
+			local raceNameKey=selectedRace.name
+			local categoriesForRace =  raceGenderCategory[raceNameKey][getSelectedGender()]["CATEGORY"]
+			local visiblebutton =0
+
+			if(getAssociativeTableCount(categoriesForRace)>0) then
+				for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
+					if(categoriesForRace and categoriesForRace[button.LinkedCategory])then
+						button:Show()
+						visiblebutton=visiblebutton+1
+						button:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -50*visiblebutton);
+					else
+						button:Hide()
+					end
+					if(PhaseToolkit.SelectedCategory and button.LinkedCategory == PhaseToolkit.SelectedCategory.LinkedCategory)then
+						button.EnabledIcon:Show()
+						button.DisabledIcon:Hide()
+					else
+						button.EnabledIcon:Hide()
+						button.DisabledIcon:Show()
+					end
+					if(PhaseToolkit.customPanel and  not PhaseToolkit.customPanel:IsShown()) then
+						button.EnabledIcon:Hide()
+						button.DisabledIcon:Show()
+					end
+				end
+			end
+		end
+	end
+end
+
+local function populateRowsOfRaceIcons(_RingBackground,racePage)
+    local gender = "male"
+    if (PhaseToolkit.DeployingFrame.NpcGenderSlider:GetValue() == 1) then
+        gender = "female"
+    end
+	local firstList;
+	local SecondList;
+
+	if(racePage==1)then
+		firstList=firstColumnIcon
+		SecondList=secondColumnIcon
+	elseif(racePage==2)then
+		firstList=thirdColumnIcon
+		SecondList=extraRaceIcon
+	end
+
+    local iconSize = 30
+	local iconSize2=30
+
+    -- Réglages arc (à ajuster)
+    local radius = 120
+	local radius2=85   -- rayon du cercle (px)
+    local startDeg, endDeg = 110, 247.5  -- arc gauche (de haut-gauche à bas-gauche)
+	local startDeg2, endDeg2 = 120, 240  -- arc droite (de haut-gauche à bas-gauche)
+	--check if list is empty
+	if(#PhaseToolkit.DeployingFrame.raceIconList == 0) then
+		for index, raceData in ipairs(firstList) do
+			local raceButton = CreateFrame("Button", nil, _RingBackground:GetParent())
+			raceButton:SetSize(iconSize, iconSize)
+
+			-- Position sur l'arc
+			local n = #firstColumnIcon
+			local t = (n <= 1) and 0 or ((index - 1) / (n - 1))
+			local deg = startDeg + (endDeg - startDeg) * t
+			local rad = math.rad(deg)
+			local x = math.cos(rad) * radius
+			local y = math.sin(rad) * radius
+
+			local endInset = 18                          -- + grand = extrémités plus à droite
+			local endFactor = math.abs(2 * t - 1)        -- 1 aux extrémités, 0 au milieu
+			x = x + endInset * endFactor
+
+			raceButton:SetPoint("CENTER", _RingBackground, "CENTER", x-20, y)
+
+			raceButton.Icon = raceButton:CreateTexture(nil, "ARTWORK")
+			raceButton.Icon:SetSize(iconSize, iconSize)
+			raceButton.Icon:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+
+			raceButton.border = raceButton:CreateTexture(nil, "BORDER")
+			raceButton.border:SetAtlas("QuestSharing-Dialog-Portrait")
+			raceButton.border:SetSize(iconSize + 5, iconSize + 5)
+			raceButton.border:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+
+			raceButton.highLight = raceButton:CreateTexture(nil, "HIGHLIGHT")
+			raceButton.highLight:SetAtlas("charactercreate-ring-select");
+			raceButton.highLight:SetSize(iconSize + 10, iconSize + 10)
+			raceButton.highLight:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+			raceButton:SetHighlightTexture(raceButton.highLight)
+
+			raceButton:SetScript("OnClick", function()
+				PhaseToolkit.ChangeNpcRace(raceData.raceid)
+				PhaseToolkit.SelectedRace=raceData
+				if(raceData["texture" .. gender]~="")then
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
+				else
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
+				end
+				activateNpcCustomHighlights()
+				if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+					local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+					if( not isCategoryExistingOnRace()) then
+						categoryToOpen = "Head"
+						PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+					end
+					if(PhaseToolkit.customPanel:IsShown()) then
+						buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+					end
+				end
+				updateCustomCategoryButtons()
+			end)
+
+			if (raceData.texturemale == "" or raceData.texturefemale == "") then
+				raceButton.Icon:SetAtlas(raceData["atlas" .. gender])
+			end
+
+			local mask = raceButton:CreateMaskTexture()
+			mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE")
+			mask:SetSize(iconSize, iconSize)
+			mask:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+			raceButton.Icon:AddMaskTexture(mask)
+			tinsert(PhaseToolkit.DeployingFrame.raceIconList,raceButton)
+		end
+		for index, raceData in ipairs(SecondList) do
+			local raceButton = CreateFrame("Button", nil, _RingBackground:GetParent())
+			raceButton:SetSize(iconSize, iconSize)
+
+			-- Position sur l'arc
+			local n = #secondColumnIcon
+			local t = (n <= 1) and 0 or ((index - 1) / (n - 1))
+			local deg = startDeg2 + (endDeg2 - startDeg2) * t
+			local rad = math.rad(deg)
+			local x = math.cos(rad) * radius2
+			local y = math.sin(rad) * radius2
+
+			local endInset = 18                          -- + grand = extrémités plus à droite
+			local endFactor = math.abs(2 * t - 1)        -- 1 aux extrémités, 0 au milieu
+			x = x + endInset * endFactor
+
+			raceButton:SetPoint("CENTER", _RingBackground, "CENTER", x-20, y)
+
+			raceButton.Icon = raceButton:CreateTexture(nil, "ARTWORK")
+			raceButton.Icon:SetSize(iconSize2, iconSize2)
+			raceButton.Icon:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+
+			raceButton.border = raceButton:CreateTexture(nil, "BORDER")
+			raceButton.border:SetAtlas("QuestSharing-Dialog-Portrait")
+			raceButton.border:SetSize(iconSize2 + 5, iconSize2 + 5)
+			raceButton.border:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+
+			raceButton.highLight = raceButton:CreateTexture(nil, "HIGHLIGHT")
+			raceButton.highLight:SetAtlas("charactercreate-ring-select");
+			raceButton.highLight:SetSize(iconSize + 10, iconSize + 10)
+			raceButton.highLight:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+			raceButton:SetHighlightTexture(raceButton.highLight)
+
+			raceButton:SetScript("OnClick", function()
+				PhaseToolkit.ChangeNpcRace(raceData.raceid)
+				PhaseToolkit.SelectedRace=raceData
+				if(raceData["texture" .. gender]~="")then
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
+				else
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
+				end
+				activateNpcCustomHighlights()
+
+				if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+					local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+					if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
+						categoryToOpen = "Head"
+						PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+					end
+
+					buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+
+				end
+				updateCustomCategoryButtons()
+			end)
+			if (raceData.texturemale == "" or raceData.texturefemale == "") then
+				raceButton.Icon:SetAtlas(raceData["atlas" .. gender])
+			end
+
+			local mask = raceButton:CreateMaskTexture()
+			mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE")
+			mask:SetSize(iconSize2, iconSize2)
+			mask:SetPoint("CENTER", raceButton, "CENTER", 0, 0)
+			raceButton.Icon:AddMaskTexture(mask)
+
+			tinsert(PhaseToolkit.DeployingFrame.raceIconList,raceButton)
+		end
+	else
+		local pos=0
+		--if we already have buttons created, just update the icons
+		for index, raceData in ipairs(firstList) do
+			local raceButton=PhaseToolkit.DeployingFrame.raceIconList[index]
+			if (raceData.texturemale == "" or raceData.texturefemale == "") then
+				raceButton.Icon:SetAtlas(raceData["atlas" .. gender])
+				raceButton.Icon:Show()
+				raceButton.border:Show()
+				raceButton:SetHighlightTexture(raceButton.highLight)
+				raceButton:SetScript("OnClick", function()
+					PhaseToolkit.ChangeNpcRace(raceData.raceid)
+					PhaseToolkit.SelectedRace=raceData
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
+					activateNpcCustomHighlights()
+					if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+						local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+						if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
+							categoryToOpen = "Head"
+							PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+						end
+
+						buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+
+					end
+					updateCustomCategoryButtons()
+				end)
+			else
+				if(raceData["texture" .. gender] and raceData["texture" .. gender] ~= "")then
+					raceButton.Icon:SetTexture(raceData["texture" .. gender])
+					raceButton.Icon:Show()
+					raceButton.border:Show()
+					raceButton:SetHighlightTexture(raceButton.highLight)
+					raceButton:SetScript("OnClick", function()
+						PhaseToolkit.ChangeNpcRace(raceData.raceid)
+						PhaseToolkit.SelectedRace=raceData
+						PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
+						activateNpcCustomHighlights()
+						if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+							local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+							if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
+								categoryToOpen = "Head"
+								PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+							end
+
+							buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+
+						end
+						updateCustomCategoryButtons()
+					end)
+				end
+			end
+			pos=index
+		end
+		for index, raceData in ipairs(SecondList) do
+			local raceButton=PhaseToolkit.DeployingFrame.raceIconList[pos+index]
+			if (raceData.texturemale == "" or raceData.texturefemale == "") then
+				raceButton.Icon:SetAtlas(raceData["atlas" .. gender])
+				raceButton.Icon:Show()
+				raceButton.border:Show()
+				raceButton:SetHighlightTexture(raceButton.highLight)
+				raceButton:SetScript("OnClick", function()
+					PhaseToolkit.ChangeNpcRace(raceData.raceid)
+					PhaseToolkit.SelectedRace=raceData
+					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
+					activateNpcCustomHighlights()
+					if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+						local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+						if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
+							categoryToOpen = "Head"
+							PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+						end
+
+						buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+
+					end
+					updateCustomCategoryButtons()
+				end)
+			else
+				if(gender ~="female" and raceData.texturefemale~="")then
+					raceButton.Icon:SetTexture(raceData["texture" .. gender])
+					raceButton.Icon:Show()
+					raceButton.border:Show()
+					raceButton:SetHighlightTexture(raceButton.highLight)
+					raceButton:SetScript("OnClick", function()
+						PhaseToolkit.ChangeNpcRace(raceData.raceid)
+						PhaseToolkit.SelectedRace=raceData
+						PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
+						activateNpcCustomHighlights()
+						if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+							local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+							if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
+								categoryToOpen = "Head"
+								PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+							end
+
+							buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+
+						end
+						updateCustomCategoryButtons()
+					end)
+
+				end
+			end
+		end
+	end
+end
+
+local function clearRaceButton()
+	for _, raceButton in ipairs(PhaseToolkit.DeployingFrame.raceIconList) do
+		raceButton.Icon:Hide()
+		raceButton.border:Hide()
+		raceButton:SetHighlightTexture(nil)
+		raceButton:SetScript("OnClick", function() end)
+	end
+end
+
+local function deployRacePanel()
+	local panel = PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie
+	local AnimationGroup = panel.animGroupDeploy
+	AnimationGroup:Play()
+end
+
+local function retractRacePanel()
+	local panel = PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie
+	local AnimationGroup = panel.animGroupRetract
+	AnimationGroup:Play()
+end
+
+local function createRaceSelectionHalfPie(context)
+	PhaseToolkit.DeployingFrame.raceIconList = {}
+	PhaseToolkit.DeployingFrame.currentRacePage=1
+
+	local RacePanel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame)
+	RacePanel:SetSize(400, 300)
+	RacePanel:SetPoint("RIGHT", PhaseToolkit.DeployingFrame, "LEFT", 2.5, 0)
+	RacePanel:SetFrameStrata("LOW")
+	RacePanel:SetFrameLevel(1)
+
+	local OuterRing = RacePanel:CreateTexture(nil, "ARTWORK");
+	OuterRing:SetPoint("RIGHT", RacePanel, "RIGHT", 0, 0);
+	SetAtlasVerticalHalf(OuterRing, "Azerite-GoldRing-Rank2", "LEFT");
+	OuterRing:SetSize(150,300)
+
+	local RingBackground = RacePanel:CreateTexture(nil, "BACKGROUND");
+	RingBackground:SetPoint("CENTER", OuterRing, "CENTER", 100, 0);
+	RingBackground:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\MainBG.blp")
+	RingBackground:SetSize(350, 277.5);
+
+	local RingBackgroundmask = RacePanel:CreateMaskTexture()
+	RingBackgroundmask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE")
+	RingBackgroundmask:SetSize(350, 277.5)
+	RingBackgroundmask:SetPoint("CENTER", OuterRing, "CENTER", 100, 0)
+	RingBackground:AddMaskTexture(RingBackgroundmask)
+
+	populateRowsOfRaceIcons(RingBackground,1)
+
+	local ArrowUp={}
+	local ArrowDown={}
+	ArrowUp.enabledAtlas = "hud-MainMenuBar-arrowup-up";
+	ArrowUp.disabledAtlas = "hud-MainMenuBar-arrowup-disabled";
+	ArrowDown.enabledAtlas = "hud-MainMenuBar-arrowdown-up";
+	ArrowDown.disabledAtlas = "hud-MainMenuBar-arrowdown-disabled";
+
+	local nextPageButton = CreateFrame("Button", nil, RacePanel, "UIPanelButtonTemplate")
+	nextPageButton:SetSize(25, 25)
+	nextPageButton:SetPoint("CENTER", RingBackground, "CENTER", -45, -20)
+	nextPageButton.Icon = nextPageButton:CreateTexture(nil, "ARTWORK")
+	nextPageButton.Icon:SetSize(25, 25)
+	nextPageButton.Icon:SetPoint("CENTER", nextPageButton, "CENTER", 0, 0)
+	nextPageButton.Icon:SetAtlas(ArrowDown.enabledAtlas)
+
+	local previousPageButton = CreateFrame("Button", nil, RacePanel, "UIPanelButtonTemplate")
+	previousPageButton:SetSize(25, 25)
+	previousPageButton:SetPoint("CENTER", RingBackground, "CENTER", -45, 20)
+	previousPageButton.Icon = previousPageButton:CreateTexture(nil, "ARTWORK")
+	previousPageButton.Icon:SetSize(25, 25)
+	previousPageButton.Icon:SetPoint("CENTER", previousPageButton, "CENTER", 0, 0)
+	previousPageButton.Icon:SetAtlas(ArrowUp.disabledAtlas)
+
+	nextPageButton:SetScript("OnClick", function()
+		clearRaceButton()
+		populateRowsOfRaceIcons(RingBackground,2)
+		PhaseToolkit.DeployingFrame.currentRacePage=2
+		nextPageButton.Icon:SetAtlas(ArrowDown.disabledAtlas)
+		previousPageButton.Icon:SetAtlas(ArrowUp.enabledAtlas)
+		nextPageButton:EnableMouse(false)
+		previousPageButton:EnableMouse(true)
+	end)
+
+	previousPageButton:SetScript("OnClick", function()
+		clearRaceButton()
+		populateRowsOfRaceIcons(RingBackground,1)
+		PhaseToolkit.DeployingFrame.currentRacePage=1
+		previousPageButton.Icon:SetAtlas(ArrowUp.disabledAtlas)
+		nextPageButton.Icon:SetAtlas(ArrowDown.enabledAtlas)
+		previousPageButton:EnableMouse(false)
+		nextPageButton:EnableMouse(true)
+
+	end)
+
+	RacePanel.isHiddenByDefault = true
+	tinsert(context, RacePanel)
+
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(PhaseToolkit.DeployingFrame, RingBackground)
+	PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie = RacePanel
+	PhaseToolkit.DeployingFrame.raceRingBackground = RingBackground
+	RacePanel:Hide()
+
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie, 60, 0, {
+		onPlayDeploy = function() PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie:Show() end,
+		--onFinishedDeploy = function() end,
+		--onPlayRetract = function() end,
+		onFinishedRetract = function() PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie:Hide() end,
+	})
+
+end
+
+
+local function createCopyPasteOption(_anchor)
+	local parentFrame = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "BackdropTemplate")
+	parentFrame:SetSize(90, 100)
+	parentFrame:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 130, 35)
+	parentFrame:SetBackdrop({
+		bgFile = "Interface/AddOns/"..addonName.."\\assets\\MainBG.blp",
+		edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+		tile = true,
+		tileSize = 16,
+		edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 }
+	})
+	parentFrame:SetBackdropColor(0, 0, 0, 0.5)
+	parentFrame:SetBackdropBorderColor(1, 1, 1, 0.5)
+
+	parentFrame:SetFrameStrata("HIGH")
+	-- name + customizations + equipment + weapons + name
+	local enableCustomNameCheckbox = CreateFrame("CheckButton", nil, parentFrame)
+	enableCustomNameCheckbox:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 5, -5)
+	enableCustomNameCheckbox.checked=PhaseToolkit.CopyNpcNameEnabled
+	enableCustomNameCheckbox:SetSize(18,18)
+	enableCustomNameCheckbox.background = enableCustomNameCheckbox:CreateTexture(nil, "BACKGROUND")
+	enableCustomNameCheckbox.background:SetAtlas("common-radiobutton-circle")
+	enableCustomNameCheckbox.background:SetPoint("CENTER", enableCustomNameCheckbox, "CENTER", 0, 0)
+	enableCustomNameCheckbox.background:SetSize(18, 18)
+	enableCustomNameCheckbox.thumb = enableCustomNameCheckbox:CreateTexture(nil, "ARTWORK")
+	enableCustomNameCheckbox.thumb:SetAtlas("common-radiobutton-dot")
+	enableCustomNameCheckbox.thumb:SetPoint("CENTER", enableCustomNameCheckbox, "CENTER", 0, 0)
+	enableCustomNameCheckbox.thumb:SetSize(18, 18)
+	enableCustomNameCheckbox.thumb:SetShown(enableCustomNameCheckbox.checked)
+
+	enableCustomNameCheckbox.Text = enableCustomNameCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	enableCustomNameCheckbox.Text:SetPoint("LEFT", enableCustomNameCheckbox, "RIGHT", 5, 0)
+	enableCustomNameCheckbox.Text:SetText("Name")
+
+	enableCustomNameCheckbox:SetScript("OnClick", function()
+		local checked = enableCustomNameCheckbox.checked
+		if checked then
+			checked = false
+			enableCustomNameCheckbox.checked=false
+			enableCustomNameCheckbox.thumb:Hide()
 		else
-
-			PhaseToolkit.LookupInNpcListEditBox:SetSize(PhaseToolkit.GetMaxNameWidth(PhaseToolkit.creatureList) - 50, 20)
+			checked = true
+			enableCustomNameCheckbox.checked=true
+			enableCustomNameCheckbox.thumb:Show()
 		end
+		PhaseToolkit.CopyNpcNameEnabled = checked
+	end)
 
-		PhaseToolkit.LookupInNpcListEditBox:SetPoint("LEFT", ButtonToChangeNumberOfLine, "RIGHT", 10, -0.5)
-		PhaseToolkit.LookupInNpcListEditBox:SetAutoFocus(false)
-		if (PhaseToolkit.CurrenttextToLookForNpc ~= nil and PhaseToolkit.CurrenttextToLookForNpc ~= "") then
-			PhaseToolkit.LookupInNpcListEditBox:SetText(PhaseToolkit.CurrenttextToLookForNpc)
-			PhaseToolkit.LookupInNpcListEditBox:SetFocus()
+	local enableCustomCheckbox = CreateFrame("CheckButton", nil, parentFrame)
+	enableCustomCheckbox:SetPoint("TOPLEFT", enableCustomNameCheckbox, "BOTTOMLEFT", 0, -5)
+	enableCustomCheckbox.checked=PhaseToolkit.CopyNpcCustomisationEnabled
+	enableCustomCheckbox:SetSize(18,18)
+	enableCustomCheckbox.background = enableCustomCheckbox:CreateTexture(nil, "BACKGROUND")
+	enableCustomCheckbox.background:SetAtlas("common-radiobutton-circle")
+	enableCustomCheckbox.background:SetPoint("CENTER", enableCustomCheckbox, "CENTER", 0, 0)
+	enableCustomCheckbox.background:SetSize(18, 18)
+	enableCustomCheckbox.thumb = enableCustomCheckbox:CreateTexture(nil, "ARTWORK")
+	enableCustomCheckbox.thumb:SetAtlas("common-radiobutton-dot")
+	enableCustomCheckbox.thumb:SetPoint("CENTER", enableCustomCheckbox, "CENTER", 0, 0)
+	enableCustomCheckbox.thumb:SetSize(18, 18)
+	enableCustomCheckbox.thumb:SetShown(enableCustomCheckbox.checked)
+
+	enableCustomCheckbox.Text = enableCustomCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	enableCustomCheckbox.Text:SetPoint("LEFT", enableCustomCheckbox, "RIGHT", 5, 0)
+	enableCustomCheckbox.Text:SetText("Custom")
+
+	enableCustomCheckbox:SetScript("OnClick", function()
+		local checked = enableCustomCheckbox.checked
+		if checked then
+			checked = false
+			enableCustomCheckbox.checked=false
+			enableCustomCheckbox.thumb:Hide()
+		else
+			checked = true
+			enableCustomCheckbox.checked=true
+			enableCustomCheckbox.thumb:Show()
 		end
+		PhaseToolkit.CopyNpcCustomisationEnabled = checked
+	end)
 
-		PhaseToolkit.LookupInNpcListEditBox:SetScript("OnEnterPressed", SearchAndFindNpcByText)
-	end
+	local enableEquipmentCheckbox = CreateFrame("CheckButton", nil, parentFrame)
+	enableEquipmentCheckbox:SetPoint("TOPLEFT", enableCustomCheckbox, "BOTTOMLEFT", 0, -5)
+	enableEquipmentCheckbox.checked = PhaseToolkit.CopyNpcGearEnabled
+	enableEquipmentCheckbox:SetSize(18,18)
+	enableEquipmentCheckbox.background = enableEquipmentCheckbox:CreateTexture(nil, "BACKGROUND")
+	enableEquipmentCheckbox.background:SetAtlas("common-radiobutton-circle")
+	enableEquipmentCheckbox.background:SetPoint("CENTER", enableEquipmentCheckbox, "CENTER", 0, 0)
+	enableEquipmentCheckbox.background:SetSize(18, 18)
+	enableEquipmentCheckbox.thumb = enableEquipmentCheckbox:CreateTexture(nil, "ARTWORK")
+	enableEquipmentCheckbox.thumb:SetAtlas("common-radiobutton-dot")
+	enableEquipmentCheckbox.thumb:SetPoint("CENTER", enableEquipmentCheckbox, "CENTER", 0, 0)
+	enableEquipmentCheckbox.thumb:SetSize(18, 18)
+	enableEquipmentCheckbox.thumb:SetShown(enableEquipmentCheckbox.checked)
 
-	local PNJRows = {}
+	enableEquipmentCheckbox.Text = enableEquipmentCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	enableEquipmentCheckbox.Text:SetPoint("LEFT", enableEquipmentCheckbox, "RIGHT", 5, 0)
+	enableEquipmentCheckbox.Text:SetText("Gear")
 
-	local function OnSpawnClick(pnjId)
-		sendAddonCmd("n spawn " .. pnjId, nil)
-	end
+	enableEquipmentCheckbox:SetScript("OnClick", function()
+		local checked = enableEquipmentCheckbox.checked
+		if checked then
+			checked = false
+			enableEquipmentCheckbox.checked=false
+			enableEquipmentCheckbox.thumb:Hide()
+		else
+			checked = true
+			enableEquipmentCheckbox.checked=true
+			enableEquipmentCheckbox.thumb:Show()
+		end
+		PhaseToolkit.CopyNpcGearEnabled = checked
+	end)
 
-	local function GetNpcById( npcId)
-		for _, npc in ipairs(PhaseToolkit.creatureList) do
-			if npc["IdCreature"] == npcId then
-				return npc
+	local enableWeaponCheckbox = CreateFrame("CheckButton", nil, parentFrame)
+	enableWeaponCheckbox:SetPoint("TOPLEFT", enableEquipmentCheckbox, "BOTTOMLEFT", 0, -5)
+	enableWeaponCheckbox.checked = PhaseToolkit.CopyNpcWeaponEnabled
+	enableWeaponCheckbox:SetSize(18,18)
+	enableWeaponCheckbox.background = enableWeaponCheckbox:CreateTexture(nil, "BACKGROUND")
+	enableWeaponCheckbox.background:SetAtlas("common-radiobutton-circle")
+	enableWeaponCheckbox.background:SetPoint("CENTER", enableWeaponCheckbox, "CENTER", 0, 0)
+	enableWeaponCheckbox.background:SetSize(18, 18)
+	enableWeaponCheckbox.thumb = enableWeaponCheckbox:CreateTexture(nil, "ARTWORK")
+	enableWeaponCheckbox.thumb:SetAtlas("common-radiobutton-dot")
+	enableWeaponCheckbox.thumb:SetPoint("CENTER", enableWeaponCheckbox, "CENTER", 0, 0)
+	enableWeaponCheckbox.thumb:SetSize(18, 18)
+	enableWeaponCheckbox.thumb:SetShown(enableWeaponCheckbox.checked)
+
+	enableWeaponCheckbox.Text = enableWeaponCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	enableWeaponCheckbox.Text:SetPoint("LEFT", enableWeaponCheckbox, "RIGHT", 5, 0)
+	enableWeaponCheckbox.Text:SetText("Weapon")
+
+	enableWeaponCheckbox:SetScript("OnClick", function()
+		local checked = enableWeaponCheckbox.checked
+		if checked then
+			checked = false
+			enableWeaponCheckbox.checked=false
+			enableWeaponCheckbox.thumb:Hide()
+		else
+			checked = true
+			enableWeaponCheckbox.checked=true
+			enableWeaponCheckbox.thumb:Show()
+		end
+		PhaseToolkit.CopyNpcWeaponsEnabled = checked
+	end)
+
+	_anchor.options = parentFrame
+end
+
+local function createNpcEditBox(context)
+	local npcNameEditBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	npcNameEditBox:SetSize(70, 20)
+	npcNameEditBox:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 55, -170)
+	npcNameEditBox:SetAutoFocus(false)
+	npcNameEditBox:SetScript("OnEnterPressed", function()
+		local text = npcNameEditBox:GetText()
+		sendAddonCmd("phase forge npc name " .. text, nil)
+		npcNameEditBox:ClearFocus()
+	end)
+
+
+	npcNameEditBox.label = npcNameEditBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	npcNameEditBox.label:SetPoint("RIGHT", npcNameEditBox, "LEFT", -5, 0)
+	npcNameEditBox.label:SetText("Name")
+	tinsert(context, npcNameEditBox)
+
+	local npcSubNameEditBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	npcSubNameEditBox:SetSize(70, 20)
+	npcSubNameEditBox:SetPoint("TOPLEFT", npcNameEditBox, "BOTTOMLEFT", 0, -5)
+	npcSubNameEditBox:SetAutoFocus(false)
+	npcSubNameEditBox:SetScript("OnEnterPressed", function()
+		local text = npcSubNameEditBox:GetText()
+		sendAddonCmd("phase forge npc subname " .. text, nil)
+		npcSubNameEditBox:ClearFocus()
+	end)
+
+	npcSubNameEditBox.label = npcSubNameEditBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	npcSubNameEditBox.label:SetPoint("RIGHT", npcSubNameEditBox, "LEFT", -5, 0)
+	npcSubNameEditBox.label:SetText("Sub.")
+	tinsert(context, npcSubNameEditBox)
+
+	local npcFactionEditBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	npcFactionEditBox:SetSize(70, 20)
+	npcFactionEditBox:SetPoint("TOPLEFT", npcSubNameEditBox, "BOTTOMLEFT", 0, -5)
+	npcFactionEditBox:SetAutoFocus(false)
+	npcFactionEditBox:SetScript("OnEnterPressed", function()
+		local text = npcFactionEditBox:GetText()
+		sendAddonCmd("phase forge npc faction " .. text, nil)
+		npcFactionEditBox:ClearFocus()
+	end)
+
+	npcFactionEditBox.label = npcFactionEditBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	npcFactionEditBox.label:SetPoint("RIGHT", npcFactionEditBox, "LEFT", -5, 0)
+	npcFactionEditBox.label:SetText("Faction")
+	tinsert(context, npcFactionEditBox)
+
+	local mouseBoundBox = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame)
+	mouseBoundBox:SetAllPoints(npcFactionEditBox)
+	mouseBoundBox:RegisterForClicks("AnyUp")
+	mouseBoundBox:SetScript("OnClick", function(_,buttonPressed)
+		if(buttonPressed=="RightButton")then
+			SendChatMessage(".lookup faction a","GUILD")
+			npcFactionEditBox:ClearFocus()
+		else
+			npcFactionEditBox:SetFocus()
+		end
+	end)
+	mouseBoundBox:EnableMouse(true)
+	PhaseToolkit.RegisterTooltip(mouseBoundBox,"Right-Click to lookup Factions")
+	PhaseToolkit.DeployingFrame.npcNameEditBox = npcNameEditBox
+	tinsert(context, mouseBoundBox)
+end
+
+local createDatasetForDisplaysList
+
+local function createDisplayListFrame(DisplayData)
+	if(PhaseToolkit.DeployingFrame )then
+		if(not PhaseToolkit.DisplayListFrame) then
+			local Panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+			Panel:SetSize(PhaseToolkit.DeployingFrame:GetWidth()+135, 245);
+			Panel:SetPoint("LEFT", PhaseToolkit.DeployingFrame, "RIGHT", 0, -27.5);
+			ButtonFrameTemplateMinimizable_HidePortrait(Panel)
+			NineSliceUtil.ApplyLayoutByName(Panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(Panel.NineSlice, 0.8, true)
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(Panel.NineSlice, 0.4)
+			EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(Panel, Panel.Bg)
+			Panel:SetFrameStrata("LOW")
+			local titleBgColor = Panel:CreateTexture(nil, "BACKGROUND")
+			local color = CreateColorFromHexString("80FF7100")
+			titleBgColor:SetPoint("TOPLEFT", Panel.TitleBg)
+			titleBgColor:SetPoint("BOTTOMRIGHT", Panel.TitleBg, -0, 0)
+			titleBgColor:SetColorTexture(color:GetRGBA())
+			Panel.TitleBgColor = titleBgColor
+			PhaseToolkit.DisplayListFrame = Panel
+			Panel.TitleText:SetText("Outfits / DisplayIDs list")
+
+			local scrollFrame = CreateFrame("ScrollFrame", nil, Panel, "FauxScrollFrameTemplate")
+			scrollFrame:SetPoint("TOPLEFT", Panel, "TOPLEFT", 10, -40)
+			scrollFrame:SetPoint("BOTTOMRIGHT", Panel, "BOTTOMRIGHT", -18, 15)
+
+			local content = CreateFrame("Frame", nil, Panel)
+			content:SetPoint("TOPLEFT", Panel, "TOPLEFT", 10, -48)
+			content:SetPoint("BOTTOMRIGHT", Panel, "BOTTOMRIGHT", -14, 18)
+
+			Panel.scrollFrame = scrollFrame
+			Panel.content = content
+			Panel.displayRows = Panel.displayRows or {}
+			Panel.DisplayData = Panel.DisplayData or {}
+			Panel.rowHeight = 28
+			Panel.visibleRows = 6
+
+			local rowHeight = Panel.rowHeight
+			local visibleRows = Panel.visibleRows
+
+			local function createRow(index)
+				local row = CreateFrame("Button", "PTK_DISPLAY_ROW"..index, content, "BackdropTemplate")
+				row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+				row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+				row:SetHeight(rowHeight)
+				row:SetBackdrop({
+					bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					edgeSize = 10,
+					insets = { left = 2, right = 2, top = 2, bottom = 2 },
+				})
+				row:SetBackdropColor(0, 0, 0, 0.25)
+				row:SetBackdropBorderColor(1, 1, 1, 0.12)
+
+				row.highlight = row:CreateTexture(nil, "BACKGROUND")
+				row.highlight:SetAllPoints(row)
+				row.highlight:SetColorTexture(1, 1, 1, 0.05)
+				row.highlight:Hide()
+
+				row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				row.label:SetPoint("LEFT", row, "LEFT", 8, 0)
+				row.label:SetPoint("RIGHT", row, "RIGHT", -30, 0)
+				row.label:SetJustifyH("LEFT")
+				row.label:SetWordWrap(false)
+				row.label:SetNonSpaceWrap(true)
+
+				row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+				row.deleteButton:SetSize(18, 18)
+				row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+				row.deleteButton:SetText("X")
+				row.deleteButton:SetScript("OnClick", function(self)
+					local rowParent = self:GetParent()
+					if(not rowParent or not rowParent.displayData) then
+						return
+					end
+
+					if(PhaseToolkit.DisplayListFrame and PhaseToolkit.DisplayListFrame.scrollFrame) then
+						local currentOffset = FauxScrollFrame_GetOffset(PhaseToolkit.DisplayListFrame.scrollFrame)
+						local rowsPerPage = PhaseToolkit.DisplayListFrame.visibleRows or visibleRows
+						PhaseToolkit.DisplayListFrame.requestedPage = math.floor(currentOffset / rowsPerPage)
+					end
+
+					local entry = rowParent.displayData
+					if(entry.entryType == "outfit") then
+						local outfitId = entry.OutfitId or entry.id
+						if(outfitId) then
+							sendAddonCmd("ph f n out remove "..tostring(outfitId), function()
+								createDatasetForDisplaysList()
+							end)
+						end
+					else
+						if(entry.id) then
+							sendAddonCmd("phase forge npc displays remove "..tostring(entry.id), function()
+								createDatasetForDisplaysList()
+							end)
+						end
+					end
+				end)
+
+				row:SetScript("OnEnter", function(self)
+					self.highlight:Show()
+				end)
+
+				row:SetScript("OnLeave", function(self)
+					self.highlight:Hide()
+				end)
+
+				row:SetScript("OnClick", function(self, button)
+					if not self.displayData then
+						return
+					end
+					if(button == "RightButton") then
+						if(self.displayData.DisplayID) then
+							ChatFrame_OpenChat(tostring(self.displayData.DisplayID))
+						end
+					else
+						if(self.displayData.entryType == "outfit") then
+							local outfitId = self.displayData.OutfitId or self.displayData.id
+							if(outfitId) then
+								sendAddonCmd("ph f n out set "..tostring(outfitId), nil)
+							end
+						else
+							if(self.displayData.DisplayID) then
+								sendAddonCmd("n set model "..tostring(self.displayData.DisplayID), nil)
+							end
+						end
+					end
+				end)
+
+				return row
+			end
+
+			function Panel.UpdateScrollFrame()
+				local displayData = Panel.DisplayData or {}
+				local offset = FauxScrollFrame_GetOffset(scrollFrame)
+
+				for i = 1, visibleRows do
+					local rowIndex = offset + i
+					local row = Panel.displayRows[i]
+					if(not row) then
+						row = createRow(i)
+						Panel.displayRows[i] = row
+					end
+
+					local entry = displayData[rowIndex]
+					if(entry) then
+						row.displayData = entry
+						if(entry.entryType == "outfit") then
+							row.label:SetText(string.format(
+								"Outfit: %s | Gender: %s | Race: %s",
+								tostring(entry.OutfitId or entry.id or "?"),
+								tostring(entry.gender or "?"),
+								tostring(entry.race or "?")
+							))
+						else
+							row.label:SetText(string.format(
+								"DisplayID: %s | Scale: %s | Weight: %s",
+								tostring(entry.id or "?"),
+								tostring(entry.DisplayID or "?"),
+								entry.scale and string.format("%.2f", entry.scale) or "?",
+								entry.weightText or (entry.weight and string.format("%.2f", entry.weight) or "?")
+							))
+						end
+						row:Show()
+					else
+						row.displayData = nil
+						row:Hide()
+					end
+				end
+
+				FauxScrollFrame_Update(scrollFrame, #displayData, visibleRows, rowHeight)
+			end
+
+			scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+				FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, Panel.UpdateScrollFrame)
+			end)
+
+			Panel:SetScript("OnShow", function()
+				Panel.UpdateScrollFrame()
+			end)
+		else
+			PhaseToolkit.DisplayListFrame:Show()
+		end
+		--Maintenant qu'on est sure d'avoir ou non la frame, on peut la remplir avec les données
+		if(PhaseToolkit.DisplayListFrame and DisplayData)then
+			PhaseToolkit.DisplayListFrame.DisplayData = DisplayData
+			if(PhaseToolkit.DisplayListFrame.scrollFrame and PhaseToolkit.DisplayListFrame.scrollFrame.ScrollBar) then
+				local visibleRows = PhaseToolkit.DisplayListFrame.visibleRows or 6
+				local rowHeight = PhaseToolkit.DisplayListFrame.rowHeight or 28
+				local maxOffset = math.max(0, #DisplayData - visibleRows)
+				local targetOffset = 0
+				if(PhaseToolkit.DisplayListFrame.requestedPage) then
+					targetOffset = math.min(maxOffset, PhaseToolkit.DisplayListFrame.requestedPage * visibleRows)
+				end
+				PhaseToolkit.DisplayListFrame.scrollFrame.ScrollBar:SetValue(targetOffset * rowHeight)
+				PhaseToolkit.DisplayListFrame.requestedPage = nil
+			end
+			PhaseToolkit.DisplayListFrame:Show()
+			if(PhaseToolkit.DisplayListFrame.UpdateScrollFrame) then
+				PhaseToolkit.DisplayListFrame.UpdateScrollFrame()
 			end
 		end
+	end
+end
+
+createDatasetForDisplaysList = function()
+	local DisplayData = {}
+	local OutfitData={}
+
+	local function parseGenderRace(message)
+		local gender, race = message:match("%((%a+)%s+([%a%s]+)%)")
+		if(race) then
+			race = race:match("^%s*(.-)%s*$")
+		end
+		return gender, race
+	end
+	sendAddonCmd("phase forge npc outfit list", function(isSuccessful,results)
+		if(isSuccessful and results)then
+			for i = 1, #results do
+				local OutfitDataObject={}
+				message = results[i]
+				message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+				local OutfitId = message:match("[Oo]utfit%s*ID:%s*(%d+)")
+				local gender,race = parseGenderRace(message)
+				OutfitDataObject.gender = gender and gender:lower() or nil
+				OutfitDataObject.race = race
+				OutfitDataObject.entryType = "outfit"
+				OutfitDataObject.OutfitId = tonumber(OutfitId)
+				OutfitDataObject.id = tonumber(OutfitId)
+				OutfitDataObject.DisplayID = nil
+				if(OutfitId)then
+					OutfitData[OutfitId] = OutfitDataObject
+					tinsert(DisplayData, OutfitDataObject)
+				end
+			end
+	 	end
+		sendAddonCmd("phase forge npc displays list", function(isSuccessful,results)
+			if(isSuccessful and results)then
+				for i = 2, #results do
+					message = results[i]
+					message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+					local id = message:match("ID:%s*(%d+)")
+					local scale = message:match("Scale:%s*([%d%.]+)")
+					local weight = message:match("Probability Weight:%s*([%d%.]+)")
+					if(weight) then
+						weight = weight:gsub("%.$", "")
+					end
+					local OutfitId = message:match(".Outfit (%d+).")
+					local DisplayID = message:match(".Display (%d+).")
+
+					if(not (OutfitId and OutfitData[OutfitId])) then
+						local DisplayDataObject={}
+						local entryType = "display"
+
+						DisplayDataObject.id = tonumber(id)
+						DisplayDataObject.scale = tonumber(scale)
+						DisplayDataObject.weight = tonumber(weight)
+						DisplayDataObject.weightText = weight
+						DisplayDataObject.OutfitId = tonumber(OutfitId)
+						DisplayDataObject.DisplayID = tonumber(DisplayID)
+						DisplayDataObject.entryType = entryType
+						DisplayDataObject.gender = OutfitData[OutfitId] and OutfitData[OutfitId].gender
+						DisplayDataObject.race = OutfitData[OutfitId] and OutfitData[OutfitId].race
+						if(not DisplayDataObject.gender or not DisplayDataObject.race) then
+							local fallbackGender, fallbackRace = parseGenderRace(message)
+							DisplayDataObject.gender = DisplayDataObject.gender or (fallbackGender and fallbackGender:lower() or nil)
+							DisplayDataObject.race = DisplayDataObject.race or fallbackRace
+						end
+						tinsert(DisplayData,DisplayDataObject)
+					end
+				end
+				table.sort(DisplayData, function(a, b)
+					if a.entryType ~= b.entryType then
+						if a.entryType == "outfit" then
+							return true
+						end
+						if b.entryType == "outfit" then
+							return false
+						end
+						return tostring(a.entryType or "") < tostring(b.entryType or "")
+					end
+					return tonumber(a.id or a.OutfitId or 0) < tonumber(b.id or b.OutfitId or 0)
+				end)
+			end
+			createDisplayListFrame(DisplayData)
+		end)
+	end,false)
+end
+
+
+
+local function createNpcToolkitButtons(context)
+	local createNpcButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	createNpcButton:SetSize(22.5, 22.5)
+	createNpcButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, -140)
+	createNpcButton.Icon = createNpcButton:CreateTexture(nil, "OVERLAY")
+	createNpcButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_AddButton.blp")
+	createNpcButton.Icon:SetSize(22.5, 22.5)
+	createNpcButton.Icon:SetPoint("CENTER", createNpcButton, "CENTER", 0, 0)
+
+	createNpcButton:SetScript("OnClick", function()
+		sendAddonCmd("ph f n create",nil,true)
+	end)
+
+	tinsert(context,createNpcButton)
+
+	PhaseToolkit.RegisterTooltip(createNpcButton, "Create NPC")
+
+	local duplicateNpcButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	duplicateNpcButton:SetSize(22.5, 22.5)
+	duplicateNpcButton:SetPoint("LEFT", createNpcButton, "RIGHT", 5, 0)
+	duplicateNpcButton.Icon = duplicateNpcButton:CreateTexture(nil, "OVERLAY")
+	duplicateNpcButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_outfittarget.blp")
+	duplicateNpcButton.Icon:SetSize(22.5, 22.5)
+	duplicateNpcButton.Icon:SetPoint("CENTER", duplicateNpcButton, "CENTER", 0, 0)
+
+	duplicateNpcButton:SetScript("OnClick", function()
+		--if we have a target
+
+		if(UnitExists("target") and UnitIsPlayer("target")==false) then
+			ns.BarberCapture.Capture(function(cmd,err)
+			if(cmd)then
+				sendAddonCommandChain(cmd,nil,false)
+			else
+				print("Capture failed : "..err)
+			end
+		 end)
+		else
+			print("Duplication Need a target")
+		end
+	end)
+	tinsert(context,duplicateNpcButton)
+
+	PhaseToolkit.RegisterTooltip(duplicateNpcButton, "Duplicate Player Customs on NPC")
+
+	local copyNpcButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	copyNpcButton:SetSize(22.5, 22.5)
+	copyNpcButton:SetPoint("LEFT", duplicateNpcButton, "RIGHT", 5, 0)
+	copyNpcButton.Icon = copyNpcButton:CreateTexture(nil, "OVERLAY")
+	copyNpcButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_copynpc.blp")
+	copyNpcButton.Icon:SetSize(22.5, 22.5)
+	copyNpcButton.Icon:SetPoint("CENTER", copyNpcButton, "CENTER", 0, 0)
+
+	copyNpcButton:SetScript("OnClick", function()
+		if(UnitExists("target") and UnitIsPlayer("target")==false) then
+				PhaseToolkit.CopyNpcCustomisation()
+		end
+	end)
+
+	tinsert(context,copyNpcButton)
+
+	PhaseToolkit.RegisterTooltip(copyNpcButton, "Create a Copy Code of the NPC")
+
+	local pasteNpcButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	pasteNpcButton:SetSize(22.5, 22.5)
+	pasteNpcButton:SetPoint("LEFT", copyNpcButton, "RIGHT", 5, 0)
+	pasteNpcButton.Icon = pasteNpcButton:CreateTexture(nil, "OVERLAY")
+	pasteNpcButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_pastenpc.blp")
+	pasteNpcButton.Icon:SetSize(22.5, 22.5)
+	pasteNpcButton.Icon:SetPoint("CENTER", pasteNpcButton, "CENTER", 0, 0)
+
+	pasteNpcButton:SetScript("OnClick", function()
+		if(UnitExists("target") and UnitIsPlayer("target")==false) then
+				PhaseToolkit.PasteNpcCustomisation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(pasteNpcButton, "Paste a Copy Code onto this NPC")
+	tinsert(context,pasteNpcButton)
+
+	local copyPasteOptionsButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	copyPasteOptionsButton:SetSize(22.5, 22.5)
+	copyPasteOptionsButton:SetPoint("LEFT", pasteNpcButton, "RIGHT", 5, 0)
+	copyPasteOptionsButton.Icon = copyPasteOptionsButton:CreateTexture(nil, "OVERLAY")
+	copyPasteOptionsButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_settings.blp")
+	copyPasteOptionsButton.Icon:SetSize(22.5, 22.5)
+	copyPasteOptionsButton.Icon:SetPoint("CENTER", copyPasteOptionsButton, "CENTER", 0, 0)
+
+	copyPasteOptionsButton:SetScript("OnClick", function()
+		if(not copyPasteOptionsButton.options) then
+			createCopyPasteOption(copyPasteOptionsButton)
+		else
+			if(copyPasteOptionsButton.options:IsShown())then
+				copyPasteOptionsButton.options:Hide()
+			else
+				copyPasteOptionsButton.options:Show()
+			end
+		end
+	end)
+
+	tinsert(context,copyPasteOptionsButton)
+
+
+	PhaseToolkit.RegisterTooltip(copyPasteOptionsButton, "Copy/Paste Options")
+
+	local autoUpdateCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
+	autoUpdateCheckbox:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 120, -60)
+	autoUpdateCheckbox:SetSize(30, 30)
+	autoUpdateCheckbox.checked= PhaseToolkit.AutoRefreshNPC
+	autoUpdateCheckbox.enabledIcon = autoUpdateCheckbox:CreateTexture(nil, "OVERLAY")
+	autoUpdateCheckbox.enabledIcon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\autoRefresh_enabled.blp")
+	autoUpdateCheckbox.enabledIcon:SetSize(30, 30)
+	autoUpdateCheckbox.enabledIcon:SetPoint("CENTER", autoUpdateCheckbox, "CENTER", 0, 0)
+	autoUpdateCheckbox.disabledIcon = autoUpdateCheckbox:CreateTexture(nil, "OVERLAY")
+	autoUpdateCheckbox.disabledIcon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\autoRefresh_disabled.blp")
+	autoUpdateCheckbox.disabledIcon:SetSize(30, 30)
+	autoUpdateCheckbox.disabledIcon:SetPoint("CENTER", autoUpdateCheckbox, "CENTER", 0, 0)
+
+	if(autoUpdateCheckbox.checked)then
+		autoUpdateCheckbox.enabledIcon:Show()
+		autoUpdateCheckbox.disabledIcon:Hide()
+	else
+		autoUpdateCheckbox.enabledIcon:Hide()
+		autoUpdateCheckbox.disabledIcon:Show()
+	end
+
+	autoUpdateCheckbox:SetScript("OnClick", function()
+		if(autoUpdateCheckbox.checked)then
+			autoUpdateCheckbox.checked = false
+			autoUpdateCheckbox.enabledIcon:Hide()
+			autoUpdateCheckbox.disabledIcon:Show()
+			PhaseToolkit.DeployingFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+		else
+			autoUpdateCheckbox.checked = true
+			autoUpdateCheckbox.enabledIcon:Show()
+			autoUpdateCheckbox.disabledIcon:Hide()
+			PhaseToolkit.DeployingFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+		end
+		PhaseToolkit.AutoRefreshNPC = autoUpdateCheckbox.checked
+	end)
+
+	PhaseToolkit.DeployingFrame:SetScript("OnEvent", function(self, event)
+		-- If we change target while Phase toolkit is opened, and it's a npc we take data
+		if (event == "PLAYER_TARGET_CHANGED" and not UnitIsPlayer("target") and UnitExists("target")) then
+			sendAddonCmd("npc info", PhaseToolkit.parseForDisplayId, false)
+			if PhaseToolkit.DeployingFrame.npcNameEditBox then
+				PhaseToolkit.DeployingFrame.npcNameEditBox:SetText(UnitName("target"))
+				PhaseToolkit.DeployingFrame.npcNameEditBox:ClearFocus()
+			end
+			if(PhaseToolkit.DisplayListFrame and PhaseToolkit.DisplayListFrame:IsShown()) then
+				createDatasetForDisplaysList()
+			end
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(autoUpdateCheckbox, "Auto-Update Toggle")
+	tinsert(context,autoUpdateCheckbox)
+
+	local npcLevelEditBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	npcLevelEditBox:SetSize(70, 20)
+	npcLevelEditBox:SetPoint("LEFT", autoUpdateCheckbox, "RIGHT", -10, -110)
+	npcLevelEditBox:SetAutoFocus(false)
+	npcLevelEditBox.label = npcLevelEditBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	npcLevelEditBox.label:SetPoint("BOTTOM", npcLevelEditBox, "TOP", -2, 2.5)
+	npcLevelEditBox.label:SetText("Level")
+	npcLevelEditBox:SetScript("OnEnterPressed", function()
+		local text = npcLevelEditBox:GetText()
+		local level = tonumber(text)
+		if level then
+			sendAddonCmd("phase forge npc level " .. level, nil)
+		end
+		npcLevelEditBox:ClearFocus()
+	end)
+	tinsert(context,npcLevelEditBox)
+
+	local healthMod = {
+		[1]=0.0001,
+		[2]=0.0002,
+		[3]=0.0003,
+		[4]=0.0004,
+		[5]=0.0005,
+		[6]=0.00055,
+		[7]=0.0006,
+		[8]=0.0007,
+		[9]=0.0008,
+	}
+
+	local npcHealthEditBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	npcHealthEditBox:SetSize(70, 20)
+	npcHealthEditBox:SetPoint("TOP", npcLevelEditBox, "BOTTOM", 0, -15)
+	npcHealthEditBox:SetAutoFocus(false)
+	npcHealthEditBox.label = npcHealthEditBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	npcHealthEditBox.label:SetPoint("BOTTOM", npcHealthEditBox, "TOP", -2, 2.5)
+	npcHealthEditBox.label:SetText("Health")
+	npcHealthEditBox:SetScript("OnEnterPressed", function()
+		local text = npcHealthEditBox:GetText()
+		local health = tonumber(text)
+		if health then
+			if( health<10)then
+				health=healthMod[health] or 0.01
+				sendAddonCmd("phase forge npc healthexact " .. 1, function()
+					sendAddonCmd("phase forge npc healthexact " .. health, false)
+				end)
+			else
+				sendAddonCmd("phase forge npc healthexact " .. health, nil)
+			end
+		end
+		npcHealthEditBox:ClearFocus()
+	end)
+	tinsert(context,npcHealthEditBox)
+
+	local CreatureTypes={
+		"Beast",
+		"Dragonkin",
+		"Demon",
+		"Elemental",
+		"Giant",
+		"Undead",
+		"Humanoid",
+		"Critter",
+		"Mechanical",
+		"Totem",
+		"Pet"
+	}
+
+	-- creature type dropdown
+	local creatureType = CreateFrame("Frame", "PTKCreatureTypeDropDown", PhaseToolkit.DeployingFrame, "UIDropDownMenuTemplate")
+	creatureType:SetSize(80, 20)
+	creatureType:SetPoint("TOP", npcHealthEditBox, "BOTTOM", -10, 130)
+
+	UIDropDownMenu_SetWidth(creatureType, 80)
+	UIDropDownMenu_SetText(creatureType, "Creature Type")
+
+	local function OnClick(self)
+		UIDropDownMenu_SetSelectedID(creatureType, self:GetID())
+		local selectedType = self.value or CreatureTypes[self:GetID()]
+		UIDropDownMenu_SetText(creatureType, selectedType)
+		sendAddonCmd("phase forge npc creaturetype "..selectedType, nil)
+	end
+
+	creatureType.initialize = function(self, level)
+		for i, v in ipairs(CreatureTypes) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = v
+			info.value = v
+			info.func = OnClick
+			info.checked = (UIDropDownMenu_GetText(creatureType) == v)
+			UIDropDownMenu_AddButton(info)
+		end
+	end
+
+	UIDropDownMenu_Initialize(creatureType, creatureType.initialize)
+	tinsert(context,creatureType)
+
+
+	local openDisplaysListButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	openDisplaysListButton:SetSize(22.5, 22.5)
+	openDisplaysListButton:SetPoint("LEFT", autoUpdateCheckbox, "RIGHT", 5, 0)
+	openDisplaysListButton.Icon = openDisplaysListButton:CreateTexture(nil, "OVERLAY")
+	openDisplaysListButton.Icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+	openDisplaysListButton.Icon:SetSize(22.5, 22.5)
+	openDisplaysListButton.Icon:SetPoint("CENTER", openDisplaysListButton, "CENTER", 0, 0)
+
+	openDisplaysListButton:SetScript("OnClick", function()
+		if(not PhaseToolkit.DisplayListFrame)then
+			createDatasetForDisplaysList()
+		else
+			if(PhaseToolkit.DisplayListFrame:IsShown())then
+				PhaseToolkit.DisplayListFrame:Hide()
+			else
+				createDatasetForDisplaysList()
+			end
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(openDisplaysListButton, "Open Display List")
+	tinsert(context,openDisplaysListButton)
+end
+
+local function ChangeNpcRank(rankID)
+	if(UnitExists("target") and UnitIsPlayer("target")==false) then
+		sendAddonCmd("phase forge npc rank "..rankID, nil)
+	end
+end
+
+local function createNpcRankRadios(context)
+	PhaseToolkit.selectedRank=nil
+	local EliteRadio = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
+	EliteRadio:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 10, 5)
+	EliteRadio:SetSize(24,24)
+	EliteRadio.background = EliteRadio:CreateTexture(nil, "BACKGROUND")
+	EliteRadio.background:SetAtlas("common-radiobutton-circle")
+	EliteRadio.background:SetPoint("CENTER", EliteRadio, "CENTER", 0, 0)
+	EliteRadio.background:SetSize(24, 24)
+	EliteRadio.thumb = EliteRadio:CreateTexture(nil, "ARTWORK")
+	EliteRadio.thumb:SetAtlas("common-radiobutton-dot")
+	EliteRadio.thumb:SetPoint("CENTER", EliteRadio, "CENTER", 0, 0)
+	EliteRadio.thumb:SetSize(24, 24)
+	EliteRadio.thumb:Hide()
+	EliteRadio.isSelected=false
+	EliteRadio.Text = EliteRadio:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	EliteRadio.Text:SetPoint("BOTTOM", EliteRadio, "TOP", 0, 2.5)
+	EliteRadio.Text:SetText("Elite")
+
+	local RareEliteRadio = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
+	RareEliteRadio:SetPoint("LEFT", EliteRadio, "RIGHT", 15, 0)
+	RareEliteRadio:SetSize(24,24)
+	RareEliteRadio.background = RareEliteRadio:CreateTexture(nil, "BACKGROUND")
+	RareEliteRadio.background:SetAtlas("common-radiobutton-circle")
+	RareEliteRadio.background:SetPoint("CENTER", RareEliteRadio, "CENTER", 0, 0)
+	RareEliteRadio.background:SetSize(24, 24)
+	RareEliteRadio.thumb = RareEliteRadio:CreateTexture(nil, "ARTWORK")
+	RareEliteRadio.thumb:SetAtlas("common-radiobutton-dot")
+	RareEliteRadio.thumb:SetPoint("CENTER", RareEliteRadio, "CENTER", 0, 0)
+	RareEliteRadio.thumb:SetSize(24, 24)
+	RareEliteRadio.thumb:Hide()
+	RareEliteRadio.isSelected=false
+	RareEliteRadio.Text = RareEliteRadio:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	RareEliteRadio.Text:SetPoint("BOTTOM", RareEliteRadio, "TOP", 0, 2.5)
+	RareEliteRadio.Text:SetText("Rare \nElite")
+
+	local RareRadio = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
+	RareRadio:SetPoint("LEFT", RareEliteRadio, "RIGHT", 15, 0)
+	RareRadio:SetSize(24,24)
+	RareRadio.background = RareRadio:CreateTexture(nil, "BACKGROUND")
+	RareRadio.background:SetAtlas("common-radiobutton-circle")
+	RareRadio.background:SetPoint("CENTER", RareRadio, "CENTER", 0, 0)
+	RareRadio.background:SetSize(24, 24)
+	RareRadio.thumb = RareRadio:CreateTexture(nil, "ARTWORK")
+	RareRadio.thumb:SetAtlas("common-radiobutton-dot")
+	RareRadio.thumb:SetPoint("CENTER", RareRadio, "CENTER", 0, 0)
+	RareRadio.thumb:SetSize(24, 24)
+	RareRadio.thumb:Hide()
+	RareRadio.isSelected=false
+	RareRadio.Text = RareRadio:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	RareRadio.Text:SetPoint("BOTTOM", RareRadio, "TOP", 0, 2.5)
+	RareRadio.Text:SetText("Rare")
+
+	local BossRadio = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
+	BossRadio:SetPoint("LEFT", RareRadio, "RIGHT", 15, 0)
+	BossRadio:SetSize(24,24)
+	BossRadio.background = BossRadio:CreateTexture(nil, "BACKGROUND")
+	BossRadio.background:SetAtlas("common-radiobutton-circle")
+	BossRadio.background:SetPoint("CENTER", BossRadio, "CENTER", 0, 0)
+	BossRadio.background:SetSize(24, 24)
+	BossRadio.thumb = BossRadio:CreateTexture(nil, "ARTWORK")
+	BossRadio.thumb:SetAtlas("common-radiobutton-dot")
+	BossRadio.thumb:SetPoint("CENTER", BossRadio, "CENTER", 0, 0)
+	BossRadio.thumb:SetSize(24, 24)
+	BossRadio.thumb:Hide()
+	BossRadio.isSelected=false
+	BossRadio.Text = BossRadio:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	BossRadio.Text:SetPoint("BOTTOM", BossRadio, "TOP", 0, 2.5)
+	BossRadio.Text:SetText("Boss")
+
+	--Scripts after because we don't want nullpointer shit
+	EliteRadio:SetScript("OnClick", function()
+		if(EliteRadio.isSelected)then
+			PhaseToolkit.selectedRank=nil
+			EliteRadio.isSelected = false
+			ChangeNpcRank(0)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		else
+			PhaseToolkit.selectedRank=EliteRadio
+			EliteRadio.isSelected = true
+			ChangeNpcRank(1)
+			EliteRadio.thumb:Show()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		end
+	end)
+
+	RareEliteRadio:SetScript("OnClick", function()
+		if(RareEliteRadio.isSelected)then
+			PhaseToolkit.selectedRank=nil
+			RareEliteRadio.isSelected = false
+			ChangeNpcRank(0)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		else
+			PhaseToolkit.selectedRank=RareEliteRadio
+			RareEliteRadio.isSelected = true
+			ChangeNpcRank(2)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Show()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		end
+	end)
+
+	RareRadio:SetScript("OnClick", function()
+		if(RareRadio.isSelected)then
+			PhaseToolkit.selectedRank=nil
+			RareRadio.isSelected = false
+			ChangeNpcRank(0)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		else
+			PhaseToolkit.selectedRank=RareRadio
+			RareRadio.isSelected = true
+			ChangeNpcRank(4)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Show()
+			BossRadio.thumb:Hide()
+		end
+	end)
+
+	BossRadio:SetScript("OnClick", function()
+		if(BossRadio.isSelected)then
+			PhaseToolkit.selectedRank=nil
+			BossRadio.isSelected = false
+			ChangeNpcRank(0)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Hide()
+		else
+			PhaseToolkit.selectedRank=BossRadio
+			BossRadio.isSelected = true
+			ChangeNpcRank(3)
+			EliteRadio.thumb:Hide()
+			RareEliteRadio.thumb:Hide()
+			RareRadio.thumb:Hide()
+			BossRadio.thumb:Show()
+		end
+	end)
+	tinsert(context, EliteRadio)
+	tinsert(context, RareEliteRadio)
+	tinsert(context, RareRadio)
+	tinsert(context, BossRadio)
+
+end
+
+local function createRaceButton(context)
+	local NpcPortraitButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame)
+	NpcPortraitButton:SetSize(80, 80)
+
+	NpcPortraitButton.Border = NpcPortraitButton:CreateTexture(nil, "BORDER")
+	NpcPortraitButton.Border:SetAtlas("QuestSharing-Dialog-Portrait")
+	NpcPortraitButton.Border:SetSize(70, 70)
+	NpcPortraitButton.Border:SetPoint("CENTER", NpcPortraitButton, "CENTER", 0, 0)
+
+	NpcPortraitButton.Background = NpcPortraitButton:CreateTexture(nil, "BACKGROUND")
+	NpcPortraitButton.Background:SetAtlas("charactercreate-ring-customizebackground")
+	NpcPortraitButton.Background:SetSize(80, 80)
+	NpcPortraitButton.Background:SetPoint("CENTER", NpcPortraitButton, "CENTER", 0, 0)
+
+	NpcPortraitButton.Highlight = NpcPortraitButton:CreateTexture(nil, "HIGHLIGHT")
+	NpcPortraitButton.Highlight:SetAtlas("charactercreate-ring-select");
+	NpcPortraitButton.Highlight:SetSize(80, 80);
+	NpcPortraitButton.Highlight:SetPoint("CENTER", NpcPortraitButton, "CENTER", 0, 0);
+	NpcPortraitButton.Highlight:Hide()
+
+	NpcPortraitButton.Content = NpcPortraitButton:CreateTexture(nil, "ARTWORK")
+	NpcPortraitButton.Content:SetSize(60, 60)
+	NpcPortraitButton.Content:SetPoint("CENTER", NpcPortraitButton, "CENTER", 0, 0)
+	NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+
+	-- add a mask circular
+	local mask = NpcPortraitButton:CreateMaskTexture()
+	mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE")
+	mask:SetSize(60, 60)
+	mask:SetPoint("CENTER", NpcPortraitButton, "CENTER", 0, 0)
+	NpcPortraitButton.Content:AddMaskTexture(mask)
+
+	NpcPortraitButton:SetScript("OnEnter", function(self)
+		NpcPortraitButton.Highlight:Show()
+	end)
+	NpcPortraitButton:SetScript("OnLeave", function(self)
+		NpcPortraitButton.Highlight:Hide()
+	end)
+
+	NpcPortraitButton:SetScript("OnClick", function()
+		if(PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie)then
+			if(PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie:IsShown())then
+				retractRacePanel()
+			else
+				deployRacePanel()
+			end
+			return
+		else
+			createRaceSelectionHalfPie(context)
+			deployRacePanel()
+		end
+	end)
+
+	createNpcToolkitButtons(context)
+
+	createNpcEditBox(context)
+
+	createNpcRankRadios(context)
+
+	PhaseToolkit.RegisterTooltip(NpcPortraitButton, "Race Selection")
+	table.insert(context, NpcPortraitButton)
+	table.insert(context, NpcPortraitButton.Border)
+	table.insert(context, NpcPortraitButton.Background)
+	table.insert(context, NpcPortraitButton.Content)
+	PhaseToolkit.DeployingFrame.NpcPortraitButton = NpcPortraitButton
+end
+
+local function createGenderSlider(context)
+	local NpcGenderSlider = CreateFrame("Slider", nil, PhaseToolkit.DeployingFrame, "OptionsSliderTemplate")
+	NpcGenderSlider:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame.NpcPortraitButton, "TOPRIGHT", 0, 0)
+	NpcGenderSlider:SetMinMaxValues(0, 1)
+	NpcGenderSlider:SetValueStep(1)
+	NpcGenderSlider:SetObeyStepOnDrag(true)
+	NpcGenderSlider:SetSize(25, 80)
+	NpcGenderSlider:SetValue(0) -- Default
+	NpcGenderSlider:SetOrientation("VERTICAL")
+	NpcGenderSlider.Low:Hide()
+	NpcGenderSlider.High:Hide()
+	NpcGenderSlider:EnableMouse(false)
+
+	local clicker = CreateFrame("Button", nil, NpcGenderSlider)
+    clicker:SetAllPoints(NpcGenderSlider)
+    clicker:RegisterForClicks("LeftButtonUp")
+	PhaseToolkit.RegisterTooltip(clicker, "Gender Toggle")
+
+	local thumb = NpcGenderSlider:GetThumbTexture()
+	thumb:SetAtlas("common-slider-thumb")
+
+	NpcGenderSlider.CustomIcon= NpcGenderSlider:CreateTexture(nil, "OVERLAY",nil,1)
+	NpcGenderSlider.CustomIcon:SetSize(20, 20)
+	NpcGenderSlider.CustomIcon:SetPoint("CENTER", thumb, "CENTER", 0, 0)
+	NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-male-selected")
+
+	--mask it
+	local mask = NpcGenderSlider:CreateMaskTexture()
+	mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE")
+	mask:SetSize(20, 20)
+	mask:SetPoint("CENTER", thumb, "CENTER", 0, 0)
+	NpcGenderSlider.CustomIcon:AddMaskTexture(mask)
+
+	local AnimationGroupDown = thumb:CreateAnimationGroup("GenderSliderAnim");
+
+	local translateDown = AnimationGroupDown:CreateAnimation("Translation");
+	translateDown:SetDuration(0.2);
+	translateDown:SetSmoothing("IN_OUT")
+	translateDown:SetOffset(0, -50);
+
+	AnimationGroupDown:SetScript("OnFinished", function()
+		NpcGenderSlider:SetValue(1)
+		NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-female-selected")
+
+		if(PhaseToolkit.DeployingFrame.raceRingBackground) then
+			clearRaceButton()
+			populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
+		end
+		PhaseToolkit.ChangeNpcGender("female")
+		if(type(PhaseToolkit.SelectedRace) == "table")then
+			local race = PhaseToolkit.SelectedRace
+			if(race.texturefemale and race.texturefemale ~= "")then
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(race.texturefemale)
+			elseif(race.atlasfemale and race.atlasfemale ~= "")then
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(race.atlasfemale)
+			else
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+			end
+		else
+			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+		end
+		if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+			local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+			if( not isCategoryExistingOnRace()) then
+				categoryToOpen = "Head"
+				PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+			end
+			if(PhaseToolkit.customPanel:IsShown()) then
+				buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+			end
+		end
+		updateCustomCategoryButtons()
+	end);
+
+	local AnimationGroupUp = thumb:CreateAnimationGroup("GenderSliderAnim");
+
+	local translateUp = AnimationGroupUp:CreateAnimation("Translation");
+	translateUp:SetDuration(0.2);
+	translateUp:SetSmoothing("IN_OUT")
+	translateUp:SetOffset(0, 50);
+
+	AnimationGroupUp:SetScript("OnFinished", function()
+		NpcGenderSlider:SetValue(0)
+		NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-male-selected")
+		PhaseToolkit.ChangeNpcGender("male")
+		if(PhaseToolkit.DeployingFrame.raceRingBackground) then
+			clearRaceButton()
+			populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
+		end
+		-- Same logic for male.
+		if(type(PhaseToolkit.SelectedRace) == "table")then
+			local race = PhaseToolkit.SelectedRace
+			if(race.texturemale and race.texturemale ~= "")then
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(race.texturemale)
+			elseif(race.atlasmale and race.atlasmale ~= "")then
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(race.atlasmale)
+			else
+				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+			end
+		else
+			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+		end
+		if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+			local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+			if( not isCategoryExistingOnRace()) then
+				categoryToOpen = "Head"
+				PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+			end
+			if(PhaseToolkit.customPanel:IsShown()) then
+				buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+			end
+		end
+		updateCustomCategoryButtons()
+	end);
+
+
+	clicker:SetScript("OnClick", function()
+		if NpcGenderSlider:GetValue() == 0 then
+			AnimationGroupDown:Play();
+		else
+			AnimationGroupUp:Play();
+		end
+
+	end)
+
+	PhaseToolkit.DeployingFrame.NpcGenderSlider = NpcGenderSlider
+	PhaseToolkit.DeployingFrame.NpcGenderSlider.GoMaleAnimation = AnimationGroupUp
+	PhaseToolkit.DeployingFrame.NpcGenderSlider.GoFemaleAnimation = AnimationGroupDown
+	tinsert(context, NpcGenderSlider)
+end
+
+local function handleIconBehavior(button)
+	if( PhaseToolkit.SelectedCategory) then
+		if( PhaseToolkit.SelectedCategory.LinkedCategory ~= button.LinkedCategory) then
+			PhaseToolkit.SelectedCategory.EnabledIcon:Hide()
+			PhaseToolkit.SelectedCategory.DisabledIcon:Show()
+			button.EnabledIcon:Show()
+			button.DisabledIcon:Hide()
+		end
+		if(PhaseToolkit.SelectedCategory.LinkedCategory == button.LinkedCategory )then
+			if(PhaseToolkit.customPanel and PhaseToolkit.customPanel:IsShown())then
+				button.EnabledIcon:Hide()
+				button.DisabledIcon:Show()
+			else
+				button.EnabledIcon:Show()
+				button.DisabledIcon:Hide()
+			end
+
+		end
+	else
+		button.EnabledIcon:Show()
+		button.DisabledIcon:Hide()
+	end
+end
+
+local function createCustomCategoryButton(context)
+	local Buttons ={}
+	local firstCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	firstCategoryButton:SetSize(60, 60);
+	firstCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -50);
+	firstCategoryButton.EnabledIcon = firstCategoryButton:CreateTexture(nil, "OVERLAY");
+	firstCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-head-selected")
+	firstCategoryButton.EnabledIcon:SetSize(60, 60);
+	firstCategoryButton.EnabledIcon:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
+	firstCategoryButton.EnabledIcon:Hide();
+
+	firstCategoryButton.DisabledIcon = firstCategoryButton:CreateTexture(nil, "OVERLAY");
+	firstCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-head")
+	firstCategoryButton.DisabledIcon:SetSize(60, 60);
+	firstCategoryButton.DisabledIcon:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
+
+	firstCategoryButton.Highlight = firstCategoryButton:CreateTexture(nil, "HIGHLIGHT")
+	firstCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
+	firstCategoryButton.Highlight:SetSize(65, 65);
+	firstCategoryButton.Highlight:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
+	firstCategoryButton.Highlight:Hide()
+	firstCategoryButton.LinkedCategory="Head"
+
+	local secondCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	secondCategoryButton:SetSize(60, 60);
+	secondCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -100);
+	secondCategoryButton.EnabledIcon = secondCategoryButton:CreateTexture(nil, "OVERLAY");
+	secondCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-hair-selected")
+	secondCategoryButton.EnabledIcon:SetSize(60, 60);
+	secondCategoryButton.EnabledIcon:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
+	secondCategoryButton.EnabledIcon:Hide();
+
+	secondCategoryButton.DisabledIcon = secondCategoryButton:CreateTexture(nil, "OVERLAY");
+	secondCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-hair")
+	secondCategoryButton.DisabledIcon:SetSize(60, 60);
+	secondCategoryButton.DisabledIcon:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
+
+	secondCategoryButton.Highlight = secondCategoryButton:CreateTexture(nil, "HIGHLIGHT")
+	secondCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
+	secondCategoryButton.Highlight:SetSize(55, 55);
+	secondCategoryButton.Highlight:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
+	secondCategoryButton.Highlight:Hide()
+	secondCategoryButton.LinkedCategory="Hair"
+
+	local thirdCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	thirdCategoryButton:SetSize(60, 60);
+	thirdCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -150);
+	thirdCategoryButton.EnabledIcon = thirdCategoryButton:CreateTexture(nil, "OVERLAY");
+	thirdCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-body-selected")
+	thirdCategoryButton.EnabledIcon:SetSize(60, 60);
+	thirdCategoryButton.EnabledIcon:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
+	thirdCategoryButton.EnabledIcon:Hide();
+
+	thirdCategoryButton.DisabledIcon = thirdCategoryButton:CreateTexture(nil, "OVERLAY");
+	thirdCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-body")
+	thirdCategoryButton.DisabledIcon:SetSize(60, 60);
+	thirdCategoryButton.DisabledIcon:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
+
+	thirdCategoryButton.Highlight = thirdCategoryButton:CreateTexture(nil, "HIGHLIGHT")
+	thirdCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
+	thirdCategoryButton.Highlight:SetSize(55, 55);
+	thirdCategoryButton.Highlight:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
+	thirdCategoryButton.Highlight:Hide()
+	thirdCategoryButton.LinkedCategory="Body"
+
+	local fourthCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	fourthCategoryButton:SetSize(60, 60);
+	fourthCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -250);
+	fourthCategoryButton.EnabledIcon = fourthCategoryButton:CreateTexture(nil, "OVERLAY");
+	fourthCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-accessories-selected")
+	fourthCategoryButton.EnabledIcon:SetSize(60, 60);
+	fourthCategoryButton.EnabledIcon:SetPoint("CENTER", fourthCategoryButton,	 "CENTER", 0, 0);
+	fourthCategoryButton.EnabledIcon:Hide();
+
+	fourthCategoryButton.DisabledIcon = fourthCategoryButton:CreateTexture(nil, "OVERLAY");
+	fourthCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-accessories")
+	fourthCategoryButton.DisabledIcon:SetSize(60, 60);
+	fourthCategoryButton.DisabledIcon:SetPoint("CENTER", fourthCategoryButton, "CENTER", 0, 0);
+
+	fourthCategoryButton.Highlight = fourthCategoryButton:CreateTexture(nil, "HIGHLIGHT")
+	fourthCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
+	fourthCategoryButton.Highlight:SetSize(55, 55);
+	fourthCategoryButton.Highlight:SetPoint("CENTER", fourthCategoryButton, "CENTER", 0, 0);
+	fourthCategoryButton.Highlight:Hide()
+	fourthCategoryButton.LinkedCategory="Jewelry"
+
+	local fifthCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	fifthCategoryButton:SetSize(60, 60);
+	fifthCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -200);
+	fifthCategoryButton.EnabledIcon = fifthCategoryButton:CreateTexture(nil, "OVERLAY");
+	fifthCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-torso-selected")
+	fifthCategoryButton.EnabledIcon:SetSize(60, 60);
+	fifthCategoryButton.EnabledIcon:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
+	fifthCategoryButton.EnabledIcon:Hide();
+
+	fifthCategoryButton.DisabledIcon = fifthCategoryButton:CreateTexture(nil, "OVERLAY");
+	fifthCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-torso")
+	fifthCategoryButton.DisabledIcon:SetSize(60, 60);
+	fifthCategoryButton.DisabledIcon:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
+
+	fifthCategoryButton.Highlight = fifthCategoryButton:CreateTexture(nil, "HIGHLIGHT")
+	fifthCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
+	fifthCategoryButton.Highlight:SetSize(55, 55);
+	fifthCategoryButton.Highlight:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
+	fifthCategoryButton.Highlight:Hide()
+	fifthCategoryButton.LinkedCategory="BodyMark"
+
+
+	if(type(PhaseToolkit.SelectedRace)=="table") then
+		firstCategoryButton:SetScript("OnEnter", function()
+			firstCategoryButton.Highlight:Show()
+		end)
+
+		secondCategoryButton:SetScript("OnEnter", function()
+			secondCategoryButton.Highlight:Show()
+		end)
+
+		thirdCategoryButton:SetScript("OnEnter", function()
+			thirdCategoryButton.Highlight:Show()
+		end)
+
+		fifthCategoryButton:SetScript("OnEnter", function()
+			fifthCategoryButton.Highlight:Show()
+		end)
+	end
+
+	firstCategoryButton:SetScript("OnClick", function(self)
+		if(PhaseToolkit.SelectedRace) then
+			handleIconBehavior(self)
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(self.LinkedCategory), self.LinkedCategory)
+			PhaseToolkit.SelectedCategory=self
+		end
+	end)
+
+	secondCategoryButton:SetScript("OnClick", function(self)
+		if(PhaseToolkit.SelectedRace) then
+			handleIconBehavior(self)
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(self.LinkedCategory), self.LinkedCategory)
+			PhaseToolkit.SelectedCategory=self
+		end
+	end)
+
+	thirdCategoryButton:SetScript("OnClick", function(self)
+		if(PhaseToolkit.SelectedRace) then
+			handleIconBehavior(self)
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(self.LinkedCategory), self.LinkedCategory)
+			PhaseToolkit.SelectedCategory=self
+		end
+	end)
+
+	fourthCategoryButton:SetScript("OnClick", function(self)
+		if(PhaseToolkit.SelectedRace) then
+			handleIconBehavior(self)
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(self.LinkedCategory), self.LinkedCategory)
+			PhaseToolkit.SelectedCategory=self
+		end
+	end)
+
+	fifthCategoryButton:SetScript("OnClick", function(self)
+		if(PhaseToolkit.SelectedRace) then
+			handleIconBehavior(self)
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(self.LinkedCategory), self.LinkedCategory)
+			PhaseToolkit.SelectedCategory=self
+		end
+	end)
+
+	tinsert(Buttons, firstCategoryButton)
+	tinsert(Buttons, secondCategoryButton)
+	tinsert(Buttons, thirdCategoryButton)
+	tinsert(Buttons, fourthCategoryButton)
+	tinsert(Buttons, fifthCategoryButton)
+	tinsert(context, firstCategoryButton)
+	tinsert(context, secondCategoryButton)
+	tinsert(context, thirdCategoryButton)
+	tinsert(context, fourthCategoryButton)
+	tinsert(context, fifthCategoryButton)
+
+	PhaseToolkit.DeployingFrame.CustomCategoryButtons=Buttons
+end
+
+function PhaseToolkit.gatherPhaseInfo(isCommandSuccessful, replies)
+	if isCommandSuccessful then
+		local listType
+		for i = 1, #replies do
+			message = replies[i]
+			message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+
+			if listType == nil then
+				listType = string.match(message, "List%s+Type:%s*(%S+)")
+			end
+			local phaseID;
+			if not PhaseToolkit.lastPhaseID then
+				phaseID = string.match(message, "Phase%s+%[.*%-%s*(%d+)%]")
+			end
+
+			if listType == "Blacklist" then
+				PhaseToolkit.IsPhaseWhitelist = false
+				if(PhaseToolkit.RadioWhitelist) then
+					PhaseToolkit.RadioWhitelist:SetChecked(false)
+				end
+				if(PhaseToolkit.RadioBlacklist) then
+					PhaseToolkit.RadioBlacklist:SetChecked(true)
+				end
+			elseif listType == "Whitelist" then
+				PhaseToolkit.IsPhaseWhitelist = true
+				if(PhaseToolkit.RadioWhitelist) then
+					PhaseToolkit.RadioWhitelist:SetChecked(true)
+				end
+				if(PhaseToolkit.RadioBlacklist) then
+					PhaseToolkit.RadioBlacklist:SetChecked(false)
+				end
+			end
+
+			local phaseName = string.match(message, "Phase%s+%[(.*)-")
+			if (phaseName ~= nil) then
+				PhaseToolkit.phaseName=phaseName
+			end
+			if (phaseID ~= nil) then
+				PhaseToolkit.lastPhaseID=phaseID
+			end
+		end
+		PhaseToolkit.createPhaseOptions()
+	end
+end
+
+function PhaseToolkit.OpenPhaseOption()
+	sendAddonCmd("phase info", PhaseToolkit.gatherPhaseInfo, false)
+end
+
+local function phaseTimeMinutesToText(minutes)
+	minutes = ((minutes or 0) % 1440 + 1440) % 1440
+	local hours = math.floor(minutes / 60)
+	local mins = minutes % 60
+	return string.format("%02d:%02d", hours, mins)
+end
+
+local function phaseTimeGetDialAngle(frame)
+	local scale = frame:GetEffectiveScale()
+	local cursorX, cursorY = GetCursorPosition()
+	local centerX, centerY = frame:GetCenter()
+	if not centerX or not centerY then
 		return nil
 	end
 
-	local function OnDeleteClick(pnjId)
-		local creature = GetNpcById(pnjId)
-		StaticPopupDialogs["CONFIRM_DELETE_NPC"] = {
-			text = "Are you sure you want to delete "..creature["NomCreature"] .. "?",
-			button1 = "Yes",
-			button2 = "No",
-			OnAccept = function(self, data)
-				sendAddonCmd("ph forge npc delete " .. data.pnjId, nil, false)
-				PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, data.pnjId)
-				if(PhaseToolkit.IsCurrentlyFilteringNpcViaText or PhaseToolkit.IsCurrentlyFilteringNpcViaCategory) then
-					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-				else
-					PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-				end
-			end,
-			timeout = 0,
-			whileDead = true,
-			hideOnEscape = true,
-			preferredIndex = 3,
-		}
-		StaticPopup_Show("CONFIRM_DELETE_NPC", nil, nil, { pnjId = pnjId, creature = creature })
+	local relativeX = cursorX / scale - centerX
+	local relativeY = cursorY / scale - centerY
+	if relativeX == 0 and relativeY == 0 then
+		return nil
 	end
 
-	for i = 1, PhaseToolkit.itemsPerPageNPC do
-		local row = CreateFrame("Frame", nil, PhaseToolkit.PNJFrame)
-		row:SetSize(500, 30)
-		row:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPLEFT", 10, -15 * i - (i * 15))
-
-		row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-		row.name:SetPoint("LEFT", row, "LEFT", 10, 0)
-
-		row.spawnButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.spawnButton:SetSize(80, 30)
-		row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
-
-		row.spawnButton:SetText("Spawn")
-
-		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.deleteButton:SetSize(80, 30)
-		row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
-		row.deleteButton:SetText(PhaseToolkit.CurrentLang["Delete"] or "Delete")
-
-		row.addToCategoryButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.addToCategoryButton:SetSize(30, 30)
-		row.addToCategoryButton:SetPoint("LEFT", row.deleteButton, "RIGHT", 10, 0)
-
-		row.addToCategoryButton.icon = row.addToCategoryButton:CreateTexture(nil, "OVERLAY")
-		row.addToCategoryButton.icon:SetAtlas("GarrMission_CurrencyIcon-Material")
-		row.addToCategoryButton.icon:SetSize(28, 28)
-		row.addToCategoryButton.icon:SetPoint("CENTER", row.addToCategoryButton, "CENTER", 0, 0)
-		row.addToCategoryButton:Hide()
-
-		row.getOutOfCategoryButton=CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.getOutOfCategoryButton:SetSize(30, 30)
-		row.getOutOfCategoryButton:SetPoint("LEFT", row.addToCategoryButton, "RIGHT", 10, 0)
-		row.getOutOfCategoryButton.icon = row.getOutOfCategoryButton:CreateTexture(nil, "OVERLAY")
-		row.getOutOfCategoryButton.icon:SetAtlas("poi-traveldirections-arrow2")
-		row.getOutOfCategoryButton.icon:SetTexCoord(1, 0, 0, 1)
-		row.getOutOfCategoryButton.icon:SetSize(28, 28)
-		row.getOutOfCategoryButton.icon:SetPoint("CENTER", row.getOutOfCategoryButton, "CENTER", 0, 0)
-		row.getOutOfCategoryButton:Hide()
-		row.addToCategoryButton:Disable()
-		row.getOutOfCategoryButton:Disable()
-
-		PhaseToolkit.RegisterTooltip(row.addToCategoryButton,"add to selected category")
-		PhaseToolkit.RegisterTooltip(row.getOutOfCategoryButton,"remove from selected category")
-
-		PNJRows[i] = row
-	end
-
-	function PhaseToolkit.DisplayNpcPage(creatureList)
-		-- Calculate indices for the current page
-		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageNPC + 1
-		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageNPC, #creatureList)
-
-		local isAlreadyBiggerForAddToCategory=false
-		local isAlreadyBiggerForGetOutOfCategory=false
-
-		-- Calculate the maximum width of names for the current page
-		local pageCreatureList = {}
-		for i = startIndex, endIndex do
-			table.insert(pageCreatureList, creatureList[i])
-		end
-
-		local maxNameWidth = PhaseToolkit.GetMaxNameWidth(pageCreatureList)
-
-		-- Adjust the width of GlobalNPCCUSTOMISER_PNJFrame based on the maximum width of names
-		local frameWidth = maxNameWidth + 190 -- 180 for buttons and margins
-		if PhaseToolkit.LookupInNpcListEditBox then
-			PhaseToolkit.LookupInNpcListEditBox:SetWidth(maxNameWidth - 10) -- Adjust search area width
-		end
-		PhaseToolkit.PNJFrame:SetWidth(frameWidth + 30 * 2)
-		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory then
-			PhaseToolkit.categoryPanelNPC:SetPoint("TOPLEFT", PhaseToolkit.PNJFrame, "TOPRIGHT", 5, 0)
-		end
-
-		local generaloffset =-100
-		for _, creature in ipairs(pageCreatureList) do
-			if checkIfCreatureInSelectedCategory(creature) then
-				generaloffset = -190
-				break
-			end
-		end
-
-		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory  and generaloffset>(-190) then
-			generaloffset = -145
-		end
-		-- Display NPCs on the page
-		for i = 1, PhaseToolkit.itemsPerPageNPC do
-			local idx = startIndex + i - 1
-			local row = PNJRows[i]
-			if idx <= endIndex then
-				local creature = creatureList[idx]
-				row.name:SetText(creature["NomCreature"]) -- Display creature name
-				row:Show()
-
-				-- Associate creature ID with "Spawn" and "Delete" buttons
-				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(creature["IdCreature"]) end)
-				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(creature["IdCreature"]) end)
-
-				if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory and PhaseToolkit.UserHasPermission() then
-
-					row.addToCategoryButton:Show()
-					row.addToCategoryButton:Enable()
-					row.addToCategoryButton:SetScript("OnClick", function()
-						if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory) then
-							if isStringInArray(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"]) <0 then
-								tinsert(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"])
-								PhaseToolkit.updateNPCCategoryList()
-								if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
-									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-								else
-									PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-								end
-								PhaseToolkit.saveNpcCategoryDataToServer()
-							end
-						end
-					end)
-					if(not isAlreadyBiggerForAddToCategory) then
-						PhaseToolkit.PNJFrame:SetWidth(PhaseToolkit.PNJFrame:GetWidth()+45)
-						isAlreadyBiggerForAddToCategory=true
-					end
-				else
-					row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
-					row.addToCategoryButton:Hide()
-				end
-
-				if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory and PhaseToolkit.UserHasPermission() and checkIfCreatureInSelectedCategory(creature)) then
-					row.getOutOfCategoryButton:Show()
-					row.getOutOfCategoryButton:Enable()
-					row.getOutOfCategoryButton:SetScript("OnClick", function()
-					if(PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCselectedCategory) then
-						local indexToDelete=getIndexOfMembers(PhaseToolkit.NPCselectedCategory.members, creature["IdCreature"])
-						if(indexToDelete >0) then
-							table.remove(PhaseToolkit.NPCselectedCategory.members,indexToDelete)
-							PhaseToolkit.updateNPCCategoryList()
-							if(PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
-								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-							else
-								PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-							end
-							PhaseToolkit.saveNpcCategoryDataToServer()
-						end
-					end
-					end)
-					if(not isAlreadyBiggerForGetOutOfCategory) then
-						PhaseToolkit.PNJFrame:SetWidth(PhaseToolkit.PNJFrame:GetWidth() + 90)
-						isAlreadyBiggerForGetOutOfCategory=true
-					end
-					--row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -190, -15 * i - (i * 15))
-				else
-					--row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
-					row.getOutOfCategoryButton:Hide()
-
-				end
-				row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.PNJFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
-			else
-				row:Hide()
-			end
-		end
-		isAlreadyBiggerForGetOutOfCategory=false
-		isAlreadyBiggerForAddToCategory=false
-
-		if totalPages >0 and currentPage > totalPages and PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-			currentPage = 1
-			NpcCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.NPCListCurrentPage = currentPage
-			PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
-		end
-	end
-
-
-
-	local prevButton = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	prevButton:SetSize(80, 30)
-	prevButton:SetPoint("BOTTOMLEFT", PhaseToolkit.PNJFrame, "BOTTOMLEFT", 10, 10)
-	prevButton:SetText(PhaseToolkit.CurrentLang["Prev"])
-
-	NpcCurrentPageeditBox = CreateFrame("EditBox", nil, PhaseToolkit.PNJFrame, "InputBoxTemplate")
-	NpcCurrentPageeditBox:SetSize(30, 30)
-	NpcCurrentPageeditBox:SetPoint("LEFT", prevButton, "RIGHT", 10, 0)
-	NpcCurrentPageeditBox:SetNumeric(true)
-	NpcCurrentPageeditBox:SetAutoFocus(false)
-	NpcCurrentPageeditBox:SetNumber(currentPage)
-
-
-	NumberOfPageMaxLabelNPC = PhaseToolkit.PNJFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	NumberOfPageMaxLabelNPC:SetText("/ " .. totalPages)
-	NumberOfPageMaxLabelNPC:SetPoint("LEFT", NpcCurrentPageeditBox, "RIGHT", 0, 0)
-
-	NpcCurrentPageeditBox:SetScript("OnEscapePressed", function()
-		NpcCurrentPageeditBox:SetAutoFocus(false)
-		NpcCurrentPageeditBox:ClearFocus()
-	end)
-
-	NpcCurrentPageeditBox:SetScript("OnEnterPressed", function()
-		if NpcCurrentPageeditBox:GetText() ~= "" and tonumber(NpcCurrentPageeditBox:GetText()) ~= 0 and tonumber(NpcCurrentPageeditBox:GetText()) <= totalPages then
-			currentPage = NpcCurrentPageeditBox:GetNumber()
-			NpcCurrentPageeditBox:SetNumber(currentPage)
-			PhaseToolkit.NPCListCurrentPage=currentPage
-			if (PhaseToolkit.IsCurrentlyFilteringNpcViaText) then
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-			else
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-			end
-			NpcCurrentPageeditBox:ClearFocus()
-		end
-	end)
-
-	local nextButton = CreateFrame("Button", nil, PhaseToolkit.PNJFrame, "UIPanelButtonTemplate")
-	nextButton:SetSize(80, 30)
-	nextButton:SetPoint("LEFT", prevButton, "RIGHT", 70, 0)
-	nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
-
-	function PhaseToolkit.UpdatePNJPagination(creatureList)
-		totalPages = math.ceil(#creatureList / PhaseToolkit.itemsPerPageNPC)
-
-		-- Update navigation button states
-		if currentPage <= 1 then
-			prevButton:Disable()
-		else
-			prevButton:Enable()
-		end
-
-		if currentPage >= totalPages then
-			nextButton:Disable()
-		else
-			nextButton:Enable()
-		end
-
-		-- Display the current page
-		PhaseToolkit.DisplayNpcPage(creatureList)
-		NumberOfPageMaxLabelNPC:SetText("/ " .. totalPages)
-	end
-
-	nextButton:SetScript("OnClick", function()
-		if currentPage < totalPages then
-			currentPage = currentPage + 1
-			NpcCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.NPCListCurrentPage=currentPage
-			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
-			elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-			else
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-			end
-		end
-	end)
-
-	prevButton:SetScript("OnClick", function()
-		if currentPage > 1 then
-			currentPage = currentPage - 1
-			NpcCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.NPCListCurrentPage=currentPage
-			if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-				PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
-			elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-			else
-				PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-			end
-		end
-	end)
-
-	PhaseToolkit.PNJFrame:SetScript("OnShow", function()
-		if(PhaseToolkit.NPCListCurrentPage) then
-			currentPage=PhaseToolkit.NPCListCurrentPage
-		else
-			currentPage = 1
-		end
-		
-		if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-			PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
-		elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
-			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
-		else
-			PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
-		end
-	end)
-
-	if PhaseToolkit.categoryPanelNPC and PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0 then
-		PhaseToolkit.UpdatePNJPagination(collectAllNpcsFromCategories())
-	elseif PhaseToolkit.IsCurrentlyFilteringNpcViaText then
-		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.filteredCreatureList)
+	local angle
+	if math.atan2 then
+		angle = math.atan2(relativeX, relativeY)
 	else
-		PhaseToolkit.UpdatePNJPagination(PhaseToolkit.creatureList)
+		if relativeY == 0 then
+			angle = relativeX >= 0 and (math.pi / 2) or (-math.pi / 2)
+		else
+			angle = math.atan(relativeX / relativeY)
+			if relativeY < 0 then
+				angle = angle + math.pi
+			end
+		end
 	end
+
+	if angle < 0 then
+		angle = angle + math.pi * 2
+	end
+
+	return angle
+end
+
+local function phaseTimeAngleToMinutes(angle)
+	if not angle then
+		return 0
+	end
+	return math.floor(((angle / (math.pi * 2)) * 1440) + 0.5) % 1440
+end
+
+local function deployPhaseTimePanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phaseTimePickerWindow.animGroupDeploy
+	AnimationGroup:Play();
+end
+
+local function retractPhaseTimePanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phaseTimePickerWindow.animGroupRetract
+	AnimationGroup:Play();
+end
+
+local function createPhaseTimePickerButton(context)
+	local timePickerButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	timePickerButton:SetSize(30, 30)
+	timePickerButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", -2.5, -60)
+	timePickerButton.icon = timePickerButton:CreateTexture(nil, "OVERLAY")
+	timePickerButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_clock.blp")
+	timePickerButton.icon:SetAllPoints()
+	timePickerButton:SetFrameStrata("HIGH")
+
+	timePickerButton:SetScript("OnClick", function()
+
+		if not PhaseToolkit.DeployingFrame.phaseTimePickerWindow then
+			return
+		end
+
+		local shouldShow = not PhaseToolkit.DeployingFrame.phaseTimePickerWindow:IsShown()
+
+		if shouldShow then
+			deployPhaseTimePanel()
+		else
+			retractPhaseTimePanel()
+		end
+
+		if shouldShow and PhaseToolkit.DeployingFrame.phaseTimePickerWindow.RefreshDisplay then
+			PhaseToolkit.DeployingFrame.phaseTimePickerWindow:RefreshDisplay()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(timePickerButton, "Open Phase Time Picker")
+	PhaseToolkit.DeployingFrame.phaseTimePickerButton = timePickerButton
+	tinsert(context, timePickerButton)
+end
+
+local function createPhaseTimePickerWindow(context)
+	local timePickerWindow = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+	timePickerWindow:SetSize(180, 230);
+	timePickerWindow:SetPoint("LEFT", PhaseToolkit.DeployingFrame, "RIGHT", 0, 0);
+	ButtonFrameTemplateMinimizable_HidePortrait(timePickerWindow)
+	NineSliceUtil.ApplyLayoutByName(timePickerWindow.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(timePickerWindow.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(timePickerWindow.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(timePickerWindow, timePickerWindow.Bg)
+	timePickerWindow:SetFrameStrata("LOW")
+	local titleBgColor = timePickerWindow:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", timePickerWindow.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", timePickerWindow.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	timePickerWindow.TitleBgColor = titleBgColor
+	timePickerWindow.TitleText:SetText(PhaseToolkit.CurrentLang["Phase Time"] or "Phase Time")
+	timePickerWindow.TitleText:SetPoint("LEFT", timePickerWindow.TitleBg, "LEFT", 30, 0)
+
+	timePickerWindow.phaseOptionVisibleState = false
+	timePickerWindow:Hide()
+
+	local content = {}
+
+	timePickerWindow.Value = CreateFrame("EditBox", nil, 	timePickerWindow);
+	timePickerWindow.Value:SetSize(80, 30);
+	timePickerWindow.Value:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE");
+	timePickerWindow.Value:SetAutoFocus(false);
+	timePickerWindow.Value:SetJustifyH("CENTER");
+
+
+	timePickerWindow.Value:SetScript("OnEscapePressed",function(self)
+		self:clearFocus()
+	end)
+
+	timePickerWindow.Value:SetScript("OnEnterPressed",function(self)
+		self:ClearFocus()
+	end)
+
+	timePickerWindow.Value:SetPoint("TOP", timePickerWindow, "TOP", 0, -25)
+
+	tinsert(content, timePickerWindow.Value)
+
+	local dial = CreateFrame("Frame", nil, timePickerWindow)
+	dial:SetSize(160, 160)
+	dial:SetPoint("LEFT", timePickerWindow, "LEFT", 10, -20)
+	dial:EnableMouse(true)
+	local dialRadius = 62
+
+	dial.Background = dial:CreateTexture(nil, "BACKGROUND")
+	dial.Background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\EpsilonClockBackGround.blp")
+	dial.Background:SetAllPoints()
+
+	dial.CenterDot = dial:CreateTexture(nil, "ARTWORK")
+	dial.CenterDot:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\EpsilonClockHand.blp")
+	dial.CenterDot:SetPoint("CENTER", dial, "CENTER", 0, 0)
+	dial.CenterDot:SetScale(0.20)
+
+	dial.Marker = dial:CreateTexture(nil, "OVERLAY")
+	dial.Marker:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\EpsilonClockPin.blp")
+	dial.Marker:SetSize(17.5, 17.5)
+
+	dial.CenterDot1 = dial:CreateTexture(nil, "ARTWORK")
+	dial.CenterDot1:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\EpsilonClockPin.blp")
+	dial.CenterDot1:SetPoint("CENTER", dial, "CENTER", 0, 0)
+	dial.CenterDot1:SetSize(17,17)
+	dial.CenterDot1:SetDrawLayer("OVERLAY")
+
+	tinsert(content, dial)
+	tinsert(content,dial.Background)
+	tinsert(content,dial.CenterDot)
+	tinsert(content,dial.Marker)
+
+	local function updateTimePickerDisplay(minutes)
+		minutes = ((minutes or 0) % 1440 + 1440) % 1440
+		PhaseToolkit.phaseTimePickerMinutes = minutes
+		local angle = (minutes / 1440) * math.pi * 2
+		dial.Marker:SetPoint("CENTER", dial, "CENTER", math.sin(angle) * dialRadius, math.cos(angle) * dialRadius)
+		timePickerWindow.Value:SetText(phaseTimeMinutesToText(minutes))
+		dial.CenterDot:SetRotation(-angle)
+	end
+
+	local function commitTimePickerValue()
+		sendAddonCmd("phase set time " .. phaseTimeMinutesToText(PhaseToolkit.phaseTimePickerMinutes or 0), nil)
+	end
+
+	timePickerWindow.Value:SetScript("OnEditFocusLost",function(self)
+		local text = self:GetText()
+		local hours, minutes = string.match(text, "(%d+):(%d+)")
+		hours = tonumber(hours) or 0
+		minutes = tonumber(minutes) or 0
+		local totalMinutes = (hours * 60) + minutes
+		updateTimePickerDisplay(totalMinutes)
+		commitTimePickerValue()
+	end)
+
+	local function updateTimeFromCursor()
+		local angle = phaseTimeGetDialAngle(dial)
+		if not angle then
+			return
+		end
+		dial.CenterDot:SetRotation(-angle)
+		updateTimePickerDisplay(phaseTimeAngleToMinutes(angle))
+	end
+
+	dial:SetScript("OnMouseDown", function(self, button)
+		if button ~= "LeftButton" then
+			return
+		end
+		self.isDragging = true
+		updateTimeFromCursor()
+	end)
+
+	dial:SetScript("OnMouseUp", function(self, button)
+		if button ~= "LeftButton" then
+			return
+		end
+		self.isDragging = false
+		updateTimeFromCursor()
+		commitTimePickerValue()
+	end)
+
+	dial:SetScript("OnHide", function(self)
+		self.isDragging = false
+	end)
+
+	dial:SetScript("OnUpdate", function(self)
+		if self.isDragging then
+			updateTimeFromCursor()
+		end
+	end)
+
+	function timePickerWindow:RefreshDisplay()
+		if PhaseToolkit.phaseTimePickerMinutes == nil then
+			local hour, minute = GetGameTime()
+			PhaseToolkit.phaseTimePickerMinutes = (hour * 60) + minute
+		end
+		updateTimePickerDisplay(PhaseToolkit.phaseTimePickerMinutes)
+	end
+
+	timePickerWindow:RefreshDisplay()
+	timePickerWindow.isHiddenByDefault = true
+	PhaseToolkit.DeployingFrame.phaseTimePickerWindow = timePickerWindow
+	PhaseToolkit.DeployingFrame.phaseTimePickerWindow.content = content
+	tinsert(context, timePickerWindow)
+
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.phaseTimePickerWindow, -60, 0, {
+		onPlayDeploy = function()
+			hideContent(PhaseToolkit.DeployingFrame.phaseTimePickerWindow.content)
+			PhaseToolkit.DeployingFrame.phaseTimePickerWindow:Show()
+		end,
+		onFinishedDeploy = function()
+			showContent(PhaseToolkit.DeployingFrame.phaseTimePickerWindow.content)
+
+		end,
+		onPlayRetract = function()
+			hideContent(PhaseToolkit.DeployingFrame.phaseTimePickerWindow.content)
+		end,
+		onFinishedRetract = function()
+			PhaseToolkit.DeployingFrame.phaseTimePickerWindow:Hide()
+		end,
+	})
+
+end
+
+local function createPhaseNameComponent(context)
+	local phaseNameEditionLabel = CreateFrame("EditBox", nil, 	PhaseToolkit.DeployingFrame);
+	phaseNameEditionLabel:SetSize(210, 30);
+    phaseNameEditionLabel:SetPoint("CENTER", 0, 70);
+    phaseNameEditionLabel:SetAutoFocus(false);
+    phaseNameEditionLabel:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE");
+    phaseNameEditionLabel:SetTextColor(1, 1, 1, 1); -- Blanc
+
+    phaseNameEditionLabel:SetMaxLetters(50);
+
+    local textureTopNom= phaseNameEditionLabel:CreateTexture(nil, "OVERLAY");
+    textureTopNom:SetTexture("Interface/AddOns/"..addonName.."/assets/BPMLineName.blp");
+    textureTopNom:SetPoint("BOTTOM",phaseNameEditionLabel,"TOP", 0, -7.5);
+    textureTopNom:SetSize(250,12);
+    textureTopNom:SetVertexColor(0.1, 0.1, 0.8);
+
+    local textureBottomNom= phaseNameEditionLabel:CreateTexture(nil, "OVERLAY");
+    textureBottomNom:SetTexture("Interface/AddOns/"..addonName.."/assets/BPMLineName.blp");
+    textureBottomNom:SetPoint("TOP",phaseNameEditionLabel,"BOTTOM", 0, 7.5);
+    textureBottomNom:SetSize(250,12);
+    textureBottomNom:SetVertexColor(0.1, 0.1, 0.8);
+
+    phaseNameEditionLabel:SetJustifyH("CENTER")
+    phaseNameEditionLabel:SetMultiLine(false)
+
+	phaseNameEditionLabel:SetScript("OnEditFocusGained", function(self)
+		phaseNameEditionLabel.lastvalue = phaseNameEditionLabel:GetText()
+	end)
+
+	phaseNameEditionLabel:SetScript("OnEditFocusLost", function(self)
+		local newPhaseName = phaseNameEditionLabel:GetText()
+		if newPhaseName ~= phaseNameEditionLabel.lastvalue then
+			PhaseToolkit.phaseName = newPhaseName
+			sendAddonCmd("phase rename "..newPhaseName, nil)
+		end
+	end)
+
+    phaseNameEditionLabel:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+    end)
+    phaseNameEditionLabel:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+
+	phaseNameEditionLabel:SetText(PhaseToolkit.phaseName or "")
+	PhaseToolkit.DeployingFrame.phaseNameEditionLabel = phaseNameEditionLabel
+
+	tinsert(context, phaseNameEditionLabel)
+	tinsert(context,textureTopNom)
+	tinsert(context,textureBottomNom)
+end
+
+local function createPhaseDescriptionComponent(context)
+	local PhasedescriptionField = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame)
+    PhasedescriptionField:SetSize(220, 50)
+    PhasedescriptionField:SetPoint("TOP",PhaseToolkit.DeployingFrame.phaseNameEditionLabel,"BOTTOM",0, -32.5)
+    PhasedescriptionField:SetAutoFocus(false)
+    PhasedescriptionField:SetFontObject("GameFontHighlight")
+    PhasedescriptionField.texture= PhasedescriptionField:CreateTexture(nil, "BACKGROUND")
+
+    PhasedescriptionField.interactionOverlay = CreateFrame("Frame", nil, PhasedescriptionField)
+    PhasedescriptionField.interactionOverlay:SetPoint("TOPLEFT", PhasedescriptionField, "TOPLEFT", 0, -5)
+    PhasedescriptionField.interactionOverlay:SetSize(PhasedescriptionField:GetWidth(), PhasedescriptionField:GetHeight())
+    PhasedescriptionField.interactionOverlay:EnableMouse(true)
+
+    PhasedescriptionField.interactionOverlay:SetScript("OnMouseDown", function(self, button)
+        if button == "LeftButton" then
+            PhasedescriptionField:SetFocus()
+        end
+    end)
+
+	PhasedescriptionField:SetScript("OnEditFocusGained", function(self)
+		PhasedescriptionField.lastvalue = PhasedescriptionField:GetText()
+	end)
+
+	PhasedescriptionField:SetScript("OnEditFocusLost", function(self)
+		local newPhaseDescription = PhasedescriptionField:GetText()
+		if newPhaseDescription ~= PhasedescriptionField.lastvalue then
+			PhaseToolkit.phaseDescription = newPhaseDescription
+			sendAddonCmd("phase set desc "..newPhaseDescription, nil)
+		end
+	end)
+
+    PhasedescriptionField:SetScript("OnEnterPressed", function(self)
+        PhasedescriptionField:ClearFocus()
+    end)
+
+    PhasedescriptionField:SetScript("OnEscapePressed", function(self)
+        PhasedescriptionField:ClearFocus()
+    end)
+
+    PhasedescriptionField.texture:SetAtlas("UI-Frame-Kyrian-PortraitWiderDisable")
+    PhasedescriptionField.texture:SetPoint("TOPLEFT", -10, 10)
+    PhasedescriptionField.texture:SetSize(240,70)
+    PhasedescriptionField:SetMultiLine(true)
+    PhasedescriptionField:SetJustifyH("LEFT")
+    PhasedescriptionField:SetMaxLetters(60)
+    PhasedescriptionField:EnableMouse(true)
+    PhasedescriptionField:SetCursorPosition(0)
+
+    PhasedescriptionField.title = PhasedescriptionField:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    PhasedescriptionField.title:SetPoint("BOTTOM",PhasedescriptionField,"TOP", 0, 15)
+    PhasedescriptionField.title:SetText("Description")
+
+	PhasedescriptionField:Show()
+	PhaseToolkit.DeployingFrame.PhasedescriptionField = PhasedescriptionField
+	tinsert(context, PhasedescriptionField)
+end
+
+local function createPhaseMotdComponent(context)
+	local PhaseMotdEditbox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame)
+    PhaseMotdEditbox:SetSize(220, 50)
+    PhaseMotdEditbox:SetPoint("TOP",PhaseToolkit.DeployingFrame.PhasedescriptionField,"BOTTOM",0, -75)
+    PhaseMotdEditbox:SetAutoFocus(false)
+    PhaseMotdEditbox:SetFontObject("GameFontHighlight")
+    PhaseMotdEditbox.texture= PhaseMotdEditbox:CreateTexture(nil, "BACKGROUND")
+
+    PhaseMotdEditbox.interactionOverlay = CreateFrame("Frame", nil, PhaseMotdEditbox)
+    PhaseMotdEditbox.interactionOverlay:SetPoint("TOPLEFT", PhaseMotdEditbox, "TOPLEFT", 0, -5)
+    PhaseMotdEditbox.interactionOverlay:SetSize(PhaseMotdEditbox:GetWidth(), PhaseMotdEditbox:GetHeight())
+    PhaseMotdEditbox.interactionOverlay:EnableMouse(true)
+
+    PhaseMotdEditbox.interactionOverlay:SetScript("OnMouseDown", function(self, button)
+        if button == "LeftButton" then
+            PhaseMotdEditbox:SetFocus()
+        end
+    end)
+
+	PhaseMotdEditbox:SetScript("OnEditFocusGained", function(self)
+		PhaseMotdEditbox.lastvalue = PhaseMotdEditbox:GetText()
+	end)
+
+	PhaseMotdEditbox:SetScript("OnEditFocusLost", function(self)
+		local newPhaseMotd = PhaseMotdEditbox:GetText()
+		if newPhaseMotd ~= PhaseMotdEditbox.lastvalue then
+			PhaseToolkit.phaseMotd = newPhaseMotd
+			sendAddonCmd("ph set mess "..newPhaseMotd, nil)
+		end
+	end)
+
+    PhaseMotdEditbox:SetScript("OnEnterPressed", function(self)
+        PhaseMotdEditbox:ClearFocus()
+    end)
+
+    PhaseMotdEditbox:SetScript("OnEscapePressed", function(self)
+        PhaseMotdEditbox:ClearFocus()
+    end)
+
+    PhaseMotdEditbox.texture:SetAtlas("UI-Frame-Kyrian-PortraitWiderDisable")
+    PhaseMotdEditbox.texture:SetPoint("TOPLEFT", -10, 10)
+    PhaseMotdEditbox.texture:SetSize(240,70)
+    PhaseMotdEditbox:SetMultiLine(true)
+	PhaseMotdEditbox:SetVisibleTextByteLimit(124)
+    PhaseMotdEditbox:SetJustifyH("LEFT")
+    PhaseMotdEditbox:SetMaxLetters(0) -- unlimited text length
+    PhaseMotdEditbox:EnableMouse(true) -- ensure mouse interaction
+    PhaseMotdEditbox:SetCursorPosition(0) -- set initial cursor position
+
+    PhaseMotdEditbox.title = PhaseMotdEditbox:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    PhaseMotdEditbox.title:SetPoint("BOTTOM",PhaseMotdEditbox,"TOP", 0, 15)
+    PhaseMotdEditbox.title:SetText("Message of the Day")
+
+	PhaseToolkit.DeployingFrame.PhaseMotdEditbox = PhaseMotdEditbox
+	tinsert(context, PhaseMotdEditbox)
+end
+
+-- Phase Weather Panel
+
+local function deployPhaseWeatherPanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phaseWeatherWindow.animGroupDeploy
+	AnimationGroup:Play();
+end
+
+local function retractPhaseWeatherPanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phaseWeatherWindow.animGroupRetract
+	AnimationGroup:Play();
+end
+
+local function createPhaseWeatherWindow(context)
+	local phaseWeatherWindow = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+	phaseWeatherWindow:SetSize(235, 300);
+	phaseWeatherWindow:SetPoint("RIGHT", PhaseToolkit.DeployingFrame, "LEFT", 0, 0);
+	ButtonFrameTemplateMinimizable_HidePortrait(phaseWeatherWindow)
+	NineSliceUtil.ApplyLayoutByName(phaseWeatherWindow.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(phaseWeatherWindow.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(phaseWeatherWindow.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(phaseWeatherWindow, phaseWeatherWindow.Bg)
+	phaseWeatherWindow:SetFrameStrata("LOW")
+	local titleBgColor = phaseWeatherWindow:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", phaseWeatherWindow.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", phaseWeatherWindow.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	phaseWeatherWindow.TitleBgColor = titleBgColor
+	phaseWeatherWindow.TitleText:SetText(PhaseToolkit.CurrentLang["Phase Weather"] or "Phase Weather")
+	phaseWeatherWindow.TitleText:SetPoint("LEFT", phaseWeatherWindow.TitleBg, "LEFT", 30, 0)
+
+	local panelContent = {}
+
+	local permanentCheckbox = CreateFrame("CheckButton", nil, phaseWeatherWindow, "UICheckButtonTemplate")
+	permanentCheckbox:SetPoint("TOPLEFT", phaseWeatherWindow, "TOPLEFT", 10, -30)
+	permanentCheckbox:SetSize(20, 20)
+	permanentCheckbox.text = permanentCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	permanentCheckbox.text:SetPoint("LEFT", permanentCheckbox, "RIGHT", 2.5, 1.5)
+	permanentCheckbox.text:SetText("Permanent")
+
+	tinsert(panelContent, permanentCheckbox)
+
+
+	local IntensitySlider = CreateFrame("Slider", nil, phaseWeatherWindow, "OptionsSliderTemplate")
+	IntensitySlider:SetPoint("TOPLEFT", phaseWeatherWindow, "TOPLEFT", 10, -70)
+	IntensitySlider:SetSize(200, 20)
+	IntensitySlider:SetMinMaxValues(0, 100)
+	IntensitySlider:SetValueStep(1)
+	IntensitySlider:SetObeyStepOnDrag(true)
+
+	IntensitySlider.Low:Hide()
+	IntensitySlider.High:Hide()
+	IntensitySlider:SetValue(0)
+
+	local thumb = IntensitySlider:GetThumbTexture()
+	thumb:SetAtlas("common-slider-thumb")
+
+	IntensitySlider.value = CreateFrame("EditBox", nil, IntensitySlider)
+	IntensitySlider.value:SetSize(40, 20)
+	IntensitySlider.value:SetPoint("BOTTOM", IntensitySlider, "TOP", 5, 0)
+	IntensitySlider.value:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+	IntensitySlider.value:SetAutoFocus(false)
+	IntensitySlider.value:SetJustifyH("CENTER")
+	IntensitySlider.value:SetText(IntensitySlider:GetValue())
+
+	tinsert(panelContent, IntensitySlider)
+
+	permanentCheckbox:SetScript("OnClick", function(self)
+		sendAddonCmd("phase set weather "..PhaseToolkit.SelectedMeteo.value.." "..IntensitySlider:GetValue().." "..(self:GetChecked() and "permanent" or ""), nil,false)
+	end)
+
+	IntensitySlider:SetScript("OnValueChanged", function(self, value)
+		self.value:SetText(math.floor(value))
+		sendAddonCmd("phase set weather "..PhaseToolkit.SelectedMeteo.value.." "..value.." "..(permanentCheckbox:GetChecked() and "permanent" or ""), nil,false)
+	end)
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, phaseWeatherWindow, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", phaseWeatherWindow, "TOPLEFT", 10, -100)
+	scrollFrame:SetPoint("BOTTOMRIGHT", phaseWeatherWindow, "BOTTOMRIGHT", -18, 15)
+
+	local content = CreateFrame("Frame", nil, phaseWeatherWindow)
+	content:SetPoint("TOPLEFT", phaseWeatherWindow, "TOPLEFT", 0, -88)
+	content:SetPoint("BOTTOMRIGHT", phaseWeatherWindow, "BOTTOMRIGHT", -4, 18)
+
+	tinsert(panelContent, scrollFrame)
+	tinsert(panelContent, content)
+
+	phaseWeatherWindow.scrollFrame = scrollFrame
+	phaseWeatherWindow.content = content
+	phaseWeatherWindow.displayRows = phaseWeatherWindow.displayRows or {}
+	phaseWeatherWindow.rowHeight = 32
+	phaseWeatherWindow.visibleRows = 6
+
+	local rowHeight = phaseWeatherWindow.rowHeight
+	local visibleRows = phaseWeatherWindow.visibleRows
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_METEO_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", -5, -((index - 1) * rowHeight))
+		row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+		row:SetHeight(rowHeight)
+
+		--first column
+		row.firstElement = CreateFrame("Frame", nil, row)
+		row.firstElement:SetPoint("TOPLEFT", row, "TOPLEFT", -5, 0)
+		row.firstElement:SetSize(130, 45)
+		row.firstElement.background = row.firstElement:CreateTexture(nil, "BACKGROUND")
+		row.firstElement.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.firstElement.background:SetAllPoints(row.firstElement)
+
+		row.firstElement.highlight = row.firstElement:CreateTexture(nil, "OVERLAY")
+		row.firstElement.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.firstElement.highlight:SetAllPoints(row.firstElement)
+		row.firstElement.highlight:Hide()
+
+		row.firstElement.label = row.firstElement:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.firstElement.label:SetPoint("CENTER", row.firstElement, "CENTER", 0, 0)
+		row.firstElement.label:SetJustifyH("CENTER")
+		row.firstElement.label:SetWordWrap(false)
+		row.firstElement.label:SetNonSpaceWrap(true)
+
+		row.firstElement:SetScript("OnEnter", function(self)
+			self.highlight:Show()
+		end)
+
+		row.firstElement:SetScript("OnLeave", function(self)
+			if(row.firstElement.label and row.firstElement.label:GetText() == PhaseToolkit.SelectedMeteo.text) then
+				self.highlight:Show()
+			else
+				self.highlight:Hide()
+			end
+		end)
+
+		--second column
+		row.secondElement = CreateFrame("Frame", nil, row)
+		row.secondElement:SetPoint("TOPRIGHT", row, "TOPRIGHT", -10, 0)
+		row.secondElement:SetSize(130, 45)
+		row.secondElement.background = row.secondElement:CreateTexture(nil, "BACKGROUND")
+		row.secondElement.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.secondElement.background:SetAllPoints(row.secondElement)
+
+		row.secondElement.highlight = row.secondElement:CreateTexture(nil, "OVERLAY")
+		row.secondElement.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.secondElement.highlight:SetAllPoints(row.secondElement)
+		row.secondElement.highlight:Hide()
+
+		row.secondElement.label = row.secondElement:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.secondElement.label:SetPoint("CENTER", row.secondElement, "CENTER", 0, 0)
+		row.secondElement.label:SetJustifyH("CENTER")
+		row.secondElement.label:SetWordWrap(false)
+		row.secondElement.label:SetNonSpaceWrap(true)
+
+		row.secondElement:SetScript("OnEnter", function(self)
+			self.highlight:Show()
+		end)
+
+		row.secondElement:SetScript("OnLeave", function(self)
+			if(row.secondElement.label and row.secondElement.label:GetText() == PhaseToolkit.SelectedMeteo.text) then
+				self.highlight:Show()
+			else
+				self.highlight:Hide()
+			end
+		end)
+
+		return row
+	end
+
+	function phaseWeatherWindow.UpdateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		for i = 1, visibleRows do
+			local firstMeteo = ((offset + i - 1) * 2) + 1
+			local secondMeteo = firstMeteo + 1
+
+			local row = phaseWeatherWindow.displayRows[i]
+			if(not row) then
+				row = createRow(i)
+				phaseWeatherWindow.displayRows[i] = row
+			end
+
+			row.firstElement.label:SetText(PhaseToolkit.Meteo[firstMeteo].text)
+			row.firstElement:SetScript("OnMouseDown", function(self, button)
+				if button == "LeftButton" then
+					sendAddonCmd("phase set weather "..PhaseToolkit.Meteo[firstMeteo].value.." "..IntensitySlider:GetValue().." "..(permanentCheckbox:GetChecked() and "permanent" or ""), nil,false)
+					PhaseToolkit.SelectedMeteo = PhaseToolkit.Meteo[firstMeteo]
+				end
+				phaseWeatherWindow.UpdateScrollFrame()
+			end)
+
+			row.secondElement.label:SetText(PhaseToolkit.Meteo[secondMeteo].text)
+			row.secondElement:SetScript("OnMouseDown", function(self, button)
+				if button == "LeftButton" then
+					sendAddonCmd("phase set weather "..PhaseToolkit.Meteo[secondMeteo].value.." "..IntensitySlider:GetValue().." "..(permanentCheckbox:GetChecked() and "permanent" or ""), nil,false)
+					PhaseToolkit.SelectedMeteo = PhaseToolkit.Meteo[secondMeteo]
+				end
+				phaseWeatherWindow.UpdateScrollFrame()
+			end)
+
+			if(PhaseToolkit.Meteo[firstMeteo].value == PhaseToolkit.SelectedMeteo.value) then
+				row.firstElement.highlight:Show()
+			else
+				row.firstElement.highlight:Hide()
+			end
+
+			if(PhaseToolkit.Meteo[secondMeteo].value == PhaseToolkit.SelectedMeteo.value) then
+				row.secondElement.highlight:Show()
+			else
+				row.secondElement.highlight:Hide()
+			end
+
+			row:Show()
+
+		end
+
+		FauxScrollFrame_Update(scrollFrame, math.ceil(#PhaseToolkit.Meteo / 2), visibleRows, rowHeight)
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, phaseWeatherWindow.UpdateScrollFrame)
+	end)
+
+	phaseWeatherWindow:SetScript("OnShow", function()
+		phaseWeatherWindow.UpdateScrollFrame()
+	end)
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 0, -36)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", -2, 16)
+
+	tinsert(panelContent, scrollFrame.ScrollBar)
+
+	phaseWeatherWindow:Hide()
+	phaseWeatherWindow.isHiddenByDefault = true
+	PhaseToolkit.DeployingFrame.phaseWeatherWindow = phaseWeatherWindow
+	PhaseToolkit.DeployingFrame.phaseWeatherWindow.content = panelContent
+	tinsert(context, phaseWeatherWindow)
+
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.phaseWeatherWindow, 60, 0, {
+		onPlayDeploy = function()
+			hideContent(PhaseToolkit.DeployingFrame.phaseWeatherWindow.content)
+			if(PhaseToolkit.DeployingFrame.phasePermissionWindow and PhaseToolkit.DeployingFrame.phasePermissionWindow:IsShown()) then
+				PhaseToolkit.DeployingFrame.phasePermissionWindow:Hide()
+			end
+			PhaseToolkit.DeployingFrame.phaseWeatherWindow:Show()
+		end,
+		onFinishedDeploy = function()
+			showContent(PhaseToolkit.DeployingFrame.phaseWeatherWindow.content)
+		end,
+		onPlayRetract = function()
+			hideContent(PhaseToolkit.DeployingFrame.phaseWeatherWindow.content)
+		end,
+		onFinishedRetract = function()
+			PhaseToolkit.DeployingFrame.phaseWeatherWindow:Hide()
+		end,
+	})
+
+end
+
+local function createPhaseWeatherButton(context)
+	local PhaseWeatherButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	PhaseWeatherButton:SetSize(30, 30)
+	PhaseWeatherButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 2.5, -60)
+	PhaseWeatherButton.icon = PhaseWeatherButton:CreateTexture(nil, "OVERLAY")
+	PhaseWeatherButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_weather.blp")
+	PhaseWeatherButton.icon:SetAllPoints()
+	PhaseWeatherButton:SetFrameStrata("HIGH")
+
+	PhaseWeatherButton:SetScript("OnClick", function()
+		if not PhaseToolkit.DeployingFrame.phaseWeatherWindow then
+			return
+		end
+
+		local shouldShow = not PhaseToolkit.DeployingFrame.phaseWeatherWindow:IsShown()
+
+		if shouldShow then
+			deployPhaseWeatherPanel()
+		else
+			retractPhaseWeatherPanel()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(PhaseWeatherButton, "Open Phase Weather Settings")
+	PhaseToolkit.DeployingFrame.PhaseWeatherButton = PhaseWeatherButton
+	tinsert(context, PhaseWeatherButton)
+end
+
+local function createPhaseAccessRadioButtons(context)
+	local radiosFrame = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame)
+	radiosFrame:SetSize(200, 30)
+	radiosFrame:SetPoint("BOTTOM", PhaseToolkit.DeployingFrame, "BOTTOM", -25, 0)
+
+	local whitelistRadioButton = CreateFrame("CheckButton", nil, radiosFrame, "UIRadioButtonTemplate")
+	whitelistRadioButton:SetPoint("LEFT", radiosFrame, "LEFT", 0, 0)
+	whitelistRadioButton:SetSize(20, 20)
+	whitelistRadioButton.text = whitelistRadioButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	whitelistRadioButton.text:SetPoint("LEFT", whitelistRadioButton, "RIGHT", 2.5, 0)
+	whitelistRadioButton.text:SetText("Whitelist")
+	whitelistRadioButton:SetChecked(PhaseToolkit.IsPhaseWhitelist==true)
+
+	local blacklistRadioButton = CreateFrame("CheckButton", nil, radiosFrame, "UIRadioButtonTemplate")
+	blacklistRadioButton:SetPoint("LEFT", whitelistRadioButton, "RIGHT", 65, 0)
+	blacklistRadioButton:SetSize(20, 20)
+	blacklistRadioButton.text = blacklistRadioButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	blacklistRadioButton.text:SetPoint("LEFT", blacklistRadioButton, "RIGHT", 2.5, 0)
+	blacklistRadioButton.text:SetText("Blacklist")
+	blacklistRadioButton:SetChecked(PhaseToolkit.IsPhaseWhitelist==false)
+
+	whitelistRadioButton:SetScript("OnClick", function()
+		whitelistRadioButton:SetChecked(true)
+		blacklistRadioButton:SetChecked(false)
+		sendAddonCmd("ph togg private ", nil)
+	end)
+
+	blacklistRadioButton:SetScript("OnClick", function()
+		whitelistRadioButton:SetChecked(false)
+		blacklistRadioButton:SetChecked(true)
+		sendAddonCmd("ph togg private ", nil)
+	end)
+
+	PhaseToolkit.RadioBlacklist=blacklistRadioButton
+	PhaseToolkit.RadioWhitelist=whitelistRadioButton
+
+	PhaseToolkit.DeployingFrame.phaseAccessRadioButtons = radiosFrame
+	tinsert(context, radiosFrame)
+end
+
+local function createPhaseStartingButton(context)
+	local phaseStartingButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	phaseStartingButton:SetSize(30, 30)
+	phaseStartingButton:SetPoint("TOP", PhaseToolkit.DeployingFrame.phaseTimePickerButton, "BOTTOM", 0, 0)
+
+	phaseStartingButton.background = phaseStartingButton:CreateTexture(nil, "OVERLAY")
+	phaseStartingButton.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMEmptyButton.blp")
+	phaseStartingButton.background:SetAllPoints()
+
+	phaseStartingButton.icon = phaseStartingButton:CreateTexture(nil, "OVERLAY")
+	phaseStartingButton.icon:SetAtlas("poi-door-down")
+	phaseStartingButton.icon:SetSize(20, 20)
+	phaseStartingButton.icon:SetPoint("CENTER", phaseStartingButton, "CENTER", 0, 0)
+
+	phaseStartingButton:SetFrameStrata("HIGH")
+
+	phaseStartingButton:SetScript("OnMouseDown", function(self,button)
+		if button == "LeftButton" then
+			sendAddonCmd("ph set start ", nil,true)
+		end
+		if button == "RightButton" then
+			sendAddonCmd("ph set start disable", nil,true)
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(phaseStartingButton, "Left -Click to set the Phase Starting Point.\nRight-Click to disable the Phase Starting Point")
+	PhaseToolkit.DeployingFrame.phaseStartingButton = phaseStartingButton
+	tinsert(context, phaseStartingButton)
+end
+
+-- Phase Permissions Panel
+
+local function deployPhasePermissionPanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phasePermissionWindow.animGroupDeploy
+	AnimationGroup:Play();
+end
+
+local function retractPhasePermissionPanel()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.phasePermissionWindow.animGroupRetract
+	AnimationGroup:Play();
+end
+
+
+local function createPhasePermissionButton(context)
+	local phasePermissionButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+	phasePermissionButton:SetSize(30, 30)
+	phasePermissionButton:SetPoint("TOP", PhaseToolkit.DeployingFrame.PhaseWeatherButton, "BOTTOM", 0, 0)
+
+	phasePermissionButton.icon = phasePermissionButton:CreateTexture(nil, "OVERLAY")
+	phasePermissionButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+	phasePermissionButton.icon:SetAllPoints()
+	phasePermissionButton:SetFrameStrata("HIGH")
+
+	PhaseToolkit.RegisterTooltip(phasePermissionButton, "Left-Click to access Phase Permission Panel")
+	phasePermissionButton:SetScript("OnClick", function(self, button)
+		local shouldShow = not PhaseToolkit.DeployingFrame.phasePermissionWindow:IsShown()
+		if shouldShow then
+			deployPhasePermissionPanel()
+		else
+			retractPhasePermissionPanel()
+		end
+	end)
+
+	PhaseToolkit.DeployingFrame.phasePermissionButton = phasePermissionButton
+	tinsert(context, phasePermissionButton)
+end
+
+local function createPhasePermissionWindow(context)
+	local phasePermissionWindow = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+	phasePermissionWindow:SetSize(135, 300);
+	phasePermissionWindow:SetPoint("RIGHT", PhaseToolkit.DeployingFrame, "LEFT", 0, 0);
+	ButtonFrameTemplateMinimizable_HidePortrait(phasePermissionWindow)
+	NineSliceUtil.ApplyLayoutByName(phasePermissionWindow.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(phasePermissionWindow.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(phasePermissionWindow.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(phasePermissionWindow, phasePermissionWindow.Bg)
+	phasePermissionWindow:SetFrameStrata("LOW")
+	local titleBgColor = phasePermissionWindow:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", phasePermissionWindow.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", phasePermissionWindow.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	phasePermissionWindow.TitleBgColor = titleBgColor
+	phasePermissionWindow.TitleText:SetText(PhaseToolkit.CurrentLang["Phase Permissions"] or "Phase Permissions")
+
+	phasePermissionWindow:Hide()
+	phasePermissionWindow.isHiddenByDefault = true
+	local permissionToggleList = {}
+	local content = {}
+
+	for _,permission in pairs(PhaseToolkit.Toggleslist) do
+		local permissionToggle = CreateFrame("CheckButton", "permissionToggle"..permission, phasePermissionWindow, "UICheckButtonTemplate")
+		permissionToggle:SetSize(20, 20)
+		permissionToggle.text = permissionToggle:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		permissionToggle.text:SetPoint("LEFT", permissionToggle, "RIGHT", 2.5, 0)
+		permissionToggle.text:SetText(permission)
+		permissionToggle:SetPoint("TOPLEFT", phasePermissionWindow, "TOPLEFT", 10, -30 - (#permissionToggleList * 30))
+		permissionToggle:SetChecked(true)
+		tinsert(permissionToggleList, permissionToggle)
+		tinsert(content, permissionToggle)
+
+		permissionToggle:SetScript("OnClick", function(self)
+			sendAddonCmd("ph togg "..permission, nil,true)
+		end)
+	end
+
+	PhaseToolkit.DeployingFrame.phasePermissionWindow = phasePermissionWindow
+	PhaseToolkit.DeployingFrame.phasePermissionWindow.content = content
+	tinsert(context, phasePermissionWindow)
+
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.phasePermissionWindow, 60, 0, {
+		onPlayDeploy = function()
+			hideContent(PhaseToolkit.DeployingFrame.phasePermissionWindow.content)
+			if(PhaseToolkit.DeployingFrame.phaseWeatherWindow and PhaseToolkit.DeployingFrame.phaseWeatherWindow:IsShown()) then
+				retractPhaseWeatherPanel()
+			end
+			PhaseToolkit.DeployingFrame.phasePermissionWindow:Show()
+		end,
+		onFinishedDeploy = function()
+			showContent(PhaseToolkit.DeployingFrame.phasePermissionWindow.content)
+		end,
+		onPlayRetract = function()
+			hideContent(PhaseToolkit.DeployingFrame.phasePermissionWindow.content)
+		end,
+		onFinishedRetract = function()
+			PhaseToolkit.DeployingFrame.phasePermissionWindow:Hide()
+		end,
+	})
+end
+
+function PhaseToolkit.createPhaseOptions()
+	--if we had a previous context, we need to hide it before creating a new one
+	if PhaseToolkit.context.id ~="NONE" then
+		PhaseToolkit.changeContext(deployingFrameContext["NONE"])
+	end
+
+	local context = {}
+	context.id="PHASEOPTION"
+	PhaseToolkit.extendDeployingFrame(0)
+	if not PhaseToolkit.DeployingFrame.phaseNameEditionLabel then
+		createPhaseNameComponent(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.PhasedescriptionField then
+		createPhaseDescriptionComponent(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.PhaseMotdEditbox then
+		createPhaseMotdComponent(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phaseTimePickerWindow then
+		createPhaseTimePickerWindow(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phaseTimePickerButton then
+		createPhaseTimePickerButton(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phaseWeatherWindow then
+		createPhaseWeatherWindow(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.PhaseWeatherButton then
+		createPhaseWeatherButton(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phaseAccessRadioButtons then
+		createPhaseAccessRadioButtons(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phaseStartingButton then
+		createPhaseStartingButton(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phasePermissionWindow then
+		createPhasePermissionWindow(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.phasePermissionButton then
+		createPhasePermissionButton(context)
+	end
+
+	if(#deployingFrameContext["PHASEOPTION"]<1) then
+		deployingFrameContext["PHASEOPTION"] = context
+	end
+
+	PhaseToolkit.changeContext(deployingFrameContext["PHASEOPTION"])
 end
 
 local function parseReplies(isCommandSuccessful, repliesList)
+	local function SetNpcListRefreshLoadingState(isLoading)
+		PhaseToolkit.isNpcListRefreshInProgress = isLoading and true or false
+		local refreshButton = PhaseToolkit.DeployingFrame and PhaseToolkit.DeployingFrame.NpcListRefreshButton
+		if refreshButton then
+			if isLoading then
+				refreshButton:Disable()
+				refreshButton:SetAlpha(0.5)
+			else
+				refreshButton:Enable()
+				refreshButton:SetAlpha(1)
+			end
+		end
+	end
+
 	-- Only do the job if the command is successful
 	if (isCommandSuccessful) then
 		local isCallingAgainNeeded = false
@@ -5501,598 +8697,4279 @@ local function parseReplies(isCommandSuccessful, repliesList)
 		else
 			-- if it's finished, we remove potential duplicate (by ID) and then we "regenerates" the frame for the list
 			PhaseToolkit.creatureList = PhaseToolkit.RemoveDuplicates(PhaseToolkit.creatureList)
-			if (PhaseToolkit.PNJFrame ~= nil) then
-				if PhaseToolkit.PNJFrame:IsShown() then
-					PhaseToolkit.PNJFrame:Hide()
-					PhaseToolkit.PNJFrame = nil
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-				else
-					PhaseToolkit.PNJFrame = nil
-					PhaseToolkit.CreateNpcListFrame(PhaseToolkit.creatureList)
-				end
-			end
-		end
-	end
-end
-
-function PhaseToolkit.PhaseNpcListSystemMessageCounter()
-	PhaseToolkit.creatureList = {}
-	-- Use Epsilib to fetch the replies
-	sendAddonCmd("ph f n list", parseReplies, false)
-end
--- -- -- -- -- -- -- -- -- --
-	--#endregion
--- -- -- -- -- -- -- -- -- --
-
--- -- -- -- -- -- -- -- -- --
-	--#region TeleList
--- -- -- -- -- -- -- -- -- --
-
-function PhaseToolkit.CreateTeleListFrame(_teleList)
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PhaseOptionFrame ~= nil and PhaseToolkit.PhaseOptionFrame:IsShown()) then
-		PhaseToolkit.PhaseOptionFrame:Hide()
-	end
-	if (PhaseToolkit.CustomFrame ~= nil and PhaseToolkit.CustomFrame:IsShown()) then
-		PhaseToolkit.CustomFrame:Hide()
-	end
-	if (PhaseToolkit.CustomMainFrame ~= nil) then
-		if (PhaseToolkit.CustomMainFrame:IsShown()) then
-			PhaseToolkit.CustomMainFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if (PhaseToolkit.TELEFrame:IsShown()) then
-			PhaseToolkit.TELEFrame:Hide()
-			if PhaseToolkit.categoryPanelTELE ~= nil then
-				PhaseToolkit.categoryPanelTELE:Hide()
-				PhaseToolkit.categoryPanelTELE = nil
-				for i = 1, 7 do
-					local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
-					if blueprintFrame then
-						blueprintFrame:Hide()
-						_G["PTK_CATEGORY_FRAME"..i] = nil
-					end
-				end
-			end
-		else
-			-- Restaurer la taille sauvegardée si disponible
-			if PhaseToolkit.TELEFrameWidth and PhaseToolkit.TELEFrameHeight then
-				PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.TELEFrameWidth, PhaseToolkit.TELEFrameHeight)
+			if PhaseToolkit.context.id == "NPCLIST" and PhaseToolkit.DeployingFrame.NpcListScrollFrame then
+				PhaseToolkit.RefreshNpcListView()
 			else
-				PhaseToolkit.TELEFrame:SetSize(PhaseToolkit.GetMaxStringWidth(_teleList), 400)
+				PhaseToolkit.OpenNpcList()
 			end
-			PhaseToolkit.TELEFrame:Show()
+			SetNpcListRefreshLoadingState(false)
 		end
-		return
+	else
+		SetNpcListRefreshLoadingState(false)
+	end
+end
+
+function PhaseToolkit.createNPCList()
+	-- Use Epsilib to fetch the replies
+	if(not PhaseToolkit.creatureList or #PhaseToolkit.creatureList == 0) then
+		sendAddonCmd("ph f n list", parseReplies, false)
+	else
+		PhaseToolkit.OpenNpcList()
 	end
 
-	local currentPage=1
-	if(PhaseToolkit.TELEListcurrentPage) then
-		currentPage=PhaseToolkit.TELEListcurrentPage
+end
+
+
+local function BuildNpcListView()
+    local source = PhaseToolkit.creatureList or {}
+    local hasCategoryFilter = PhaseToolkit.NPCcategoryToFilterPool and #PhaseToolkit.NPCcategoryToFilterPool > 0
+    local byCategory = {}
+
+    if hasCategoryFilter then
+        local allowedIds = {}
+
+        for _, categoryId in ipairs(PhaseToolkit.NPCcategoryToFilterPool) do
+            local category = PhaseToolkit.getCategoryByIdGENERIC(categoryId, "NPC")
+            if category and category.members then
+                for _, memberId in ipairs(category.members) do
+                    allowedIds[tostring(memberId)] = true
+                end
+            end
+        end
+
+        for _, npc in ipairs(source) do
+            if allowedIds[tostring(npc.IdCreature)] then
+                table.insert(byCategory, npc)
+            end
+        end
+
+		if #byCategory == 0 and #source > 0 then
+			byCategory = source
+		end
+    else
+        byCategory = source
+    end
+
+    local query = (PhaseToolkit.CurrenttextToLookForNpc or ""):lower()
+    if query == "" then
+        return byCategory
+    end
+
+    local filtered = {}
+    for _, npc in ipairs(byCategory) do
+		local name = tostring(npc.NomCreature or ""):lower()
+        if string.find(name, query) then
+            table.insert(filtered, npc)
+        end
+    end
+
+    return filtered
+end
+
+function PhaseToolkit.RefreshNpcListView(preserveOffset)
+    PhaseToolkit.npcListView = BuildNpcListView()
+
+    local scrollFrame = PhaseToolkit.DeployingFrame.NpcListScrollFrame
+    if not scrollFrame then
+        return
+    end
+
+    local rowHeight = scrollFrame.rowHeight or 32
+    local visibleRows = scrollFrame.visibleRows or 11
+    local maxOffset = math.max(0, #PhaseToolkit.npcListView - visibleRows)
+	local targetOffset = 0
+
+	if preserveOffset then
+		if FauxScrollFrame_GetOffset then
+			targetOffset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		elseif scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue then
+			targetOffset = math.floor((scrollFrame.ScrollBar:GetValue() or 0) / rowHeight)
+		end
 	end
 
-	local totalPages = math.ceil(#_teleList / PhaseToolkit.itemsPerPageTELE)
-	-- Si la liste est vide, on a au moins 1 page (vide)
-	if totalPages == 0 then
-		totalPages = 1
+    if scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue and scrollFrame.ScrollBar.SetValue then
+		targetOffset = math.max(0, math.min(targetOffset, maxOffset))
+		scrollFrame.ScrollBar:SetValue(targetOffset * rowHeight)
+    end
+
+	if FauxScrollFrame_SetOffset then
+		FauxScrollFrame_SetOffset(scrollFrame, targetOffset)
+		scrollFrame.offset = targetOffset
 	end
-	
-	if(PhaseToolkit.TELEListcurrentPage) then
-		if PhaseToolkit.TELEListcurrentPage<=totalPages then
-			currentPage=PhaseToolkit.TELEListcurrentPage
+
+    PhaseToolkit.DeployingFrame.NpcListScrollFrame:UpdateRows()
+end
+
+function PhaseToolkit.RemoveNpcById(npcList, idToRemove)
+	local updatedList = {}
+	for _, npc in ipairs(npcList) do
+		if tostring(npc.IdCreature) ~= tostring(idToRemove) then
+			table.insert(updatedList, npc)
+		end
+	end
+	return updatedList
+end
+
+local function deployTagListPanel(contentContext, deployingFrameContext)
+	local AnimationGroup = PhaseToolkit.DeployingFrame.tagListPanel.animGroupDeploy
+
+	AnimationGroup:Play();
+end
+
+local function retractTagListPanel(contentContext, deployingFrameContext)
+	local AnimationGroup = PhaseToolkit.DeployingFrame.tagListPanel.animGroupRetract
+	AnimationGroup:Play();
+end
+
+-- we have to be vigilent about the content, cause the tag list is used for both NPC and TELE, so we need to make sure we are using the right context
+function PhaseToolkit.CreateTagList(contentContext, deployingFrameContext)
+	local tagListPanel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
+	tagListPanel:SetSize(235, 300);
+	tagListPanel:SetPoint("RIGHT", PhaseToolkit.DeployingFrame, "LEFT", 0, 20);
+	ButtonFrameTemplateMinimizable_HidePortrait(tagListPanel)
+	NineSliceUtil.ApplyLayoutByName(tagListPanel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(tagListPanel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(tagListPanel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(tagListPanel, tagListPanel.Bg)
+	tagListPanel:SetFrameStrata("LOW")
+	local titleBgColor = tagListPanel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", tagListPanel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", tagListPanel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	tagListPanel.TitleBgColor = titleBgColor
+	tagListPanel.TitleText:SetText("Tag list")
+	tagListPanel.TitleText:SetPoint("LEFT", tagListPanel.TitleBg, "LEFT", 30, 0)
+
+	local panelContent = {}
+
+	local createCategoryButton = CreateFrame("Button", nil, tagListPanel, "UIPanelButtonTemplate")
+	createCategoryButton:SetSize(20, 20)
+	createCategoryButton:SetPoint("TOPLEFT", tagListPanel, "TOPLEFT", 0, 0)
+	createCategoryButton.icon = createCategoryButton:CreateTexture(nil, "OVERLAY")
+	createCategoryButton.icon:SetAtlas("GreenCross")
+	createCategoryButton.icon:SetAllPoints()
+	PhaseToolkit.RegisterTooltip(createCategoryButton, "Create Category")
+
+	tinsert(panelContent, createCategoryButton)
+
+	local fetchCategoryButton = CreateFrame("Button", nil, tagListPanel, "UIPanelButtonTemplate")
+	fetchCategoryButton:SetSize(20, 20)
+	fetchCategoryButton:SetPoint("LEFT", createCategoryButton, "RIGHT", 2, -1)
+	fetchCategoryButton.icon = fetchCategoryButton:CreateTexture(nil, "OVERLAY")
+	fetchCategoryButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMRefreshButton.blp")
+	fetchCategoryButton.icon:SetAllPoints()
+	fetchCategoryButton:SetFrameStrata("HIGH")
+	fetchCategoryButton:SetScript("OnClick", function()
+		PhaseToolkit.getNpcCategoryFromPhaseData(function()
+			if tagListPanel and tagListPanel.UpdateRows then
+				tagListPanel.UpdateRows()
+			end
+			PhaseToolkit.RefreshNpcListView(true)
+		end)
+	end)
+	PhaseToolkit.RegisterTooltip(fetchCategoryButton, "Fetch Categories")
+	tinsert(panelContent, fetchCategoryButton)
+
+	local helpButton = CreateFrame("Button", nil, tagListPanel, "UIPanelButtonTemplate")
+	helpButton:SetSize(20, 20)
+	helpButton:SetPoint("LEFT", fetchCategoryButton, "RIGHT", 2, -1)
+	helpButton:SetText("?")
+	helpButton:SetFrameStrata("HIGH")
+	helpButton:SetScript("OnEnter", function(self)
+		PhaseToolkit.ShowCategoryCustomTooltip(self)
+	end)
+	helpButton:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	tinsert(panelContent, helpButton)
+	local inputFrame = nil
+	createCategoryButton:SetScript("OnClick", function()
+		if not inputFrame then
+			inputFrame = CreateFrame("Frame", nil, tagListPanel, "PortraitFrameTemplate")
+			inputFrame:SetSize(235, 90)
+			inputFrame:SetPoint("BOTTOM", tagListPanel, "TOP", 0, 2.5)
+			ButtonFrameTemplateMinimizable_HidePortrait(inputFrame)
+			NineSliceUtil.ApplyLayoutByName(inputFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(inputFrame.NineSlice, 0.8, true)
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(inputFrame.NineSlice, 0.4)
+			EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(inputFrame, inputFrame.Bg)
+			inputFrame:SetFrameStrata("DIALOG")
+			local inputTitleBgColor = inputFrame:CreateTexture(nil, "BACKGROUND")
+			local inputTitleColor = CreateColorFromHexString("80FF7100")
+			inputTitleBgColor:SetPoint("TOPLEFT", inputFrame.TitleBg)
+			inputTitleBgColor:SetPoint("BOTTOMRIGHT", inputFrame.TitleBg, -0, 0)
+			inputTitleBgColor:SetColorTexture(inputTitleColor:GetRGBA())
+			inputFrame.TitleBgColor = inputTitleBgColor
+			inputFrame.TitleText:SetText("Create Category")
+			inputFrame.TitleText:SetPoint("LEFT", inputFrame.TitleBg, "LEFT", 30, 0)
+
+			local deployAnimation = inputFrame:CreateAnimationGroup("DeployNpcCategoryInputFrame")
+			local deployFade = deployAnimation:CreateAnimation("Alpha")
+			deployFade:SetOrder(1)
+			deployFade:SetFromAlpha(0)
+			deployFade:SetToAlpha(1)
+			deployFade:SetDuration(0.5)
+			deployFade:SetSmoothing("OUT")
+
+			local deployScale = deployAnimation:CreateAnimation("Scale")
+			deployScale:SetOrder(1)
+			deployScale:SetFromScale(1.0, 0.1)
+			deployScale:SetToScale(1.0, 1.0)
+			deployScale:SetDuration(0.5)
+			deployScale:SetSmoothing("OUT")
+			deployScale:SetOrigin("BOTTOM", 0, 0)
+
+			deployAnimation:SetScript("OnPlay", function()
+				inputFrame:Show()
+			end)
+			deployAnimation:SetScript("OnFinished", function()
+				inputFrame:SetAlpha(1)
+				inputFrame:Show()
+			end)
+
+			local retractAnimation = inputFrame:CreateAnimationGroup("RetractNpcCategoryInputFrame")
+			local retractFade = retractAnimation:CreateAnimation("Alpha")
+			retractFade:SetOrder(1)
+			retractFade:SetFromAlpha(1)
+			retractFade:SetToAlpha(0)
+			retractFade:SetDuration(0.5)
+			retractFade:SetSmoothing("OUT")
+
+			local retractScale = retractAnimation:CreateAnimation("Scale")
+			retractScale:SetOrder(1)
+			retractScale:SetFromScale(1.0, 1.0)
+			retractScale:SetToScale(1.0, 0.1)
+			retractScale:SetDuration(0.5)
+			retractScale:SetSmoothing("OUT")
+			retractScale:SetOrigin("BOTTOM", 0, 0)
+
+			retractAnimation:SetScript("OnFinished", function()
+				inputFrame:Hide()
+				inputFrame:SetAlpha(1)
+			end)
+
+			inputFrame.deployAnimation = deployAnimation
+			inputFrame.retractAnimation = retractAnimation
+			inputFrame:Hide()
+
+			local function deployInputFrame()
+				if inputFrame.retractAnimation and inputFrame.retractAnimation:IsPlaying() then
+					inputFrame.retractAnimation:Stop()
+				end
+				inputFrame:Show()
+				inputFrame:SetAlpha(1)
+				if inputFrame.deployAnimation and inputFrame.deployAnimation:IsPlaying() then
+					inputFrame.deployAnimation:Stop()
+				end
+				inputFrame.deployAnimation:Play()
+			end
+
+			local function retractInputFrame()
+				if not inputFrame:IsShown() then
+					return
+				end
+				if inputFrame.deployAnimation and inputFrame.deployAnimation:IsPlaying() then
+					inputFrame.deployAnimation:Stop()
+				end
+				inputFrame.retractAnimation:Play()
+			end
+
+			inputFrame.editBox = CreateFrame("EditBox", nil, inputFrame, "InputBoxTemplate")
+			inputFrame.editBox:SetSize(180, 24)
+			inputFrame.editBox:SetPoint("TOP", inputFrame.TitleBg, "BOTTOM", 0, -18)
+			inputFrame.editBox:SetAutoFocus(true)
+
+			inputFrame.editBox:SetScript("OnEnterPressed", function(self)
+				local categoryName = self:GetText()
+				if categoryName and categoryName ~= "" then
+					PhaseToolkit.CreateNewNpcCategory(categoryName, function()
+						if tagListPanel and tagListPanel.UpdateRows then
+							tagListPanel.UpdateRows()
+						end
+					end)
+				end
+				self:ClearFocus()
+				retractInputFrame()
+			end)
+
+			inputFrame.editBox:SetScript("OnEscapePressed", function(self)
+				self:ClearFocus()
+				retractInputFrame()
+			end)
+
+			inputFrame.deploy = deployInputFrame
+			inputFrame.retract = retractInputFrame
+			inputFrame.deploy()
+		elseif inputFrame:IsShown() then
+			inputFrame.retract()
+			inputFrame.editBox:SetText("")
 		else
-			currentPage=totalPages
+			inputFrame.deploy()
+			inputFrame.editBox:SetText("")
+			inputFrame.editBox:SetFocus()
+		end
+	end)
+
+	--FauxScrollFrame for the tagList
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, tagListPanel, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", tagListPanel, "TOPLEFT", 10, -30)
+	scrollFrame:SetPoint("BOTTOMRIGHT", tagListPanel, "BOTTOMRIGHT", -7.5, 2.5)
+	scrollFrame:Show()
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
+	content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+	content:Show()
+
+	tinsert(panelContent, scrollFrame)
+	tinsert(panelContent, content)
+
+	local rowHeight = 25
+	local visibleRows = 9
+	local rowSpacing = 5
+
+	content.displayRows = content.displayRows or {}
+
+	local function clearNpcCategoryFilterPool()
+		for i = #PhaseToolkit.NPCcategoryToFilterPool, 1, -1 do
+			table.remove(PhaseToolkit.NPCcategoryToFilterPool, i)
 		end
 	end
 
-	function PhaseToolkit.CreerFenetreLignesParPage()
-		if NewNumberOfLineframe ~= nil then
-			if NewNumberOfLineframe:IsShown() then
-				NewNumberOfLineframe:Hide()
-				NewNumberOfLineframe = nil
+	local function keepOnlyNpcCategoryInFilterPool(categoryId)
+		for i = #PhaseToolkit.NPCcategoryToFilterPool, 1, -1 do
+			if PhaseToolkit.NPCcategoryToFilterPool[i] ~= categoryId then
+				table.remove(PhaseToolkit.NPCcategoryToFilterPool, i)
 			end
 		end
+	end
 
-		NewNumberOfLineframe = CreateFrame("Frame", "LignesParPageFrame", PhaseToolkit.TELEFrame, "BackdropTemplate")
-		NewNumberOfLineframe:SetSize(315, 80)
-		NewNumberOfLineframe:SetPoint("BOTTOM", PhaseToolkit.TELEFrame, "TOP", 0, 10)
-		NewNumberOfLineframe:SetBackdrop({
-			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-			edgeSize = 16
-		})
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * (rowHeight + rowSpacing)))
+		row:SetSize(202.5,rowHeight)
 
-		local title = NewNumberOfLineframe:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-		title:SetPoint("TOP", 0, -10)
-		title:SetText(PhaseToolkit.CurrentLang["How many lines per pages ?"] or "How many lines per pages ?")
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.background:SetAllPoints(row)
 
-		local editBox = CreateFrame("EditBox", nil, NewNumberOfLineframe, "InputBoxTemplate")
-		editBox:SetSize(100, 30)
-		editBox:SetPoint("TOP", title, "BOTTOM", 0, -10)
-		editBox:SetNumeric(true)
-		editBox:SetMaxLetters(2)
-		editBox:SetAutoFocus(true)
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:SetAllPoints(row.background)
+		row.highlight:Hide()
 
-		editBox:SetScript("OnEscapePressed", function()
-			editBox:SetAutoFocus(false)
-			editBox:ClearFocus()
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -2.5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		PhaseToolkit.RegisterTooltip(row.deleteButton, "Delete this category")
+
+		row.EditionMode = false
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
 		end)
 
-		local function validerNouveauLineNumber()
-			editBox:ClearFocus()
-			local nombreLignes = tonumber(editBox:GetText())
-
-			if nombreLignes and nombreLignes > 0 then
-				PhaseToolkit.itemsPerPageTELE = nombreLignes
-				NewNumberOfLineframe:Hide()
-				PhaseToolkit.TELEFrame:Hide()
-				PhaseToolkit.TELEFrame = nil
-
-				if (PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
-					PhaseToolkit.CreateTeleListFrame(PhaseToolkit.filteredTeleList)
-				else
-					PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
-				end
-			else
-				print(PhaseToolkit.CurrentLang["Enter a valid number"] or "Enter a valid number")
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			if not isKeyInArray(PhaseToolkit.NPCcategoryToFilterPool, self.category.id) and not self.EditionMode then
+				self.highlight:Hide()
 			end
-		end
+		end)
 
-		editBox:SetScript("OnEnterPressed", validerNouveauLineNumber)
-
-
-		local validerButton = CreateFrame("Button", nil, NewNumberOfLineframe, "UIPanelButtonTemplate")
-		validerButton:SetSize(80, 30)
-		validerButton:SetPoint("LEFT", editBox, "RIGHT", 10, 0)
-		validerButton:SetText(PhaseToolkit.CurrentLang["Confirm"] or "Confirm")
-
-
-		validerButton:SetScript("OnClick", validerNouveauLineNumber)
-
-		NewNumberOfLineframe:Show()
+		return row
 	end
 
 
-	-- Create the main frame to display the NPC list
-	PhaseToolkit.TELEFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BasicFrameTemplateWithInset")
-	PhaseToolkit.TELEFrame:SetSize(600, (PhaseToolkit.itemsPerPageTELE * 30) + 80)
-	PhaseToolkit.TELEFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 5, 0)
-	PhaseToolkit.TELEFrame:EnableMouse(true)
-	
-	-- Stocker la liste actuelle dans la frame pour éviter les problèmes de scope
-	PhaseToolkit.TELEFrame.currentTeleList = _teleList
 
-	PhaseToolkit.TELEFrame:SetScript("OnHide", function()
-		-- Sauvegarder la page actuelle et la taille quand on ferme la frame
-		PhaseToolkit.TELEListcurrentPage = currentPage
-		PhaseToolkit.TELEFrameWidth = PhaseToolkit.TELEFrame:GetWidth()
-		PhaseToolkit.TELEFrameHeight = PhaseToolkit.TELEFrame:GetHeight()
-		
-		if PhaseToolkit.categoryPanelTELE ~= nil then
-			if PhaseToolkit.categoryPanelTELE:IsShown() then
-				PhaseToolkit.categoryPanelTELE:Hide()
+	local function updateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		local tagList = PhaseToolkit.NPCcategoryList or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = content.displayRows[i]
+			local category = tagList[tagIndex]
+
+			if(not row) then
+				row = createRow(i)
+				content.displayRows[i] = row
 			end
-			for i = 1, 7 do
-				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i]
-				if blueprintFrame then
-					blueprintFrame:Hide()
-					_G["PTK_CATEGORY_FRAME"..i] = nil
-				end
-			end
-		end
-	end)
 
-	local ButtonToFetch = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
-	ButtonToFetch:SetSize(15, 15)
-	ButtonToFetch:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", -30, -3.5)
-	ButtonToFetch.icon = ButtonToFetch:CreateTexture(nil, "OVERLAY")
-	ButtonToFetch.icon:SetAtlas("poi-door-arrow-down")
-	ButtonToFetch.icon:SetSize(14, 14);
-	ButtonToFetch.icon:SetPoint("CENTER", ButtonToFetch, "CENTER", 0, 0);
-	ButtonToFetch:SetScript("OnClick", function()
-		PhaseToolkit.IsCurrentlyFilteringTeleViaText = false;
-		PhaseToolkit.filteredTeleList = {};
-		PhaseToolkit.TELEListcurrentPage=currentPage;
-		if PhaseToolkit.categoryPanelTELE then
-			PhaseToolkit.categoryPanelTELE:Hide();
-			for i = 1, 7 do
-				local blueprintFrame = _G["PTK_CATEGORY_FRAME"..i];
-				if blueprintFrame then
-					blueprintFrame:Hide();
-					_G["PTK_CATEGORY_FRAME"..i] = nil;
-				end
-			end
-		end
-		PhaseToolkit.PhaseTeleListSystemMessageCounter();
-	end)
-	PhaseToolkit.RegisterTooltip(ButtonToFetch, "Fetch Tele list");
-
-	local CategoryButton=CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate");
-	CategoryButton:SetSize(15, 15);
-	CategoryButton:SetPoint("LEFT", ButtonToFetch, "LEFT", -20, 0);
-	CategoryButton.icon = CategoryButton:CreateTexture(nil, "OVERLAY");
-	CategoryButton.icon:SetAtlas("adventureguide-icon-whatsnew");
-	CategoryButton.icon:SetSize(14, 14);
-	CategoryButton.icon:SetPoint("CENTER", CategoryButton, "CENTER", 0, 0);
-	CategoryButton:SetScript("OnClick", function()
-		PhaseToolkit.openTeleCategoryPanel();
-	end);
-	PhaseToolkit.RegisterTooltip(CategoryButton, "Open the Category Panel")
-
-	local ButtonToChangeNumberOfLine = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
-	ButtonToChangeNumberOfLine:SetSize(15, 15)
-	ButtonToChangeNumberOfLine:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPLEFT", 5, -5)
-	ButtonToChangeNumberOfLine.icon = ButtonToChangeNumberOfLine:CreateTexture(nil, "OVERLAY")
-	ButtonToChangeNumberOfLine.icon:SetTexture("Interface\\Icons\\trade_engineering")
-	ButtonToChangeNumberOfLine.icon:SetAllPoints()
-	ButtonToChangeNumberOfLine:SetScript("OnClick", PhaseToolkit.CreerFenetreLignesParPage)
-	PhaseToolkit.RegisterTooltip(ButtonToChangeNumberOfLine, "Change list size")
-
-
-	local function mergeAllTeleMembers()
-		local mergedTeleList = {}
-		for _, categoryID in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
-			local category = PhaseToolkit.getCategoryByIdGENERIC(categoryID,"TELE")
 			if category then
-				for _, member in ipairs(category.members) do
-					if isStringInArray(mergedTeleList, member)<0 then
-						table.insert(mergedTeleList, member)
+				local fullName = category.name or ""
+				SetCroppedTextWithTooltip(row, row.label, fullName, 180)
+				row.category=category
+				row.EditionMode = (PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.id == category.id) or false
+
+				row.deleteButton:SetScript("OnClick", function()
+					StaticPopup_Show("CONFIRM_DELETE_CATEGORY_NPC", nil, nil, {
+						deleteIndex = tagIndex,
+						funcOnYes = function()
+							if PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.id == category.id then
+								PhaseToolkit.SelectedCategory = nil
+							end
+							deleteKeyFromArray(PhaseToolkit.NPCcategoryToFilterPool, category.id)
+							PhaseToolkit.RefreshNpcListView(true)
+							scrollFrame.refreshTagListPreserveOffset()
+						end
+					})
+				end)
+
+				row:SetScript("OnMouseDown", function(self, button)
+					if button == "LeftButton" then
+						if PhaseToolkit.SelectedCategory then
+							if PhaseToolkit.SelectedCategory.id ~= category.id then
+								PhaseToolkit.SelectedCategory = nil
+							else
+								keepOnlyNpcCategoryInFilterPool(category.id)
+							end
+						end
+
+						--if the category is already in the filter pool, we remove it, otherwise we add it
+						if isKeyInArray(PhaseToolkit.NPCcategoryToFilterPool, category.id) then
+							deleteKeyFromArray(PhaseToolkit.NPCcategoryToFilterPool, category.id)
+						else
+							tinsert(PhaseToolkit.NPCcategoryToFilterPool, category.id)
+						end
+						PhaseToolkit.RefreshNpcListView(true)
+						scrollFrame.refreshTagListPreserveOffset()
 					end
+					if button == "RightButton" then
+						local willSelect = (not PhaseToolkit.SelectedCategory) or (PhaseToolkit.SelectedCategory.id ~= category.id)
+						if willSelect then
+							local isSameDisplayed = (#PhaseToolkit.NPCcategoryToFilterPool == 1) and isKeyInArray(PhaseToolkit.NPCcategoryToFilterPool, category.id)
+							if not isSameDisplayed then
+								clearNpcCategoryFilterPool()
+							end
+						end
+
+						if not PhaseToolkit.SelectedCategory then
+							PhaseToolkit.SelectedCategory = category
+							row.EditionMode = true
+						else
+							if PhaseToolkit.SelectedCategory.id == category.id then
+								PhaseToolkit.SelectedCategory = nil
+								row.EditionMode = false
+							else
+								PhaseToolkit.SelectedCategory = category
+								row.EditionMode = true
+							end
+						end
+						PhaseToolkit.RefreshNpcListView(true)
+						scrollFrame.refreshTagListPreserveOffset()
+					end
+				end)
+
+				if row.EditionMode then
+					row.highlight:SetVertexColor(0, 0, 1, 1)
+					row.highlight:Show()
+				elseif isKeyInArray(PhaseToolkit.NPCcategoryToFilterPool, category.id) then
+					row.highlight:SetVertexColor(0, 1, 0, 1)
+					row.highlight:Show()
+				else
+					row.highlight:SetVertexColor(1, 1, 1, 1)
+					row.highlight:Hide()
 				end
-			end
-		end
-		return mergedTeleList
-	end
 
-	local function SearchAndFindTeleByText(self)
-		if self:GetText() ~= nil and self:GetText() ~= "" then
-			local sourceList = PhaseToolkit.creatureList
-			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then
-				sourceList=mergeAllTeleMembers()
-			end
-			PhaseToolkit.filteredTeleList = {}
-			CurrenttextToLookForTele = self:GetText()
-			PhaseToolkit.IsCurrentlyFilteringTeleViaText = true
-
-			for i = 1, #sourceList do
-				if string.find(sourceList[i], CurrenttextToLookForTele) then
-					table.insert(PhaseToolkit.filteredTeleList, sourceList[i])
-				end
-			end
-
-			PhaseToolkit.TELEFrame:Hide()
-			PhaseToolkit.TELEFrame = nil
-			PhaseToolkit.CreateTeleListFrame(PhaseToolkit.filteredTeleList)
-		elseif self:GetText() == "" and PhaseToolkit.IsCurrentlyFilteringTeleViaText == true then
-			local sourceList = PhaseToolkit.teleList
-			if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool>0) then
-				sourceList=mergeAllTeleMembers()
-			end
-			PhaseToolkit.TELEFrame:Hide()
-			PhaseToolkit.TELEFrame = nil
-			CurrenttextToLookForTele = ""
-			PhaseToolkit.IsCurrentlyFilteringTeleViaText = false
-			PhaseToolkit.CreateTeleListFrame(sourceList)
-		end
-	end
-
-	if (PhaseToolkit.teleList ~= nil and PhaseToolkit.IsTableEmpty(PhaseToolkit.teleList) == false) then
-		PhaseToolkit.LookupInTeleListEditBox = CreateFrame("EditBox", nil, PhaseToolkit.TELEFrame, "InputBoxTemplate")
-
-		if (PhaseToolkit.GetMaxStringWidth(_teleList) < 80) then
-			PhaseToolkit.LookupInTeleListEditBox:SetSize(90, 20)
-		else
-			PhaseToolkit.LookupInTeleListEditBox:SetSize(PhaseToolkit.GetMaxStringWidth(_teleList), 20)
-		end
-		PhaseToolkit.LookupInTeleListEditBox:SetPoint("LEFT", ButtonToChangeNumberOfLine, "RIGHT", 10, -0.5)
-		PhaseToolkit.LookupInTeleListEditBox:SetAutoFocus(false)
-		if (CurrenttextToLookForTele ~= nil and CurrenttextToLookForTele ~= "") then
-			PhaseToolkit.LookupInTeleListEditBox:SetText(CurrenttextToLookForTele)
-			PhaseToolkit.LookupInTeleListEditBox:SetFocus()
-		end
-
-		PhaseToolkit.LookupInTeleListEditBox:SetScript("OnEnterPressed", SearchAndFindTeleByText)
-	end
-	-- Arrays for buttons and NPC names
-	local PNJRows = {}
-
-	-- Function called when clicking the "Spawn" button
-	local function OnSpawnClick(teleId)
-		sendAddonCmd("phase tele " .. teleId .. " ", nil)
-		-- Creature spawn logic
-	end
-
-	-- Function called when clicking the "Delete" button
-	local function OnDeleteClick(teleId)
-		StaticPopup_Show("CONFIRM_DELETE_TELE", nil, nil, { teleId = teleId })
-	end
-
-	-- Create rows (Name, Spawn, Delete) for each NPC
-	for i = 1, PhaseToolkit.itemsPerPageTELE do
-		local row = CreateFrame("Frame", nil, PhaseToolkit.TELEFrame)
-		row:SetSize(500, 30)
-		row:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPLEFT", 10, -15 * i - (i * 15))
-
-		-- Text for NPC name
-		row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-		row.name:SetPoint("LEFT", row, "LEFT", 10, 0)
-
-		-- "Spawn" button
-		row.spawnButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.spawnButton:SetSize(80, 30)
-		row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", -100, -15 * i - (i * 15))
-		row.spawnButton:SetText("Goto")
-
-		-- "Delete" button
-		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.deleteButton:SetSize(80, 30)
-		row.deleteButton:SetPoint("LEFT", row.spawnButton, "RIGHT", 10, 0)
-		row.deleteButton:SetText(PhaseToolkit.CurrentLang["Delete"] or "Delete")
-
-		row.addToCategoryButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.addToCategoryButton:SetSize(30, 30)
-		row.addToCategoryButton:SetPoint("LEFT", row.deleteButton, "RIGHT", 10, 0)
-
-		row.addToCategoryButton.icon = row.addToCategoryButton:CreateTexture(nil, "OVERLAY")
-		row.addToCategoryButton.icon:SetAtlas("GarrMission_CurrencyIcon-Material")
-		row.addToCategoryButton.icon:SetSize(28, 28)
-		row.addToCategoryButton.icon:SetPoint("CENTER", row.addToCategoryButton, "CENTER", 0, 0)
-		row.addToCategoryButton:Hide()
-
-		row.getOutOfCategoryButton=CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-		row.getOutOfCategoryButton:SetSize(30, 30)
-		row.getOutOfCategoryButton:SetPoint("LEFT", row.addToCategoryButton, "RIGHT", 10, 0)
-		row.getOutOfCategoryButton.icon = row.getOutOfCategoryButton:CreateTexture(nil, "OVERLAY")
-		row.getOutOfCategoryButton.icon:SetAtlas("poi-traveldirections-arrow2")
-		row.getOutOfCategoryButton.icon:SetTexCoord(1, 0, 0, 1)
-		row.getOutOfCategoryButton.icon:SetSize(28, 28)
-		row.getOutOfCategoryButton.icon:SetPoint("CENTER", row.getOutOfCategoryButton, "CENTER", 0, 0)
-		row.getOutOfCategoryButton:Hide()
-
-		PhaseToolkit.RegisterTooltip(row.addToCategoryButton,"add to selected category")
-		PhaseToolkit.RegisterTooltip(row.getOutOfCategoryButton,"remove from selected category")
-		-- Add the row to the table for management
-		PNJRows[i] = row
-	end
-
-
-
-	-- Function to display NPCs on the current page
-	local function DisplayPage(teleList)
-		-- Calculate indices for the current page
-		local startIndex = (currentPage - 1) * PhaseToolkit.itemsPerPageTELE + 1
-		local endIndex = math.min(currentPage * PhaseToolkit.itemsPerPageTELE, #teleList)
-
-		local isAlreadyBiggerForAddToCategory=false
-		local isAlreadyBiggerForGetOutOfCategory=false
-
-		-- Calculate the maximum width of names for the current page
-		local pageteleList = {}
-		for i = startIndex, endIndex do
-			table.insert(pageteleList, teleList[i])
-		end
-
-		-- Gestion spéciale pour les listes vides (résultat de recherche vide)
-		local maxNameWidth
-		if #pageteleList == 0 or #teleList == 0 then
-			maxNameWidth = 100 -- Largeur réduite pour affichage vide (moitié de l'ancienne valeur)
-		else
-			maxNameWidth = PhaseToolkit.GetMaxStringWidth(pageteleList)
-		end
-
-		-- Adjust the width of GlobalNPCCUSTOMISER_TELEFrame based on the maximum width of names
-		local frameWidth = maxNameWidth + 180 -- 180 for buttons and margins
-		if PhaseToolkit.LookupInTeleListEditBox then
-			PhaseToolkit.LookupInTeleListEditBox:SetWidth(maxNameWidth - 10) -- Adjust search area width
-		end
-		PhaseToolkit.TELEFrame:SetWidth(frameWidth + 30 * 2)
-		
-		-- Sauvegarder la taille de la frame
-		PhaseToolkit.TELEFrameWidth = PhaseToolkit.TELEFrame:GetWidth()
-		PhaseToolkit.TELEFrameHeight = PhaseToolkit.TELEFrame:GetHeight()
-		
-		if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory then
-			PhaseToolkit.categoryPanelTELE:ClearAllPoints()
-			PhaseToolkit.categoryPanelTELE:SetPoint("TOPLEFT", PhaseToolkit.TELEFrame, "TOPRIGHT", 5, 0)
-		end
-
-		local generaloffset =-100
-		for _, tele in ipairs(pageteleList) do
-			if checkIfTeleInSelectedCategory(tele) then
-				generaloffset = -190
-				break
-			end
-		end
-		if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory  and generaloffset>(-190) then
-			generaloffset = -145
-		end
-
-		-- Affichage des PNJ sur la page - d'abord nettoyer TOUTES les rows
-		for i = 1, PhaseToolkit.itemsPerPageTELE do
-			local row = PNJRows[i]
-			-- Reset complet de la row
-			row.name:SetText("") 
-			row:Hide()
-			-- Reset des boutons pour éviter les callbacks incorrects
-			row.spawnButton:SetScript("OnClick", nil)
-			row.deleteButton:SetScript("OnClick", nil)
-			row.addToCategoryButton:SetScript("OnClick", nil)
-			row.getOutOfCategoryButton:SetScript("OnClick", nil)
-			row.addToCategoryButton:Hide()
-			row.getOutOfCategoryButton:Hide()
-		end
-		
-		-- Display NPCs on the page
-		for i = 1, PhaseToolkit.itemsPerPageTELE do
-			local idx = startIndex + i - 1
-			local row = PNJRows[i]
-			if idx <= endIndex then
-				local tele = teleList[idx]
-				row.name:SetText(tele) -- Display creature name
 				row:Show()
 
-				-- Associate creature ID with "Spawn" and "Delete" buttons
-				row.spawnButton:SetScript("OnClick", function() OnSpawnClick(tele) end)
-				row.deleteButton:SetScript("OnClick", function() OnDeleteClick(tele) end)
-
-				if PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory and PhaseToolkit.UserHasPermission()then
-
-					row.addToCategoryButton:Show()
-					row.addToCategoryButton:SetScript("OnClick", function()
-						if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory) then
-							if (isStringInArray(PhaseToolkit.TELEselectedCategory.members,tele)<0) then
-								tinsert(PhaseToolkit.TELEselectedCategory.members, tele)
-								PhaseToolkit.updateTELECategoryList()
-								if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
-									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
-								else
-									PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
-								end
-								PhaseToolkit.saveTELECategoryDataToServer()
-							end
-						end
-					end)
-					if(not isAlreadyBiggerForAddToCategory) then
-						PhaseToolkit.TELEFrame:SetWidth(PhaseToolkit.TELEFrame:GetWidth() + 45)
-						isAlreadyBiggerForAddToCategory=true
-					end
-				else
-					row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
-					row.addToCategoryButton:Hide()
-
-				end
-
-				if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory and PhaseToolkit.UserHasPermission() and checkIfTeleInSelectedCategory(tele)) then
-
-					row.getOutOfCategoryButton:Show()
-					row.getOutOfCategoryButton:SetScript("OnClick", function()
-					if(PhaseToolkit.categoryPanelTELE and PhaseToolkit.TELEselectedCategory) then
-						local indexToDelete=getIndexOfMembers(PhaseToolkit.TELEselectedCategory.members, tele)
-						if(indexToDelete >0) then
-							table.remove(PhaseToolkit.TELEselectedCategory.members,indexToDelete)
-							PhaseToolkit.updateTELECategoryList()
-							if(PhaseToolkit.IsCurrentlyFilteringTeleViaText) then
-								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
-							else
-								PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
-							end
-							PhaseToolkit.saveTELECategoryDataToServer()
-						end
-					end
-					end)
-					if(not isAlreadyBiggerForGetOutOfCategory) then
-						PhaseToolkit.TELEFrame:SetWidth(PhaseToolkit.TELEFrame:GetWidth() + 45)
-						isAlreadyBiggerForGetOutOfCategory=true
-					end
-
-				else
-					row.getOutOfCategoryButton:Hide()
-				end
-				row.spawnButton:SetPoint("TOPRIGHT", PhaseToolkit.TELEFrame, "TOPRIGHT", generaloffset, -15 * i - (i * 15))
 			else
 				row:Hide()
 			end
 		end
-		isAlreadyBiggerForGetOutOfCategory=false
-		isAlreadyBiggerForAddToCategory=false
+
+		if(#tagList > visibleRows) then
+			FauxScrollFrame_Update(scrollFrame, #tagList, visibleRows, rowHeight)
+		end
+	end
+
+	 scrollFrame.refreshTagListPreserveOffset= function ()
+		local currentOffset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		local maxOffset = math.max(0, #(PhaseToolkit.NPCcategoryList or {}) - visibleRows)
+		currentOffset = math.max(0, math.min(currentOffset, maxOffset))
+
+		if scrollFrame.ScrollBar and scrollFrame.ScrollBar.SetValue then
+			scrollFrame.ScrollBar:SetValue(currentOffset * rowHeight)
+		end
+
+		if FauxScrollFrame_SetOffset then
+			FauxScrollFrame_SetOffset(scrollFrame, currentOffset)
+		end
+
+		updateScrollFrame()
 	end
 
 
 
-	local prevButton = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
-	prevButton:SetSize(80, 30)
-	prevButton:SetPoint("BOTTOMLEFT", PhaseToolkit.TELEFrame, "BOTTOMLEFT", 10, 10)
-	prevButton:SetText(PhaseToolkit.CurrentLang["Prev"])
-
-	TeleCurrentPageeditBox = CreateFrame("EditBox", nil, PhaseToolkit.TELEFrame, "InputBoxTemplate")
-	TeleCurrentPageeditBox:SetSize(30, 30)
-	TeleCurrentPageeditBox:SetPoint("LEFT", prevButton, "RIGHT", 10, 0)
-	TeleCurrentPageeditBox:SetNumeric(true)
-	TeleCurrentPageeditBox:SetAutoFocus(false)
-	TeleCurrentPageeditBox:SetText(tostring(currentPage))
-
-	NumberOfPageMaxLabelTele = PhaseToolkit.TELEFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	NumberOfPageMaxLabelTele:SetText("/ " .. totalPages)
-	NumberOfPageMaxLabelTele:SetPoint("LEFT", TeleCurrentPageeditBox, "RIGHT", 0, 0)
-
-	TeleCurrentPageeditBox:SetScript("OnEscapePressed", function()
-		TeleCurrentPageeditBox:SetAutoFocus(false)
-		TeleCurrentPageeditBox:ClearFocus()
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
 	end)
 
-	TeleCurrentPageeditBox:SetScript("OnEnterPressed", function()
-		if TeleCurrentPageeditBox:GetText() ~= "" and tonumber(TeleCurrentPageeditBox:GetText()) ~= 0 and tonumber(TeleCurrentPageeditBox:GetText()) <= totalPages then
-			currentPage = TeleCurrentPageeditBox:GetNumber()
-			TeleCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
-			TeleCurrentPageeditBox:ClearFocus()
-		end
-	end)
+	tinsert(deployingFrameContext, scrollFrame)
+	tinsert(deployingFrameContext, content)
 
+	scrollFrame.ScrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", -12.5, -15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+	scrollFrame.ScrollBar:Show()
 
-	-- Create navigation buttons
-	local nextButton = CreateFrame("Button", nil, PhaseToolkit.TELEFrame, "UIPanelButtonTemplate")
-	nextButton:SetSize(80, 30)
-	nextButton:SetPoint("LEFT", prevButton, "RIGHT", 70, 0)
-	nextButton:SetText(PhaseToolkit.CurrentLang["Next"])
+	tinsert(panelContent, scrollFrame.ScrollBar)
 
-	-- Function to update buttons and display the page
-	function PhaseToolkit.TeleUpdatePagination(teleList)
-		totalPages = math.ceil(#teleList / PhaseToolkit.itemsPerPageTELE)
+	tagListPanel:Hide()
+	tagListPanel.isHiddenByDefault = true
+	table.insert(deployingFrameContext, tagListPanel)
+	PhaseToolkit.DeployingFrame.tagListPanel = tagListPanel
+	PhaseToolkit.DeployingFrame.tagListPanel.content = panelContent
+	PhaseToolkit.DeployingFrame.tagListPanel.rowHeight = rowHeight
+	PhaseToolkit.DeployingFrame.tagListPanel.visibleRows = visibleRows
+	PhaseToolkit.DeployingFrame.tagListPanel.UpdateRows = updateScrollFrame
 
-		-- Update navigation button states
-		if currentPage <= 1 then
-			prevButton:Disable()
-		else
-			prevButton:Enable()
-		end
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.tagListPanel, 60, 0, {
+		onPlayDeploy = function()
+			hideContent(PhaseToolkit.DeployingFrame.tagListPanel.content)
+			PhaseToolkit.DeployingFrame.tagListPanel:Show()
+			PhaseToolkit.DeployingFrame.tagListPanel.UpdateRows()
 
-		if currentPage >= totalPages then
-			nextButton:Disable()
-		else
-			nextButton:Enable()
-		end
+		end,
+		onFinishedDeploy = function()
+			showContent(PhaseToolkit.DeployingFrame.tagListPanel.content)
 
-		-- Display the current page
-		NumberOfPageMaxLabelTele:SetText("/ " .. totalPages)
-		DisplayPage(teleList)
-	end
+		end,
+		onPlayRetract = function()
+			hideContent(PhaseToolkit.DeployingFrame.tagListPanel.content)
 
-	-- Handle pagination button events
-	nextButton:SetScript("OnClick", function()
-		if currentPage < totalPages then
-			currentPage = currentPage + 1
-			TeleCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
-		end
-	end)
+		end,
+		onFinishedRetract = function()
+			PhaseToolkit.DeployingFrame.tagListPanel:Hide()
 
-	prevButton:SetScript("OnClick", function()
-		if currentPage > 1 then
-			currentPage = currentPage - 1
-			TeleCurrentPageeditBox:SetText(tostring(currentPage))
-			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
-		end
-	end)
+		end,
+	})
 
-	-- Initial display of NPCs on the first page
-	PhaseToolkit.TELEFrame:SetScript("OnShow", function()
-		-- Sauvegarder la page actuelle quand on ferme
-		PhaseToolkit.TELEListcurrentPage = currentPage
-		PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
-	end)
-
-	PhaseToolkit.TeleUpdatePagination(PhaseToolkit.TELEFrame.currentTeleList)
 end
---=============================== Teleport Retrieval ===========================--
 
-PhaseToolkit.MaxNumberOfTP = nil
-PhaseToolkit.NumberofTp = 0
+function PhaseToolkit.OpenNpcList()
+	if PhaseToolkit.context.id ~="NONE" then
+		PhaseToolkit.changeContext(deployingFrameContext["NONE"])
+	end
+
+	local context = {}
+	context.id="NPCLIST"
+	PhaseToolkit.extendDeployingFrame(450)
+
+	if not PhaseToolkit.DeployingFrame.NpcListSearchBox then
+		local searchBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+		searchBox:SetSize(155, 20)
+		searchBox:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 62.5, -62.5)
+		searchBox:SetAutoFocus(false)
+		searchBox:SetFontObject(GameFontHighlightSmall)
+		searchBox:SetMaxLetters(100)
+		searchBox:SetTextInsets(5, 5, 0, 0)
+
+		searchBox:SetScript("OnTextChanged", function(self)
+			PhaseToolkit.CurrenttextToLookForNpc = self:GetText()
+			PhaseToolkit.RefreshNpcListView()
+		end)
+
+		tinsert(context, searchBox)
+		PhaseToolkit.DeployingFrame.NpcListSearchBox = searchBox
+	end
+
+	if not PhaseToolkit.DeployingFrame.NpcListTagListButton then
+		local tagListButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+		tagListButton:SetSize(20, 20)
+		tagListButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, -62.5)
+		tagListButton.icon = tagListButton:CreateTexture(nil, "OVERLAY")
+		tagListButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+		tagListButton.icon:SetAllPoints()
+		tagListButton:SetFrameStrata("HIGH")
+
+		tagListButton:SetScript("OnClick", function()
+			if not PhaseToolkit.DeployingFrame.tagListPanel then
+				PhaseToolkit.CreateTagList(deployingFrameContext["NPCLIST"],context)
+			end
+
+			local shouldShow = not PhaseToolkit.DeployingFrame.tagListPanel:IsShown()
+			if shouldShow then
+				PhaseToolkit.getNpcCategoryFromPhaseData(function()
+					deployTagListPanel(deployingFrameContext["NPCLIST"],context)
+				end)
+			else
+				retractTagListPanel(deployingFrameContext["NPCLIST"],context)
+			end
+		end)
+
+		tinsert(context, tagListButton)
+
+		PhaseToolkit.RegisterTooltip(tagListButton, "Open the NPC Tag List")
+		PhaseToolkit.DeployingFrame.NpcListTagListButton = tagListButton
+	end
+
+	if not PhaseToolkit.DeployingFrame.tagListPanel then
+		PhaseToolkit.CreateTagList(deployingFrameContext["NPCLIST"],context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.NpcListRefreshButton then
+		local refreshButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+		refreshButton:SetSize(25, 25)
+		refreshButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 32.5, -60)
+		refreshButton.icon = refreshButton:CreateTexture(nil, "OVERLAY")
+		refreshButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMRefreshButton.blp")
+		refreshButton.icon:SetAllPoints()
+		refreshButton:SetFrameStrata("HIGH")
+
+		refreshButton:SetScript("OnClick", function()
+			if PhaseToolkit.isNpcListRefreshInProgress then
+				return
+			end
+			PhaseToolkit.isNpcListRefreshInProgress = true
+			refreshButton:Disable()
+			refreshButton:SetAlpha(0.5)
+			PhaseToolkit.creatureList = {}
+			sendAddonCmd("ph f n list", parseReplies, false)
+		end)
+
+		tinsert(context, refreshButton)
+
+		PhaseToolkit.RegisterTooltip(refreshButton, "Refresh the NPC List")
+		PhaseToolkit.DeployingFrame.NpcListRefreshButton = refreshButton
+	end
+
+
+	local scrollFrame, content
+
+	if not PhaseToolkit.DeployingFrame.NpcListScrollFrame then
+		scrollFrame = CreateFrame("ScrollFrame", nil, PhaseToolkit.DeployingFrame, "FauxScrollFrameTemplate")
+		scrollFrame:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 5, -70)
+		scrollFrame:SetPoint("BOTTOMRIGHT", PhaseToolkit.DeployingFrame, "BOTTOMRIGHT", -10, 10)
+		scrollFrame:Show()
+		PhaseToolkit.DeployingFrame.NpcListScrollFrame = scrollFrame
+	else
+		scrollFrame = PhaseToolkit.DeployingFrame.NpcListScrollFrame
+		scrollFrame:Show()
+	end
+
+	if not PhaseToolkit.DeployingFrame.NpcListContent then
+		content = CreateFrame("Frame", nil, scrollFrame)
+		content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -10)
+		content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+		content:Show()
+		PhaseToolkit.DeployingFrame.NpcListContent = content
+	else
+		content = PhaseToolkit.DeployingFrame.NpcListContent
+		content:Show()
+	end
+
+	local rowHeight = 32
+	local visibleRows = 11
+	content.displayRows = content.displayRows or {}
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_NPC_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+		row:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -((index - 1) * rowHeight))
+		row:SetHeight(rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetSize(310,35)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", -50, 0)
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(215,28)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:SetPoint("CENTER", row, "CENTER", -15, 0)
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 0, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -12.5, 0)
+
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		row.categoryManagementButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.categoryManagementButton:SetSize(20, 20)
+		row.categoryManagementButton:SetPoint("RIGHT", row, "RIGHT", -12.5, 0)
+		row.categoryManagementButton.icon = row.categoryManagementButton:CreateTexture(nil, "OVERLAY")
+		row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+		row.categoryManagementButton.icon:SetAllPoints()
+		row.categoryManagementButton:SetFrameStrata("HIGH")
+		row.categoryManagementButton:Hide()
+
+		row.categoryManagementState = "ADD"
+
+		row:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" and self.npcId then
+				sendAddonCmd("n spawn "..self.npcId, nil, false)
+			end
+		end)
+
+		-- if we are on ADD mode, we add the npc to the selected category, if we are on REMOVE mode, we remove it from the selected category
+		row.categoryManagementButton:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" and self:GetParent() and self:GetParent().npcId then
+				if PhaseToolkit.SelectedCategory then
+					if self:GetParent().categoryManagementState == "ADD" then
+						tinsert(PhaseToolkit.SelectedCategory.members,self:GetParent().npcId)
+						self:GetParent().categoryManagementState = "REMOVE"
+						row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMBackButton.blp")
+					else
+						if(isKeyInArray(PhaseToolkit.SelectedCategory.members,self:GetParent().npcId)) then
+							PhaseToolkit.SelectedCategory.members = deleteKeyFromArray(PhaseToolkit.SelectedCategory.members,self:GetParent().npcId)
+							self:GetParent().categoryManagementState = "ADD"
+							row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+						end
+					end
+				end
+				PhaseToolkit.saveNpcCategoryDataToServer()
+				PhaseToolkit.RefreshNpcListView(true)
+			end
+		end)
+
+		row.deleteButton:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" then
+				local parent = self:GetParent()
+				if parent and parent.npcId then
+					StaticPopup_Show("CONFIRM_DELETE_NPC", nil, nil, { npcId = parent.npcId })
+				end
+			end
+		end)
+
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			self.highlight:Hide()
+		end)
+		return row
+	end
+
+	local function updateScrollFrame()
+		local data = PhaseToolkit.npcListView or PhaseToolkit.creatureList or {}
+		local totalRows = #data
+
+		if(totalRows>11) then
+			FauxScrollFrame_Update(scrollFrame, totalRows, visibleRows, rowHeight)
+		end
+
+		local offset = 0
+		if FauxScrollFrame_GetOffset then
+			offset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		elseif scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue then
+			offset = math.floor((scrollFrame.ScrollBar:GetValue() or 0) / rowHeight)
+		end
+
+		local maxOffset = math.max(0, totalRows - visibleRows)
+		offset = math.max(0, math.min(offset, maxOffset))
+
+		if scrollFrame.ScrollBar and scrollFrame.ScrollBar.SetValue then
+			scrollFrame.ScrollBar:SetValue(offset * rowHeight)
+		end
+
+		if FauxScrollFrame_SetOffset then
+			FauxScrollFrame_SetOffset(scrollFrame, offset)
+		else
+			scrollFrame.offset = offset
+		end
+
+		for i = 1, visibleRows do
+			local npcIndex = offset + i
+			local row = content.displayRows[i]
+
+			if not row then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			local npcData = data[npcIndex]
+			if npcData then
+				row.npcId = npcData.IdCreature
+				local fullName = npcData.NomCreature or ""
+				SetCroppedTextWithTooltip(row, row.label, fullName, 210)
+				if(PhaseToolkit.SelectedCategory) then
+					row.deleteButton:Hide()
+					row.categoryManagementButton:Show()
+				else
+					row.deleteButton:Show()
+					row.categoryManagementButton:Hide()
+				end
+				if checkIfCreatureInSelectedCategory(npcData) then
+					row.categoryManagementState = "REMOVE"
+					row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMBackButton.blp")
+				else
+					row.categoryManagementState = "ADD"
+					row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+				end
+				row:Show()
+			else
+				row.npcId = nil
+				row:Hide()
+			end
+		end
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	PhaseToolkit.DeployingFrame.NpcListScrollFrame .rowHeight = rowHeight
+	PhaseToolkit.DeployingFrame.NpcListScrollFrame .visibleRows = visibleRows
+	PhaseToolkit.DeployingFrame.NpcListScrollFrame .UpdateRows = updateScrollFrame
+
+
+	PhaseToolkit.DeployingFrame.NpcListContent = content
+
+
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -15, -12)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT",-15, 15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+
+	tinsert(context, scrollFrame)
+	tinsert(context, content)
+
+	if(#deployingFrameContext["NPCLIST"]<1) then
+		deployingFrameContext["NPCLIST"] = context
+	end
+
+	PhaseToolkit.changeContext(deployingFrameContext["NPCLIST"])
+	PhaseToolkit.DeployingFrame.NpcListScrollFrame:Show()
+	PhaseToolkit.RefreshNpcListView()
+end
+
+local function BuildTeleListView()
+	local source = PhaseToolkit.teleList or {}
+	local hasCategoryFilter = PhaseToolkit.TELEcategoryToFilterPool and #PhaseToolkit.TELEcategoryToFilterPool > 0
+	local byCategory = {}
+
+	if hasCategoryFilter then
+		local allowedNames = {}
+
+		for _, categoryId in ipairs(PhaseToolkit.TELEcategoryToFilterPool) do
+			local category = PhaseToolkit.getCategoryByIdGENERIC(categoryId, "TELE")
+			if category and category.members then
+				for _, memberName in ipairs(category.members) do
+					allowedNames[tostring(memberName)] = true
+				end
+			end
+		end
+
+		for _, teleName in ipairs(source) do
+			if allowedNames[tostring(teleName)] then
+				table.insert(byCategory, teleName)
+			end
+		end
+
+		if #byCategory == 0 and #source > 0 then
+			byCategory = source
+		end
+	else
+		byCategory = source
+	end
+
+	local query = (PhaseToolkit.CurrenttextToLookForTele or ""):lower()
+	if query == "" then
+		return byCategory
+	end
+
+	local filtered = {}
+	for _, teleName in ipairs(byCategory) do
+		local name = tostring(teleName or ""):lower()
+		if string.find(name, query) then
+			table.insert(filtered, teleName)
+		end
+	end
+
+	return filtered
+end
+
+function PhaseToolkit.RefreshTeleListView(preserveOffset)
+	PhaseToolkit.teleListView = BuildTeleListView()
+
+	local scrollFrame = PhaseToolkit.DeployingFrame.TeleListScrollFrame
+	if not scrollFrame then
+		return
+	end
+
+	local rowHeight = scrollFrame.rowHeight or 32
+	local visibleRows = scrollFrame.visibleRows or 11
+	local maxOffset = math.max(0, #PhaseToolkit.teleListView - visibleRows)
+	local targetOffset = 0
+
+	if preserveOffset then
+		if FauxScrollFrame_GetOffset then
+			targetOffset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		elseif scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue then
+			targetOffset = math.floor((scrollFrame.ScrollBar:GetValue() or 0) / rowHeight)
+		end
+	end
+
+	if scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue and scrollFrame.ScrollBar.SetValue then
+		targetOffset = math.max(0, math.min(targetOffset, maxOffset))
+		scrollFrame.ScrollBar:SetValue(targetOffset * rowHeight)
+	end
+
+	if FauxScrollFrame_SetOffset then
+		FauxScrollFrame_SetOffset(scrollFrame, targetOffset)
+		scrollFrame.offset = targetOffset
+	end
+
+	PhaseToolkit.DeployingFrame.TeleListScrollFrame:UpdateRows()
+end
+
+local function parseTeleListReplies(isCommandSuccessful, repliesList)
+	local function SetTeleListRefreshLoadingState(isLoading)
+		PhaseToolkit.isTeleListRefreshInProgress = isLoading and true or false
+		local refreshButton = PhaseToolkit.DeployingFrame and PhaseToolkit.DeployingFrame.TeleListRefreshButton
+		if refreshButton then
+			if isLoading then
+				refreshButton:Disable()
+				refreshButton:SetAlpha(0.5)
+			else
+				refreshButton:Enable()
+				refreshButton:SetAlpha(1)
+			end
+		end
+	end
+
+	if isCommandSuccessful then
+		for i = 1, #repliesList do
+			local message = repliesList[i]
+			message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+			local isHeader = string.find(message, "We have found ") ~= nil
+			local teleName = string.match(message, "%[(.+)%]")
+
+			if not isHeader and teleName and teleName ~= "" then
+				teleName = teleName:gsub("%[", ""):gsub("%]", "")
+				table.insert(PhaseToolkit.teleList, teleName)
+			end
+		end
+
+		PhaseToolkit.teleList = PhaseToolkit.RemoveDuplicates(PhaseToolkit.teleList)
+		if PhaseToolkit.context.id == "TELELIST" and PhaseToolkit.DeployingFrame.TeleListScrollFrame then
+			PhaseToolkit.RefreshTeleListView()
+		else
+			PhaseToolkit.OpenTeleList()
+		end
+	end
+
+	SetTeleListRefreshLoadingState(false)
+end
+
+function PhaseToolkit.createTELEList()
+	if not PhaseToolkit.teleList or #PhaseToolkit.teleList == 0 then
+		PhaseToolkit.teleList = {}
+		sendAddonCmd("ph tele list", parseTeleListReplies, false)
+	else
+		PhaseToolkit.OpenTeleList()
+	end
+end
+
+
+local function deployTeleTagListPanel(contentContext, deployingFrameContext)
+	local AnimationGroup = PhaseToolkit.DeployingFrame.teleTagListPanel.animGroupDeploy
+	AnimationGroup:Play()
+end
+
+local function retractTeleTagListPanel(contentContext, deployingFrameContext)
+	local AnimationGroup = PhaseToolkit.DeployingFrame.teleTagListPanel.animGroupRetract
+	AnimationGroup:Play()
+end
+
+function PhaseToolkit.CreateTeleTagList(contentContext, deployingFrameContext)
+	local tagListPanel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate")
+	tagListPanel:SetSize(235, 300)
+	tagListPanel:SetPoint("RIGHT", PhaseToolkit.DeployingFrame, "LEFT", 0, 20)
+	ButtonFrameTemplateMinimizable_HidePortrait(tagListPanel)
+	NineSliceUtil.ApplyLayoutByName(tagListPanel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(tagListPanel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(tagListPanel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(tagListPanel, tagListPanel.Bg)
+	tagListPanel:SetFrameStrata("LOW")
+	local titleBgColor = tagListPanel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", tagListPanel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", tagListPanel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	tagListPanel.TitleBgColor = titleBgColor
+	tagListPanel.TitleText:SetText("Tele Tag List")
+	tagListPanel.TitleText:SetPoint("LEFT", tagListPanel.TitleBg, "LEFT", 30, 0)
+
+	local panelContent = {}
+
+	local createCategoryButton = CreateFrame("Button", nil, tagListPanel, "UIPanelButtonTemplate")
+	createCategoryButton:SetSize(20, 20)
+	createCategoryButton:SetPoint("TOPLEFT", tagListPanel, "TOPLEFT", 0, 0)
+	createCategoryButton.icon = createCategoryButton:CreateTexture(nil, "OVERLAY")
+	createCategoryButton.icon:SetAtlas("GreenCross")
+	createCategoryButton.icon:SetAllPoints()
+	PhaseToolkit.RegisterTooltip(createCategoryButton, "Create Category")
+	tinsert(panelContent, createCategoryButton)
+
+	local fetchCategoryButton = CreateFrame("Button", nil, tagListPanel, "UIPanelButtonTemplate")
+	fetchCategoryButton:SetSize(20, 20)
+	fetchCategoryButton:SetPoint("LEFT", createCategoryButton, "RIGHT", 2, -1)
+	fetchCategoryButton.icon = fetchCategoryButton:CreateTexture(nil, "OVERLAY")
+	fetchCategoryButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMRefreshButton.blp")
+	fetchCategoryButton.icon:SetAllPoints()
+	fetchCategoryButton:SetFrameStrata("HIGH")
+	fetchCategoryButton:SetScript("OnClick", function()
+		PhaseToolkit.getTeleCategoryFromPhaseData(function()
+			if tagListPanel and tagListPanel.UpdateRows then
+				tagListPanel.UpdateRows()
+			end
+			PhaseToolkit.RefreshTeleListView(true)
+		end)
+	end)
+	PhaseToolkit.RegisterTooltip(fetchCategoryButton, "Fetch Categories")
+	tinsert(panelContent, fetchCategoryButton)
+
+	local inputFrame = nil
+	createCategoryButton:SetScript("OnClick", function()
+		if not inputFrame then
+			inputFrame = CreateFrame("Frame", nil, tagListPanel, "PortraitFrameTemplate")
+			inputFrame:SetSize(235, 90)
+			inputFrame:SetPoint("BOTTOM", tagListPanel, "TOP", 0, 2.5)
+			ButtonFrameTemplateMinimizable_HidePortrait(inputFrame)
+			NineSliceUtil.ApplyLayoutByName(inputFrame.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(inputFrame.NineSlice, 0.8, true)
+			EpsilonLib.Utils.NineSlice.CropNineSliceCorners(inputFrame.NineSlice, 0.4)
+			EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(inputFrame, inputFrame.Bg)
+			inputFrame:SetFrameStrata("DIALOG")
+			local inputTitleBgColor = inputFrame:CreateTexture(nil, "BACKGROUND")
+			local inputTitleColor = CreateColorFromHexString("80FF7100")
+			inputTitleBgColor:SetPoint("TOPLEFT", inputFrame.TitleBg)
+			inputTitleBgColor:SetPoint("BOTTOMRIGHT", inputFrame.TitleBg, -0, 0)
+			inputTitleBgColor:SetColorTexture(inputTitleColor:GetRGBA())
+			inputFrame.TitleBgColor = inputTitleBgColor
+			inputFrame.TitleText:SetText("Create Category")
+			inputFrame.TitleText:SetPoint("LEFT", inputFrame.TitleBg, "LEFT", 30, 0)
+
+			local deployAnimation = inputFrame:CreateAnimationGroup("DeployTeleCategoryInputFrame")
+			local deployFade = deployAnimation:CreateAnimation("Alpha")
+			deployFade:SetOrder(1)
+			deployFade:SetFromAlpha(0)
+			deployFade:SetToAlpha(1)
+			deployFade:SetDuration(0.5)
+			deployFade:SetSmoothing("OUT")
+
+			local deployScale = deployAnimation:CreateAnimation("Scale")
+			deployScale:SetOrder(1)
+			deployScale:SetFromScale(1.0, 0.1)
+			deployScale:SetToScale(1.0, 1.0)
+			deployScale:SetDuration(0.5)
+			deployScale:SetSmoothing("OUT")
+			deployScale:SetOrigin("BOTTOM", 0, 0)
+
+			deployAnimation:SetScript("OnPlay", function()
+				inputFrame:Show()
+			end)
+			deployAnimation:SetScript("OnFinished", function()
+				inputFrame:SetAlpha(1)
+				inputFrame:Show()
+			end)
+
+			local retractAnimation = inputFrame:CreateAnimationGroup("RetractTeleCategoryInputFrame")
+			local retractFade = retractAnimation:CreateAnimation("Alpha")
+			retractFade:SetOrder(1)
+			retractFade:SetFromAlpha(1)
+			retractFade:SetToAlpha(0)
+			retractFade:SetDuration(0.5)
+			retractFade:SetSmoothing("OUT")
+
+			local retractScale = retractAnimation:CreateAnimation("Scale")
+			retractScale:SetOrder(1)
+			retractScale:SetFromScale(1.0, 1.0)
+			retractScale:SetToScale(1.0, 0.1)
+			retractScale:SetDuration(0.5)
+			retractScale:SetSmoothing("OUT")
+			retractScale:SetOrigin("BOTTOM", 0, 0)
+
+			retractAnimation:SetScript("OnFinished", function()
+				inputFrame:Hide()
+				inputFrame:SetAlpha(1)
+			end)
+
+			inputFrame.deployAnimation = deployAnimation
+			inputFrame.retractAnimation = retractAnimation
+			inputFrame:Hide()
+
+			local function deployInputFrame()
+				if inputFrame.retractAnimation and inputFrame.retractAnimation:IsPlaying() then
+					inputFrame.retractAnimation:Stop()
+				end
+				inputFrame:Show()
+				inputFrame:SetAlpha(1)
+				if inputFrame.deployAnimation and inputFrame.deployAnimation:IsPlaying() then
+					inputFrame.deployAnimation:Stop()
+				end
+				inputFrame.deployAnimation:Play()
+			end
+
+			local function retractInputFrame()
+				if not inputFrame:IsShown() then
+					return
+				end
+				if inputFrame.deployAnimation and inputFrame.deployAnimation:IsPlaying() then
+					inputFrame.deployAnimation:Stop()
+				end
+				inputFrame.retractAnimation:Play()
+			end
+
+			inputFrame.editBox = CreateFrame("EditBox", nil, inputFrame, "InputBoxTemplate")
+			inputFrame.editBox:SetSize(180, 24)
+			inputFrame.editBox:SetPoint("TOP", inputFrame.TitleBg, "BOTTOM", 0, -18)
+			inputFrame.editBox:SetAutoFocus(true)
+
+			inputFrame.editBox:SetScript("OnEnterPressed", function(self)
+				local categoryName = self:GetText()
+				if categoryName and categoryName ~= "" then
+					PhaseToolkit.CreateNewTELECategory(categoryName, function()
+						if tagListPanel and tagListPanel.UpdateRows then
+							tagListPanel.UpdateRows()
+						end
+					end)
+				end
+				self:ClearFocus()
+				retractInputFrame()
+			end)
+
+			inputFrame.editBox:SetScript("OnEscapePressed", function(self)
+				self:ClearFocus()
+				retractInputFrame()
+			end)
+
+			inputFrame.deploy = deployInputFrame
+			inputFrame.retract = retractInputFrame
+			inputFrame.deploy()
+		elseif inputFrame:IsShown() then
+			inputFrame.retract()
+			inputFrame.editBox:SetText("")
+		else
+			inputFrame.deploy()
+			inputFrame.editBox:SetText("")
+			inputFrame.editBox:SetFocus()
+		end
+		tinsert(deployingFrameContext, inputFrame)
+	end)
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, tagListPanel, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", tagListPanel, "TOPLEFT", 10, -30)
+	scrollFrame:SetPoint("BOTTOMRIGHT", tagListPanel, "BOTTOMRIGHT", -7.5, 2.5)
+	scrollFrame:Show()
+	tinsert(panelContent, scrollFrame)
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
+	content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+	content:Show()
+	tinsert(panelContent, content)
+
+	local rowHeight = 25
+	local visibleRows = 9
+	local rowSpacing = 5
+
+	content.displayRows = content.displayRows or {}
+
+	local function clearTeleCategoryFilterPool()
+		for i = #PhaseToolkit.TELEcategoryToFilterPool, 1, -1 do
+			table.remove(PhaseToolkit.TELEcategoryToFilterPool, i)
+		end
+	end
+
+	local function keepOnlyTeleCategoryInFilterPool(categoryId)
+		for i = #PhaseToolkit.TELEcategoryToFilterPool, 1, -1 do
+			if PhaseToolkit.TELEcategoryToFilterPool[i] ~= categoryId then
+				table.remove(PhaseToolkit.TELEcategoryToFilterPool, i)
+			end
+		end
+	end
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TELE_TAG_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * (rowHeight + rowSpacing)))
+		row:SetSize(202.5,rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetAllPoints(row)
+		row.background:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(80,25)
+		row.highlight:SetAllPoints(row.background)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -2.5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		PhaseToolkit.RegisterTooltip(row.deleteButton, "Delete this category")
+
+		row.EditionMode = false
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			if not isKeyInArray(PhaseToolkit.TELEcategoryToFilterPool, self.category.id) and not self.EditionMode then
+				self.highlight:Hide()
+			end
+		end)
+
+		return row
+	end
+
+	local function updateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		local tagList = PhaseToolkit.TELEcategoryList or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = content.displayRows[i]
+			local category = tagList[tagIndex]
+
+			if not row then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			if category then
+				SetCroppedTextWithTooltip(row, row.label, category.name or "", 180)
+				row.category = category
+				row.EditionMode = (PhaseToolkit.TELEselectedCategory and PhaseToolkit.TELEselectedCategory.id == category.id) or false
+
+				row.deleteButton:SetScript("OnClick", function()
+					StaticPopup_Show("CONFIRM_DELETE_CATEGORY_TELE", nil, nil, {
+						deleteIndex = tagIndex,
+						funcOnYes = function()
+							if PhaseToolkit.TELEselectedCategory and PhaseToolkit.TELEselectedCategory.id == category.id then
+								PhaseToolkit.TELEselectedCategory = nil
+							end
+							deleteKeyFromArray(PhaseToolkit.TELEcategoryToFilterPool, category.id)
+							PhaseToolkit.RefreshTeleListView(true)
+							scrollFrame.refreshTagListPreserveOffset()
+						end
+					})
+				end)
+
+				row:SetScript("OnMouseDown", function(self, button)
+					if button == "LeftButton" then
+						if PhaseToolkit.TELEselectedCategory then
+							if PhaseToolkit.TELEselectedCategory.id ~= category.id then
+								PhaseToolkit.TELEselectedCategory = nil
+							else
+								keepOnlyTeleCategoryInFilterPool(category.id)
+							end
+						end
+
+						if isKeyInArray(PhaseToolkit.TELEcategoryToFilterPool, category.id) then
+							deleteKeyFromArray(PhaseToolkit.TELEcategoryToFilterPool, category.id)
+						else
+							tinsert(PhaseToolkit.TELEcategoryToFilterPool, category.id)
+						end
+						PhaseToolkit.RefreshTeleListView(true)
+						scrollFrame.refreshTagListPreserveOffset()
+					end
+					if button == "RightButton" then
+						local willSelect = (not PhaseToolkit.TELEselectedCategory) or (PhaseToolkit.TELEselectedCategory.id ~= category.id)
+						if willSelect then
+							local isSameDisplayed = (#PhaseToolkit.TELEcategoryToFilterPool == 1) and isKeyInArray(PhaseToolkit.TELEcategoryToFilterPool, category.id)
+							if not isSameDisplayed then
+								clearTeleCategoryFilterPool()
+							end
+						end
+
+						if not PhaseToolkit.TELEselectedCategory then
+							PhaseToolkit.TELEselectedCategory = category
+							row.EditionMode = true
+						else
+							if PhaseToolkit.TELEselectedCategory.id == category.id then
+								PhaseToolkit.TELEselectedCategory = nil
+								row.EditionMode = false
+							else
+								PhaseToolkit.TELEselectedCategory = category
+								row.EditionMode = true
+							end
+						end
+						PhaseToolkit.RefreshTeleListView(true)
+						scrollFrame.refreshTagListPreserveOffset()
+					end
+				end)
+
+				if row.EditionMode then
+					row.highlight:SetVertexColor(0, 0, 1, 1)
+					row.highlight:Show()
+				elseif isKeyInArray(PhaseToolkit.TELEcategoryToFilterPool, category.id) then
+					row.highlight:SetVertexColor(0, 1, 0, 1)
+					row.highlight:Show()
+				else
+					row.highlight:SetVertexColor(1, 1, 1, 1)
+					row.highlight:Hide()
+				end
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if #tagList > visibleRows then
+			FauxScrollFrame_Update(scrollFrame, #tagList, visibleRows, rowHeight)
+		end
+	end
+
+	scrollFrame.refreshTagListPreserveOffset = function()
+		local currentOffset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		local maxOffset = math.max(0, #(PhaseToolkit.TELEcategoryList or {}) - visibleRows)
+		currentOffset = math.max(0, math.min(currentOffset, maxOffset))
+
+		if scrollFrame.ScrollBar and scrollFrame.ScrollBar.SetValue then
+			scrollFrame.ScrollBar:SetValue(currentOffset * rowHeight)
+		end
+
+		if FauxScrollFrame_SetOffset then
+			FauxScrollFrame_SetOffset(scrollFrame, currentOffset)
+		end
+
+		updateScrollFrame()
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	tinsert(deployingFrameContext, scrollFrame)
+	tinsert(deployingFrameContext, content)
+
+	scrollFrame.ScrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", -12.5, -15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+	scrollFrame.ScrollBar:Show()
+
+	tinsert(panelContent, scrollFrame)
+	tinsert(panelContent, content)
+
+	tagListPanel:Hide()
+	tagListPanel.isHiddenByDefault = true
+	table.insert(deployingFrameContext, tagListPanel)
+
+	tinsert(panelContent, scrollFrame.ScrollBar)
+
+	PhaseToolkit.DeployingFrame.teleTagListPanel = tagListPanel
+	PhaseToolkit.DeployingFrame.teleTagListPanel.content = panelContent
+	PhaseToolkit.DeployingFrame.teleTagListPanel.rowHeight = rowHeight
+	PhaseToolkit.DeployingFrame.teleTagListPanel.visibleRows = visibleRows
+	PhaseToolkit.DeployingFrame.teleTagListPanel.UpdateRows = updateScrollFrame
+
+	createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame.teleTagListPanel, 60, 0, {
+	onPlayDeploy = function()
+		hideContent(PhaseToolkit.DeployingFrame.teleTagListPanel.content)
+		PhaseToolkit.DeployingFrame.teleTagListPanel:Show()
+		PhaseToolkit.DeployingFrame.teleTagListPanel.UpdateRows()
+
+	end,
+	onFinishedDeploy = function()
+		PhaseToolkit.DeployingFrame.teleTagListPanel:Show()
+		showContent(PhaseToolkit.DeployingFrame.teleTagListPanel.content)
+
+	end,
+	onPlayRetract = function()
+		hideContent(PhaseToolkit.DeployingFrame.teleTagListPanel.content)
+
+	end,
+	onFinishedRetract = function()
+		PhaseToolkit.DeployingFrame.teleTagListPanel:Hide()
+
+	end,
+})
+
+end
+
+function PhaseToolkit.OpenTeleList()
+	if PhaseToolkit.context.id ~= "NONE" then
+		PhaseToolkit.changeContext(deployingFrameContext["NONE"])
+	end
+
+	local context = {}
+	context.id = "TELELIST"
+	PhaseToolkit.extendDeployingFrame(450)
+
+	if not PhaseToolkit.DeployingFrame.TeleListSearchBox then
+		local searchBox = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+		searchBox:SetSize(165, 20)
+		searchBox:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 62.5, -62.5)
+		searchBox:SetAutoFocus(false)
+		searchBox:SetFontObject(GameFontHighlightSmall)
+		searchBox:SetMaxLetters(100)
+		searchBox:SetTextInsets(5, 5, 0, 0)
+
+		searchBox:SetScript("OnTextChanged", function(self)
+			PhaseToolkit.CurrenttextToLookForTele = self:GetText()
+			PhaseToolkit.RefreshTeleListView()
+		end)
+
+		tinsert(context, searchBox)
+		PhaseToolkit.DeployingFrame.TeleListSearchBox = searchBox
+	end
+
+	if not PhaseToolkit.DeployingFrame.TeleListTagListButton then
+		local tagListButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+		tagListButton:SetSize(20, 20)
+		tagListButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, -62.5)
+		tagListButton.icon = tagListButton:CreateTexture(nil, "OVERLAY")
+		tagListButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+		tagListButton.icon:SetAllPoints()
+		tagListButton:SetFrameStrata("HIGH")
+
+		tagListButton:SetScript("OnClick", function()
+			if not PhaseToolkit.DeployingFrame.teleTagListPanel then
+				PhaseToolkit.CreateTeleTagList(deployingFrameContext["TELELIST"], context)
+			end
+
+			local shouldShow = not PhaseToolkit.DeployingFrame.teleTagListPanel:IsShown()
+			if shouldShow then
+				PhaseToolkit.getTeleCategoryFromPhaseData(function()
+					deployTeleTagListPanel(deployingFrameContext["TELELIST"], context)
+				end)
+			else
+				retractTeleTagListPanel(deployingFrameContext["TELELIST"], context)
+			end
+		end)
+
+		tinsert(context, tagListButton)
+		PhaseToolkit.RegisterTooltip(tagListButton, "Open the Teleport Tag List")
+		PhaseToolkit.DeployingFrame.TeleListTagListButton = tagListButton
+	end
+
+	if not PhaseToolkit.DeployingFrame.teleTagListPanel then
+		PhaseToolkit.CreateTeleTagList(deployingFrameContext["TELELIST"], context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.TeleListRefreshButton then
+		local refreshButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "UIPanelButtonTemplate")
+		refreshButton:SetSize(25, 25)
+		refreshButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 32.5, -60)
+		refreshButton.icon = refreshButton:CreateTexture(nil, "OVERLAY")
+		refreshButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMRefreshButton.blp")
+		refreshButton.icon:SetAllPoints()
+		refreshButton:SetFrameStrata("HIGH")
+
+		refreshButton:SetScript("OnClick", function()
+			if PhaseToolkit.isTeleListRefreshInProgress then
+				return
+			end
+			PhaseToolkit.isTeleListRefreshInProgress = true
+			refreshButton:Disable()
+			refreshButton:SetAlpha(0.5)
+			PhaseToolkit.teleList = {}
+			sendAddonCmd("ph tele list", parseTeleListReplies, false)
+		end)
+
+		tinsert(context, refreshButton)
+		PhaseToolkit.RegisterTooltip(refreshButton, "Refresh the Teleport List")
+		PhaseToolkit.DeployingFrame.TeleListRefreshButton = refreshButton
+	end
+
+	local scrollFrame, content
+
+	if not PhaseToolkit.DeployingFrame.TeleListScrollFrame then
+		scrollFrame = CreateFrame("ScrollFrame", nil, PhaseToolkit.DeployingFrame, "FauxScrollFrameTemplate")
+		scrollFrame:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 5, -70)
+		scrollFrame:SetPoint("BOTTOMRIGHT", PhaseToolkit.DeployingFrame, "BOTTOMRIGHT", -10, 10)
+		scrollFrame:Show()
+		PhaseToolkit.DeployingFrame.TeleListScrollFrame = scrollFrame
+	else
+		scrollFrame = PhaseToolkit.DeployingFrame.TeleListScrollFrame
+		scrollFrame:Show()
+	end
+
+	if not PhaseToolkit.DeployingFrame.TeleListContent then
+		content = CreateFrame("Frame", nil, scrollFrame)
+		content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -10)
+		content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+		content:Show()
+		PhaseToolkit.DeployingFrame.TeleListContent = content
+	else
+		content = PhaseToolkit.DeployingFrame.TeleListContent
+		content:Show()
+	end
+
+	local rowHeight = 32
+	local visibleRows = 11
+	content.displayRows = content.displayRows or {}
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TELE_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+		row:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -((index - 1) * rowHeight))
+		row:SetHeight(rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetSize(310, 35)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", -50, 0)
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(215, 28)
+		row.highlight:SetTexCoord(77/512, (77+360)/512, 26/128, (26+78)/128)
+		row.highlight:SetPoint("CENTER", row, "CENTER", -15, 0)
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 0, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -12.5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		row.categoryManagementButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.categoryManagementButton:SetSize(20, 20)
+		row.categoryManagementButton:SetPoint("RIGHT", row, "RIGHT", -12.5, 0)
+		row.categoryManagementButton.icon = row.categoryManagementButton:CreateTexture(nil, "OVERLAY")
+		row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_list.blp")
+		row.categoryManagementButton.icon:SetAllPoints()
+		row.categoryManagementButton:SetFrameStrata("HIGH")
+		row.categoryManagementButton:Hide()
+		row.categoryManagementState = "ADD"
+
+		row:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" and self.teleName then
+				sendAddonCmd("phase tele " .. self.teleName, nil, false)
+			end
+		end)
+
+		row.deleteButton:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" then
+				local parent = self:GetParent()
+				if parent and parent.teleName then
+					StaticPopup_Show("CONFIRM_DELETE_TELE", nil, nil, { teleId = parent.teleName })
+				end
+			end
+		end)
+
+		row.categoryManagementButton:SetScript("OnMouseDown", function(self, button)
+			if button == "LeftButton" and self:GetParent() and self:GetParent().teleName then
+				if PhaseToolkit.TELEselectedCategory then
+					if self:GetParent().categoryManagementState == "ADD" then
+						tinsert(PhaseToolkit.TELEselectedCategory.members, self:GetParent().teleName)
+						self:GetParent().categoryManagementState = "REMOVE"
+						self:GetParent().categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMBackButton.blp")
+					else
+						local indexToDelete = getIndexOfMembers(PhaseToolkit.TELEselectedCategory.members, self:GetParent().teleName)
+						if indexToDelete > 0 then
+							table.remove(PhaseToolkit.TELEselectedCategory.members, indexToDelete)
+							self:GetParent().categoryManagementState = "ADD"
+							self:GetParent().categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+						end
+					end
+					PhaseToolkit.saveTELECategoryDataToServer()
+					PhaseToolkit.RefreshTeleListView(true)
+				end
+			end
+		end)
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			self.highlight:Hide()
+		end)
+
+		return row
+	end
+
+	local function updateScrollFrame()
+		local data = PhaseToolkit.teleListView or PhaseToolkit.teleList or {}
+		local totalRows = #data
+
+		if totalRows > visibleRows then
+			FauxScrollFrame_Update(scrollFrame, totalRows, visibleRows, rowHeight)
+		end
+
+		local offset = 0
+		if FauxScrollFrame_GetOffset then
+			offset = FauxScrollFrame_GetOffset(scrollFrame) or 0
+		elseif scrollFrame.ScrollBar and scrollFrame.ScrollBar.GetValue then
+			offset = math.floor((scrollFrame.ScrollBar:GetValue() or 0) / rowHeight)
+		end
+
+		local maxOffset = math.max(0, totalRows - visibleRows)
+		offset = math.max(0, math.min(offset, maxOffset))
+
+		if scrollFrame.ScrollBar and scrollFrame.ScrollBar.SetValue then
+			scrollFrame.ScrollBar:SetValue(offset * rowHeight)
+		end
+
+		if FauxScrollFrame_SetOffset then
+			FauxScrollFrame_SetOffset(scrollFrame, offset)
+		else
+			scrollFrame.offset = offset
+		end
+
+		for i = 1, visibleRows do
+			local teleIndex = offset + i
+			local row = content.displayRows[i]
+
+			if not row then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			local teleName = data[teleIndex]
+			if teleName then
+				row.teleName = teleName
+				SetCroppedTextWithTooltip(row, row.label, teleName, 210)
+
+				if PhaseToolkit.TELEselectedCategory then
+					row.deleteButton:Hide()
+					row.categoryManagementButton:Show()
+				else
+					row.deleteButton:Show()
+					row.categoryManagementButton:Hide()
+				end
+
+				if checkIfTeleInSelectedCategory(teleName) then
+					row.categoryManagementState = "REMOVE"
+					row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMBackButton.blp")
+				else
+					row.categoryManagementState = "ADD"
+					row.categoryManagementButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+				end
+
+				row:Show()
+			else
+				row.teleName = nil
+				row:Hide()
+			end
+		end
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	PhaseToolkit.DeployingFrame.TeleListScrollFrame.rowHeight = rowHeight
+	PhaseToolkit.DeployingFrame.TeleListScrollFrame.visibleRows = visibleRows
+	PhaseToolkit.DeployingFrame.TeleListScrollFrame.UpdateRows = updateScrollFrame
+
+	PhaseToolkit.DeployingFrame.TeleListContent = content
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -15, -12)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", -15, 15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+
+	tinsert(context, scrollFrame)
+	tinsert(context, content)
+
+	if #deployingFrameContext["TELELIST"] < 1 then
+		deployingFrameContext["TELELIST"] = context
+	end
+
+	PhaseToolkit.changeContext(deployingFrameContext["TELELIST"])
+	PhaseToolkit.DeployingFrame.TeleListScrollFrame:Show()
+	PhaseToolkit.RefreshTeleListView()
+end
+
+function PhaseToolkit.OpenNpcForge()
+	local context = {}
+	context.id="NPCFORGE"
+	PhaseToolkit.extendDeployingFrame(0)
+	-- Create once, store on the DeployingFrame
+    if not PhaseToolkit.DeployingFrame.NpcPortraitButton then
+    	createRaceButton(context)
+
+    end
+
+	if not PhaseToolkit.DeployingFrame.NpcGenderSlider then
+		createGenderSlider(context)
+
+	end
+
+	if not PhaseToolkit.DeployingFrame.CustomCategoryButtons then
+		createCustomCategoryButton(context)
+		for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
+			tinsert(context, button)
+		end
+	end
+
+	if(#deployingFrameContext["NPCFORGE"]<1) then
+		deployingFrameContext["NPCFORGE"] = context
+	end
+
+	PhaseToolkit.changeContext(deployingFrameContext["NPCFORGE"])
+
+    -- Re-anchor safely (OffsetFromTop can change)
+    local NpcPortraitButton = PhaseToolkit.DeployingFrame.NpcPortraitButton
+    NpcPortraitButton:ClearAllPoints()
+    NpcPortraitButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, PhaseToolkit.DeployingFrame.OffsetFromTop - 20)
+    NpcPortraitButton:Show()
+end
+
+local function createItemSlotButton(context)
+	local itemDropSlot = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "BackdropTemplate")
+	itemDropSlot:SetSize(36,36)
+	itemDropSlot:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 8, PhaseToolkit.DeployingFrame.OffsetFromTop - 25)
+	itemDropSlot:SetBackdrop({
+		bgFile = "Interface\\Buttons\\UI-Quickslot2",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		edgeSize = 16,
+		insets = { left = 2, right = 2, top = 2, bottom = 2 },
+	})
+
+	itemDropSlot.icon = itemDropSlot:CreateTexture(nil, "ARTWORK")
+	itemDropSlot.icon:SetSize(29, 29)
+	itemDropSlot.icon:SetPoint("CENTER", itemDropSlot, "CENTER", 0, 0)
+	itemDropSlot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+
+	itemDropSlot:SetScript("OnReceiveDrag", function(self)
+		local cursorType, itemID, itemLink = GetCursorInfo()
+		if cursorType == "item" and itemLink then
+			self.icon:SetTexture(GetItemIcon(itemID) or "Interface\\Icons\\INV_Misc_QuestionMark")
+			PhaseToolkit.itemCreatorData.itemLink = itemLink
+			GameTooltip:Hide()
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemLink)
+			GameTooltip:Show()
+			updateFields(PhaseToolkit.itemCreatorData.itemLink)
+			local maxDescriptionSize=238-(string.len("f i s de ")+string.len(PhaseToolkit.itemCreatorData.itemLink or ""))
+			PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame.ScrollFrame.EditBox:SetMaxLetters(maxDescriptionSize)
+		end
+		ClearCursor()
+	end)
+
+	itemDropSlot:SetScript("OnEnter", function(self)
+		if PhaseToolkit.itemCreatorData.itemLink then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemLink)
+			GameTooltip:Show()
+		else
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Drop an Item here to use it as a Template for the Item Forge.",1,1,1)
+			GameTooltip:Show()
+		end
+		itemDropSlot:SetBackdropBorderColor(1, 1, 0, 1)
+	end)
+
+	itemDropSlot:SetScript("OnLeave", function(self)
+		GameTooltip:Hide()
+		itemDropSlot:SetBackdropBorderColor(1, 1, 1, 1)
+	end)
+
+	itemDropSlot:SetScript("OnMouseDown", function(self, button)
+		if button == "RightButton" then
+			self.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+			PhaseToolkit.itemCreatorData.itemLink = nil
+			GameTooltip:Hide()
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Drop an Item here to use it as a Template for the Item Forge.",1,1,1)
+			GameTooltip:Show()
+		end
+	end)
+
+	tinsert(context, itemDropSlot)
+	PhaseToolkit.DeployingFrame.ItemDropSlot = itemDropSlot
+end
+
+local function createItemForgeNameInput(context)
+	local nameInput = CreateFrame("EditBox", nil, PhaseToolkit.DeployingFrame, "InputBoxTemplate")
+	nameInput:SetSize(190, 20)
+	nameInput:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 60, PhaseToolkit.DeployingFrame.OffsetFromTop - 35)
+	nameInput:SetAutoFocus(false)
+	nameInput:SetFontObject(GameFontHighlightSmall)
+	nameInput:SetMaxLetters(100)
+	nameInput:SetTextInsets(5, 5, 0, 0)
+
+	nameInput.label = nameInput:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	nameInput.label:SetPoint("BOTTOMLEFT", nameInput, "TOPLEFT", 0, 2)
+	nameInput.label:SetText(PhaseToolkit.CurrentLang["Item Name"] or "Item Name")
+	--change the font size
+	nameInput.label:SetFontObject(GameTooltipTextSmall)
+
+	nameInput:SetScript("OnEnterPressed", function(self)
+		local itemName = self:GetText()
+		if itemName and itemName ~= "" then
+			PhaseToolkit.itemCreatorData.itemName = itemName
+		end
+		if PhaseToolkit.itemCreatorData.itemLink then
+			sendAddonCmd(buildItemForgeCommand("name",{PhaseToolkit.itemCreatorData.itemLink},itemName),nil,false)
+		end
+		self:ClearFocus()
+	end)
+
+	nameInput:SetScript("OnTextChanged", function(self)
+		local itemName = self:GetText()
+		if itemName and itemName ~= "" then
+			PhaseToolkit.itemCreatorData.itemName = itemName
+		end
+		if PhaseToolkit.itemCreatorData.itemLink then
+			sendAddonCmd(buildItemForgeCommand("name",{PhaseToolkit.itemCreatorData.itemLink},itemName),nil,false)
+		end
+	end)
+
+	nameInput:SetScript("OnEscapePressed", function(self)
+		self:ClearFocus()
+	end)
+
+	tinsert(context, nameInput)
+	PhaseToolkit.DeployingFrame.itemForgeNameInput = nameInput
+end
+
+local function createItemForgeDescriptionEditbox(context)
+	local descriptionFrame  = CreateFrame("FRAME", "$parentEdit", PhaseToolkit.DeployingFrame, "EpsilonInputScrollTemplate")
+	descriptionFrame:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame.itemForgeNameInput, "BOTTOMLEFT", -5, -15)
+	descriptionFrame:SetSize(195, 85)
+	descriptionFrame.SetText = function(self, text)
+		descriptionFrame.ScrollFrame.EditBox:SetText(text)
+	end
+
+	descriptionFrame.label = descriptionFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	descriptionFrame.label:SetPoint("BOTTOMLEFT", descriptionFrame, "TOPLEFT", 5, 2)
+	descriptionFrame.label:SetText(PhaseToolkit.CurrentLang["Item Description"] or "Item Description")
+	--change the font size
+	descriptionFrame.label:SetFontObject(GameTooltipTextSmall)
+
+	descriptionFrame.ScrollFrame.EditBox:SetScript("OnTextChanged", function(self)
+		local maxDescriptionSize=238-(string.len("f i s de ")+string.len(PhaseToolkit.itemCreatorData.itemLink or ""))
+		PhaseToolkit.itemCreatorData.itemDescription = self:GetText()
+		if((string.len(self:GetText())<maxDescriptionSize)) then
+			if PhaseToolkit.itemCreatorData.itemLink then
+				sendAddonCmd(buildItemForgeCommand("description",{PhaseToolkit.itemCreatorData.itemLink},self:GetText()),nil,false)
+				PhaseToolkit.HideTooltip()
+				self:SetScript("OnEnter",nil)
+				self:SetScript("OnLeave",nil)
+			end
+		else
+			local border = descriptionFrame:CreateTexture(nil, "BACKGROUND")
+			border:SetPoint("TOPLEFT", -2, 2)
+			border:SetPoint("BOTTOMRIGHT", 2, -2)
+			self:SetScript("OnLeave",function() PhaseToolkit.HideTooltip() end)
+
+			C_Timer.After(1.5, function()
+				border:SetColorTexture(1, 0, 0, 0)
+			end)
+		end
+	end)
+
+	tinsert(context, descriptionFrame)
+	tinsert(context, descriptionFrame.ScrollFrame)
+	tinsert(context, descriptionFrame.ScrollFrame.EditBox)
+	PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame = descriptionFrame
+end
+
+local function createCharacterWhitelistPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(200, 300)
+	panel:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMRIGHT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Character Whitelist"] or "Character Whitelist")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	local addCharacterButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+	addCharacterButton:SetSize(25, 25)
+	addCharacterButton:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -30)
+	addCharacterButton.icon = addCharacterButton:CreateTexture(nil, "OVERLAY")
+	addCharacterButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+	addCharacterButton.icon:SetAllPoints()
+	PhaseToolkit.RegisterTooltip(addCharacterButton, "Add character to whitelist")
+	PhaseToolkit.DisableComponent(addCharacterButton)
+
+	local nameInput = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+	nameInput:SetSize(120, 20)
+	nameInput:SetPoint("TOPLEFT", addCharacterButton, "TOPRIGHT", 5, 0)
+	nameInput:SetAutoFocus(false)
+	nameInput:SetFontObject(GameFontHighlightSmall)
+	nameInput:SetScript("OnTextChanged", function(self)
+		local text = self:GetText()
+		if text and text ~= "" then
+			PhaseToolkit.EnableComponent(addCharacterButton)
+		else
+			PhaseToolkit.DisableComponent(addCharacterButton)
+		end
+	end)
+	nameInput:SetScript("OnEscapePressed", function(self)
+		self:ClearFocus()
+	end)
+
+
+
+	--fauxscrollframe setup for the character whitelist
+	local scrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -50)
+	scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -20, 10)
+	scrollFrame:Show()
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -10)
+	content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+	content:Show()
+
+	local rowHeight = 32
+	local visibleRows = 7
+
+	content.displayRows = content.displayRows or {}
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+		row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+		row:SetHeight(rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetSize(250,35)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", -50, 0)
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(170,25)
+		row.highlight:SetPoint("TOPLEFT", row, "TOPLEFT", -8.5, -5.5)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			self.highlight:Hide()
+		end)
+		return row
+	end
+
+
+	local function updateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		local characterList = PhaseToolkit.itemCreatorData.characterWhitelist or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = content.displayRows[i]
+			local character = characterList[tagIndex]
+
+			if(not row) then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			if character then
+				local fullName = character
+				SetCroppedTextWithTooltip(row, row.label, fullName, 180)
+				row.deleteButton:SetScript("OnClick", function()
+					deleteKeyFromArray(PhaseToolkit.itemCreatorData.characterWhitelist, character)
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("whitelist character remove",{PhaseToolkit.itemCreatorData.itemLink},character),nil,false)
+					end
+					updateScrollFrame()
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if(#characterList > visibleRows) then
+			FauxScrollFrame_Update(scrollFrame, #characterList, visibleRows, rowHeight)
+		end
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	addCharacterButton:SetScript("OnClick", function()
+		local characterName = nameInput:GetText()
+		if characterName and characterName ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.characterWhitelist, characterName)
+			nameInput:SetText("")
+			PhaseToolkit.DisableComponent(addCharacterButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("whitelist character add",{PhaseToolkit.itemCreatorData.itemLink},characterName),nil,false)
+			end
+		end
+	end)
+
+	nameInput:SetScript("OnEnterPressed", function(self)
+		local characterName = self:GetText()
+		if characterName and characterName ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.characterWhitelist, characterName)
+			self:SetText("")
+			PhaseToolkit.DisableComponent(addCharacterButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("whitelist character add",{PhaseToolkit.itemCreatorData.itemLink},characterName),nil,false)
+			end
+		end
+	end)
+
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 5, -12)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 5, 15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+
+
+	tinsert(context, panel)
+	PhaseToolkit.DeployingFrame.characterWhitelistPanel = panel
+	PhaseToolkit.DeployingFrame.characterWhitelistPanel.updateScrollFrame = updateScrollFrame
+	PhaseToolkit.DeployingFrame.characterWhitelistPanel.deployAnimation = function()
+	local AnimationGroup = PhaseToolkit.DeployingFrame.characterWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+	fadeIn:SetOrder(1);
+	fadeIn:SetFromAlpha(0);
+	fadeIn:SetToAlpha(1);
+	fadeIn:SetDuration(0.5);
+	fadeIn:SetSmoothing("OUT")
+
+	local scaleUp= AnimationGroup:CreateAnimation("Scale");
+	scaleUp:SetOrder(1);
+	scaleUp:SetFromScale(0.0,1.0);
+	scaleUp:SetToScale(1.0,1.0);
+	scaleUp:SetDuration(0.5);
+	scaleUp:SetSmoothing("OUT")
+	scaleUp:SetOrigin("LEFT",0,0)
+
+	AnimationGroup:SetScript("OnPlay", function()
+		if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.characterWhitelistPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.characterWhitelistPanel
+	end);
+
+	AnimationGroup:Play();
+	end
+
+	PhaseToolkit.DeployingFrame.characterWhitelistPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.characterWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("LEFT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.characterWhitelistPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.characterWhitelistPanel then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+local function createPhaseMemberWhitelistPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(200, 300)
+	panel:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMRIGHT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Phase Member Whitelist"] or "Phase Member Whitelist")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	local addPhaseIdButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+	addPhaseIdButton:SetSize(25, 25)
+	addPhaseIdButton:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -30)
+	addPhaseIdButton.icon = addPhaseIdButton:CreateTexture(nil, "OVERLAY")
+	addPhaseIdButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+	addPhaseIdButton.icon:SetAllPoints()
+	PhaseToolkit.RegisterTooltip(addPhaseIdButton, "Add phase ID to whitelist")
+	PhaseToolkit.DisableComponent(addPhaseIdButton)
+
+	local idInput = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+	idInput:SetSize(120, 20)
+	idInput:SetPoint("TOPLEFT", addPhaseIdButton, "TOPRIGHT", 5, 0)
+	idInput:SetAutoFocus(false)
+	idInput:SetFontObject(GameFontHighlightSmall)
+	idInput:SetNumeric(true)
+	idInput:SetScript("OnTextChanged", function(self)
+		local text = self:GetText()
+		if text and text ~= "" then
+			PhaseToolkit.EnableComponent(addPhaseIdButton)
+		else
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+		end
+	end)
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -50)
+	scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -20, 10)
+	scrollFrame:Show()
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -10)
+	content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+	content:Show()
+
+	local rowHeight = 32
+	local visibleRows = 7
+
+	content.displayRows = content.displayRows or {}
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+		row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+		row:SetHeight(rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetSize(250,35)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", -50, 0)
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(170,25)
+		row.highlight:SetPoint("TOPLEFT", row, "TOPLEFT", -8.5, -5.5)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			self.highlight:Hide()
+		end)
+		return row
+	end
+
+
+	local function updateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		local phaseIdList = PhaseToolkit.itemCreatorData.phaseWhitelistForMember or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = content.displayRows[i]
+			local phaseId = phaseIdList[tagIndex]
+
+			if(not row) then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			if phaseId then
+				local fullName = phaseId
+				SetCroppedTextWithTooltip(row, row.label, fullName, 180)
+				row.deleteButton:SetScript("OnClick", function()
+					deleteKeyFromArray(PhaseToolkit.itemCreatorData.phaseWhitelistForMember, phaseId)
+					updateScrollFrame()
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("whitelist member remove",{PhaseToolkit.itemCreatorData.itemLink},phaseId),nil,false)
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if(#phaseIdList > visibleRows) then
+			FauxScrollFrame_Update(scrollFrame, #phaseIdList, visibleRows, rowHeight)
+		end
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	addPhaseIdButton:SetScript("OnClick", function()
+		local phaseID = idInput:GetText()
+		if phaseID and phaseID ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.phaseWhitelistForMember, phaseID)
+			idInput:SetText("")
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("whitelist member add",{PhaseToolkit.itemCreatorData.itemLink},phaseID),nil,false)
+					end
+		end
+	end)
+
+	idInput:SetScript("OnEnterPressed", function(self)
+		local phaseID = self:GetText()
+		if phaseID and phaseID ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.phaseWhitelistForMember, phaseID)
+			self:SetText("")
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("whitelist member add",{PhaseToolkit.itemCreatorData.itemLink},phaseID),nil,false)
+			end
+		end
+	end)
+
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 5, -12)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 5, 15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+
+
+	tinsert(context, panel)
+	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel = panel
+	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.updateScrollFrame = updateScrollFrame
+	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.deployAnimation = function()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(0.5);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("LEFT",0,0)
+
+		AnimationGroup:SetScript("OnPlay", function()
+			if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel
+		end);
+
+		AnimationGroup:Play();
+	end
+
+	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("LEFT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+local function createPhaseOfficerWhitelistPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(200, 300)
+	panel:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMRIGHT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Phase Officer Whitelist"] or "Phase Officer Whitelist")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	local addPhaseIdButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+	addPhaseIdButton:SetSize(25, 25)
+	addPhaseIdButton:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -30)
+	addPhaseIdButton.icon = addPhaseIdButton:CreateTexture(nil, "OVERLAY")
+	addPhaseIdButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMAddButton.blp")
+	addPhaseIdButton.icon:SetAllPoints()
+	PhaseToolkit.RegisterTooltip(addPhaseIdButton, "Add phase ID to whitelist")
+	PhaseToolkit.DisableComponent(addPhaseIdButton)
+
+	local idInput = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+	idInput:SetSize(120, 20)
+	idInput:SetPoint("TOPLEFT", addPhaseIdButton, "TOPRIGHT", 5, 0)
+	idInput:SetAutoFocus(false)
+	idInput:SetFontObject(GameFontHighlightSmall)
+	idInput:SetNumeric(true)
+	idInput:SetScript("OnTextChanged", function(self)
+		local text = self:GetText()
+		if text and text ~= "" then
+			PhaseToolkit.EnableComponent(addPhaseIdButton)
+		else
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+		end
+	end)
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -50)
+	scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -20, 10)
+	scrollFrame:Show()
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -10)
+	content:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 0, 0)
+	content:Show()
+
+	local rowHeight = 32
+	local visibleRows = 7
+
+	content.displayRows = content.displayRows or {}
+
+	local function createRow(index)
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, content)
+		row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -((index - 1) * rowHeight))
+		row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+		row:SetHeight(rowHeight)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetSize(250,35)
+		row.background:SetPoint("TOPLEFT", row, "TOPLEFT", -50, 0)
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(170,25)
+		row.highlight:SetPoint("TOPLEFT", row, "TOPLEFT", -8.5, -5.5)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row.deleteButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+		row.deleteButton:SetSize(20, 20)
+		row.deleteButton:SetPoint("RIGHT", row, "RIGHT", -5, 0)
+		row.deleteButton.icon = row.deleteButton:CreateTexture(nil, "OVERLAY")
+		row.deleteButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BPMXButton.blp")
+		row.deleteButton.icon:SetAllPoints()
+		row.deleteButton:SetFrameStrata("HIGH")
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		row:SetScript("OnLeave", function(self)
+			PhaseToolkit.HideTooltip()
+			self.highlight:Hide()
+		end)
+		return row
+	end
+
+
+	local function updateScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(scrollFrame)
+		local phaseIdList = PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = content.displayRows[i]
+			local phaseId = phaseIdList[tagIndex]
+
+			if(not row) then
+				row = createRow(i)
+				content.displayRows[i] = row
+			end
+
+			if phaseId then
+				local fullName = phaseId
+				SetCroppedTextWithTooltip(row, row.label, fullName, 180)
+				row.deleteButton:SetScript("OnClick", function()
+					deleteKeyFromArray(PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer, phaseId)
+					updateScrollFrame()
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("whitelist officer remove",{PhaseToolkit.itemCreatorData.itemLink},phaseId),nil,false)
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if(#phaseIdList > visibleRows) then
+			FauxScrollFrame_Update(scrollFrame, #phaseIdList, visibleRows, rowHeight)
+		end
+	end
+
+	scrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateScrollFrame)
+	end)
+
+	addPhaseIdButton:SetScript("OnClick", function()
+		local phaseID = idInput:GetText()
+		if phaseID and phaseID ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer, phaseID)
+			idInput:SetText("")
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("whitelist officer add",{PhaseToolkit.itemCreatorData.itemLink},phaseID),nil,false)
+			end
+		end
+	end)
+
+	idInput:SetScript("OnEnterPressed", function(self)
+		local phaseID = self:GetText()
+		if phaseID and phaseID ~= "" then
+			tinsert(PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer, phaseID)
+			self:SetText("")
+			PhaseToolkit.DisableComponent(addPhaseIdButton)
+			updateScrollFrame()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("whitelist officer add",{PhaseToolkit.itemCreatorData.itemLink},phaseID),nil,false)
+			end
+		end
+	end)
+
+
+	scrollFrame.ScrollBar:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", 5, -12)
+	scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", scrollFrame, "BOTTOMRIGHT", 5, 15)
+	scrollFrame.ScrollBar:SetFrameStrata("HIGH")
+
+
+	tinsert(context, panel)
+	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel = panel
+	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.updateScrollFrame = updateScrollFrame
+	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.deployAnimation = function()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(0.5);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("LEFT",0,0)
+
+		AnimationGroup:SetScript("OnPlay", function()
+			if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel
+		end);
+
+		AnimationGroup:Play();
+	end
+
+	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("LEFT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel then
+				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+local function createItemPropertyPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(200, 300)
+	panel:SetPoint("BOTTOMRIGHT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Item Property Panel"] or "Item Property Panel")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	local adderPropertyCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	adderPropertyCheckbox:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -25)
+	adderPropertyCheckbox.text:SetText(PhaseToolkit.CurrentLang["Adder Property"] or "Adder Property")
+	adderPropertyCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	adderPropertyCheckbox:SetSize(30,30)
+	adderPropertyCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["adder"] or false)
+
+	PhaseToolkit.RegisterTooltip(adderPropertyCheckbox, "Adder Property Tooltip")
+
+	local addItemAnyoneCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	addItemAnyoneCheckbox:SetPoint("TOPLEFT", adderPropertyCheckbox, "BOTTOMLEFT", 0, 0)
+	addItemAnyoneCheckbox.text:SetText(PhaseToolkit.CurrentLang["Additem Anyone"] or "Additem Anyone")
+	addItemAnyoneCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	addItemAnyoneCheckbox:SetSize(30,30)
+	addItemAnyoneCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["additem"] and PhaseToolkit.itemCreatorData.itemProperty["additem"]["anyone"] or false)
+	addItemAnyoneCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["additem"]["anyone"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property additem anyone", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["additem"]["anyone"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(addItemAnyoneCheckbox, "Additem Anyone Tooltip")
+
+	local addItemCharacterCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	addItemCharacterCheckbox:SetPoint("TOPLEFT", addItemAnyoneCheckbox, "BOTTOMLEFT", 0, 0)
+	addItemCharacterCheckbox.text:SetText(PhaseToolkit.CurrentLang["Additem Character"] or "Additem Character")
+	addItemCharacterCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	addItemCharacterCheckbox:SetSize(30,30)
+	addItemCharacterCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["additem"] and PhaseToolkit.itemCreatorData.itemProperty["additem"]["character"] or false)
+	addItemCharacterCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["additem"]["character"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property additem character", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["additem"]["character"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(addItemCharacterCheckbox, "Additem Character Tooltip")
+
+	local addItemMemberCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	addItemMemberCheckbox:SetPoint("TOPLEFT", addItemCharacterCheckbox, "BOTTOMLEFT", 0, 0)
+	addItemMemberCheckbox.text:SetText(PhaseToolkit.CurrentLang["Additem Phase Member"] or "Additem Phase Member")
+	addItemMemberCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	addItemMemberCheckbox:SetSize(30,30)
+	addItemMemberCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["additem"] and PhaseToolkit.itemCreatorData.itemProperty["additem"]["member"] or false)
+	addItemMemberCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["additem"]["member"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property additem member", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["additem"]["member"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(addItemMemberCheckbox, "Additem Phase Member Tooltip")
+
+	local addItemOfficerCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	addItemOfficerCheckbox:SetPoint("TOPLEFT", addItemMemberCheckbox, "BOTTOMLEFT", 0, 0)
+	addItemOfficerCheckbox.text:SetText(PhaseToolkit.CurrentLang["Additem Phase Officer"] or "Additem Phase Officer")
+	addItemOfficerCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	addItemOfficerCheckbox:SetSize(30,30)
+	addItemOfficerCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["additem"] and PhaseToolkit.itemCreatorData.itemProperty["additem"]["officer"] or false)
+	addItemOfficerCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["additem"]["officer"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property additem officer", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["additem"]["officer"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(addItemOfficerCheckbox, "Additem Phase Officer Tooltip")
+
+	local copyPropertyCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	copyPropertyCheckbox:SetPoint("TOPLEFT", addItemOfficerCheckbox, "BOTTOMLEFT", 0, 0)
+	copyPropertyCheckbox.text:SetText(PhaseToolkit.CurrentLang["Copy Property"] or "Copy Property")
+	copyPropertyCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	copyPropertyCheckbox:SetSize(30,30)
+	copyPropertyCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["copy"] or false)
+	copyPropertyCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["copy"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property copy", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["copy"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(copyPropertyCheckbox, "Copy Property Tooltip")
+
+	local creatorPropertyCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	creatorPropertyCheckbox:SetPoint("TOPLEFT", copyPropertyCheckbox, "BOTTOMLEFT", 0, 0)
+	creatorPropertyCheckbox.text:SetText(PhaseToolkit.CurrentLang["Creator Property"] or "Creator Property")
+	creatorPropertyCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	creatorPropertyCheckbox:SetSize(30,30)
+	creatorPropertyCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["creator"] or false)
+	creatorPropertyCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["creator"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property creator", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["creator"])))
+		end
+		if PhaseToolkit.itemCreatorData.itemProperty["creator"] then
+			PhaseToolkit.itemCreatorData.itemProperty["adder"] = false
+			adderPropertyCheckbox:SetChecked(false)
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(creatorPropertyCheckbox, "Creator Property Tooltip")
+
+	local infoPropertyCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	infoPropertyCheckbox:SetPoint("TOPLEFT", creatorPropertyCheckbox, "BOTTOMLEFT", 0, 0)
+	infoPropertyCheckbox.text:SetText(PhaseToolkit.CurrentLang["Info Property"] or "Info Property")
+	infoPropertyCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	infoPropertyCheckbox:SetSize(30,30)
+	infoPropertyCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["info"] or false)
+	infoPropertyCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["info"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property info", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["info"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(infoPropertyCheckbox, "Info Property Tooltip")
+
+	local lookupPropertyCheckbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	lookupPropertyCheckbox:SetPoint("TOPLEFT", infoPropertyCheckbox, "BOTTOMLEFT", 0, 0)
+	lookupPropertyCheckbox.text:SetText(PhaseToolkit.CurrentLang["Lookup Property"] or "Lookup Property")
+	lookupPropertyCheckbox.text:SetFontObject("GameFontHighlightSmall")
+	lookupPropertyCheckbox:SetSize(30,30)
+	lookupPropertyCheckbox:SetChecked(PhaseToolkit.itemCreatorData.itemProperty["lookup"] or false)
+	lookupPropertyCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["lookup"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property lookup", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["lookup"])))
+		end
+	end)
+	PhaseToolkit.RegisterTooltip(lookupPropertyCheckbox, "Lookup Property Tooltip")
+
+	adderPropertyCheckbox:SetScript("OnClick", function(self)
+		PhaseToolkit.itemCreatorData.itemProperty["adder"] = self:GetChecked()
+		if(PhaseToolkit.itemCreatorData.itemLink) then
+			sendAddonCmd(buildItemForgeCommand("property adder", {PhaseToolkit.itemCreatorData.itemLink}, transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty["adder"])))
+		end
+		if PhaseToolkit.itemCreatorData.itemProperty["adder"] then
+			PhaseToolkit.itemCreatorData.itemProperty["creator"] = false
+			creatorPropertyCheckbox:SetChecked(false)
+		end
+	end)
+
+	tinsert(context, panel)
+	PhaseToolkit.DeployingFrame.itemPropertyPanel = panel
+	PhaseToolkit.DeployingFrame.itemPropertyPanel.deployAnimation = function()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemPropertyPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(0.5);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnPlay", function()
+			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.itemPropertyPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemPropertyPanel
+		end);
+
+		AnimationGroup:Play();
+	end
+
+	PhaseToolkit.DeployingFrame.itemPropertyPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemPropertyPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.itemPropertyPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemPropertyPanel then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+local function getItemClassObjectFromId(itemClassId)
+	for _, classObject in pairs(PhaseToolkit.itemClass) do
+		if classObject.classId == itemClassId then
+			return classObject
+		end
+	end
+	return nil
+end
+
+local function createItemMainConfigurationPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(200, 350)
+	panel:SetPoint("BOTTOMRIGHT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Main Configuration"] or "Main Configuration")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	local copyDisplayItemSlot = CreateFrame("Button", nil, panel, "BackdropTemplate")
+	copyDisplayItemSlot:SetSize(36,36)
+	copyDisplayItemSlot:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -35, 100)
+	copyDisplayItemSlot:SetBackdrop({
+		bgFile = "Interface\\Buttons\\UI-Quickslot2",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		edgeSize = 16,
+		insets = { left = 2, right = 2, top = 2, bottom = 2 },
+	})
+
+	copyDisplayItemSlot.icon = copyDisplayItemSlot:CreateTexture(nil, "OVERLAY")
+	copyDisplayItemSlot.icon:SetSize(29, 29)
+	copyDisplayItemSlot.icon:SetPoint("CENTER", copyDisplayItemSlot, "CENTER", 0, 0)
+	copyDisplayItemSlot.icon:Hide()
+
+	copyDisplayItemSlot.label = copyDisplayItemSlot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	copyDisplayItemSlot.label:SetPoint("BOTTOM", copyDisplayItemSlot, "TOP", 0, 2)
+	copyDisplayItemSlot.label:SetText(PhaseToolkit.CurrentLang["Display from item"] or "Display from item")
+
+	copyDisplayItemSlot:SetScript("OnReceiveDrag", function(self)
+		local cursorType, itemID, itemLink = GetCursorInfo()
+		if cursorType == "item" and itemLink then
+			local itemicon = GetItemIcon(itemID)
+			self.icon:SetTexture(itemicon)
+			if itemicon then
+				self.icon:Show()
+			else
+				self.icon:Hide()
+			end
+			PhaseToolkit.itemCreatorData.itemDisplaySourceLink = itemLink
+			GameTooltip:Hide()
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("we will copy the display id onto your forged item !",1,1,1)
+			GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemDisplaySourceLink)
+			GameTooltip:Show()
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("display", {PhaseToolkit.itemCreatorData.itemLink,PhaseToolkit.itemCreatorData.itemDisplaySourceLink} ),nil,true)
+			end
+		end
+		ClearCursor()
+	end)
+
+	copyDisplayItemSlot:SetScript("OnMouseDown", function(self, button)
+		if button == "RightButton" then
+			self.icon:Hide()
+			PhaseToolkit.itemCreatorData.itemDisplaySourceLink = nil
+			GameTooltip:Hide()
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Drop a item here to copy it's display on your forged item",1,1,1)
+			GameTooltip:Show()
+		end
+	end)
+
+	copyDisplayItemSlot:SetScript("OnEnter", function(self)
+		if PhaseToolkit.itemCreatorData.itemDisplaySourceLink then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("we will copy the display id onto your forged item !",1,1,1)
+			GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemDisplaySourceLink)
+			GameTooltip:Show()
+		else
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText("Drop a item here to copy it's display on your forged item",1,1,1)
+			GameTooltip:Show()
+		end
+		copyDisplayItemSlot:SetBackdropBorderColor(1, 1, 0, 1)
+	end)
+
+	copyDisplayItemSlot:SetScript("OnLeave", function(self)
+		GameTooltip:Hide()
+		copyDisplayItemSlot:SetBackdropBorderColor(1, 1, 1, 1)
+	end)
+
+	tinsert(context,copyDisplayItemSlot)
+
+	local itemAppearanceID = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+	itemAppearanceID:SetSize(80, 20)
+	itemAppearanceID:SetPoint("TOP", copyDisplayItemSlot, "BOTTOM", 2, -15)
+	itemAppearanceID:SetAutoFocus(false)
+	itemAppearanceID:SetFontObject(GameFontHighlightSmall)
+	itemAppearanceID:SetScript("OnEnterPressed", function(self)
+		local appearanceID = self:GetText()
+		if appearanceID and appearanceID ~= "" then
+			PhaseToolkit.itemCreatorData.itemAppearanceID = appearanceID
+			if(PhaseToolkit.itemCreatorData.itemLink and PhaseToolkit.itemCreatorData.itemAppearanceID) then
+				sendAddonCmd(buildItemForgeCommand("appearance", {PhaseToolkit.itemCreatorData.itemLink,PhaseToolkit.itemCreatorData.itemAppearanceID} ))
+			end
+		end
+		ClearCursor()
+	end)
+
+	itemAppearanceID.label = itemAppearanceID:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	itemAppearanceID.label:SetPoint("BOTTOM", itemAppearanceID, "TOP", 0, 2)
+	itemAppearanceID.label:SetText(PhaseToolkit.CurrentLang["Appearance ID"] or "Appearance ID")
+
+	PhaseToolkit.RegisterTooltip(itemAppearanceID, "Appearance ID Tooltip")
+
+	--Scrollframes for the item class, subclass, and inventory type selection
+	local leftScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	leftScrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -45)
+	leftScrollFrame:SetSize(80,140)
+	leftScrollFrame:Show()
+
+	local leftContent = CreateFrame("Frame", nil, leftScrollFrame)
+	leftContent:SetPoint("TOPLEFT", leftScrollFrame, "TOPLEFT", -5, 5)
+	leftContent:SetPoint("BOTTOMRIGHT", leftScrollFrame, "BOTTOMRIGHT", 0, 0)
+	leftContent:Show()
+
+	local leftLabel = leftContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	leftLabel:SetPoint("BOTTOM", leftScrollFrame, "TOP", 0, 5.5 )
+	leftLabel:SetText("Item Class")
+
+	local rightScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	rightScrollFrame:SetPoint("TOPLEFT", leftScrollFrame, "TOPRIGHT", 22.5, 0)
+	rightScrollFrame:SetSize(60,140)
+
+	local rightContent = CreateFrame("Frame", nil, rightScrollFrame)
+	rightContent:SetPoint("TOPLEFT", rightScrollFrame, "TOPLEFT", -5, 5)
+	rightContent:SetPoint("BOTTOMRIGHT", rightScrollFrame, "BOTTOMRIGHT", 0, 0)
+	rightContent:Show()
+
+	local rightLabel = rightContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	rightLabel:SetPoint("BOTTOM", rightScrollFrame, "TOP", 0, 5 )
+	rightLabel:SetText("Item SubClass")
+	rightLabel:Hide()
+
+	local bottomScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	bottomScrollFrame:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 5, 10)
+	bottomScrollFrame:SetSize(80,150)
+	bottomScrollFrame:Show()
+
+	local bottomContent = CreateFrame("Frame", nil, bottomScrollFrame)
+	bottomContent:SetPoint("TOPLEFT", bottomScrollFrame, "TOPLEFT", 0, -10)
+	bottomContent:SetPoint("BOTTOMRIGHT", bottomScrollFrame, "BOTTOMRIGHT", 0, 0)
+	bottomContent:Show()
+
+	local bottomLabel = bottomContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	bottomLabel:SetPoint("BOTTOM", bottomScrollFrame, "TOP", 0, -10 )
+	bottomLabel:SetText("Inventory Type")
+	bottomLabel:Hide()
+
+	local currentSubClassList = nil
+	local currentInventoryTypeList = nil
+	local rowHeight = 25
+	local visibleRows = 5
+	local rowSpacing = 5
+
+	leftContent.displayRows = leftContent.displayRows or {}
+	rightContent.displayRows = rightContent.displayRows or {}
+	bottomContent.displayRows = bottomContent.displayRows or {}
+
+	local function createRow(index,side)
+		local parent = side == "left" and leftContent or side == "right" and rightContent or bottomContent
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, parent)
+
+		row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -((index - 1) * (rowHeight + rowSpacing)))
+		row:SetHeight(rowHeight)
+
+		if side == "left" or side=="bottom" then
+			row:SetWidth(80)
+		else
+			row:SetWidth(60)
+		end
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetAllPoints(row)
+		row.background:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(80,25)
+		row.highlight:SetAllPoints(row.background)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+
+		return row
+	end
+
+	local function updateRightScrollFrame()
+		currentSubClassList = currentSubClassList or {}
+		if PhaseToolkit.itemCreatorData.selectedItemClass then
+			currentSubClassList = getItemClassObjectFromId(PhaseToolkit.itemCreatorData.selectedItemClass).subclass
+		end
+		if #currentSubClassList / visibleRows <1 then
+			FauxScrollFrame_SetOffset(rightScrollFrame, 0)
+			rightScrollFrame.ScrollBar:Hide()
+		end
+		local offset = FauxScrollFrame_GetOffset(rightScrollFrame)
+		local itemSubClass = currentSubClassList or {}
+
+		if #itemSubClass >0 then
+			rightLabel:Show()
+		else
+			rightLabel:Hide()
+		end
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = rightContent.displayRows[i]
+			local itemSubClassEntry = itemSubClass[tagIndex]
+
+			if(not row) then
+				row = createRow(i, "right")
+				rightContent.displayRows[i] = row
+			end
+
+			if itemSubClassEntry then
+				local fullName = itemSubClassEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 60)
+				row:Show()
+				row:SetScript("OnClick", function()
+					PhaseToolkit.itemCreatorData.selectedItemSubClass = itemSubClassEntry.subclassId
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("subclass", {PhaseToolkit.itemCreatorData.itemLink}, itemSubClassEntry.subclassId))
+					end
+					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
+					updateRightScrollFrame()
+				end)
+				if itemSubClassEntry.subclassId == PhaseToolkit.itemCreatorData.selectedItemSubClass then
+					row.highlight:Show()
+				else
+					row.highlight:Hide()
+				end
+
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedItemSubClass == itemSubClassEntry.subclassId then
+						self.highlight:Show()
+					else
+						self.highlight:Hide()
+					end
+				end)
+			else
+				row:Hide()
+			end
+
+
+		end
+
+		if(#itemSubClass > visibleRows) then
+			FauxScrollFrame_Update(rightScrollFrame, #itemSubClass, visibleRows, rowHeight)
+		end
+	end
+
+	local function updateBottomScrollFrame()
+		currentInventoryTypeList = currentInventoryTypeList or {}
+		if PhaseToolkit.itemCreatorData.selectedItemClass then
+			currentInventoryTypeList = filterInventoryTypeByClass(PhaseToolkit.itemCreatorData.selectedItemClass)
+		end
+		if #currentInventoryTypeList / visibleRows <1 then
+			FauxScrollFrame_SetOffset(bottomScrollFrame, 0)
+			bottomScrollFrame.ScrollBar:Hide()
+		end
+		local offset = FauxScrollFrame_GetOffset(bottomScrollFrame)
+		local inventoryTypeList = currentInventoryTypeList or  {}
+
+		if #inventoryTypeList >0 then
+			bottomLabel:Show()
+		else
+			bottomLabel:Hide()
+		end
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = bottomContent.displayRows[i]
+			local inventoryTypeEntry = inventoryTypeList[tagIndex]
+
+			if(not row) then
+				row = createRow(i, "bottom")
+				bottomContent.displayRows[i] = row
+			end
+
+			if inventoryTypeEntry then
+				local fullName = inventoryTypeEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 75)
+				row:SetScript("OnClick", function()
+					PhaseToolkit.itemCreatorData.selectedInventoryType = inventoryTypeEntry.inventoryTypeId
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("inventorytype", {PhaseToolkit.itemCreatorData.itemLink}, inventoryTypeEntry.inventoryTypeId))
+					end
+					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
+					updateBottomScrollFrame()
+				end)
+
+				if inventoryTypeEntry.inventoryTypeId == PhaseToolkit.itemCreatorData.selectedInventoryType then
+					row.highlight:Show()
+				else
+					row.highlight:Hide()
+				end
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedInventoryType == inventoryTypeEntry.inventoryTypeId then
+						self.highlight:Show()
+					else
+						self.highlight:Hide()
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if(#inventoryTypeList > visibleRows) then
+			FauxScrollFrame_Update(bottomScrollFrame, #inventoryTypeList, visibleRows, rowHeight)
+		end
+	end
+
+	local function updateLeftScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(leftScrollFrame)
+		local itemClass = PhaseToolkit.itemClass or {}
+
+		for i = 1, visibleRows do
+			local tagIndex = offset + i
+			local row = leftContent.displayRows[i]
+			local itemClassEntry = itemClass[tagIndex]
+
+			if(not row) then
+				row = createRow(i, "left")
+				leftContent.displayRows[i] = row
+			end
+
+			if itemClassEntry then
+				local fullName = itemClassEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 80)
+				row:SetScript("OnClick", function()
+					currentSubClassList = itemClassEntry.subclass
+					if(itemClassEntry.classId ~= -1) then
+						rightScrollFrame.ScrollBar:Show()
+						bottomScrollFrame.ScrollBar:Show()
+						bottomLabel:Show()
+					else
+						rightScrollFrame.ScrollBar:Hide()
+						bottomScrollFrame.ScrollBar:Hide()
+						bottomLabel:Hide()
+					end
+					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
+					updateRightScrollFrame()
+					currentInventoryTypeList = filterInventoryTypeByClass(itemClassEntry.classId)
+					updateBottomScrollFrame()
+
+					if (itemClassEntry.classId == -1) then
+						PhaseToolkit.itemCreatorData.selectedItemClass = nil
+					else
+						PhaseToolkit.itemCreatorData.selectedItemClass = itemClassEntry.classId
+					end
+
+					PhaseToolkit.itemCreatorData.selectedItemSubClass = nil
+					if(PhaseToolkit.itemCreatorData.itemLink and itemClassEntry.classId ~= -1) then
+						sendAddonCmd(buildItemForgeCommand("class", {PhaseToolkit.itemCreatorData.itemLink}, itemClassEntry.classId))
+					end
+
+					updateLeftScrollFrame()
+				end)
+
+				if itemClassEntry.classId == PhaseToolkit.itemCreatorData.selectedItemClass then
+					row.highlight:Show()
+					currentSubClassList = itemClassEntry.subclass
+					currentInventoryTypeList = filterInventoryTypeByClass(itemClassEntry.classId)
+					updateRightScrollFrame()
+					updateBottomScrollFrame()
+				else
+					row.highlight:Hide()
+				end
+
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedItemClass == itemClassEntry.classId then
+						self.highlight:Show()
+					else
+						self.highlight:Hide()
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if(#itemClass > visibleRows) then
+			FauxScrollFrame_Update(leftScrollFrame, #itemClass, visibleRows, rowHeight)
+		end
+	end
+
+	leftScrollFrame.ScrollBar:SetPoint("TOPLEFT", leftScrollFrame, "TOPRIGHT", 0, -12.5)
+	leftScrollFrame.ScrollBar:SetFrameStrata("HIGH")
+	leftScrollFrame.ScrollBar:Hide()
+
+	updateLeftScrollFrame()
+
+	leftScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateLeftScrollFrame)
+	end)
+
+	rightScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateRightScrollFrame)
+	end)
+
+	bottomScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateBottomScrollFrame)
+	end)
+
+	rightScrollFrame.ScrollBar:SetPoint("TOPLEFT", rightScrollFrame, "TOPRIGHT", 0, -12.5)
+	rightScrollFrame.ScrollBar:SetFrameStrata("HIGH")
+	rightScrollFrame.ScrollBar:Hide()
+
+	bottomScrollFrame.ScrollBar:SetPoint("TOPLEFT", bottomScrollFrame, "TOPRIGHT", 2.5, -12.5)
+	bottomScrollFrame.ScrollBar:SetPoint("BOTTOMLEFT", bottomScrollFrame, "BOTTOMRIGHT", 0, 10)
+	bottomScrollFrame.ScrollBar:SetFrameStrata("HIGH")
+	bottomScrollFrame.ScrollBar:Hide()
+
+
+	tinsert(context,rightScrollFrame)
+	tinsert(context, leftContent)
+	tinsert(context, leftScrollFrame)
+	tinsert(context, rightContent)
+
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel = panel
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemClassScrollFrame = updateLeftScrollFrame
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemSubClassScrollFrame = updateRightScrollFrame
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemInventoryTypeScrollFrame = updateBottomScrollFrame
+
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.deployAnimation = function()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(0.5);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnPlay", function()
+			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel
+		end);
+
+		AnimationGroup:Play();
+	end
+
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemMainConfigurationPanel then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+local function createItemSubConfigurationPanel(context)
+	local panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame,"PortraitFrameTemplate")
+	panel:SetSize(300, 200)
+	panel:SetPoint("BOTTOMRIGHT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 0, 0)
+	ButtonFrameTemplateMinimizable_HidePortrait(panel)
+	NineSliceUtil.ApplyLayoutByName(panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.8, true)
+	EpsilonLib.Utils.NineSlice.CropNineSliceCorners(panel.NineSlice, 0.4)
+	EpsilonLib.Utils.NineSlice.SetBackgroundAsViewport(panel, panel.Bg)
+	panel:SetFrameStrata("LOW")
+	local titleBgColor = panel:CreateTexture(nil, "BACKGROUND")
+	local color = CreateColorFromHexString("80FF7100")
+	titleBgColor:SetPoint("TOPLEFT", panel.TitleBg)
+	titleBgColor:SetPoint("BOTTOMRIGHT", panel.TitleBg, -0, 0)
+	titleBgColor:SetColorTexture(color:GetRGBA())
+	panel.TitleBgColor = titleBgColor
+	panel.TitleText:SetText(PhaseToolkit.CurrentLang["Sub Configuration"] or "Sub Configuration")
+	panel.TitleText:SetPoint("LEFT", panel.TitleBg, "LEFT", 30, 0)
+	panel:Hide()
+	panel.isHiddenByDefault = true
+
+	-- we need 3 scrollsframes, for the itembonding, the itemQuality,and the itemSheath
+	-- they are independant from each other
+	local itemBondingScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	itemBondingScrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 5, -45)
+	itemBondingScrollFrame:SetSize(75,140)
+
+	local itemBondingContent = CreateFrame("Frame", nil, itemBondingScrollFrame)
+	itemBondingContent:SetPoint("TOPLEFT", itemBondingScrollFrame, "TOPLEFT", 0, 5)
+	itemBondingContent:SetPoint("BOTTOMRIGHT", itemBondingScrollFrame, "BOTTOMRIGHT", 0, 0)
+	itemBondingContent:Show()
+
+	local itemBondingLabel = itemBondingContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	itemBondingLabel:SetPoint("BOTTOM", itemBondingScrollFrame, "TOP", 0, 5.5 )
+	itemBondingLabel:SetText("Item Bonding")
+
+	local itemQualityScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	itemQualityScrollFrame:SetPoint("TOPLEFT", itemBondingScrollFrame, "TOPRIGHT", 22.5, 0)
+	itemQualityScrollFrame:SetSize(75,140)
+
+	local itemQualityContent = CreateFrame("Frame", nil, itemQualityScrollFrame)
+	itemQualityContent:SetPoint("TOPLEFT", itemQualityScrollFrame, "TOPLEFT", 0, 5)
+	itemQualityContent:SetPoint("BOTTOMRIGHT", itemQualityScrollFrame, "BOTTOMRIGHT", 0, 0)
+	itemQualityContent:Show()
+
+	local itemQualityLabel = itemQualityContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	itemQualityLabel:SetPoint("BOTTOM", itemQualityScrollFrame, "TOP", 0, 5 )
+	itemQualityLabel:SetText("Item Quality")
+
+	local itemSheathScrollFrame = CreateFrame("ScrollFrame", nil, panel, "FauxScrollFrameTemplate")
+	itemSheathScrollFrame:SetPoint("TOPLEFT", itemQualityScrollFrame, "TOPRIGHT", 22.5, 0)
+	itemSheathScrollFrame:SetSize(75,150)
+
+	local itemSheathContent = CreateFrame("Frame", nil, itemSheathScrollFrame)
+	itemSheathContent:SetPoint("TOPLEFT", itemSheathScrollFrame, "TOPLEFT", 0, 5)
+	itemSheathContent:SetPoint("BOTTOMRIGHT", itemSheathScrollFrame, "BOTTOMRIGHT", 0, 0)
+	itemSheathContent:Show()
+
+	local itemSheathLabel = itemSheathContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	itemSheathLabel:SetPoint("BOTTOM", itemSheathScrollFrame, "TOP", 0, 5 )
+	itemSheathLabel:SetText("Item Sheath")
+
+	local rowHeight = 25
+	local visibleRows = 5
+	local rowSpacing = 5
+
+	itemBondingContent.displayRows = itemBondingContent.displayRows or {}
+	itemQualityContent.displayRows = itemQualityContent.displayRows or {}
+	itemSheathContent.displayRows = itemSheathContent.displayRows or {}
+
+	local function createRow(index,parent)
+		local row = CreateFrame("Button", "PTK_TAG_ROW"..index, parent)
+
+		row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -((index - 1) * (rowHeight + rowSpacing)))
+		row:SetHeight(rowHeight)
+
+		row:SetWidth(75)
+
+		row.background = row:CreateTexture(nil, "BACKGROUND")
+		row.background:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameBackground.blp")
+		row.background:SetAllPoints(row)
+		row.background:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+
+		row.highlight = row:CreateTexture(nil, "OVERLAY")
+		row.highlight:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\BlueprintManagerFrameForeground.blp")
+		row.highlight:SetSize(80,25)
+		row.highlight:SetAllPoints(row.background)
+		row.highlight:SetTexCoord(
+			77/512, (77+360)/512,   -- left, right (77 to 437)
+			26/128, (26+78)/128     -- top, bottom (26 to 104)
+		);
+		row.highlight:Hide()
+
+		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		row.label:SetPoint("LEFT", row, "LEFT", 5, 0)
+		row.label:SetJustifyH("LEFT")
+		row.label:SetWordWrap(false)
+		row.label:SetNonSpaceWrap(true)
+
+		row:SetScript("OnEnter", function(self)
+			if self.fullText then
+				PhaseToolkit.ShowTooltip(self, self.fullText)
+			end
+			self.highlight:Show()
+		end)
+		return row
+	end
+
+	local function updateItemBondingScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(itemBondingScrollFrame)
+    	local itemBondingList = PhaseToolkit.itemBonding or {}
+		for i = 1, visibleRows do
+			local row = itemBondingContent.displayRows[i]
+			local itemBondingEntry = itemBondingList[offset + i]
+
+			if(not row) then
+				row = createRow(i, itemBondingContent)
+				itemBondingContent.displayRows[i] = row
+			end
+
+			if itemBondingEntry then
+				local fullName = itemBondingEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 70)
+				row:SetScript("OnClick", function()
+					PhaseToolkit.itemCreatorData.selectedItemBonding = itemBondingEntry.bondingId
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("bonding", {PhaseToolkit.itemCreatorData.itemLink}, tostring(itemBondingEntry.bondingId)))
+					end
+					updateItemBondingScrollFrame()
+				end)
+
+				row:Show()
+				if itemBondingEntry.bondingId == PhaseToolkit.itemCreatorData.selectedItemBonding then
+					print("highlighting row for bondingId: "..itemBondingEntry.bondingId)
+					row.highlight:Show()
+				else
+					row.highlight:Hide()
+				end
+
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedItemBonding ~= itemBondingEntry.bondingId then
+						self.highlight:Hide()
+					end
+				end)
+			else
+				row:Hide()
+			end
+
+		end
+		if #itemBondingList > visibleRows then
+			FauxScrollFrame_Update(itemBondingScrollFrame, #itemBondingList, visibleRows, rowHeight)
+		end
+	end
+
+	local function updateItemQualityScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(itemQualityScrollFrame)
+		local itemQualityList = PhaseToolkit.itemQuality or {}
+		for i = 1, visibleRows do
+			local row = itemQualityContent.displayRows[i]
+			local itemQualityEntry = itemQualityList[offset + i]
+
+			if(not row) then
+				row = createRow(i, itemQualityContent)
+				itemQualityContent.displayRows[i] = row
+			end
+
+			if itemQualityEntry then
+				local fullName = itemQualityEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 70)
+				row:SetScript("OnClick", function()
+					PhaseToolkit.itemCreatorData.selectedItemQuality = itemQualityEntry.qualityId
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("quality", {PhaseToolkit.itemCreatorData.itemLink}, tostring(itemQualityEntry.qualityId)))
+					end
+					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
+				end)
+
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedItemQuality ~= itemQualityEntry.qualityId then
+						self.highlight:Hide()
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+		end
+
+		if #itemQualityList > visibleRows then
+			FauxScrollFrame_Update(itemQualityScrollFrame, #itemQualityList, visibleRows, rowHeight)
+		end
+	end
+
+	local function updateItemSheathScrollFrame()
+		local offset = FauxScrollFrame_GetOffset(itemSheathScrollFrame)
+		local itemSheathList = PhaseToolkit.itemSheath or {}
+		for i = 1, visibleRows do
+			local row = itemSheathContent.displayRows[i]
+			local itemSheathEntry = itemSheathList[offset + i]
+
+			if(not row) then
+				row = createRow(i, itemSheathContent)
+				itemSheathContent.displayRows[i] = row
+			end
+
+			if itemSheathEntry then
+				local fullName = itemSheathEntry.name
+				SetCroppedTextWithTooltip(row, row.label, fullName, 70)
+				row:SetScript("OnClick", function()
+					PhaseToolkit.itemCreatorData.selectedItemSheath = itemSheathEntry.sheathId
+					if(PhaseToolkit.itemCreatorData.itemLink) then
+						sendAddonCmd(buildItemForgeCommand("sheath", {PhaseToolkit.itemCreatorData.itemLink}, tostring(itemSheathEntry.sheathId)))
+					end
+					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
+				end)
+
+				row:SetScript("OnLeave", function(self)
+					PhaseToolkit.HideTooltip()
+					if PhaseToolkit.itemCreatorData.selectedItemSheath ~= itemSheathEntry.sheathId then
+						self.highlight:Hide()
+					end
+				end)
+
+				row:Show()
+			else
+				row:Hide()
+			end
+
+		end
+
+		if #itemSheathList > visibleRows then
+			FauxScrollFrame_Update(itemSheathScrollFrame, #itemSheathList, visibleRows, rowHeight)
+		end
+	end
+
+	itemBondingScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateItemBondingScrollFrame)
+	end)
+
+	itemQualityScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateItemQualityScrollFrame)
+	end)
+
+	itemSheathScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
+		FauxScrollFrame_OnVerticalScroll(self, offset, rowHeight, updateItemSheathScrollFrame)
+	end)
+
+	updateItemBondingScrollFrame()
+	updateItemQualityScrollFrame()
+	updateItemSheathScrollFrame()
+
+	tinsert(context,panel)
+	tinsert(context,itemBondingScrollFrame)
+	tinsert(context,itemBondingContent)
+	tinsert(context,itemQualityScrollFrame)
+	tinsert(context,itemQualityContent)
+	tinsert(context,itemSheathScrollFrame)
+	tinsert(context,itemSheathContent)
+
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel = panel
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemBondingScrollFrame = updateItemBondingScrollFrame
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemQualityScrollFrame = updateItemQualityScrollFrame
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemSheathScrollFrame = updateItemSheathScrollFrame
+
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.deployAnimation = function()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
+
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(0.5);
+		fadeIn:SetSmoothing("OUT")
+
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(0.5);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnPlay", function()
+			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
+			end
+			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:Show()
+			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel
+		end);
+		AnimationGroup:Play()
+	end
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.retractAnimation = function ()
+		local AnimationGroup = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
+
+		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+		fadeOut:SetOrder(1);
+		fadeOut:SetFromAlpha(1);
+		fadeOut:SetToAlpha(0);
+		fadeOut:SetDuration(0.5);
+		fadeOut:SetSmoothing("OUT")
+
+		local scaleDown= AnimationGroup:CreateAnimation("Scale");
+		scaleDown:SetOrder(1);
+		scaleDown:SetFromScale(1.0,1.0);
+		scaleDown:SetToScale(0.0,1.0);
+		scaleDown:SetDuration(0.5);
+		scaleDown:SetSmoothing("OUT")
+		scaleDown:SetOrigin("RIGHT",0,0)
+
+		AnimationGroup:SetScript("OnFinished", function()
+			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:Hide()
+			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemSubConfigurationPanel then
+				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
+			end
+		end);
+
+		AnimationGroup:Play();
+	end
+end
+
+
+local function wipeForgeData()
+	for key in pairs(PhaseToolkit.itemCreatorData) do
+		if type(PhaseToolkit.itemCreatorData[key]) == "table" then
+			wipe(PhaseToolkit.itemCreatorData[key])
+		else
+			PhaseToolkit.itemCreatorData[key] = nil
+		end
+	end
+end
+
+local function forgeItem()
+	local commands = {}
+	if PhaseToolkit.itemCreatorData.itemLink then
+		if PhaseToolkit.itemCreatorData.selectedItemClass then
+			tinsert(commands, buildItemForgeCommand("class", {PhaseToolkit.itemCreatorData.itemLink}, PhaseToolkit.itemCreatorData.selectedItemClass))
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedItemSubClass then
+			tinsert(commands, buildItemForgeCommand("subclass", {PhaseToolkit.itemCreatorData.itemLink}, PhaseToolkit.itemCreatorData.selectedItemSubClass))
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedInventoryType then
+			tinsert(commands, buildItemForgeCommand("inventorytype", {PhaseToolkit.itemCreatorData.itemLink}, PhaseToolkit.itemCreatorData.selectedInventoryType))
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedItemBonding then
+			tinsert(commands, buildItemForgeCommand("bonding", {PhaseToolkit.itemCreatorData.itemLink}, tostring(PhaseToolkit.itemCreatorData.selectedItemBonding)))
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedItemQuality then
+			tinsert(commands, buildItemForgeCommand("quality", {PhaseToolkit.itemCreatorData.itemLink}, tostring(PhaseToolkit.itemCreatorData.selectedItemQuality)))
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedItemSheath then
+			tinsert(commands, buildItemForgeCommand("sheath", {PhaseToolkit.itemCreatorData.itemLink}, tostring(PhaseToolkit.itemCreatorData.selectedItemSheath)))
+		end
+
+		if PhaseToolkit.itemCreatorData.itemDisplaySourceLink then
+			tinsert(commands, buildItemForgeCommand("display ", {PhaseToolkit.itemCreatorData.itemLink,PhaseToolkit.itemCreatorData.itemDisplaySourceLink}))
+		end
+
+		if PhaseToolkit.itemCreatorData.itemAppearanceID then
+			tinsert(commands, buildItemForgeCommand("display", {PhaseToolkit.itemCreatorData.itemLink},PhaseToolkit.itemCreatorData.itemAppearanceID))
+		end
+
+		if PhaseToolkit.itemCreatorData.itemName then
+			tinsert(commands, buildItemForgeCommand("name", {PhaseToolkit.itemCreatorData.itemLink,PhaseToolkit.itemCreatorData.itemName}))
+		end
+
+		if PhaseToolkit.itemCreatorData.itemDescription then
+			local maxDescriptionSize=238-(string.len("f i s de ")+string.len(PhaseToolkit.itemCreatorData.itemLink))
+			if string.len(PhaseToolkit.itemCreatorData.itemDescription)>maxDescriptionSize then
+				sendItemDescriptionInChunk("f i s de "..PhaseToolkit.itemCreatorData.itemLink.." "..PhaseToolkit.itemCreatorData.itemDescription)
+			else
+				tinsert(commands, buildItemForgeCommand("description", {PhaseToolkit.itemCreatorData.itemLink,PhaseToolkit.itemCreatorData.itemDescription}))
+			end
+		end
+
+		if PhaseToolkit.itemCreatorData.itemProperty then
+			for _,property in ipairs(PhaseToolkit.itemCreatorData.itemProperty) do
+				if type(PhaseToolkit.itemCreatorData.itemProperty[property]) == "boolean" then
+					tinsert(commands, buildItemForgeCommand("property "..property, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty[property])))
+				else
+					for _,value in ipairs(PhaseToolkit.itemCreatorData.itemProperty[property]) do
+						tinsert(commands, buildItemForgeCommand("property "..property.." "..value, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty[property][value])))
+					end
+				end
+
+			end
+		end
+
+		if #PhaseToolkit.itemCreatorData.characterWhitelist > 0 then
+			for i, characterName in ipairs(PhaseToolkit.itemCreatorData.characterWhitelist) do
+				tinsert(commands, buildItemForgeCommand("whitelist character add", {PhaseToolkit.itemCreatorData.itemLink},characterName))
+			end
+		end
+
+		if #PhaseToolkit.itemCreatorData.phaseWhitelistForMember > 0 then
+			for i, phaseId in ipairs(PhaseToolkit.itemCreatorData.phaseWhitelistForMember) do
+				tinsert(commands, buildItemForgeCommand("whitelist member add", {PhaseToolkit.itemCreatorData.itemLink},phaseId))
+			end
+		end
+
+		if #PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer > 0 then
+			for i, phaseId in ipairs(PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer) do
+				tinsert(commands, buildItemForgeCommand("whitelist officer add", {PhaseToolkit.itemCreatorData.itemLink},phaseId))
+			end
+		end
+
+		if PhaseToolkit.itemCreatorData.selectedIcon then
+			tinsert(commands, buildItemForgeCommand("icon", {PhaseToolkit.itemCreatorData.itemLink},PhaseToolkit.itemCreatorData.selectedIcon))
+		end
+
+		if #commands > 0 then
+			sendAddonCommandChain(commands, function(success, allReturnMessages)
+				-- Command chain completed
+				PhaseToolkit.itemCreatorData.itemLink=nil
+
+				-- Reset everything after all commands are done
+				for key in pairs(PhaseToolkit.itemCreatorData) do
+					PhaseToolkit.itemCreatorData[key] = nil
+				end
+
+				if success then
+					print("Item Forging done !\nyou can use your item !")
+				else
+					if(PhaseToolkit.debugMode) then
+						print("Item Forging had some issues. Here are the errors:")
+						dump(allReturnMessages)
+					else
+						print("Item Forging had some issues. Run : /run PhaseToolkit.debugMode=true\nThen try again and check the chat for errors, if needed create a bug report.")
+					end
+				end
+				ContainerFrame_UpdateAll()
+			end, false)
+		end
+
+	else
+		print("No item link found.\nWe should have one now.. Odd make a bug report please.")
+	end
+
+end
+
+local function createItemAndContinue()
+	if(PhaseToolkit.itemCreatorData.itemLink==nil) then
+		local previousItems = updateBagContents()
+		PhaseToolkit.DeployingFrame:RegisterEvent("BAG_UPDATE")
+		PhaseToolkit.DeployingFrame:SetScript("OnEvent",function(self, event, arg1) C_Timer.After(1, function()
+			if event == "BAG_UPDATE" then
+				for _, itemID in ipairs(PhaseToolkit.currentItems) do
+					if not tContains(previousItems, itemID) then
+						local itemName, itemLink = GetItemInfo(itemID)
+
+						if itemLink == nil then
+							-- ItemLink failed. Let's generate a fake link.
+							itemLink = minItemLink:format(tonumber(itemID), "TempLink")
+						end
+
+						PhaseToolkit.itemCreatorData.itemLink=itemLink
+						forgeItem()
+					end
+				end
+				previousItems = PhaseToolkit.currentItems
+			end
+		end)
+	end);
+
+		SendChatMessage(".forge item create")
+		C_Timer.After(1, function()
+			PhaseToolkit.currentItems=updateBagContents()
+
+		end)
+	end
+end
+
+
+local function forgeItem()
+	print("Forging your item...")
+	createItemAndContinue()
+end
+
+function PhaseToolkit.refreshAllItemCreatorScrollFrame()
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemClassScrollFrame()
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemSubClassScrollFrame()
+	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemInventoryTypeScrollFrame()
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemBondingScrollFrame()
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemQualityScrollFrame()
+	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemSheathScrollFrame()
+	PhaseToolkit.DeployingFrame.characterWhitelistPanel.updateScrollFrame()
+	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.updateScrollFrame()
+	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.updateScrollFrame()
+end
+
+local function resetForge()
+	wipeForgeData()
+	PhaseToolkit.DeployingFrame.itemForgeNameInput:SetText("")
+	PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame:SetText("")
+	PhaseToolkit.DeployingFrame.midButtons.stackableSizeInput:SetNumber(1)
+	PhaseToolkit.DeployingFrame.ItemDropSlot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+	PhaseToolkit.refreshAllItemCreatorScrollFrame()
+
+end
+
+local function createItemForgeUtilityButtons(context)
+	local parentFrame = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame)
+	local createAndForgeItemButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	createAndForgeItemButton:SetSize(30, 30)
+	createAndForgeItemButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, -110)
+	createAndForgeItemButton.icon = createAndForgeItemButton:CreateTexture(nil, "OVERLAY")
+	createAndForgeItemButton.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
+	createAndForgeItemButton.icon:SetAllPoints()
+	createAndForgeItemButton:SetScript("OnClick", function()
+		forgeItem()
+	end)
+
+	PhaseToolkit.RegisterTooltip(createAndForgeItemButton, "Forge Item (This may take some time)")
+
+	-- Reset Button
+	local resetForgeButton=CreateFrame("Button",nil,parentFrame,"UIPanelButtonTemplate");
+	resetForgeButton:SetSize(30, 30)
+	resetForgeButton:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 10, -140)
+	resetForgeButton.icon = resetForgeButton:CreateTexture(nil, "OVERLAY")
+	resetForgeButton.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
+	resetForgeButton.icon:SetAllPoints()
+	resetForgeButton.icon2 = resetForgeButton:CreateTexture(nil, "OVERLAY", nil, select(2,resetForgeButton.icon:GetDrawLayer())+1)
+	resetForgeButton.icon2:SetAtlas("common-icon-redx")
+	resetForgeButton.icon2:SetAllPoints()
+
+	PhaseToolkit.RegisterTooltip(resetForgeButton, "Reset Forge")
+	resetForgeButton:SetScript("OnClick", function()
+		resetForge()
+	end)
+
+	local characterWhitelistPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	characterWhitelistPanelButton:SetSize(25,25)
+	characterWhitelistPanelButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", -10, -200)
+	characterWhitelistPanelButton.icon = characterWhitelistPanelButton:CreateTexture(nil, "OVERLAY")
+	characterWhitelistPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	characterWhitelistPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.characterWhitelistPanel then
+		createCharacterWhitelistPanel(context)
+	end
+	characterWhitelistPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.characterWhitelistPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.characterWhitelistPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.characterWhitelistPanel.deployAnimation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(characterWhitelistPanelButton, "Character Whitelist Panel")
+
+	local phaseMemberWhitelistPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	phaseMemberWhitelistPanelButton:SetSize(25,25)
+	phaseMemberWhitelistPanelButton:SetPoint("TOP", characterWhitelistPanelButton, "BOTTOM", 0, -5)
+	phaseMemberWhitelistPanelButton.icon = phaseMemberWhitelistPanelButton:CreateTexture(nil, "OVERLAY")
+	phaseMemberWhitelistPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	phaseMemberWhitelistPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel then
+		createPhaseMemberWhitelistPanel(context)
+	end
+	phaseMemberWhitelistPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.deployAnimation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(phaseMemberWhitelistPanelButton, "Phase Member Whitelist Panel")
+
+	local phaseOfficerWhitelistPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	phaseOfficerWhitelistPanelButton:SetSize(25,25)
+	phaseOfficerWhitelistPanelButton:SetPoint("TOP", phaseMemberWhitelistPanelButton, "BOTTOM", 0, -6)
+	phaseOfficerWhitelistPanelButton.icon = phaseOfficerWhitelistPanelButton:CreateTexture(nil, "OVERLAY")
+	phaseOfficerWhitelistPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	phaseOfficerWhitelistPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel then
+		createPhaseOfficerWhitelistPanel(context)
+	end
+	phaseOfficerWhitelistPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel and PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.deployAnimation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(phaseOfficerWhitelistPanelButton, "Phase Officer Whitelist Panel")
+
+	local itemPropertyPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	itemPropertyPanelButton:SetSize(25,25)
+	itemPropertyPanelButton:SetPoint("BOTTOMLEFT", PhaseToolkit.DeployingFrame, "BOTTOMLEFT", 10, 14)
+	itemPropertyPanelButton.icon = itemPropertyPanelButton:CreateTexture(nil, "OVERLAY")
+	itemPropertyPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	itemPropertyPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.itemPropertyPanel then
+		createItemPropertyPanel(context)
+	end
+	itemPropertyPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.itemPropertyPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.itemPropertyPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.itemPropertyPanel.deployAnimation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(itemPropertyPanelButton, "Item Property Panel")
+
+
+	local itemSubConfigurationPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	itemSubConfigurationPanelButton:SetSize(25,25)
+	itemSubConfigurationPanelButton:SetPoint("BOTTOM", itemPropertyPanelButton, "TOP", 0, 5)
+	itemSubConfigurationPanelButton.icon = itemSubConfigurationPanelButton:CreateTexture(nil, "OVERLAY")
+	itemSubConfigurationPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	itemSubConfigurationPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.itemSubConfigurationPanel then
+		createItemSubConfigurationPanel(context)
+	end
+	itemSubConfigurationPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.deployAnimation()
+		end
+	end)
+
+
+	PhaseToolkit.RegisterTooltip(itemSubConfigurationPanelButton, "Item Sub Configuration Panel")
+
+	local itemMainConfigurationPanelButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	itemMainConfigurationPanelButton:SetSize(25,25)
+	itemMainConfigurationPanelButton:SetPoint("BOTTOM", itemSubConfigurationPanelButton, "TOP", 0, 5)
+	itemMainConfigurationPanelButton.icon = itemMainConfigurationPanelButton:CreateTexture(nil, "OVERLAY")
+	itemMainConfigurationPanelButton.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+	itemMainConfigurationPanelButton.icon:SetAllPoints()
+	if not PhaseToolkit.DeployingFrame.itemMainConfigurationPanel then
+		createItemMainConfigurationPanel(context)
+	end
+	itemMainConfigurationPanelButton:SetScript("OnClick", function()
+		if PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:IsShown() then
+			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.retractAnimation()
+		else
+			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.deployAnimation()
+		end
+	end)
+
+	PhaseToolkit.RegisterTooltip(itemMainConfigurationPanelButton, "Item Main Configuration Panel")
+
+	parentFrame.createAndForgeItemButton = createAndForgeItemButton
+	parentFrame.resetForgeButton = resetForgeButton
+	parentFrame.characterWhitelistPanelButton = characterWhitelistPanelButton
+	parentFrame.phaseMemberWhitelistPanelButton = phaseMemberWhitelistPanelButton
+	parentFrame.phaseOfficerWhitelistPanelButton = phaseOfficerWhitelistPanelButton
+	parentFrame.itemPropertyPanelButton = itemPropertyPanelButton
+	parentFrame.itemMainConfigurationPanelButton = itemMainConfigurationPanelButton
+	parentFrame.itemSubConfigurationPanelButton = itemSubConfigurationPanelButton
+
+	tinsert(context,parentFrame)
+	PhaseToolkit.DeployingFrame.itemForgeUtilityButtons = parentFrame
+end
+
+local function createItemMidButtons(context)
+	local parentFrame = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame)
+	parentFrame:SetSize(180, 90)
+	parentFrame:SetPoint("BOTTOM", PhaseToolkit.DeployingFrame, "BOTTOM", 0, 5)
+
+	local stackableSizeInput = CreateFrame("EditBox", nil, parentFrame, "InputBoxTemplate")
+	stackableSizeInput:SetSize(50, 20)
+	stackableSizeInput:SetPoint("BOTTOM", parentFrame, "BOTTOM", 0, 50)
+	stackableSizeInput:SetAutoFocus(false)
+	stackableSizeInput:SetNumeric(true)
+	stackableSizeInput:SetNumber(1)
+	stackableSizeInput:SetJustifyH("CENTER")
+	stackableSizeInput:SetMaxLetters(4)
+	stackableSizeInput:SetScript("OnTextChanged", function(self)
+		local number = self:GetText()
+		if number then
+			PhaseToolkit.itemCreatorData.stackableSize = number
+			if(PhaseToolkit.itemCreatorData.itemLink) then
+				sendAddonCmd(buildItemForgeCommand("stackable", {PhaseToolkit.itemCreatorData.itemLink}, tostring(PhaseToolkit.itemCreatorData.stackableSize)))
+			end
+		end
+	end)
+
+	stackableSizeInput:SetScript("OnEnterPressed", function(self)
+		self:ClearFocus()
+	end)
+
+	stackableSizeInput:SetScript("OnEscapePressed", function(self)
+		self:ClearFocus()
+	end)
+
+	stackableSizeInput.label = stackableSizeInput:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	stackableSizeInput.label:SetPoint("BOTTOM", stackableSizeInput, "TOP", 0, 5)
+	stackableSizeInput.label:SetText(PhaseToolkit.CurrentLang["Stack Size"] or "Stack Size")
+
+	local openIconSelectorButton = CreateFrame("Button", nil, parentFrame, "UIPanelButtonTemplate")
+	openIconSelectorButton:SetSize(60, 20)
+	openIconSelectorButton:SetPoint("BOTTOM", parentFrame, "BOTTOM", 0, 5)
+	openIconSelectorButton:SetScript("OnClick", function()
+		if EpsilonLibIconPicker and EpsilonLibIconPicker:IsShown() then
+			EpsilonLibIconPicker:SetPoint("TOP", PhaseToolkit.DeployingFrame, "BOTTOM", 0, -5)
+			EpsilonLibIconPicker:SetMovable(true)
+			EpsilonLibIconPicker_Close()
+		else
+			EpsilonLibIconPicker_Open(function(iconPath,iconName,iconId)
+				PhaseToolkit.itemCreatorData.selectedIcon = iconId
+				if PhaseToolkit.itemCreatorData.itemLink then
+					sendAddonCmd(buildItemForgeCommand("icon", {PhaseToolkit.itemCreatorData.itemLink}, iconId))
+				end
+				PhaseToolkit.DeployingFrame.ItemDropSlot.icon:SetTexture(iconPath)
+				EpsilonLibIconPicker:SetMovable(true)
+			end, true, true)
+			EpsilonLibIconPicker:SetPoint("TOP", PhaseToolkit.DeployingFrame, "BOTTOM", 0, -5)
+			EpsilonLibIconPicker:SetMovable(false)
+		end
+	end)
+
+	openIconSelectorButton.Text:SetText("Set Icon")
+
+	tinsert(context,parentFrame)
+	PhaseToolkit.DeployingFrame.midButtons = parentFrame
+	PhaseToolkit.DeployingFrame.midButtons.stackableSizeInput = stackableSizeInput
+end
+
+function PhaseToolkit.OpenItemForge()
+	local context = {}
+	context.id="ITEMFORGE"
+	PhaseToolkit.extendDeployingFrame(0)
+	if not PhaseToolkit.DeployingFrame.ItemDropSlot then
+		createItemSlotButton(context)
+	end
+	if not PhaseToolkit.DeployingFrame.itemForgeNameInput then
+		createItemForgeNameInput(context)
+	end
+	if not PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame then
+		createItemForgeDescriptionEditbox(context)
+	end
+	if not PhaseToolkit.DeployingFrame.itemForgeUtilityButtons then
+		createItemForgeUtilityButtons(context)
+	end
+
+	if not PhaseToolkit.DeployingFrame.midButtons then
+		createItemMidButtons(context)
+	end
+
+	if(#deployingFrameContext["ITEMFORGE"]<1) then
+		deployingFrameContext["ITEMFORGE"] = context
+	end
+
+	PhaseToolkit.changeContext(deployingFrameContext["ITEMFORGE"])
+end
+
+-- BUTTON FRAME THING OF DOOM
+function PhaseToolkit.CreateAdditionalButtonFrame()
+	local NPCForgeButton=  CreateFrame("Button", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonTemplate");
+	NPCForgeButton:SetSize(40, 40);
+	NPCForgeButton:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 10, -22.5);
+	NPCForgeButton.icon = NPCForgeButton:CreateTexture(nil, "OVERLAY");
+	NPCForgeButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_npcforge.blp");
+	NPCForgeButton.icon:SetSize(33, 33);
+	NPCForgeButton.icon:SetPoint("CENTER", NPCForgeButton, "CENTER", 0, 0);
+
+	NPCForgeButton:SetScript("OnClick", function()
+		if PhaseToolkit.context.id ~= "NPCFORGE" then
+			PhaseToolkit.hideContext()
+			PhaseToolkit.DeployingFrame.isDeployed=false
+		end
+		PhaseToolkit.OpenNpcForge()
+	end)
+
+	local PhaseOptionButton=CreateFrame("Button", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonTemplate");
+	PhaseOptionButton:SetSize(40, 40);
+	PhaseOptionButton:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 60, -22.5);
+	PhaseOptionButton.icon = PhaseOptionButton:CreateTexture(nil, "OVERLAY")
+	PhaseOptionButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_settings.blp")
+	PhaseOptionButton.icon:SetSize(33, 33)
+	PhaseOptionButton.icon:SetPoint("CENTER", PhaseOptionButton, "CENTER", 0, 0)
+
+	PhaseOptionButton:SetScript("OnClick", function()
+		if PhaseToolkit.context.id ~= "PHASEOPTION" then
+			PhaseToolkit.hideContext()
+			PhaseToolkit.DeployingFrame.isDeployed=false
+		end
+		PhaseToolkit.OpenPhaseOption()
+	end)
+
+	local NpcListButton=CreateFrame("Button", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonTemplate");
+	NpcListButton:SetSize(40, 40);
+	NpcListButton:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 110, -22.5);
+	NpcListButton.icon = NpcListButton:CreateTexture(nil, "OVERLAY")
+	NpcListButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_npclist.blp")
+	NpcListButton.icon:SetSize(33, 33)
+	NpcListButton.icon:SetPoint("CENTER", NpcListButton, "CENTER", 0, 0)
+
+	NpcListButton:SetScript("OnClick", function()
+		if PhaseToolkit.context.id ~= "NPCLIST" then
+			PhaseToolkit.hideContext()
+			PhaseToolkit.DeployingFrame.isDeployed=false
+		end
+		PhaseToolkit.createNPCList()
+	end)
+
+	local TeleListButton=CreateFrame("Button", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonTemplate");
+	TeleListButton:SetSize(40, 40);
+	TeleListButton:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 160, -22.5);
+	TeleListButton.icon = TeleListButton:CreateTexture(nil, "OVERLAY")
+	TeleListButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_teleports.blp")
+	TeleListButton.icon:SetSize(33, 33)
+	TeleListButton.icon:SetPoint("CENTER", TeleListButton, "CENTER", 0, 0)
+
+	TeleListButton:SetScript("OnClick", function()
+		if PhaseToolkit.context.id ~= "TELELIST" then
+			PhaseToolkit.hideContext()
+			PhaseToolkit.DeployingFrame.isDeployed=false
+		end
+		PhaseToolkit.createTELEList()
+	end)
+
+	local ItemForgeButton=CreateFrame("Button", nil, PhaseToolkit.NPCCustomiserMainFrame, "UIPanelButtonTemplate");
+	ItemForgeButton:SetSize(40, 40);
+	ItemForgeButton:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPLEFT", 210, -22.5);
+	ItemForgeButton.icon = ItemForgeButton:CreateTexture(nil, "OVERLAY")
+	ItemForgeButton.icon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\eps_ptk_icon_itemcreator.blp")
+	ItemForgeButton.icon:SetSize(33, 33)
+	ItemForgeButton.icon:SetPoint("CENTER", ItemForgeButton, "CENTER", 0, 0)
+
+	ItemForgeButton:SetScript("OnClick", function()
+		if PhaseToolkit.context.id ~= "ITEMFORGE" then
+			PhaseToolkit.hideContext()
+			PhaseToolkit.DeployingFrame.isDeployed=false
+		end
+		PhaseToolkit.OpenItemForge()
+	end)
+end
+
+---@param newLang string The name of the language from LangList
+function PhaseToolkit.changeLang(newLang)
+	--PhaseToolkit.CurrentLang = newLang
+	PhaseToolkit.CurrentLang = ns.getLangTabByString(newLang) -- Since we now only pass the language name, pull the table instead
+	PhaseToolkit:CreateAdditionalButtonFrame()
+end
+
+-- -- -- -- -- -- -- -- -- -- -- --
+--#region Listes
+-- -- -- -- -- -- -- -- -- -- -- --
+--=============================== Teleport Retrieval ===========================--
 local function parseTeleReplies(isCommandSuccessful, repliesList)
 	-- Only do the job if the command is successful
 	if (isCommandSuccessful) then
@@ -6110,17 +12987,6 @@ local function parseTeleReplies(isCommandSuccessful, repliesList)
 				table.insert(PhaseToolkit.teleList, teleName)
 			end
 		end
-		-- if it's finished, we remove potential duplicate (by ID) and then we "regenerates" the frame for the list
-		if (PhaseToolkit.TELEFrame ~= nil) then
-			if PhaseToolkit.TELEFrame:IsShown() then
-				PhaseToolkit.TELEFrame:Hide()
-				PhaseToolkit.TELEFrame = nil
-				PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
-			else
-				PhaseToolkit.TELEFrame = nil
-				PhaseToolkit.CreateTeleListFrame(PhaseToolkit.teleList)
-			end
-		end
 	end
 end
 
@@ -6132,675 +12998,8 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 --#endregion
 -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- -- -- -- -- -- -- -- --
---#region Phase Options
--- -- -- -- -- -- -- -- -- -- -- --
--- ============================== Frame for Phase Options ============================== --
-
-function PhaseToolkit.CreatePhaseOptionFrame()
-	if (PhaseToolkit.CustomFrame ~= nil) then
-		if (PhaseToolkit.CustomFrame:IsShown()) then
-			PhaseToolkit.CustomFrame:Hide()
-			PhaseToolkit.CustomFrame = nil
-		end
-	end
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if PhaseToolkit.TELEFrame:IsShown() then
-			PhaseToolkit.TELEFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.CustomMainFrame ~= nil) then
-		if (PhaseToolkit.CustomMainFrame:IsShown()) then
-			PhaseToolkit.CustomMainFrame:Hide()
-			PhaseToolkit.CustomMainFrame = nil
-		end
-	end
-	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
-		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
-			PhaseToolkit.PhaseOptionFrame:Hide()
-		else
-			PhaseToolkit.PhaseOptionFrame:Show()
-			if (PhaseToolkit.IsPhaseWhitelist == nil) then
-				PhaseToolkit.IsPhaseWhitelist = false
-				sendAddonCmd("phase info ", PhaseToolkit.gatherPhaseInfo, false)
-			end
-		end
-		return
-	end
-
-
-	PhaseToolkit.PhaseOptionFrame = CreateFrame("Frame", nil, PhaseToolkit.NPCCustomiserMainFrame, "BackdropTemplate")
-	PhaseToolkit.PhaseOptionFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.PhaseOptionFrame:EnableMouse(true)
-	PhaseToolkit.PhaseOptionFrame:SetSize(350, 450)
-	PhaseToolkit.PhaseOptionFrame:SetPoint("TOPLEFT", PhaseToolkit.NPCCustomiserMainFrame, "TOPRIGHT", 0, 0)
-
-	function PhaseToolkit.gatherPhaseInfo(isCommandSuccessful, replies)
-		if isCommandSuccessful then
-			for i = 1, #replies do
-				message = replies[i]
-				message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
-				local listType = string.match(message, "List%s+Type:%s*(%S+)")
-
-				if listType == "BlackList" then
-					PhaseToolkit.IsPhaseWhitelist = false
-					PhaseToolkit.RadioWhitelist:SetChecked(false)
-					PhaseToolkit.RadioBlacklist:SetChecked(true)
-				elseif listType == "Whitelist" then
-					PhaseToolkit.IsPhaseWhitelist = true
-					PhaseToolkit.RadioBlacklist:SetChecked(false)
-					PhaseToolkit.RadioWhitelist:SetChecked(true)
-				end
-
-				local phaseName = string.match(message, "Phase%s+%[(.*)-")
-				if (phaseName ~= nil) then
-					PhaseToolkit.nameTextEdit:SetText(phaseName)
-				end
-			end
-		end
-	end
-
-	if (PhaseToolkit.IsPhaseWhitelist == nil) then
-		PhaseToolkit.IsPhaseWhitelist = false
-		sendAddonCmd("phase info", PhaseToolkit.gatherPhaseInfo, false)
-	end
-
-	PhaseToolkit.recreateFrameModule()
-end
-
---==== Phase Access Module ====--
-function PhaseToolkit.createPhaseAccessFrame()
-	PhaseToolkit.moduleForPhaseAccessFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForPhaseAccessFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForPhaseAccessFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForPhaseAccessFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5)
-
-
-
-	PhaseToolkit.RadioBlacklist = CreateFrame("CheckButton", "RadioBlacklist", PhaseToolkit.moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
-	PhaseToolkit.RadioBlacklist:SetPoint("BOTTOMLEFT", PhaseToolkit.moduleForPhaseAccessFrame, "BOTTOMLEFT", 10, 10)
-	local labelForBlacklist = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	labelForBlacklist:SetPoint("LEFT", PhaseToolkit.RadioBlacklist, "RIGHT", 0, 1)
-	labelForBlacklist:SetText("Blacklist")
-
-
-	PhaseToolkit.RadioWhitelist = CreateFrame("CheckButton", "RadioWhitelist", PhaseToolkit.moduleForPhaseAccessFrame, "UIRadioButtonTemplate")
-	PhaseToolkit.RadioWhitelist:SetPoint("LEFT", PhaseToolkit.RadioBlacklist, "RIGHT", 60, 0)
-
-	local labelForWhitelist = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	labelForWhitelist:SetPoint("LEFT", PhaseToolkit.RadioWhitelist, "RIGHT", 0, 1)
-	labelForWhitelist:SetText("Whitelist")
-
-
-
-	GlobalNPCCUSTOMISER_phaseAccessLabel = PhaseToolkit.moduleForPhaseAccessFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	GlobalNPCCUSTOMISER_phaseAccessLabel:SetPoint("TOP", PhaseToolkit.moduleForPhaseAccessFrame, "TOP", 0, -7.5)
-	GlobalNPCCUSTOMISER_phaseAccessLabel:SetText(PhaseToolkit.CurrentLang["Phase Access"] or "Phase Access")
-
-
-	local function RadioButton_OnClick(self)
-		PhaseToolkit.RadioBlacklist:SetChecked(false)
-		PhaseToolkit.RadioWhitelist:SetChecked(false)
-		self:SetChecked(true)
-
-		if (PhaseToolkit.IsPhaseWhitelist) then
-			if self:GetName() == "RadioWhitelist" then
-				return
-			elseif self:GetName() == "RadioBlacklist" then
-				sendAddonCmd("phase toggle private", nil)
-				PhaseToolkit.IsPhaseWhitelist = false
-			end
-		elseif not PhaseToolkit.IsPhaseWhitelist then
-			if self:GetName() == "RadioWhitelist" then
-				sendAddonCmd("phase toggle private", nil)
-				PhaseToolkit.IsPhaseWhitelist = true
-			elseif self:GetName() == "RadioBlacklist" then
-				return
-			end
-		end
-	end
-
-	PhaseToolkit.RadioBlacklist:SetScript("OnClick", RadioButton_OnClick)
-	PhaseToolkit.RadioWhitelist:SetScript("OnClick", RadioButton_OnClick)
-
-	if (PhaseToolkit.IsPhaseWhitelist) then
-		PhaseToolkit.RadioWhitelist:SetChecked(true)
-	elseif not PhaseToolkit.IsPhaseWhitelist then
-		PhaseToolkit.RadioBlacklist:SetChecked(true)
-	end
-end
-
---==== Weather Module ====--
-function PhaseToolkit.createMeteoSettingsFrame()
-	PhaseToolkit.moduleForMetteoSettingsFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForMetteoSettingsFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForMetteoSettingsFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForMetteoSettingsFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5)
-	-- --=== Dropdown ===--
-	PhaseToolkit.MeteoDropDown = CreateFrame("Frame", "MeteoDropDown", PhaseToolkit.moduleForMetteoSettingsFrame, "UIDropDownMenuTemplate")
-	PhaseToolkit.MeteoDropDown:SetSize(200, 30)
-	PhaseToolkit.MeteoDropDown:SetPoint("TOP", PhaseToolkit.moduleForMetteoSettingsFrame, "TOP", 0, -2.5)
-
-	PhaseToolkit.ShowMeteoDropDown(PhaseToolkit.MeteoDropDown)
-
-	--=== Slider ===--
-	GlobalNPCCUSTOMISER_SliderFrame = CreateFrame("Slider", "MyCustomSlider", PhaseToolkit.moduleForMetteoSettingsFrame, "OptionsSliderTemplate")
-	GlobalNPCCUSTOMISER_SliderFrame:SetSize(150, 20)
-
-	GlobalNPCCUSTOMISER_SliderFrame:SetPoint("TOP", PhaseToolkit.moduleForMetteoSettingsFrame, "CENTER", 0, 0)
-	GlobalNPCCUSTOMISER_SliderFrame:SetMinMaxValues(PhaseToolkit.IntensiteMeteoMin, IntensiteMeteoMax)
-	GlobalNPCCUSTOMISER_SliderFrame:SetValue(PhaseToolkit.IntensiteMeteoMin)
-	GlobalNPCCUSTOMISER_SliderFrame:SetValueStep(1)
-	GlobalNPCCUSTOMISER_SliderFrame:SetObeyStepOnDrag(true)
-
-	_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Low']:SetText(PhaseToolkit.IntensiteMeteoMin)
-	_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'High']:SetText(IntensiteMeteoMax)
-	_G[GlobalNPCCUSTOMISER_SliderFrame:GetName() .. 'Text']:SetText(PhaseToolkit.CurrentLang['Intensity'] or 'Intensity')
-
-	local function OnValueChanged(self)
-		PhaseToolkit.IntensiteMeteo = self:GetValue()
-	end
-
-	GlobalNPCCUSTOMISER_SliderFrame:SetScript("OnMouseDown", function(self)
-		OnValueChanged(self)
-	end)
-
-
-	GlobalNPCCUSTOMISER_SliderFrame:SetScript("OnMouseUp", function(self)
-		OnValueChanged(self)
-		PhaseToolkit.ChangePhaseWeather()
-	end)
-end
-
---==== Time Module ====--
-function PhaseToolkit.createTimeSettingsFrame()
-	-- need a frame module
-	PhaseToolkit.moduleForTimeSliderFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForTimeSliderFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForTimeSliderFrame:SetSize(340, 80)
-	PhaseToolkit.moduleForTimeSliderFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -85)
-
-	local timeSliderLabel = PhaseToolkit.moduleForTimeSliderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	timeSliderLabel:SetPoint("TOP", PhaseToolkit.moduleForTimeSliderFrame, "TOP", 0, -10)
-	timeSliderLabel:SetText(PhaseToolkit.CurrentLang["Set the time"] or "Set the time")
-
-
-	local slider = CreateFrame("Slider", "$parentSlider", PhaseToolkit.moduleForTimeSliderFrame, "OptionsSliderTemplate")
-	slider:SetPoint("LEFT", PhaseToolkit.moduleForTimeSliderFrame, 15, 0)
-
-	slider.Text:ClearAllPoints()
-	slider.Text:SetPoint("TOP", slider, "BOTTOM", 0, 0)
-
-	slider:SetPoint("RIGHT", -slider.Text:GetWidth() - 15, 0)
-	slider:SetMinMaxValues(0, 1439)
-	slider:SetValueStep(1)
-	slider:SetObeyStepOnDrag(true)
-
-	slider.Low:Hide()
-	slider.High:Hide()
-
-	local hour, min = GetGameTime()
-	local timeInMin = (hour * 60) + min
-
-	slider.Text:SetText(string.format("%.2d", hour) .. ":" .. string.format("%.2d", min))
-
-	function slider.getTime(value)
-		local hours = string.format("%.2d", math.floor(value / 60))
-		local minutes = string.format("%.2d", value % 60)
-		return hours .. ":" .. minutes
-	end
-
-	slider:SetValue(timeInMin)
-
-	slider:SetScript("OnValueChanged", function(self, value)
-		if self.last == value then return end
-		local time = self.getTime(value)
-		sendAddonCmd("phase set time " .. time, nil)
-		self.Text:SetText(time)
-		self.last = value
-	end)
-end
-
---==== Starting Module ====--
-function PhaseToolkit.createSetStartingFrame()
-	-- need a frame module
-	PhaseToolkit.moduleForSetStartingFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForSetStartingFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForSetStartingFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForSetStartingFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -80 * 2 - 5)
-
-	local startingLabel = PhaseToolkit.moduleForSetStartingFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	startingLabel:SetPoint("TOP", PhaseToolkit.moduleForSetStartingFrame, "TOP", 0, -10)
-	startingLabel:SetText(PhaseToolkit.CurrentLang["Starting point"] or 'Starting point')
-
-	local ButtonSetStarting = CreateFrame("Button", nil, PhaseToolkit.moduleForSetStartingFrame, "UIPanelButtonTemplate")
-	ButtonSetStarting:SetPoint("CENTER", PhaseToolkit.moduleForSetStartingFrame, "CENTER", 0, -10)
-	ButtonSetStarting:SetPoint("LEFT", 5, 0)
-	ButtonSetStarting:SetPoint("RIGHT", -5, 0)
-	ButtonSetStarting:SetText(PhaseToolkit.CurrentLang["Set Current Location"] or "Set Current Location")
-	ButtonSetStarting:SetScript("OnClick", function()
-		sendAddonCmd("phase set starting ", nil)
-	end
-	)
-
-	local ButtonDisableStart = CreateFrame("Button", nil, PhaseToolkit.moduleForSetStartingFrame, "UIPanelButtonTemplate")
-	ButtonDisableStart:SetPoint("BOTTOM", PhaseToolkit.moduleForSetStartingFrame, "BOTTOM", 0, 5)
-	ButtonDisableStart:SetPoint("LEFT", 15, 0)
-	ButtonDisableStart:SetPoint("RIGHT", -15, 0)
-	ButtonDisableStart:SetText(PhaseToolkit.CurrentLang["Disable Starting"] or "Disable Starting")
-	ButtonDisableStart:SetScript("OnClick", function()
-		sendAddonCmd("phase set starting disable ", nil)
-	end
-	)
-end
-
---==== Toggles Module ====--
-function PhaseToolkit.createTogglesFrame()
-	-- need a frame module
-	PhaseToolkit.moduleForTogglesFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForTogglesFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForTogglesFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForTogglesFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 15 + 165, -80 * 2 - 5)
-
-	local startingLabel = PhaseToolkit.moduleForTogglesFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	startingLabel:SetPoint("TOP", PhaseToolkit.moduleForTogglesFrame, "TOP", 0, -10)
-	startingLabel:SetText(PhaseToolkit.CurrentLang["Permission disabling"] or 'Permission disabling')
-
-	Togglesdropdown = CreateFrame("FRAME", "$parentDropDown", PhaseToolkit.moduleForTogglesFrame, "UIDropDownMenuTemplate")
-	Togglesdropdown:SetSize(200, 30)
-	Togglesdropdown:SetPoint("CENTER", PhaseToolkit.moduleForTogglesFrame, "CENTER", 0, -10)
-
-	PhaseToolkit.ShowToggleDropDown(Togglesdropdown)
-end
-
---==== Name Module ====--
-function PhaseToolkit.createPhaseSetNameFrame()
-	PhaseToolkit.moduleForPhaseSetNameFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForPhaseSetNameFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForPhaseSetNameFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForPhaseSetNameFrame:SetPoint("TOPLEFT", PhaseToolkit.PhaseOptionFrame, "TOPLEFT", 5, -5 - 80 * 3)
-
-
-	PhaseToolkit.nameTextEdit = CreateFrame("EDITBOX", nil, PhaseToolkit.moduleForPhaseSetNameFrame, "InputBoxTemplate")
-	PhaseToolkit.nameTextEdit:SetSize(130, 20)
-	PhaseToolkit.nameTextEdit:SetPoint("CENTER", PhaseToolkit.moduleForPhaseSetNameFrame, "CENTER", 2.5, 0)
-	PhaseToolkit.nameTextEdit:SetAutoFocus(false)
-	PhaseToolkit.nameTextEdit:SetScript("OnEnterPressed", function(self)
-		sendAddonCmd("phase rename " .. self:GetText(), nil)
-	end)
-
-	local labelForNameTextEdit = PhaseToolkit.moduleForPhaseSetNameFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForNameTextEdit:SetPoint("TOP", PhaseToolkit.moduleForPhaseSetNameFrame, "TOP", 0, -15)
-	labelForNameTextEdit:SetText(PhaseToolkit.CurrentLang["Phase Name"] or "Phase Name")
-end
-
---==== Description Module ====--
-function PhaseToolkit.createPhaseSetDescriptionFrame()
-	PhaseToolkit.moduleForPhaseSetDescriptionFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetSize(165, 80)
-	PhaseToolkit.moduleForPhaseSetDescriptionFrame:SetPoint("TOPRIGHT", PhaseToolkit.PhaseOptionFrame, "TOPRIGHT", -5, -5 - 80 * 3)
-
-	GlobalNPCCUSTOMISER_DescTextEdit = CreateFrame("EDITBOX", nil, PhaseToolkit.moduleForPhaseSetDescriptionFrame, "InputBoxTemplate")
-	GlobalNPCCUSTOMISER_DescTextEdit:SetSize(130, 20)
-	GlobalNPCCUSTOMISER_DescTextEdit:SetPoint("CENTER", PhaseToolkit.moduleForPhaseSetDescriptionFrame, "CENTER", 2.5, 0)
-	GlobalNPCCUSTOMISER_DescTextEdit:SetAutoFocus(false)
-	GlobalNPCCUSTOMISER_DescTextEdit:SetScript("OnEnterPressed", function(self)
-		sendAddonCmd("phase set description " .. self:GetText(), nil)
-	end)
-
-	local labelForNameTextEdit = PhaseToolkit.moduleForPhaseSetDescriptionFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForNameTextEdit:SetPoint("TOP", PhaseToolkit.moduleForPhaseSetDescriptionFrame, "TOP", 0, -15)
-	labelForNameTextEdit:SetText(PhaseToolkit.CurrentLang["Phase Description"] or "Phase Description")
-end
-
-function PhaseToolkit.createMotdFrame()
-	PhaseToolkit.moduleforMotdFrame = CreateFrame("Frame", nil, PhaseToolkit.PhaseOptionFrame, "BackdropTemplate")
-	PhaseToolkit.moduleforMotdFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-	PhaseToolkit.moduleforMotdFrame:SetSize(340, 120)
-	PhaseToolkit.moduleforMotdFrame:SetPoint("BOTTOM", PhaseToolkit.PhaseOptionFrame, "BOTTOM", 0, 5)
-
-	local textForMotd = ""
-	GlobalNPCCUSTOMISER_editBoxForMotd = CreateFrame("FRAME", "$parentEdit", PhaseToolkit.moduleforMotdFrame, "EpsilonInputScrollTemplate")
-	GlobalNPCCUSTOMISER_editBoxForMotd:SetPoint("BOTTOMLEFT", PhaseToolkit.moduleforMotdFrame, "BOTTOMLEFT", 5, 5)
-	GlobalNPCCUSTOMISER_editBoxForMotd:SetSize(330, 95)
-	GlobalNPCCUSTOMISER_editBoxForMotd.ScrollFrame.EditBox:SetScript("OnTextChanged", function(self)
-		textForMotd = self:GetText()
-	end)
-
-	local labelForMotdTextEdit = PhaseToolkit.moduleforMotdFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	labelForMotdTextEdit:SetPoint("TOP", PhaseToolkit.moduleforMotdFrame, "TOP", 0, -5)
-	labelForMotdTextEdit:SetText(PhaseToolkit.CurrentLang["Message of the day"] or "Message of the day")
-
-
-	local buttonToSendMotd = CreateFrame("Button", nil, PhaseToolkit.moduleforMotdFrame, "UIPanelButtonTemplate")
-	buttonToSendMotd:SetPoint("TOPRIGHT", PhaseToolkit.moduleforMotdFrame, "TOPRIGHT", 0, 0)
-	buttonToSendMotd:SetSize(80, 20)
-	buttonToSendMotd:SetText(PhaseToolkit.CurrentLang["SetMotd"] or "SetMotd")
-	buttonToSendMotd:SetScript("OnClick", function(self)
-		sendAddonCmd("phase set message " .. textForMotd, nil)
-	end
-	)
-end
-
--- -- -- -- -- -- -- -- -- -- -- --
---#endregion
--- -- -- -- -- -- -- -- -- -- -- --
-
--- -- -- -- -- -- -- -- -- -- -- --
---#region Npc Custom Options
--- -- -- -- -- -- -- -- -- -- -- --
-
-function PhaseToolkit.PromptForNPCName()
-	-- Create the EditBox
-	local editBox = CreateFrame("EditBox", nil, PhaseToolkit.CustomMainFrame, "InputBoxTemplate")
-	editBox:SetSize(180, 30)
-	editBox:SetPoint("BOTTOMRIGHT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, 0)
-	editBox:SetAutoFocus(true)
-
-	-- Input validation function
-	local function OnEnterPressed(self)
-		local npcName = self:GetText()
-		if npcName and npcName ~= "" then
-			-- Send the command
-			sendAddonCmd("phase forge npc name " .. npcName, nil)
-		end
-		self:ClearFocus()
-		self:Hide() -- Close the EditBox after input
-	end
-
-	-- Add the event for the "Enter" button
-	editBox:SetScript("OnEnterPressed", OnEnterPressed)
-	editBox:SetScript("OnEscapePressed", function()
-		editBox:ClearFocus()
-		editBox:Hide()
-	end)
-
-	-- Show the EditBox
-	editBox:Show()
-	editBox:SetFocus() -- Focus the EditBox so the user can start typing
-end
-
-function PhaseToolkit.PromptForNPCSubName()
-	-- Create the EditBox
-	local editBox = CreateFrame("EditBox", nil, PhaseToolkit.CustomMainFrame, "InputBoxTemplate")
-	editBox:SetSize(180, 30)
-	editBox:SetPoint("BOTTOMRIGHT", PhaseToolkit.CustomMainFrame, "TOPRIGHT", 0, -10)
-	editBox:SetAutoFocus(true)
-
-	-- Input validation function
-	local function OnEnterPressed(self)
-		local npcName = self:GetText()
-		if npcName and npcName ~= "" then
-			sendAddonCmd("phase forge npc subname " .. npcName, nil)
-		end
-		self:ClearFocus()
-		self:Hide() -- Close the EditBox after input
-	end
-
-	-- Add the event for the "Enter" button
-	editBox:SetScript("OnEnterPressed", OnEnterPressed)
-	editBox:SetScript("OnEscapePressed", function()
-		editBox:ClearFocus()
-		editBox:Hide()
-	end)
-
-	-- Show the EditBox
-	editBox:Show()
-	editBox:SetFocus() -- Focus the EditBox so the user can start typing
-end
 
 -- ============================== Frame for Custom ============================== --
-function PhaseToolkit.CreateCustomFrame()
-	if (PhaseToolkit.PhaseOptionFrame ~= nil) then
-		if (PhaseToolkit.PhaseOptionFrame:IsShown()) then
-			PhaseToolkit.PhaseOptionFrame:Hide()
-			PhaseToolkit.PhaseOptionFrame = nil
-		end
-	end
-	if (PhaseToolkit.TELEFrame ~= nil) then
-		if PhaseToolkit.TELEFrame:IsShown() then
-			PhaseToolkit.TELEFrame:Hide()
-		end
-	end
-	if (PhaseToolkit.PNJFrame ~= nil) then
-		if (PhaseToolkit.PNJFrame:IsShown()) then
-			PhaseToolkit.PNJFrame:Hide()
-		end
-	end
-
-	PhaseToolkit.CustomFrame = CreateFrame("Frame", "CustomFrame", PhaseToolkit.CustomMainFrame, "BackdropTemplate")
-	PhaseToolkit.CustomFrame:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		edgeSize = 16,
-		insets = { left = 5, right = 5, top = 5, bottom = 5 },
-	})
-
-	PhaseToolkit.CustomFrame:EnableMouse(true);
-
-	if (PhaseToolkit.NombreDeLigne ~= nil) then
-		PhaseToolkit.HauteurDispoCustomFrame = ((PhaseToolkit.NombreDeLigne - 1) * 50)
-		PhaseToolkit.CustomFrame:SetSize(562.5, PhaseToolkit.HauteurDispoCustomFrame)
-	else
-		PhaseToolkit.CustomFrame:SetSize(562.5, 630)
-	end
-	PhaseToolkit.CustomFrame:SetPoint("TOPLEFT", PhaseToolkit.CustomMainFrame, "BOTTOMLEFT", 0, 0)
-	PhaseToolkit.CustomFrame:Hide()
-end
-
-function PhaseToolkit.ToggleCustomFrame(Race)
-	if PhaseToolkit.CustomFrame ~= nil then
-		if PhaseToolkit.CustomFrame:IsShown() then
-			PhaseToolkit.CustomFrame:Hide()
-			PhaseToolkit.CustomFrame = nil
-			PhaseToolkit.CreateCustomFrame()
-			PhaseToolkit.CreateCustomGrid(PhaseToolkit.InfoCustom[Race][PhaseToolkit.SelectedGender])
-			PhaseToolkit.CustomFrame:Show()
-		else
-			PhaseToolkit.CustomFrame:Show()
-			PhaseToolkit.CreateCustomGrid(PhaseToolkit.InfoCustom[Race][PhaseToolkit.SelectedGender])
-		end
-	end
-end
-
-local frameWidth, frameHeight = 550, PhaseToolkit.HauteurDispoCustomFrame
-
-function PhaseToolkit.CreateCustomGrid(data)
-	local row = 0
-	local col = 0
-	local nbcol = 3
-	local rowHeight = 50
-	local spacing = 5
-	local totalItems = 0
-
-
-	for _, value in pairs(data) do
-		if value ~= 0 then
-			totalItems = totalItems + 1
-		end
-	end
-
-	local nbrow = math.ceil(totalItems / nbcol)
-
-	local frameHeight = nbrow * (rowHeight + spacing) - spacing
-	PhaseToolkit.HauteurDispoCustomFrame = frameHeight
-	if (totalItems < 1) then
-		PhaseToolkit.CustomFrame:SetHeight(105)
-		PhaseToolkit.CustomFrame:SetWidth(30)
-	else
-		PhaseToolkit.CustomFrame:SetHeight(frameHeight + 10)
-	end
-
-	for attribute, value in pairs(data) do
-		if value ~= 0 then
-			local frame = CreateFrame("Frame", "customframe" .. attribute, PhaseToolkit.CustomFrame, "BackdropTemplate")
-			frame:SetSize(frameWidth / nbcol - 5, rowHeight)
-			frame:SetPoint("TOPLEFT", PhaseToolkit.CustomFrame, "TOPLEFT", 6.5 + col * (frameWidth + spacing) / nbcol, -5 - row * (rowHeight + spacing))
-			frame:SetBackdrop({
-				bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-				edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-				edgeSize = 16,
-				insets = { left = 5, right = 5, top = 5, bottom = 5 },
-			})
-
-
-			local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-			text:SetPoint("BOTTOM", frame, "CENTER", 0, 5)
-			text:SetText(PhaseToolkit.CurrentLang[attribute] or attribute)
-			text:SetFont("fonts/arialn.ttf", 15)
-
-
-
-			local AttributeValueEditBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-			AttributeValueEditBox:SetSize(30, 30)
-			AttributeValueEditBox:SetPoint("TOP", frame, "CENTER", -15, 10)
-			AttributeValueEditBox:SetNumeric(true)
-			AttributeValueEditBox:SetMaxLetters(2)
-			AttributeValueEditBox:SetAutoFocus(false)
-			AttributeValueEditBox:SetText(PhaseToolkit.GeneralStat[attribute])
-
-			local MaxValueOfAttributeLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-			MaxValueOfAttributeLabel:SetText(" / " .. value)
-			MaxValueOfAttributeLabel:SetPoint("LEFT", AttributeValueEditBox, "RIGHT", 0, 0)
-
-			AttributeValueEditBox:SetScript("OnEscapePressed", function()
-				AttributeValueEditBox:SetAutoFocus(false)
-				AttributeValueEditBox:ClearFocus()
-			end)
-
-			AttributeValueEditBox:SetScript("OnEnterPressed", function()
-				if AttributeValueEditBox:GetText() ~= "" then
-					if (AttributeValueEditBox:GetNumber() > value) then
-						AttributeValueEditBox:SetNumber(value)
-					end
-					if (AttributeValueEditBox:GetNumber() < 1) then
-						AttributeValueEditBox:SetNumber(1)
-					end
-					PhaseToolkit.GeneralStat[attribute] = AttributeValueEditBox:GetNumber()
-
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-					AttributeValueEditBox:ClearFocus()
-				end
-			end)
-
-			local randomValueButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-			randomValueButton:SetSize(20, 20)
-			randomValueButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -7, -7)
-			randomValueButton.icon = randomValueButton:CreateTexture(nil, "OVERLAY")
-			randomValueButton.icon:SetTexture("Interface\\Icons\\inv_misc_dice_02")
-			randomValueButton.icon:SetAllPoints()
-			randomValueButton:SetScript("OnClick", function()
-				local randomNumber = math.random(1, value)
-				PhaseToolkit.GeneralStat[attribute] = randomNumber
-				sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-				AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
-				return
-			end)
-
-			local buttonMoins = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-			buttonMoins:SetSize(18, 18)
-			buttonMoins:SetPoint("RIGHT", AttributeValueEditBox, "LEFT", -7.5, 0)
-			buttonMoins.icon = buttonMoins:CreateTexture(nil, "OVERLAY")
-			buttonMoins.icon:SetTexture("Interface\\Icons\\MISC_ARROWLEFT")
-			buttonMoins.icon:SetAllPoints()
-			buttonMoins:SetScript("OnClick", function()
-				if (PhaseToolkit.GeneralStat[attribute] == 1) then
-					-- if we're at 1 and do -1 we reach the max
-					PhaseToolkit.GeneralStat[attribute] = value
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
-					return
-				end
-				if PhaseToolkit.GeneralStat[attribute] - 1 >= 1 then
-					PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] - 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
-					return
-				end
-			end)
-
-
-			local buttonPlus = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-			buttonPlus:SetSize(18, 18)
-			buttonPlus:SetPoint("LEFT", MaxValueOfAttributeLabel, "RIGHT", 7.5, 0)
-			buttonPlus.icon = buttonPlus:CreateTexture(nil, "OVERLAY")
-			buttonPlus.icon:SetTexture("Interface\\Icons\\MISC_ARROWRIGHT")
-			buttonPlus.icon:SetAllPoints()
-			buttonPlus:SetScript("OnClick", function()
-				if (PhaseToolkit.GeneralStat[attribute] == value) then
-					-- si on est a 1 et qu'on fais -1 on arrive au max
-					PhaseToolkit.GeneralStat[attribute] = 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
-					return
-				end
-				if PhaseToolkit.GeneralStat[attribute] + 1 <= value then
-					PhaseToolkit.GeneralStat[attribute] = PhaseToolkit.GeneralStat[attribute] + 1
-					sendAddonCmd("phase forge npc outfit custom " .. attribute .. " " .. PhaseToolkit.GeneralStat[attribute], nil)
-					AttributeValueEditBox:SetNumber(PhaseToolkit.GeneralStat[attribute])
-					return
-				end
-			end)
-
-			col = col + 1
-			if col >= nbcol then
-				col = 0
-				row = row + 1
-			end
-		end
-	end
-end
 
 SLASH_PTK1 = "/phasetoolkit"
 SLASH_PTK2 = "/ptk"
@@ -6818,12 +13017,13 @@ function PhaseToolkit.parseForDisplayId(isCommandSuccessful, repliesList)
 		if (displayId ~= "" and isKeyInTable(displayId)) then
 			local identity = PhaseToolkit.infoPerDisplay[displayId]
 			PhaseToolkit.SelectedNpcInfo = identity
-			PhaseToolkit.SelectedRace = PhaseToolkit.Races[identity.race]
+			PhaseToolkit.SelectedRace = getRaceDataFromRaceName(identity.race)
 			PhaseToolkit.SelectedGender = identity.sexe
-			PhaseToolkit.ShowRaceDropDown(PhaseToolkit.RaceDropDown)
-			PhaseToolkit.ShowGenderDropDown(PhaseToolkit.GenreDropDown)
-			if (PhaseToolkit.CustomFrame ~= nil and PhaseToolkit.CustomFrame:IsShown()) then
-				PhaseToolkit.ToggleCustomFrame(identity.race)
+			--we somehow need to update the UI
+			if PhaseToolkit.SelectedGender == "male" then
+				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoMaleAnimation:Play()
+			else
+				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoFemaleAnimation:Play()
 			end
 		end
 	end
@@ -6837,13 +13037,7 @@ end
 --#region Category Common
 -- -- -- -- -- -- -- -- -- -- -- --
 
-function PhaseToolkit.CompressForUpload(categoryList)
-	local compressedValue=""
-	compressedValue = AceSerializer:Serialize(categoryList)
-	compressedValue= LibDeflate:CompressDeflate(compressedValue, {level = 9})
-	compressedValue = LibDeflate:EncodeForWoWChatChannel(compressedValue)
-	return compressedValue;
-end
+
 
 -- -- -- -- -- -- -- -- -- -- -- --
 --#endregion
@@ -6851,83 +13045,6 @@ end
 -- -- -- -- -- -- -- -- -- -- -- --
 --#region Category System NPC
 -- -- -- -- -- -- -- -- -- -- -- --
-
-function PhaseToolkit.CreateNewNpcCategory(name,funcToCall)
-    -- Fetch the last max ID from the server
-    EpsilonLib.PhaseAddonData.Get(PTK_LAST_MAX_ID_CATEGORY_NPC, function(data)
-        local lastMaxId = tonumber(data) or 0
-        local newCategoryId = lastMaxId + 1
-
-        -- Create the new category
-        local newCategory = {
-            id = newCategoryId,
-            name = name,
-            members = {}
-        }
-
-        -- Add the new category to the local category list
-        table.insert(PhaseToolkit.NPCcategoryList, newCategory)
-
-        -- Update the server with the new max ID
-        EpsilonLib.PhaseAddonData.Set(PTK_LAST_MAX_ID_CATEGORY_NPC, tostring(newCategoryId))
-		PhaseToolkit.saveNpcCategoryDataToServer()
-		funcToCall()
-    end)
-end
-
-function PhaseToolkit.getNpcCategoryFromPhaseData(functionToCall)
-	EpsilonLib.PhaseAddonData.Get(PTK_NPC_CATEGORY_LIST, function(data)
-		if data then
-			local decoded = LibDeflate:DecodeForWoWChatChannel(data)
-			if decoded then
-				local decompressed = LibDeflate:DecompressDeflate(decoded)
-				if decompressed then
-					local success, result = AceSerializer:Deserialize(decompressed)
-					if success then
-						PhaseToolkit.NPCcategoryList = result
-						functionToCall()
-					else
-						print("An error occured or no NPC category is saved to Phase")
-						PhaseToolkit.NPCcategoryList = {}
-					end
-				else
-					print("An error occured or no NPC category is saved to Phase")
-					PhaseToolkit.NPCcategoryList = {}
-				end
-			else
-				print("An error occured or no NPC category is saved to Phase")
-				PhaseToolkit.NPCcategoryList = {}
-			end
-		else
-			PhaseToolkit.NPCcategoryList = {}
-		end
-
-		PhaseToolkit.categoryPanelNPC:Hide()
-		PhaseToolkit.categoryPanelNPC = nil
-		for i = 1, 7 do
-            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
-            if categoryFrame then
-                categoryFrame:Hide()
-                _G["PTK_CATEGORY_FRAME"..i] = nil
-            end
-        end
-		PhaseToolkit.openNpcCategoryPanel()
-
-	end)
-
-end
-
-function PhaseToolkit.saveNpcCategoryDataToServer()
-	local serializedData = PhaseToolkit.CompressForUpload(PhaseToolkit.NPCcategoryList)
-	EpsilonLib.PhaseAddonData.Set(PTK_NPC_CATEGORY_LIST, serializedData, function(success)
-		if success then
-			print("Category data successfully saved to the server.")
-		else
-			print("Failed to save category data to the server.")
-		end
-	end)
-end
-
 function PhaseToolkit.resetNPCFrame()
 -- Reset editing state when panel is closed
 	PhaseToolkit.NPCselectedCategory = nil
@@ -7365,7 +13482,6 @@ function PhaseToolkit.getTeleCategoryFromPhaseData(functionToCall)
 					local success, result = AceSerializer:Deserialize(decompressed)
 					if success then
 						PhaseToolkit.TELEcategoryList = result
-						functionToCall()
 					else
 						print("An error occured or no Tele category is saved to Phase")
 						PhaseToolkit.TELEcategoryList = {}
@@ -7382,16 +13498,9 @@ function PhaseToolkit.getTeleCategoryFromPhaseData(functionToCall)
 			PhaseToolkit.TELEcategoryList = {}
 		end
 
-		PhaseToolkit.categoryPanelTELE:Hide()
-		PhaseToolkit.categoryPanelTELE = nil
-		for i = 1, 7 do
-            local categoryFrame = _G["PTK_CATEGORY_FRAME"..i]
-            if categoryFrame then
-                categoryFrame:Hide()
-                _G["PTK_CATEGORY_FRAME"..i] = nil
-            end
-        end
-		PhaseToolkit.openTeleCategoryPanel()
+		if functionToCall then
+			functionToCall()
+		end
 	end)
 end
 
@@ -7849,14 +13958,6 @@ PhaseToolkit.NPCCustomiserMainFrame:SetScript("OnEvent", function(self, event, a
 	if event == "ADDON_LOADED" and arg1 == addonName then
 		if PhaseToolKitConfig == nil then
 			PhaseToolKitConfig = {}
-
-			--[[ -- Moved below to dynamic loading
-			PhaseToolKitConfig["ModeFR"] = false
-			PhaseToolKitConfig["itemsPerPageNPC"] = 15
-			PhaseToolKitConfig["itemsPerPageTELE"] = 15
-			PhaseToolKitConfig["CurrentLang"] = PhaseToolkitPanel.getBaseLang()
-			PhaseToolKitConfig["AutoRefreshNPC"] = false
-			--]]
 		end
 
 		-- Dynamic default loading so that when new settings are added, they are still added at the default value instead of nil
@@ -7909,6 +14010,34 @@ StaticPopupDialogs["CONFIRM_DELETE_CATEGORY_NPC"] = {
     preferredIndex = 3,
 }
 
+--Static popup for confirming deletion of a NPC
+StaticPopupDialogs["CONFIRM_DELETE_NPC"] = {
+	text = "Are you sure you want to delete this NPC?",
+	button1 = "Yes",
+	button2 = "No",
+	OnAccept = function(self, data)
+		local npcId = data and (data.npcId or data.pnjId)
+		if not npcId then
+			return
+		end
+
+		sendAddonCmd("phase forge npc delete " .. npcId, nil, false)
+		PhaseToolkit.RemoveCreatureById(PhaseToolkit.creatureList, npcId)
+
+		if PhaseToolkit.context
+			and PhaseToolkit.context.id == "NPCLIST"
+			and PhaseToolkit.DeployingFrame
+			and PhaseToolkit.DeployingFrame.NpcListScrollFrame
+		then
+			PhaseToolkit.RefreshNpcListView()
+		end
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
 StaticPopupDialogs["CONFIRM_DELETE_CATEGORY_TELE"] = {
     text = "Are you sure you want to delete this category ?",
     button1 = "Yes",
@@ -7935,17 +14064,24 @@ StaticPopupDialogs["CONFIRM_DELETE_TELE"] = {
 	button1 = "Yes",
 	button2 = "No",
 	OnAccept = function(self, data)
-    -- Use the correct field: teleId
-    sendAddonCmd("phase tele delete " .. data.teleId, nil, false)
+		sendAddonCmd("phase tele delete " .. data.teleId, nil, false)
+		PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, data.teleId)
 
-    PhaseToolkit.RemoveStringFromTable(PhaseToolkit.teleList, data.teleId)
+		if PhaseToolkit.context
+			and PhaseToolkit.context.id == "TELELIST"
+			and PhaseToolkit.DeployingFrame
+			and PhaseToolkit.DeployingFrame.TeleListScrollFrame
+		then
+			PhaseToolkit.RefreshTeleListView(true)
+			return
+		end
 
-    if (PhaseToolkit.IsCurrentlyFilteringTeleViaText or PhaseToolkit.IsCurrentlyFilteringTeleViaCategory) then
-        PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
-    else
-        PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
-    end
-end,
+		if (PhaseToolkit.IsCurrentlyFilteringTeleViaText or PhaseToolkit.IsCurrentlyFilteringTeleViaCategory) then
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.filteredTeleList)
+		else
+			PhaseToolkit.TeleUpdatePagination(PhaseToolkit.teleList)
+		end
+	end,
 	timeout = 0,
 	whileDead = true,
 	hideOnEscape = true,
@@ -8003,4 +14139,3 @@ StaticPopupDialogs["OPEN_OUTFIT_PASTE_POPUP"]={
 	timeout=0,
 	hideOnEscape=true,
 }
-

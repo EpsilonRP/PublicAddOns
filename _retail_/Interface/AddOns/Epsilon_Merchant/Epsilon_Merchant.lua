@@ -91,19 +91,25 @@ local function continueWithTargetNPCGUID(callback, unitID)
 
 	if id > 5000000 then
 
-		SendCommand("npc info", function(success, returnMsgs)
-			if not success then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (Failed Command.)") end
-			local msg = returnMsgs[1]
-			if not msg then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No Message)") end
-			msg = clearMsg(msg)
+		C_Timer.After(0, function()
+			C_Timer.After(0, function()
 
-			local realGuid = tonumber(strmatch(msg, npc_info_str))
-			if realGuid then
-				--print('continueWithTargetNPCGUID_realID', realGuid)
-				callback(realGuid)
-			else
-				PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No RealGUID)");
-			end
+				SendCommand("npc info", function(success, returnMsgs)
+					if not success then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (Failed Command.)") end
+					local msg = returnMsgs[1]
+					if not msg then return PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No Message)") end
+					msg = clearMsg(msg)
+
+					local realGuid = tonumber(strmatch(msg, npc_info_str))
+					if realGuid then
+						--print('continueWithTargetNPCGUID_realID', realGuid)
+						callback(realGuid)
+					else
+						PrintMessage("SYSTEM", "Could not retrieve NPC info. Please try again. (No RealGUID)");
+					end
+				end, false)
+
+			end)
 		end)
 
 	else

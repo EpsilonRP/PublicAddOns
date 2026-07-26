@@ -1,34 +1,40 @@
 <Bindings>
 	<Binding category="Object Mover" name="Move Forward" header="OBJECTMANIP">
-			CheckIfValid(OPLengthBox, true, OPForward)
+			OBJECT_TOOLBOX_API.MoveObject("forward")
 	</Binding>
 	<Binding category="Object Mover" name="Move Backward">
-			CheckIfValid(OPLengthBox, true, OPBackward)
+			OBJECT_TOOLBOX_API.MoveObject("back")
 	</Binding>
 	<Binding category="Object Mover" name="Move Left">
-			CheckIfValid(OPWidthBox, true, OPLeft)
+			OBJECT_TOOLBOX_API.MoveObject("left")
 	</Binding>
 	<Binding category="Object Mover" name="Move Right">
-			CheckIfValid(OPWidthBox, true, OPRight)
+			OBJECT_TOOLBOX_API.MoveObject("right")
 	</Binding>
 	<Binding category="Object Mover" name="Move Up">
-			CheckIfValid(OPHeightBox, true, OPUp)
+			OBJECT_TOOLBOX_API.MoveObject("up")
 	</Binding>
 	<Binding category="Object Mover" name="Move Down">
-			CheckIfValid(OPHeightBox, true, OPDown)
+			OBJECT_TOOLBOX_API.MoveObject("down")
 	</Binding>
 	<Binding category="Object Mover" name="Get Object ID">
-			OPGetObject()
+			OBJECT_TOOLBOX_API.GetObjectID()
 	</Binding>
+	<!--
 	<Binding category="Object Mover" name="Toggle Scale">
 			if OPScaleObjectToggle:IsEnabled() then OPScaleObjectToggle:SetChecked(not OPScaleObjectToggle:GetChecked()) end
 	</Binding>
+	-->
 	<Binding category="Object Mover" name="Teleport to Object">
-			OPTeletoObject()
+			OBJECT_TOOLBOX_API.Cmd("gobject go")
 	</Binding>
 	<Binding category="Object Mover" name="Spawn Object">
-			OPSpawn()
+			OBJECT_TOOLBOX_API.SpawnGob(nil, "LeftButton")
 	</Binding>
+	<Binding category="Object Mover" name="Spawn Object with Scale/Rot/Color">
+			OBJECT_TOOLBOX_API.SpawnGob(nil, "RightButton")
+	</Binding>
+	<!--
 	<Binding category="Object Mover" name="Toggle Move Player">
 		if not OPMovePlayerInstead:IsEnabled() then return; end
 			if OPMovePlayerInstead:GetChecked() == true then
@@ -67,4 +73,5 @@
 	<Binding category="Object Mover" name="Show ObjectMover">
 			SlashCmdList.OM_SHOWCLOSE()
 	</Binding>
+	-->
 </Bindings>

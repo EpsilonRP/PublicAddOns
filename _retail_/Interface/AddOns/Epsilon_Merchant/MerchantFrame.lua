@@ -1015,7 +1015,7 @@ end
 
 local function add_vendor_callback(id)
 	if not tonumber(id) then
-		continueWithTargetNPCGUID(add_vendor_callback)
+		return continueWithTargetNPCGUID(add_vendor_callback)
 	end
 	id = tostring(id) -- why the fuck is this using stringy ID? idk- but thats how it be
 

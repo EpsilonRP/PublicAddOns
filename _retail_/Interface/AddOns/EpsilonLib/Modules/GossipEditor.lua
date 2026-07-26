@@ -91,6 +91,33 @@ local function splitIntoBlocks(text)
 			break
 		end
 
+		local splitAt = blockEnd
+
+		-- Walk back until splitAt is safely inside a word interior:
+		-- the char at splitAt must not be a space,
+		-- AND the char at splitAt+1 must not be a space (i.e. not the last char of a word).
+		while splitAt > pos do
+			local c     = text:sub(splitAt, splitAt)
+			local cNext = text:sub(splitAt + 1, splitAt + 1)
+			if c ~= " " and cNext ~= " " then
+				break
+			end
+			splitAt = splitAt - 1
+		end
+
+		if splitAt == pos then
+			-- No safe interior found, force-split.
+			blocks[#blocks + 1] = text:sub(pos, blockEnd)
+			pos = blockEnd + 1
+		else
+			blocks[#blocks + 1] = text:sub(pos, splitAt)
+
+			-- Next block starts at splitAt+1, which is inside the same word.
+			-- No skipping chars — we don't want to drop anything.
+			pos = splitAt + 1
+		end
+
+		--[[
 		-- Walk backwards from blockEnd to find a non-space boundary.
 		local splitAt = blockEnd
 		while splitAt > pos and text:sub(splitAt, splitAt) == " " do
@@ -112,6 +139,7 @@ local function splitIntoBlocks(text)
 			nextPos = nextPos + 1
 		end
 		pos = nextPos
+		--]]
 	end
 
 	return blocks
@@ -730,7 +758,7 @@ function GossipEditor:LoadGreeting()
 			end
 		end
 
-		local fullText = table.concat(parts, " "):gsub("$b", "\r")
+		local fullText = table.concat(parts, ""):gsub("$b", "\r")
 		editBox:SetText(fullText)
 		editBox:SetEnabled(true)
 		scrollFrame.CharCount:SetText(

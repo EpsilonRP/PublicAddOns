@@ -235,7 +235,8 @@ end
 ---@param button BUTTON|Button
 ---@param path string
 ---@param useAtlas? boolean
-function _misc.SetupCoherentButtonTextures(button, path, useAtlas)
+---@param colorOverride? ColorMixin
+function _misc.SetupCoherentButtonTextures(button, path, useAtlas, colorOverride)
 	if useAtlas then
 		button:SetNormalAtlas(path)
 		button:SetHighlightAtlas(path, "ADD")
@@ -255,9 +256,17 @@ function _misc.SetupCoherentButtonTextures(button, path, useAtlas)
 	button.HighlightTexture:SetAlpha(0.33)
 
 	setHighlightToOffsetWithPushed(button)
+
+	if colorOverride then
+		button.NormalTexture:SetVertexColor(colorOverride:GetRGBA())
+		button.PushedTexture:SetVertexColor(colorOverride:GetRGBA())
+	end
+
 	button.DisabledTexture:SetDesaturated(true)
 	button.DisabledTexture:SetVertexColor(.6, .6, .6)
 	setTextureOffset(button.PushedTexture, 1, -1)
+
+	return button
 end
 
 function _misc.AdjustDevTex(addonName, ...)

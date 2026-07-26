@@ -13,4 +13,6 @@
 
 	<Script file="MiscUtils.lua"/>
 	<Script file="GenericDialogs.lua"/>
+	
+	<Script file="ChainWrap.lua"/>
 </Ui>

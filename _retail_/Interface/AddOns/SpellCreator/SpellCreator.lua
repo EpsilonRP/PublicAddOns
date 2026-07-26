@@ -784,7 +784,7 @@ saveSpell = function(overwriteBypass, fromPhaseVaultID, manualData, sendLearnedM
 		Attic.setEditCommId(Attic.getInfo().commID)
 		SCForgeMainFrame.SaveSpellButton:UpdateIfValid()
 		if sendLearnedMessage then
-			print(ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(("You have learned a new ArcSpell: %s"):format(ChatLink.generateSpellLink(newSpellData, "PERSONAL"))))
+			SendSystemMessage(ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(("You have learned a new ArcSpell: %s"):format(ChatLink.generateSpellLink(newSpellData, "PERSONAL"))))
 		elseif wasOverwritten then
 			cprint("Over-wrote spell with name: " .. newSpellData.fullName .. ". Use command: '/sf " .. newSpellData.commID .. "' to cast it! (" .. #newSpellData.actions .. " actions).")
 		else

@@ -46,6 +46,12 @@ local MSG_MULTI_LAST                  = multiMessageData.MSG_MULTI_LAST
 local MAX_CHARS_PER_SEGMENT           = multiMessageData.MAX_CHARS_PER_SEGMENT
 
 local _sparkTypesMap                  = CreateSparkUI.sparkTypesMap
+local TYPE_STANDARD                   = _sparkTypesMap["Standard"]
+local TYPE_MULTI                      = _sparkTypesMap["Multi"]
+local TYPE_AUTO                       = _sparkTypesMap["Auto"]
+local TYPE_EMOTE                      = _sparkTypesMap["Emote"]
+local TYPE_CHAT                       = _sparkTypesMap["Chat"]
+local TYPE_JUMP                       = _sparkTypesMap["Jump"]
 
 -------------------------------
 --#region || Shared Funcs
@@ -73,16 +79,22 @@ local function isSparkInRange(sparkData, x, y, z)
 	end -- get this from player pos if we did not pass it in
 
 	local v = sparkData
-	local commID, sX, sY, sZ, sR, barTex, colorHex = v[1], v[2], v[3], v[4], v[5], v[6], v[7]
+	local commID, sX, sY, sZ, sR = v[1], v[2], v[3], v[4], v[5]
 
-	if commID and sX and sY and sZ and sR then        -- spark has all conditions we need
-		if getDistanceBetweenPoints(sX, sY, x, y) < sR then -- is in XY range
-			if getDistanceBetweenPoints(z, sZ) <= sR then -- In in Z range
-				return true
-			end
-		end
+	if not (commID and sX and sY and sZ and sR) then
+		return false
 	end
-	return false -- did not meet all requirements to hit true, so false
+
+	-- we have the data, continue
+	local dx = sX - x
+	local dy = sY - y
+	local r2 = sR * sR
+
+	if dx * dx + dy * dy >= r2 then
+		return false
+	end
+
+	return math.abs(z - sZ) <= sR
 end
 
 ---Triggers a Spark! Does not parse any form of checks regarding CD, distance, or conditions.
@@ -566,6 +578,7 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 	local shouldHideMultiSparkBar = true
 	local shouldShowHiddenSparkIcon = false
 	local x, y, z, mapID = getPlayerPositionData()
+	local phaseId = tonumber(C_Epsilon.GetPhaseId())
 
 	local phaseSpellsOnThisMap = phaseSparkTriggers[mapID]
 	if phaseSpellsOnThisMap then
@@ -575,7 +588,7 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 			local _sparkOptions = sparkData[8]
 			local _sparkType = sparkData[9]
 
-			if not _sparkType or _sparkType == _sparkTypesMap["Standard"] then -- no type = legacy spark, spark type 1 = single spark; both should show
+			if not _sparkType or _sparkType == TYPE_STANDARD then -- no type = legacy spark, spark type 1 = single spark; both should show
 				if commID and sX and sY and sZ and sR and barTex then
 					if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
 						shouldHideCastbar = not showSparkPopup(commID, barTex, i, colorHex, sparkData)
@@ -585,18 +598,18 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 						string.format("Invalid Spark Trigger (Map: %s | Index: %s) - You can manually remove it using %s", mapID, i,
 							Tooltip.genContrastText(string.format("/sfdebug removeTriggerByMapAndIndex %s %s", mapID, i))))
 				end
-			elseif _sparkTypesMap["Multi"] and _sparkType == _sparkTypesMap["Multi"] then
+			elseif TYPE_MULTI and _sparkType == TYPE_MULTI then
 				-- handle showing a multi spark!
 				if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
 					local commIDs = ns.Utils.Data.strsplitTrimTable(",", commID, 4)
 
 					shouldHideMultiSparkBar = not showMultiSpark(commIDs, barTex, i, colorHex, sparkData)
 				end
-			elseif _sparkTypesMap["Auto"] and _sparkType == _sparkTypesMap["Auto"] then
+			elseif TYPE_AUTO and _sparkType == TYPE_AUTO then
 				-- auto spark handler
+				local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
 				if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
 					-- was in range, check if it was in the tracker before casting
-					local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
 
 					shouldShowHiddenSparkIcon = _sparkOptions.showHSI
 					if shouldShowHiddenSparkIcon == nil then shouldShowHiddenSparkIcon = true end -- default to true if not set
@@ -605,7 +618,7 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 						-- spark was not already in range, continue
 						autoSparksInRange[sparkCDNameOverride] = true -- track it
 						if commID ~= "" then        -- explicitly block calling if the commID is blank. This is a niche, but technically supported use.
-							if not noNotificationPhases[tonumber(C_Epsilon.GetPhaseId())] then
+							if not noNotificationPhases[phaseId] then
 								SendSystemMessage(Constants.ADDON_COLORS.ADDON_COLOR:WrapTextInColorCode("Arcanum Auto Spark Triggered: ") ..
 									Constants.ADDON_COLORS.LIGHT_PURPLE:WrapTextInColorCode(commID))
 							end
@@ -614,7 +627,6 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 					end
 				else
 					-- spark was not in range, or conditions not met, remove it from the tracker if it was in the tracker
-					local sparkCDNameOverride = genSparkCDNameOverride(commID, sX, sY, sZ)
 					if autoSparksInRange[sparkCDNameOverride] then
 						-- Spark was previously in range; check if there's a 'cast on leave' as well.
 						if _sparkOptions.uncast then
@@ -625,7 +637,7 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 					end
 					autoSparksInRange[sparkCDNameOverride] = nil
 				end
-			elseif isSparkType(_sparkType, _sparkTypesMap["Emote"], _sparkTypesMap["Chat"], _sparkTypesMap["Jump"]) then
+			elseif isSparkType(_sparkType, TYPE_EMOTE, TYPE_CHAT, TYPE_JUMP) then
 				if _sparkOptions.showHSI then
 					if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then
 						shouldShowHiddenSparkIcon = true
@@ -679,7 +691,7 @@ local isGettingPopupData
 local function cleanSparkData(sparkData)
 	local sparkOptions = sparkData[8]
 	local sparkType = sparkData[9]
-	if isSparkType(sparkType, _sparkTypesMap["Standard"], _sparkTypesMap["Multi"]) then
+	if isSparkType(sparkType, TYPE_STANDARD, TYPE_MULTI) then
 		-- visual sparks, clean any 'invisible' only spark data
 		sparkOptions.showHSI = nil
 		sparkOptions.chat = nil
@@ -952,7 +964,7 @@ end
 -- Emote
 local function emotePredicate(sparkData, token)
 	local sparkType = sparkData[9]
-	if isSparkType(sparkType, _sparkTypesMap["Emote"]) then
+	if isSparkType(sparkType, TYPE_EMOTE) then
 		local sparkOptions = sparkData[8]
 		if sparkOptions and sparkOptions.emote and token == string.upper(sparkOptions.emote) then
 			return true
@@ -974,7 +986,7 @@ local allowedChats = {
 
 local function chatPredicate(sparkData, msg)
 	local sparkType = sparkData[9]
-	if isSparkType(sparkType, _sparkTypesMap["Chat"]) then
+	if isSparkType(sparkType, TYPE_CHAT) then
 		local sparkOptions = sparkData[8] --[[@as SparkTriggerDataOptions]]
 
 		if Misspelled then
@@ -1001,7 +1013,7 @@ hooksecurefunc("SendChatMessage", onChat)
 -- Jump
 local function jumpPredicate(sparkData)
 	local sparkType = sparkData[9]
-	if isSparkType(sparkType, _sparkTypesMap["Jump"]) then
+	if isSparkType(sparkType, TYPE_JUMP) then
 		return true
 	end
 end
