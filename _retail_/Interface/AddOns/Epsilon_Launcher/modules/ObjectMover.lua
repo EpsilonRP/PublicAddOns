@@ -23,7 +23,7 @@ local function init()
 		local onClick = function(self, button)
 			if button == "RightButton" then
 				if IsShiftKeyDown() then
-					SlashCmdList.OM_SHOWCLOSE()
+					SlashCmdList.OM_SHOWCLOSE(true)
 				else
 					if not OPNewOptionsFrame:IsShown() then OPNewOptionsFrame:Show() else OPNewOptionsFrame:Hide() end
 				end
