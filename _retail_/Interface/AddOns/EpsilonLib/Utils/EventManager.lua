@@ -14,6 +14,7 @@ local _events = {}
 
 local addonLoadedAlreadyRan
 eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 local function safeRegEvent(event)
 	return pcall(eventFrame.RegisterEvent, eventFrame, event)
@@ -151,7 +152,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 				C_Timer.After(data.delay, function()
 					EventManager:Fire(data.event, modifiedReturns)
 				end)
-				return
+				--return -- disable because this is consuming PLAYER_ENTERING_WORLD when you actually want it
 			end
 			EventManager:Fire(data.event, modifiedReturns)
 		end

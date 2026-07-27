@@ -99,7 +99,7 @@
 		</Size>
 		<Layers>
 			<Layer level="ARTWORK">
-				<Texture parentKey="Background" file="Interface\AddOns\ObjectMover-dev\media\ObjectMover_Button_Red">
+				<Texture parentKey="Background" file="Interface\AddOns\ObjectMover\media\ObjectMover_Button_Red">
 					<Anchors>
 						<Anchor point="TOPLEFT" x="0" y="0"/>
 						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" x="0" y="-32"/>

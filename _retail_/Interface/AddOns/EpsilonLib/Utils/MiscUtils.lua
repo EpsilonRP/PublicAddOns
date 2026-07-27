@@ -35,7 +35,7 @@ local function convertDevFilePath(addonName, filePath)
 	local baseAddOnName = addonName:gsub("%-dev", "")
 
 	filePath = filePath:gsub("%-dev", "")
-	filePath = filePath:gsub(baseAddOnName, addonName)
+	filePath = filePath:gsub(baseAddOnName, addonName, 1)
 	return filePath
 end
 

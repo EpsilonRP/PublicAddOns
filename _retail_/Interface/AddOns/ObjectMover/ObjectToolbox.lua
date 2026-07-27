@@ -314,7 +314,7 @@ local function colormidpoint(color1, color2)
 	local g = (color1.g + color2.g) / 2
 	local b = (color1.b + color2.b) / 2
 
-	print(r, g, b)
+	--print(r, g, b)
 
 	return CreateColor(r, g, b, 1)
 end
@@ -385,6 +385,7 @@ local presetKeyKeyNameMap = {
 local illegalPresetNames = {
 	["__new"] = true,
 	["__close"] = true,
+	["__reset"] = true,
 }
 
 local function getPresetListAndOrder(key)
@@ -418,7 +419,7 @@ local function savePreset(keyKey, contentKey, realKey, force, data)
 			table.insert(OPMasterTable[keyKey], realKey)
 		end
 		OPMasterTable[contentKey][realKey] = data
-		sysMsg("Saved New %s Preset: %s", friendlyKeyKeyName, realKey)
+		sysMsg(string.format("Saved New %s Preset: %s", friendlyKeyKeyName, realKey))
 	end
 end
 
@@ -434,7 +435,7 @@ local function deletePreset(keyKey, contentKey, realKey, force)
 		--table.insert(OPMasterTable[keyKey], realKey)
 		tDeleteItem(OPMasterTable[keyKey], realKey)
 		OPMasterTable[contentKey][realKey] = nil
-		print("Deleted OM2 Preset: " .. realKey)
+		sysMsg(string.format("Deleted %s Preset: %s", friendlyKeyKeyName, realKey))
 	end
 end
 
@@ -489,6 +490,7 @@ local numPullouts = 1
 local function genPulloutButton(parent, name, width, height)
 	--local f = CreateFrame("Frame", "OTPullout" .. numPullouts, parent, "ObjectToolboxPulloutTemplate")
 	local f = CreateFrame("Frame", nil, parent, "ObjectToolboxPulloutTemplate")
+	EpsilonLib.Utils.Misc.AdjustDevTex(ADDON_NAME, f.Background)
 	numPullouts = numPullouts + 1
 	f._height = height + 32
 	f:SetSize(width, height + 32)
@@ -900,7 +902,7 @@ local function GenRotationSlider(parent, name, label, axis)
 			-- do rotate here // client side only, full set is on OnDragStop
 			local gob = EpsilonLib.GameObject:GetSelected()
 			if not gob then
-				print('no gob sel')
+				sysMsg('No Object Selected. Slider should be disabled?')
 				return
 			end
 			gob:Rotate(axis == "X" and value, axis == "Y" and value, axis == "Z" and value, true)
@@ -932,7 +934,12 @@ local function GenRotationSlider(parent, name, label, axis)
 	return slider
 end
 
-local function GenColorSlider(parent, color)
+local colMap = { -- hacky
+	Red = "r",
+	Green = "g",
+	Blue = "b",
+}
+local function GenColorSlider(parent, color, group)
 	local slider = CreateSimpleSlider(parent, color, 0, 100, 5, 100, 200, 14, color .. ":")
 	local colorObj = Colors["pastel_" .. color:lower()]
 	slider.Text:ClearAllPoints()
@@ -947,9 +954,21 @@ local function GenColorSlider(parent, color)
 	slider.High:SetText("100")
 	slider.Label = slider.High
 
+	slider._lastValue = nil
+
 	slider:SetScript("OnValueChanged", function(self, value)
+		if slider._lastValue == value then return end
 		self.Label:SetText(string.format("%d", value))
+
+		-- TODO: Need to smooth out how this interacts with the Color Selector Wheel
+		local info = group.GetColorInfo()
+		info[colMap[color]] = value
+		group.SetColorInfo(info, true)
+
 		invalidatePresetSelected()
+	end)
+	slider:SetScript("OnMouseUp", function(self)
+		slider._lastValue = nil
 	end)
 
 	return slider
@@ -2881,13 +2900,22 @@ function gobRotationControls:SetEnabledState(enabled)
 	gobRotateRedAxis:SetDesaturated(not enabled)
 end
 
-function gobRotationControls:SetRotationInfo(x, y, z)
+function gobRotationControls:SetRotationInfo(x, y, z, apply)
 	if x == "-0" then x = 0 end -- Fix for -0.0 showing up in the edit box
 	if y == "-0" then y = 0 end
 	if z == "-0" then z = 0 end
 	gobRotationControls.RotEditBox.X:SetText(x)
 	gobRotationControls.RotEditBox.Y:SetText(y)
 	gobRotationControls.RotEditBox.Z:SetText(z)
+
+	if apply then
+		local gob = EpsilonLib.GameObject:GetSelected()
+		if not gob then
+			sysMsg('No Object Selected. Cannot Apply Rotations.')
+			return
+		end
+		gob:Rotate(x, y, z)
+	end
 end
 
 function gobRotationControls:GetRotationInfo(presetFormat)
@@ -2901,7 +2929,7 @@ end
 
 local function rotPresetCallback(content)
 	if not content then return print("No Rot Preset Content Selected?") end
-	gobRotationControls:SetRotationInfo(content.RotX, content.RotY, content.RotZ)
+	gobRotationControls:SetRotationInfo(content.RotX, content.RotY, content.RotZ, true)
 	--f.DistanceControls.SetDimensions(content.Length, content.Width, content.Height, content.Scale)
 end
 local function rotSaveCollector()
@@ -3120,7 +3148,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		if a and not group.ASlider:IsDraggingThumb() then
 			if a <= 1 then a = a * 100 end -- stupid protection for if we pass it on 0-1 space
 			group.ABox:SetText(string.format("%.0f", a))
-			group.ASlider:SetValue(100 - a)
+			group.ASlider:SetValue(a)
 		end
 		if s and not group.SSlider:IsDraggingThumb() then
 			if s <= 1 then s = s * 100 end -- stupid protection for if we pass it on 0-1 space
@@ -3135,6 +3163,12 @@ local function CreateColorPickerControlGroup(parent, name)
 			group.ColorSelect:SetColorRGB(r, g, b)
 			group.ColorSelect.isUpdating = false
 		end
+
+		-- slider popouts
+		group.ColorSliders.Red:SetValue(r * 100)
+		group.ColorSliders.Green:SetValue(g * 100)
+		group.ColorSliders.Blue:SetValue(b * 100)
+
 		invalidatePresetSelected()
 	end
 	group.SetColorFields = SetColorFields
@@ -3252,10 +3286,12 @@ local function CreateColorPickerControlGroup(parent, name)
 	end
 
 	-- RGB Sliders, but these are tucked into our class color popout frame
+	group.ColorSliders = {}
 	for i, color in ipairs({ "Red", "Green", "Blue" }) do
-		local slider = GenColorSlider(colorSliderFrame, color)
+		local slider = GenColorSlider(colorSliderFrame, color, group)
 		local offsetY = ((i - 1) * 32)
 		slider:SetPoint("TOPLEFT", 12, -20 - offsetY)
+		group.ColorSliders[color] = slider
 	end
 
 	-- Alpha slider
@@ -3267,7 +3303,7 @@ local function CreateColorPickerControlGroup(parent, name)
 	alphaSlider:SetMinMaxValues(0, 100)
 	alphaSlider:SetValueStep(20)
 	alphaSlider:SetObeyStepOnDrag(true)
-	alphaSlider:SetValue(100)
+	alphaSlider:SetValue(0)
 	alphaSlider.Text:SetText("T")
 	alphaSlider.Text:SetPoint("BOTTOM", alphaSlider, "TOP", 0, -2)
 	alphaSlider.Text:SetFontObject("GameFontNormalTiny")
@@ -3278,9 +3314,21 @@ local function CreateColorPickerControlGroup(parent, name)
 	alphaSlider.Low:Hide()
 	alphaSlider.High:Hide()
 
+	local setValue = alphaSlider.SetValue
+	function alphaSlider:SetValue(value, ...)
+		value = 100 - value -- invert
+		setValue(self, value, ...)
+	end
+
+	local getValue = alphaSlider.GetValue
+	function alphaSlider:GetValue()
+		return 100 - getValue(alphaSlider)
+	end
+
 	alphaSlider:SetScript("OnValueChanged", function(self, val, userInput)
+		print(val)
 		if not userInput then return end
-		val = 100 - val -- inverse for the slider direction.. ugh
+		--val = 100 - val -- inverse for the slider direction.. ugh
 		group.ABox:SetText(100 - (val))
 
 		if self.lastVal and self.lastVal == val then
@@ -3355,7 +3403,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		local r = roundToStep(tonumber(hex:sub(1, 2), 16) / 255, 0.05)
 		local g = roundToStep(tonumber(hex:sub(3, 4), 16) / 255, 0.05)
 		local b = roundToStep(tonumber(hex:sub(5, 6), 16) / 255, 0.05)
-		local a = (#hex == 8 and tonumber(hex:sub(7, 8), 16) / 255) or (100 - alphaSlider:GetValue())
+		local a = (#hex == 8 and tonumber(hex:sub(7, 8), 16) / 255) or (alphaSlider:GetValue())
 
 		if a <= 1 then a = a * 100 end
 		cs:SetColorRGB(r, g, b)
@@ -3450,7 +3498,7 @@ local function CreateColorPickerControlGroup(parent, name)
 	local function colorPresetCallback(content)
 		if not content then return print("No Color Preset Content Selected?") end
 		group.SetColorInfo(content, true)
-		-- TODO: FIX THAT THIS IS USING THE VALUES *100 WTF
+		-- TODO: FIX THAT THIS IS USING THE VALUES *100 WTF -- i tthink fixed?
 		--invalidatePresetSelected() -- Don't save this one, colors change too much
 	end
 	local colorSaveLoadPresetButton = CreatePresetSaveLoadButton("Color", group, "TOPLEFT", group, nil, 6, 2, colorPresetCallback, group.GetColorInfo)
@@ -3608,11 +3656,6 @@ function f:SetObjectSelected(enabled, gob)
 	end
 end
 
-EpsilonLib.EventManager:Register("EPSILON_OBJ_UPDATE", function(self, event, source, gob)
-	local enabled = gob and true or false
-	f:SetObjectSelected(enabled, gob)
-end)
-
 --#endregion
 
 local function injectSettingsToOldOMSettingsMenu()
@@ -3678,38 +3721,50 @@ f:ResizeToFitChildren()
 maxVisibleHeight = f:GetHeight() + 0.01
 f:UpdateClamp(f:GetHeight())
 
-local function onAddonLoaded(_, event, addonName)
-	if addonName == ADDON_NAME then
-		-- this is us!
-		for k, v in ipairs(buttonUpdateMap) do
-			local button = v.button
-			local key = v.key
+--#region Event Management
 
-			local buttonType = button:GetObjectType()
-			local buttonTypeData = frameTypeMap[buttonType]
-			if not buttonTypeData then error(("The frame type %s is not supported in _setButtonToSavedOptionOnLoad yet. ADD SUPPORT!"):format(buttonType)) end
+local event_handlers = {
+	EPSILON_OBJ_UPDATE = function(self, event, source, gob)
+		local enabled = gob and true or false
+		f:SetObjectSelected(enabled, gob)
+	end,
+	ADDON_LOADED = function(_, event, addonName)
+		if addonName == ADDON_NAME then
+			-- this is us!
+			for k, v in ipairs(buttonUpdateMap) do
+				local button = v.button
+				local key = v.key
 
-			local value = OPMasterTable.Options[key]
-			if value ~= nil then -- only set if we actually had a saved value
-				button[buttonTypeData.set](button, value)
+				local buttonType = button:GetObjectType()
+				local buttonTypeData = frameTypeMap[buttonType]
+				if not buttonTypeData then error(("The frame type %s is not supported in _setButtonToSavedOptionOnLoad yet. ADD SUPPORT!"):format(buttonType)) end
+
+				local value = OPMasterTable.Options[key]
+				if value ~= nil then -- only set if we actually had a saved value
+					button[buttonTypeData.set](button, value)
+				end
 			end
-		end
 
-		injectSettingsToOldOMSettingsMenu()
+			injectSettingsToOldOMSettingsMenu()
 
-		-- update text on all getautobuttons
-		for btn, data in pairs(autoUpdateChecks) do
-			btn:RefreshText()
-		end
+			-- update text on all getautobuttons
+			for btn, data in pairs(autoUpdateChecks) do
+				btn:RefreshText()
+			end
 
-		if not OPMasterTable.Options["autoShow"] then
-			f:Hide()
+			if not OPMasterTable.Options["autoShow"] then
+				f:Hide()
+			end
+			EpsilonLib.EventManager:Remove(onAddonLoaded, "ADDON_LOADED")
 		end
-		EpsilonLib.EventManager:Remove(onAddonLoaded, "ADDON_LOADED")
 	end
+}
+
+for k, v in pairs(event_handlers) do
+	EpsilonLib.EventManager:Register(k, v)
 end
 
-EpsilonLib.EventManager:Register("ADDON_LOADED", onAddonLoaded)
+--#endregion
 
 -- More Tools Module Management
 ns.AddTool = registerToolModule
@@ -3717,6 +3772,23 @@ ns.AddedTools = additional_tools
 
 -- Hotsteal the old OPPanelPopout
 if OPPanelPopout then OPPanelPopout:SetPoint("RIGHT", f, "LEFT") end
+
+-- SlashCommands:
+
+BINDING_HEADER_OBJECTMANIP = "Object Mover"
+SLASH_OM_SHOWCLOSE1, SLASH_OM_SHOWCLOSE2, SLASH_OM_SHOWCLOSE3 = "/obj", "/om", "/op"
+function SlashCmdList.OM_SHOWCLOSE(old)
+	if old == "" then old = nil end
+	if old then
+		if not OPMainFrame:IsShown() then
+			OPMainFrame:Show()
+		else
+			OPMainFrame:Hide()
+		end
+	else
+		f:Toggle()
+	end
+end
 
 --[[ -- Example Pullout Usage
 local f = CreateFrame("Frame", nil, UIParent)

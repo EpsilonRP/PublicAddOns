@@ -18,6 +18,12 @@ local ns = select(2, ...)
 local version, build, date, tocversion = GetBuildInfo();
 local addonName = ...
 
+-- Increment this each time we want a new splash within a build number
+local INTERNAL_BUILD_VERSION = 1
+
+build = tostring(build + INTERNAL_BUILD_VERSION)
+print(build)
+
 local addonPath = "Interface/AddOns/" .. tostring(addonName)
 local assetsPath = addonPath .. "/assets/"
 
@@ -27,6 +33,8 @@ local cmd = Utils.cmd
 local clickMMIcon = Utils.clickIconFromLauncherTray
 
 if not Epsilon_Splash then Epsilon_Splash = {} end
+
+local baseSplashGlowColor = CreateColorFromBytes(18, 184, 255, 255)
 
 ---------------------------------------------------------------------
 -- Create Splash Display
@@ -106,7 +114,7 @@ local function hideSplash()
 	frame:Hide()
 end
 
----comment Quick Set-up a On-Click Context Menu in a Region by using quickMenu to handle it.
+---Quick Set-up a On-Click Context Menu in a Region by using quickMenu to handle it.
 ---@param self Frame The Frame / Region being called on. Typically just self, so self here too
 ---@param menuList table The actual MenuList table to use
 ---@param nameOfMenuList? string Optional name to save the menuList to the frame under. I.e., "zones" for the 'Zones' menu to teleport to. Otherwise saved under 'self._menuList'
@@ -134,6 +142,7 @@ end
 -- Generic Menu Funcs - Input is (self, arg1, arg2)
 -- Lookup Gob
 local function lookupGob(self, term)
+	if not term then term = self end
 	cmd(("lookup object %s"):format(term))
 end
 
@@ -149,6 +158,7 @@ local defaultSplashWidthOffset = 0.12
 ---@field title? string The Tooltip title
 ---@field lines? string The additional lines in tooltip. Use \n and \r for new lines, because too lazy to make it support an array of strings
 ---@field callback? function What happens when it's clicked.
+---@field color? ColorMixin this overrides the color for this specific region
 
 ---@class SplashTable
 ---@field tex string Always just the file name, we handle the path otherwise
@@ -157,9 +167,144 @@ local defaultSplashWidthOffset = 0.12
 ---@field realWidth? number The real textures width, ignoring offsets & scaling. Like, the ACTUAL FILE. Mandatory if using regions
 ---@field realHeight? number The real textures height, ignoring offsets & scaling. Like, the ACTUAL FILE. Mandatory if using regions
 ---@field regions? SplashHighlightRegion[]
+---@field color? ColorMixin color for glow - this sets for all regions on this table
 
 ---@type table<build, SplashTable>
 local splashVersions = {
+	["45746"] = {
+		tex = "WhatsNew2026",
+		widthOffset = 0.12,
+		heightOffset = 0,
+		realWidth = 1024,
+		realHeight = 512,
+		color = CreateColorFromHexString("FFFFA8F0"),
+		regions = {
+			{
+				x1 = 150,
+				y1 = 189,
+				x2 = 509,
+				y2 = 333,
+				title = "New Customizations!",
+				lines = "Man, do those characters look GOOD!\nWe've added TONS of new character customization options.\n\rClick to jump into the barber chair & check them out!",
+				--[[
+				callback = function(self)
+					local menuList = {
+						{ text = "Teleport to:",  isTitle = true,      notCheckable = true },
+						{ text = "Ardenweald",    notCheckable = true, func = function() cmd("tele ardenweald") end },
+						{ text = "Bastion",       notCheckable = true, func = function() cmd("tele bastion") end },
+						{ text = "Exile's Reach", notCheckable = true, func = function() cmd("tele exilesreach") end },
+						{ text = "Korthia",       notCheckable = true, func = function() cmd("tele korthia") end },
+						{ text = "The Maw",       notCheckable = true, func = function() cmd("tele themaw") end },
+						{ text = "Maldraxxus",    notCheckable = true, func = function() cmd("tele maldraxxus") end },
+						{ text = "Oribos",        notCheckable = true, func = function() cmd("tele oribos") end },
+						{ text = "Revendreth",    notCheckable = true, func = function() cmd("tele revendreth") end },
+						{
+							text = "Tazavesh",
+							notCheckable = true,
+							hasArrow = true,
+							menuList = {
+								{
+									text = "Main World",
+									notCheckable = true,
+									func = function()
+										cmd("tele tazavesh_mainmap")
+									end
+								},
+								{
+									text = "Instance",
+									notCheckable = true,
+									func = function()
+										cmd("tele tazavesh_instance")
+									end
+								}
+							}
+						},
+						{ text = "Zereth Mortis", notCheckable = true, func = function() cmd("tele zerethmortis") end },
+					}
+
+					quickMenu(self, menuList)
+				end,
+				--]]
+				callback = function()
+					hideSplash(); cmd("cheat barber")
+				end
+			},
+			{
+				x1 = 512,
+				y1 = 189,
+				x2 = 871,
+				y2 = 333,
+				title = "New Objects!",
+				lines = "More objects than we can count! From Draenei, Black Empire, Classic, Fireworks (cuz it's a celebration, duh), and so much more - there's something for everyone in here!\n\rClick to see a list of pre-fixes to lookup to see what's new!",
+				callback = function(self)
+					local menuList = {
+						{ text = "Categories (Click to search):",         isTitle = true,      notCheckable = true },
+						{ text = "Black Empire",                          notCheckable = true, arg1 = "eps_bl",                 func = lookupGob },
+						{ text = "Classic",                               notCheckable = true, arg1 = "eps_classic",            func = lookupGob },
+						{ text = "Draenei",                               notCheckable = true, arg1 = "eps_draenei",            func = lookupGob },
+						{ text = "Fireworks",                             notCheckable = true, arg1 = "eps_fireworks",          func = lookupGob },
+						{ text = "Forsaken - Revendreth",                 notCheckable = true, arg1 = "eps_forsakenrevendreth", func = lookupGob },
+						{ text = "Forsaken",                              notCheckable = true, arg1 = "eps_fk",                 func = lookupGob },
+						{ text = "Lightforged Draenei",                   notCheckable = true, arg1 = "eps_lightforged",        func = lookupGob },
+						{ text = "Orcish Building Pieces",                notCheckable = true, arg1 = "eps_orc",                func = lookupGob },
+						{ text = "Party Food",                            notCheckable = true, arg1 = "eps_partyfood",          func = lookupGob },
+						{ text = "Statues",                               notCheckable = true, arg1 = "eps_statue",             func = lookupGob },
+						{ text = "HD Azuremyst Trees",                    notCheckable = true, arg1 = "eps_tree",               func = lookupGob },
+						{ text = "Insensata's Fixed Night Elf Buildings", notCheckable = true, arg1 = "eps_7ne ",               func = lookupGob },
+						{ text = "Fixed Blizzard M2s",                    notCheckable = true, arg1 = "eps_m2fix",              func = lookupGob },
+						{ text = "Fixed Blizzard WMOs",                   notCheckable = true, arg1 = "eps_wmofix",             func = lookupGob },
+					}
+
+					for k, v in ipairs(menuList) do
+						v.tooltipTitle = "Look-up Name:"
+						v.tooltipText = v.arg1
+						v.tooltipOnButton = 1
+					end
+
+					quickMenu(self, menuList)
+				end
+			},
+			{
+				x1 = 150,
+				y1 = 338,
+				x2 = 389,
+				y2 = 482,
+				title = "Shadowlands Empty WMOs!",
+				lines = "The long awaited Shadowlands EmptyWMOs have arrived!\n\rClick to search!",
+				callback = function()
+					lookupGob(nil, "emptywmo_9")
+				end
+			},
+			{
+				x1 = 392,
+				y1 = 338,
+				x2 = 632,
+				y2 = 482,
+				title = "Addon Additions & Updates",
+				lines = "|C" .. "FFFFA600" .. "Phase Toolkit|r has had a massive glow-up with a brand new UI & Improved QOL!\r\n" ..
+					"|C" .. "FFC70011" .. "ObjectMover|r 8.0 is here with a brand new, sleeker Epsi UI!\r\n" ..
+					"|C" .. "FF07C900" .. "Cartographer|r has a slew of new Features added to add to your maps!\n\r" ..
+					"Click to Open the AddOns & see what's new!",
+				callback = function(self)
+					local menuList = {
+						{ text = "Click & See What's New:", isTitle = true,      notCheckable = true },
+						{ text = "Phase Toolkit",           notCheckable = true, func = function() SlashCmdList["PTK"]() end },
+						{ text = "ObjectMover",             notCheckable = true, func = function() ObjectToolboxFrame.Toggle() end },
+						{ text = "Cartographer",            notCheckable = true, func = function() OpenWorldMap() end },
+					}
+
+					for k, v in ipairs(menuList) do
+						v.tooltipTitle = "Open AddOn"
+						v.tooltipOnButton = 1
+					end
+
+					quickMenu(self, menuList)
+				end
+			},
+			{ x1 = 635, y1 = 338, x2 = 873, y2 = 482, title = "Plus more to come!", lines = "There's so much more on the horizon, but there's one thing we wanted to take a moment and highlight:\n\rEnsembles!\n\rNot dead, not forgotten, and definitely not 'bugged and they can't fix it'.\nEpsilon means nothing is impossible, but doing the impossible takes time.\n\rWe promise: The wait is almost over, and it's going to be well worth it." },
+		}
+	},
+
 	["45745"] = {
 		tex = "WhatsNew3",
 		widthOffset = 0.12,
@@ -301,6 +446,12 @@ local function highlightFrame_ttPred(self)
 	return self.ttTitle or false
 end
 
+local function updateGlowColorOnRegion(f, color)
+	for i = 1, #f.Textures do
+		f.Textures[i]:SetVertexColor(color:GetRGB())
+	end
+end
+
 local function customFramePoolFactory(framePool)
 	local f = CreateFrame(framePool.frameType, nil, framePool.parent, framePool.frameTemplate); --[[@as BUTTON]]
 	f:SetScript("OnEnter", highlightFrame_OnEnter)
@@ -308,9 +459,7 @@ local function customFramePoolFactory(framePool)
 	f:SetScript("OnShow", highlightFrame_OnLeave)
 	f:SetScript("OnClick", highlightFrame_OnClick)
 	f:RegisterForClicks("LeftButtonUp")
-	for i = 1, #f.Textures do
-		f.Textures[i]:SetVertexColor(18 / 255, 184 / 255, 255 / 255)
-	end
+	updateGlowColorOnRegion(f, baseSplashGlowColor)
 
 	Tooltip.set(f, highlightFrame_ttTile, highlightFrame_ttLines, { predicate = highlightFrame_ttPred })
 
@@ -360,6 +509,8 @@ frame.SetSplash = function(self, splash)
 		f.ttTitle = regionData.title
 		f.ttLines = regionData.lines
 		f.callback = regionData.callback
+
+		updateGlowColorOnRegion(f, regionData.color or splashData.color or baseSplashGlowColor)
 
 		f:SetPoint("TOPLEFT", (regionData.x1 - splashXAdjustment) * splashXMult,
 			-(regionData.y1 - splashYAdjustment) * splashYMult)

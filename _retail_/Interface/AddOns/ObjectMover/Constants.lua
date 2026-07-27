@@ -62,3 +62,82 @@ ns.Constants = {
 	ADDON_PATH = ADDON_PATH,
 	ASSET_PATH = ASSET_PATH,
 }
+
+------
+---
+
+OPMasterTable = {
+	Options = {
+		debug = false,
+		SliderStep = 0.01,
+		locked = false,
+		fadePanel = false,
+		autoShow = false,
+		autoShowPopout = false,
+		wasPopoutShown = false,
+		showMessages = false,
+		showTooltips = true,
+		MovePlayer = false,
+		useOverlayMethod = false,
+		autoUpdateRot = true,
+		autoUpdateTint = true,
+		autoUpdateScale = true,
+		autoUpdateObjectID = true,
+		autoUpdateParams = true,
+		autoUpdateColor = true,
+	},
+	ParamPresetKeys = { "Building Tile", "Fine Positioning" },
+	ParamPresetContent = {
+		["Building Tile"] = {
+			["ObjectID"] = false,
+			["Length"] = 4,
+			["Width"] = 4,
+			["Height"] = 0.25,
+			["Scale"] = 1,
+		},
+		["Fine Positioning"] = {
+			["ObjectID"] = false,
+			["Length"] = 0.01,
+			["Width"] = 0.01,
+			["Height"] = 0.01,
+			["Scale"] = 1,
+		},
+	},
+	RotPresetKeys = { "Reset (0,0,0)" },
+	RotPresetContent = {
+		["Reset (0,0,0)"] = {
+			["RotX"] = 0,
+			["RotY"] = 0,
+			["RotZ"] = 0,
+		},
+	},
+}
+local default_db = OPMasterTable
+
+---Loads a settings table into a master table, but does not over-write if data is already present
+---@param settings table The Default Settings to Copy
+---@param master table The Actual Table to hold the settings (aka: your global table saved)
+local function loadDefaultsIntoMaster(settings, master)
+	for k, v in pairs(settings) do
+		if (type(v) == "table") then
+			if (master[k] == nil or type(master[k]) ~= "table") then master[k] = {} end
+			loadDefaultsIntoMaster(v, master[k]);
+		else
+			if master and master[k] == nil then
+				master[k] = v;
+			end
+		end
+	end
+end
+
+local function loadAddonSavedVariables()
+	loadDefaultsIntoMaster(default_db, OPMasterTable)
+end
+
+local f = CreateFrame("FRAME")
+f:RegisterEvent("ADDON_LOADED");
+f:SetScript("OnEvent", function(self, event, name)
+	if name == addonName then
+		loadAddonSavedVariables()
+	end
+end)

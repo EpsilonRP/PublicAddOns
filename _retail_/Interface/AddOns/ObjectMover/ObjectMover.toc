@@ -11,13 +11,13 @@
 # Original Addon by Dkcaptain (AKA Nomer) / Almost completely remade & expanded for Epsilon by MindScape.
 # Remade again in 2026 as Building Tools from the Ground Up!
 # Did you know, this was originally called "ObjectPlayground"! There's references in the code to it by "OP" still as the original abbreviation.
+Constants.lua
 
 ObjectMover.lua
 ObjectMover.xml
 Bindings.xml
 
 # OM2 Work
-Constants.lua
 Utils.lua
 Options.lua
 ObjectToolbox.xml
