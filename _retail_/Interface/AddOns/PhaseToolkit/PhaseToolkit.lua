@@ -3828,6 +3828,7 @@ PhaseToolkit.itemSheath={
 PhaseToolkit.infoPerDisplay = {
 	["57899"] = { race = "Human", sexe = "male" },
 	["56658"] = { race = "Human", sexe = "female" },
+	["61"] = { race = "Orc", sexe = "male" },
 	["51894"] = { race = "Orc", sexe = "male" },
 	["53762"] = { race = "Orc", sexe = "female" },
 	["49242"] = { race = "Dwarf", sexe = "male" },
@@ -5310,11 +5311,17 @@ end)
 
 --DeployingFrame Anim
 
+local function stopAnimIfPlaying(anim)
+	if not anim then return end
+	if anim:IsPlaying() then anim:Stop() end
+end
+
+local baseAnimTime = 0.25
 local function createDeployRetractAnimsForFrame(frame, offsetX, offsetY, scripts)
 	local panel, OFFSET_X, OFFSET_Y = frame, offsetX, offsetY
 
 	if not panel.animGroupDeploy then
-		local AnimationGroup = panel.animGroupDeploy or panel:CreateAnimationGroup("DeployAnimation");
+		local AnimationGroup = panel.animGroupDeploy or panel:CreateAnimationGroup();
 		panel.animGroupDeploy = AnimationGroup
 
 		local snapToStart = AnimationGroup.SnapToStart or AnimationGroup:CreateAnimation("Translation")
@@ -5328,45 +5335,51 @@ local function createDeployRetractAnimsForFrame(frame, offsetX, offsetY, scripts
 		fadeIn:SetOrder(2);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local slideIn = AnimationGroup.SlideIn or AnimationGroup:CreateAnimation("Translation")
 		AnimationGroup.SlideIn = slideIn
 		slideIn:SetOrder(2)
 		slideIn:SetOffset(-OFFSET_X, -OFFSET_Y)
-		slideIn:SetDuration(0.5)
+		slideIn:SetDuration(baseAnimTime)
 		slideIn:SetSmoothing("OUT")
 
-		if scripts.onPlayDeploy then
-			AnimationGroup:SetScript("OnPlay", scripts.onPlayDeploy);
-		end
+		AnimationGroup:SetScript("OnPlay", function(...)
+			stopAnimIfPlaying(panel.animGroupRetract)
+			if scripts.onPlayDeploy then
+				scripts.onPlayDeploy(...)
+			end
+		end)
 		if scripts.onFinishedDeploy then
 			AnimationGroup:SetScript("OnFinished", scripts.onFinishedDeploy);
 		end
 	end
 
 	if not panel.animGroupRetract then
-		local AnimationGroup = panel.animGroupRetract or panel:CreateAnimationGroup("RetractAnimation");
+		local AnimationGroup = panel.animGroupRetract or panel:CreateAnimationGroup();
 		panel.animGroupRetract = AnimationGroup
 
 		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("IN")
 
 		local slideOut = AnimationGroup.SlideOut or AnimationGroup:CreateAnimation("Translation")
 		AnimationGroup.SlideOut = slideOut
 		slideOut:SetOrder(1)
 		slideOut:SetOffset(OFFSET_X, OFFSET_Y)
-		slideOut:SetDuration(0.5)
+		slideOut:SetDuration(baseAnimTime)
 		slideOut:SetSmoothing("IN")
 
-		if scripts.onPlayRetract then
-			AnimationGroup:SetScript("OnPlay", scripts.onPlayRetract);
-		end
+		AnimationGroup:SetScript("OnPlay", function(...)
+			stopAnimIfPlaying(panel.animGroupDeploy)
+			if scripts.onPlayRetract then
+				scripts.onPlayRetract(...)
+			end
+		end)
 		if scripts.onFinishedRetract then
 			AnimationGroup:SetScript("OnFinished", scripts.onFinishedRetract);
 		end
@@ -5529,14 +5542,14 @@ local function deployCustomPanel()
 	fadeIn:SetOrder(1);
 	fadeIn:SetFromAlpha(0);
 	fadeIn:SetToAlpha(1);
-	fadeIn:SetDuration(0.5);
+	fadeIn:SetDuration(baseAnimTime);
 	fadeIn:SetSmoothing("OUT")
 
 	local scaleUp= AnimationGroup:CreateAnimation("Scale");
 	scaleUp:SetOrder(1);
 	scaleUp:SetFromScale(0.0,1.0);
 	scaleUp:SetToScale(1.0,1.0);
-	scaleUp:SetDuration(0.5);
+	scaleUp:SetDuration(baseAnimTime);
 	scaleUp:SetSmoothing("OUT")
 	scaleUp:SetOrigin("LEFT",0,0)
 
@@ -5564,14 +5577,14 @@ local function retractCustomPanel()
 	fadeIn:SetOrder(1);
 	fadeIn:SetFromAlpha(1);
 	fadeIn:SetToAlpha(0);
-	fadeIn:SetDuration(0.5);
+	fadeIn:SetDuration(baseAnimTime);
 	fadeIn:SetSmoothing("OUT")
 
 	local scaleUp= AnimationGroup:CreateAnimation("Scale");
 	scaleUp:SetOrder(1);
 	scaleUp:SetFromScale(1.0,1.0);
 	scaleUp:SetToScale(0.0,1.0);
-	scaleUp:SetDuration(0.5);
+	scaleUp:SetDuration(baseAnimTime);
 	scaleUp:SetSmoothing("OUT")
 	scaleUp:SetOrigin("LEFT",0,0)
 
@@ -5590,6 +5603,9 @@ end
 
 local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 	local paddingForLangageReason=getPaddingForLanguage()
+	if (PhaseToolkit.SelectedRace.name=="Orc")then
+		sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
+	end
 	if(PhaseToolkit.DeployingFrame )then
 		local panelContent = (PhaseToolkit.customPanel and PhaseToolkit.customPanel.contentToManage) or {}
 		if(not PhaseToolkit.customPanel) then
@@ -5685,6 +5701,7 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 				local text = cell.modifyPart.editBox:GetText()
 				local number = tonumber(text)
 				if number and number >= 1 and number <= maxValue then
+					PhaseToolkit.GeneralStat[cell.fieldToModify] = number
 					CustomizeNpc(cell.fieldToModify, number)
 					cell.modifyPart.editBox:ClearFocus()
 				end
@@ -5698,11 +5715,13 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 				if(cell.modifyPart.editBox:GetNumber() == 1)then
 					currentValue = maxValue
 					cell.modifyPart.editBox:SetNumber(currentValue)
+					PhaseToolkit.GeneralStat[cell.fieldToModify] = currentValue
 					CustomizeNpc(cell.fieldToModify, currentValue)
 					return
 				end
 				if currentValue > 1 then
 					cell.modifyPart.editBox:SetNumber(currentValue - 1)
+					PhaseToolkit.GeneralStat[cell.fieldToModify] = currentValue - 1
 					CustomizeNpc(cell.fieldToModify, currentValue - 1)
 				end
 			end)
@@ -5715,11 +5734,13 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 				if(cell.modifyPart.editBox:GetNumber() == maxValue)then
 					currentValue = 1
 					cell.modifyPart.editBox:SetNumber(currentValue )
+					PhaseToolkit.GeneralStat[cell.fieldToModify] = currentValue
 					CustomizeNpc(cell.fieldToModify, currentValue )
 					return
 				end
 				if currentValue < maxValue then
 					cell.modifyPart.editBox:SetNumber(currentValue + 1)
+					PhaseToolkit.GeneralStat[cell.fieldToModify] = currentValue + 1
 					CustomizeNpc(cell.fieldToModify, currentValue + 1)
 				end
 			end)
@@ -5730,6 +5751,7 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 				end
 				local randomValue = math.random(1, maxValue)
 				cell.modifyPart.editBox:SetNumber(randomValue)
+				PhaseToolkit.GeneralStat[cell.fieldToModify] = randomValue
 				CustomizeNpc(cell.fieldToModify, randomValue)
 			end)
 
@@ -5861,8 +5883,8 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 			cell.modifyPart.background:SetAtlas("charactercreate-customize-dropdownbox-hover")
 
 			cell.fieldToModify = fieldName
+			cell.modifyPart.editBox:SetNumber(PhaseToolkit.GeneralStat[fieldName] or 1)
 			cell.modifyPart.maxValue:SetText("/ "..fieldValue)
-			cell.modifyPart.editBox:SetNumber(1)
 
 			bindCustomCellHandlers(cell, fieldValue)
 
@@ -7419,6 +7441,9 @@ local function createGenderSlider(context)
 		NpcGenderSlider:SetValue(0)
 		NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-male-selected")
 		PhaseToolkit.ChangeNpcGender("male")
+		if (PhaseToolkit.SelectedRace.name=="Orc")then
+				sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
+			end
 		if(PhaseToolkit.DeployingFrame.raceRingBackground) then
 			clearRaceButton()
 			populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
@@ -8909,14 +8934,14 @@ function PhaseToolkit.CreateTagList(contentContext, deployingFrameContext)
 			deployFade:SetOrder(1)
 			deployFade:SetFromAlpha(0)
 			deployFade:SetToAlpha(1)
-			deployFade:SetDuration(0.5)
+			deployFade:SetDuration(baseAnimTime)
 			deployFade:SetSmoothing("OUT")
 
 			local deployScale = deployAnimation:CreateAnimation("Scale")
 			deployScale:SetOrder(1)
 			deployScale:SetFromScale(1.0, 0.1)
 			deployScale:SetToScale(1.0, 1.0)
-			deployScale:SetDuration(0.5)
+			deployScale:SetDuration(baseAnimTime)
 			deployScale:SetSmoothing("OUT")
 			deployScale:SetOrigin("BOTTOM", 0, 0)
 
@@ -8933,14 +8958,14 @@ function PhaseToolkit.CreateTagList(contentContext, deployingFrameContext)
 			retractFade:SetOrder(1)
 			retractFade:SetFromAlpha(1)
 			retractFade:SetToAlpha(0)
-			retractFade:SetDuration(0.5)
+			retractFade:SetDuration(baseAnimTime)
 			retractFade:SetSmoothing("OUT")
 
 			local retractScale = retractAnimation:CreateAnimation("Scale")
 			retractScale:SetOrder(1)
 			retractScale:SetFromScale(1.0, 1.0)
 			retractScale:SetToScale(1.0, 0.1)
-			retractScale:SetDuration(0.5)
+			retractScale:SetDuration(baseAnimTime)
 			retractScale:SetSmoothing("OUT")
 			retractScale:SetOrigin("BOTTOM", 0, 0)
 
@@ -9790,14 +9815,14 @@ function PhaseToolkit.CreateTeleTagList(contentContext, deployingFrameContext)
 			deployFade:SetOrder(1)
 			deployFade:SetFromAlpha(0)
 			deployFade:SetToAlpha(1)
-			deployFade:SetDuration(0.5)
+			deployFade:SetDuration(baseAnimTime)
 			deployFade:SetSmoothing("OUT")
 
 			local deployScale = deployAnimation:CreateAnimation("Scale")
 			deployScale:SetOrder(1)
 			deployScale:SetFromScale(1.0, 0.1)
 			deployScale:SetToScale(1.0, 1.0)
-			deployScale:SetDuration(0.5)
+			deployScale:SetDuration(baseAnimTime)
 			deployScale:SetSmoothing("OUT")
 			deployScale:SetOrigin("BOTTOM", 0, 0)
 
@@ -9814,14 +9839,14 @@ function PhaseToolkit.CreateTeleTagList(contentContext, deployingFrameContext)
 			retractFade:SetOrder(1)
 			retractFade:SetFromAlpha(1)
 			retractFade:SetToAlpha(0)
-			retractFade:SetDuration(0.5)
+			retractFade:SetDuration(baseAnimTime)
 			retractFade:SetSmoothing("OUT")
 
 			local retractScale = retractAnimation:CreateAnimation("Scale")
 			retractScale:SetOrder(1)
 			retractScale:SetFromScale(1.0, 1.0)
 			retractScale:SetToScale(1.0, 0.1)
-			retractScale:SetDuration(0.5)
+			retractScale:SetDuration(baseAnimTime)
 			retractScale:SetSmoothing("OUT")
 			retractScale:SetOrigin("BOTTOM", 0, 0)
 
@@ -10830,14 +10855,14 @@ local function createCharacterWhitelistPanel(context)
 	fadeIn:SetOrder(1);
 	fadeIn:SetFromAlpha(0);
 	fadeIn:SetToAlpha(1);
-	fadeIn:SetDuration(0.5);
+	fadeIn:SetDuration(baseAnimTime);
 	fadeIn:SetSmoothing("OUT")
 
 	local scaleUp= AnimationGroup:CreateAnimation("Scale");
 	scaleUp:SetOrder(1);
 	scaleUp:SetFromScale(0.0,1.0);
 	scaleUp:SetToScale(1.0,1.0);
-	scaleUp:SetDuration(0.5);
+	scaleUp:SetDuration(baseAnimTime);
 	scaleUp:SetSmoothing("OUT")
 	scaleUp:SetOrigin("LEFT",0,0)
 
@@ -10859,14 +10884,14 @@ local function createCharacterWhitelistPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("LEFT",0,0)
 
@@ -11073,14 +11098,14 @@ local function createPhaseMemberWhitelistPanel(context)
 		fadeIn:SetOrder(1);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local scaleUp= AnimationGroup:CreateAnimation("Scale");
 		scaleUp:SetOrder(1);
 		scaleUp:SetFromScale(0.0,1.0);
 		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(0.5);
+		scaleUp:SetDuration(baseAnimTime);
 		scaleUp:SetSmoothing("OUT")
 		scaleUp:SetOrigin("LEFT",0,0)
 
@@ -11102,14 +11127,14 @@ local function createPhaseMemberWhitelistPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("LEFT",0,0)
 
@@ -11316,14 +11341,14 @@ local function createPhaseOfficerWhitelistPanel(context)
 		fadeIn:SetOrder(1);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local scaleUp= AnimationGroup:CreateAnimation("Scale");
 		scaleUp:SetOrder(1);
 		scaleUp:SetFromScale(0.0,1.0);
 		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(0.5);
+		scaleUp:SetDuration(baseAnimTime);
 		scaleUp:SetSmoothing("OUT")
 		scaleUp:SetOrigin("LEFT",0,0)
 
@@ -11345,14 +11370,14 @@ local function createPhaseOfficerWhitelistPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("LEFT",0,0)
 
@@ -11533,14 +11558,14 @@ local function createItemPropertyPanel(context)
 		fadeIn:SetOrder(1);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local scaleUp= AnimationGroup:CreateAnimation("Scale");
 		scaleUp:SetOrder(1);
 		scaleUp:SetFromScale(0.0,1.0);
 		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(0.5);
+		scaleUp:SetDuration(baseAnimTime);
 		scaleUp:SetSmoothing("OUT")
 		scaleUp:SetOrigin("RIGHT",0,0)
 
@@ -11562,14 +11587,14 @@ local function createItemPropertyPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("RIGHT",0,0)
 
@@ -11970,7 +11995,6 @@ local function createItemMainConfigurationPanel(context)
 						bottomScrollFrame.ScrollBar:Hide()
 						bottomLabel:Hide()
 					end
-					tinsert(PhaseToolkit.itemCreatorData.selectedRows,row)
 					updateRightScrollFrame()
 					currentInventoryTypeList = filterInventoryTypeByClass(itemClassEntry.classId)
 					updateBottomScrollFrame()
@@ -12064,14 +12088,14 @@ local function createItemMainConfigurationPanel(context)
 		fadeIn:SetOrder(1);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local scaleUp= AnimationGroup:CreateAnimation("Scale");
 		scaleUp:SetOrder(1);
 		scaleUp:SetFromScale(0.0,1.0);
 		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(0.5);
+		scaleUp:SetDuration(baseAnimTime);
 		scaleUp:SetSmoothing("OUT")
 		scaleUp:SetOrigin("RIGHT",0,0)
 
@@ -12093,14 +12117,14 @@ local function createItemMainConfigurationPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("RIGHT",0,0)
 
@@ -12392,14 +12416,14 @@ local function createItemSubConfigurationPanel(context)
 		fadeIn:SetOrder(1);
 		fadeIn:SetFromAlpha(0);
 		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(0.5);
+		fadeIn:SetDuration(baseAnimTime);
 		fadeIn:SetSmoothing("OUT")
 
 		local scaleUp= AnimationGroup:CreateAnimation("Scale");
 		scaleUp:SetOrder(1);
 		scaleUp:SetFromScale(0.0,1.0);
 		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(0.5);
+		scaleUp:SetDuration(baseAnimTime);
 		scaleUp:SetSmoothing("OUT")
 		scaleUp:SetOrigin("RIGHT",0,0)
 
@@ -12419,14 +12443,14 @@ local function createItemSubConfigurationPanel(context)
 		fadeOut:SetOrder(1);
 		fadeOut:SetFromAlpha(1);
 		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(0.5);
+		fadeOut:SetDuration(baseAnimTime);
 		fadeOut:SetSmoothing("OUT")
 
 		local scaleDown= AnimationGroup:CreateAnimation("Scale");
 		scaleDown:SetOrder(1);
 		scaleDown:SetFromScale(1.0,1.0);
 		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(0.5);
+		scaleDown:SetDuration(baseAnimTime);
 		scaleDown:SetSmoothing("OUT")
 		scaleDown:SetOrigin("RIGHT",0,0)
 
@@ -13011,7 +13035,7 @@ function PhaseToolkit.parseForDisplayId(isCommandSuccessful, repliesList)
 	local message = repliesList[1];
 	message = message:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
 
-	local displayId = string.match(message, "DisplayID: (.+) %(")
+	local displayId = message:match("DisplayID: (.-) %(")
 	if displayId ~= nil then
 		displayId = displayId:gsub("|.+|", ""):gsub("h", "")
 		if (displayId ~= "" and isKeyInTable(displayId)) then
@@ -13019,8 +13043,9 @@ function PhaseToolkit.parseForDisplayId(isCommandSuccessful, repliesList)
 			PhaseToolkit.SelectedNpcInfo = identity
 			PhaseToolkit.SelectedRace = getRaceDataFromRaceName(identity.race)
 			PhaseToolkit.SelectedGender = identity.sexe
+
 			--we somehow need to update the UI
-			if PhaseToolkit.SelectedGender == "male" then
+			if PhaseToolkit.SelectedGender == "male"  then
 				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoMaleAnimation:Play()
 			else
 				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoFemaleAnimation:Play()

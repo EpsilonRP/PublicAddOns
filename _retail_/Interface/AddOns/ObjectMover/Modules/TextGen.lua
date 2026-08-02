@@ -178,7 +178,10 @@ end
 
 local textGen = {
 	text = "Text Generator",
-	tooltipText = "Easily spawn full lines of text using the Epsilon Alphabet objects",
+	tooltipText = "Easily spawn full lines of text using the Epsilon Alphabet objects.",
 	func = showWordGenMenu,
+	disabled = function()
+		return not EpsilonLib.GameObject.CanSpawn()
+	end,
 }
 ns.AddTool({ textGen })

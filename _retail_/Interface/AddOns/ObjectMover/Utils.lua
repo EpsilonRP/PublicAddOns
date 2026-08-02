@@ -77,7 +77,9 @@ end
 
 local function OPManagerCMD(mainCom, text, groupCheck, callback, overrideMessages)
 	if groupCheck then
-		if isGroupSelected then mainCom = mainCom .. " group" end
+		local obj = EpsilonLib.GameObject:GetSelected()
+		local groupSel = obj and obj.isGroup
+		if groupSel then mainCom = mainCom .. " group" end
 	end
 	local comm
 	if mainCom and text then

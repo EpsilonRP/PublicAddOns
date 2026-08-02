@@ -5,70 +5,38 @@ EpsiLib.GameObject._log = {}
 EpsiLib.GameObject._log._last = nil
 EpsiLib.GameObject._log._selected = nil
 EpsiLib.GameObject._gobs = {}
-local group_holder = {}
+EpsiLib.GameObject._groups = {}
 
 -- Utils
 local toboolean = EpsiLib.Utils.ToBoolean
 local tonumberOrFalse = EpsiLib.Utils.ToNumberOrFalse
 local formatNumber = EpsiLib.Utils.TrimNumber
 
---[[
-GameObject = {}
+local EpsiSystemBlue = CreateColorFromHexString("FF00CCFF")
+local EpsiSystemOrange = CreateColorFromHexString("FFFF9900")
 
-function EpsiLib.GameObject:ConvertToDegrees(radians)
-    local angleInDegrees = radians*(180/math.pi);
-    return angleInDegrees;
+local baseCommand = "gobject"
+local groupCommand = "gobject group"
+
+local function getCommandByContext(isGroup)
+	if isGroup then
+		return groupCommand
+	else
+		return baseCommand
+	end
 end
 
-function EpsiLib.GameObject:ConvertToRadians(degrees)
-    local angleInRadians = degrees*(math.pi/180);
-    return angleInRadians;
+local function sysMsg(text)
+	SendSystemMessage(EpsiSystemBlue:WrapTextInColorCode("EpsilonLib [GameObject]") .. ": " .. (text and text or "ERROR") .. "|r")
 end
 
-function EpsiLib.GameObject.TestGobject()
-    print("WORKS")
-    return "EPSILIB.GAMEOBJECT"
+local function canSpawn(vocal)
+	local hasPerm = C_Epsilon.IsMember() or C_Epsilon.IsOfficer() or C_Epsilon.IsOwner()
+	if vocal and not hasPerm then
+		sysMsg(EpsiSystemOrange:WrapTextInColorCode("You do not have permission to spawn objects here."))
+	end
+	return hasPerm
 end
-
-function EpsiLib.GameObject.GetMapCoordinatesFromString(message)
-
-    local x, y, z, orientation, map;
-    local pitch, roll, yaw;
-    if message:match("Map:") then
-        --print("SELECTED")
-        map = message:match("Map: (%d*)");
-        x, y, z = message:match("%(?X: (-?%d*\.?%d*), Y: (-?%d*\.?%d*), Z: (-?%d*\.?%d*),")
-        pitch, roll, yaw = message:match("Pitch: (-?%d*\.?%d*), Roll: (-?%d*\.?%d*), Yaw/Turn: (-?%d*\.?%d*)");
-    elseif message:match("Moved GameObject") then
-        --print("MOVED")
-        map = message:match("map (%d*)")
-        x, y, z = message:match("%(?X: (-?%d*\.?%d*) Y: (-?%d*\.?%d*) Z:(-?%d*\.?%d*)")
-        orientation = message:match("orientation (-?%d*\.?%d*)");
-    end
-
-    if not orientation then
-        orientation = EpsiLib.GameObject:ConvertToRadians(yaw);
-    else
-        yaw = EpsiLib.GameObject:ConvertToDegrees(orientation);
-    end
-
-    if x and y and z and orientation or x and y and z and pitch and roll and yaw then
-        return x, y, z, orientation, pitch, roll, yaw, map;
-    end
-    return nil;
-end
-
-function EpsiLib.GameObject.GetEntryFromString(message)
-
-    local entryID, GUID, objectName;
-    entryID = message:match("gameobject_entry:(%d*)")
-    GUID = message:match("gameobject_GUID:(%d*)")
-    objectName = message:match("%[(.+)%s%-%s%d*%]")
-    return entryID, GUID, objectName;
-
-end
---]]
---aaa
 
 local function safeCallback(cb, ...)
 	if cb then return cb(...) end
@@ -143,7 +111,25 @@ local function shortenFileName(path)
 	-- Extract the file name from the full path
 	local fileName = path:match("([^\\/]+)$")
 	fileName = fileName:gsub("%[.*%]", "") -- Remove any brackets and their contents
-	return fileName and fileName:match("(.+)%..+$") or fileName
+	return fileName and strtrim(fileName:match("(.+)%..+$")) or strtrim(fileName)
+end
+
+local function getFullPhaseGobGUID(guid, phase)
+	if not phase then phase = C_Epsilon.GetPhaseId() end
+	return phase .. "@" .. guid
+end
+
+local function _isSelected(obj, errorMsg)
+	if not obj then return false end
+	local selected = EpsiLib.GameObject._log._selected
+	if selected and selected == obj then
+		return true
+	else
+		if errorMsg then
+			sysMsg(errorMsg)
+		end
+		return false
+	end
 end
 
 local dimDetectSceneFrame = CreateFrame("ModelScene")
@@ -232,13 +218,13 @@ end
 
 -- Get the size of an object - takes a full object class or FileID & embeds the size on the object at the end
 local function GetAndEmbedObjectSize(obj, callback)
-	if obj:IsWMO() then return safeCallback(callback, false) end -- just exit now for WMOs. We have several wmo anti-crash checks along the way, but better safe than crash.
+	if obj:IsWMO() then return safeCallback(callback, nil) end -- just exit now for WMOs. We have several wmo anti-crash checks along the way, but better safe than crash.
 	obj.size = false
 	dimDetectSceneFrame:GetObjectSize(obj.fileID, obj.objType, function(size)
 		if size then
 			obj.size = size
 		else
-			print("Failed to get size for object with fileID: " .. tostring(obj.fileID))
+			sysMsg("Failed to get size for object with fileID: " .. tostring(obj.fileID))
 		end
 	end)
 end
@@ -259,12 +245,24 @@ function GameObjectMeta:Select()
 	EpsiLib.AddonCommands._SendAddonCommand("gobject select " .. self.guid)
 end
 
+function GameObjectMeta:Unselect()
+	EpsiLib.GameObject:Unselect(false)
+end
+
 function GameObjectMeta:SelectGroup()
 	EpsiLib.AddonCommands._SendAddonCommand("gobject group select")
 end
 
 function GameObjectMeta:IsSelected()
 	return EpsiLib.GameObject._log._selected == self
+end
+
+function GameObjectMeta:CanEdit(vocal)
+	local hasPerm = C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() or (C_Epsilon.IsMember() and (self and self.canEdit))
+	if vocal and not hasPerm then
+		sysMsg(EpsiSystemOrange:WrapTextInColorCode("You do not have permission to edit this object."))
+	end
+	return hasPerm
 end
 
 function GameObjectMeta:IsWMO()
@@ -274,6 +272,10 @@ end
 
 function GameObjectMeta:GetGUID()
 	return self.guid
+end
+
+function GameObjectMeta:GetFullGUID()
+	return self.phaseGUID or getFullPhaseGobGUID(self.guid, self.phase)
 end
 
 function GameObjectMeta:GetEntry()
@@ -295,19 +297,22 @@ end
 
 function GameObjectMeta:SetScale(val)
 	if not self:IsSelected() then
-		print("You must select the GameObject before changing its scale.");
+		sysMsg("You must select the GameObject before changing its scale.");
 		return;
 	end
+
+	if not self:CanEdit(true) then return end
+
 	if not val or tonumber(val) <= 0 then
-		print("Invalid scale value. Must be a positive number.");
+		sysMsg("Invalid scale value. Must be a positive number.");
 		return;
 	end
 
 	EpsiLib.AddonCommands._SendAddonCommand(("gobject scale %s"):format(val), function(success, messages)
 		if not success then
-			print("Failed to set scale for GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to set scale for GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			--print("Set scale for GameObject: " .. self.guid .. " to " .. self.scale)
+			--sysMsg("Set scale for GameObject: " .. self.guid .. " to " .. self.scale)
 		end
 	end, false)
 end
@@ -324,7 +329,7 @@ end
 ---@param vector any
 ---@param relative any
 function GameObjectMeta:MoveTo(vector)
-	print(vector.x, vector.y, vector.z);
+	if not self:CanEdit(true) then return end
 
 	EpsiLib.AddonCommands._SendAddonCommand("gobject move coords " .. self.guid .. " " .. vector.x .. " " .. vector.y .. " " .. vector.z, "GUILD");
 end
@@ -332,13 +337,15 @@ end
 ---Move GameObject by given string movements (i.e., "up 10", "forward 5")
 ---@param ... string
 function GameObjectMeta:Move(...)
+	if not self:CanEdit(true) then return end
+
 	local args = { ... }
 	if #args == 0 then return end
 
 	EpsiLib.AddonCommands._SendAddonCommand("gobject move " .. self.guid .. " " .. table.concat(args, " "), function(success, messages)
 		if not success then
 			-- TODO - Clean this up
-			print("Failed to move GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to move GameObject: " .. self.guid .. " with message: " .. messages[1])
 		end
 	end, false)
 end
@@ -346,21 +353,25 @@ end
 ---Move GameObject relative by given string movements (i.e., "up 10", "forward 5")
 ---@param ... string
 function GameObjectMeta:MoveRelative(...)
+	if not self:CanEdit(true) then return end
+
 	local args = { ... }
 	if #args == 0 then return end
 
 	EpsiLib.AddonCommands._SendAddonCommand("gobject relative " .. self.guid .. " " .. table.concat(args, " "), function(success, messages)
 		if not success then
 			-- TODO - Clean this up
-			print("Failed to move relative GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to move relative GameObject: " .. self.guid .. " with message: " .. messages[1])
 		end
 	end, false)
 end
 
 function GameObjectMeta:MoveWorld(dir1, dist1, ...)
+	if not self:CanEdit(true) then return end
+
 	if not dir1 and not tonumber(dist1) then return error("Must provide at least one valid direction & distance") end
 	if not self:IsSelected() then
-		print("You must select the GameObject before being able to move (world relative) it.")
+		sysMsg("You must select the GameObject before being able to move (world relative) it.")
 		return
 	end
 
@@ -446,15 +457,17 @@ function GameObjectMeta:MoveWorld(dir1, dist1, ...)
 	if finalDist ~= "" then
 		EpsiLib.AddonCommands._SendAddonCommand("gobject relative " .. finalDist, function(success, messages)
 			if not success then
-				print("Failed move (world) GameObject: " .. self.guid .. " with message: " .. messages[1])
+				sysMsg("Failed move (world) GameObject: " .. self.guid .. " with message: " .. messages[1])
 			else
-				print("Moved (world) GameObject: " .. self.guid)
+				sysMsg("Moved (world) GameObject: " .. self.guid)
 			end
 		end, false)
 	end
 end
 
 function GameObjectMeta:Rotate(x, y, z, virtual)
+	if not self:CanEdit(true) then return end
+
 	if not x then x = self.transform.rotation.x end
 	if not y then y = self.transform.rotation.y end
 	if not z then z = self.transform.rotation.z end
@@ -475,23 +488,9 @@ function GameObjectMeta:Rotate(x, y, z, virtual)
 	end
 end
 
---[[
-function GameObjectMeta:Rotate(vector, virtual)
-	-- vector.x = math.deg(vector.x);
-	-- vector.y = math.deg(vector.y);
-	-- vector.z = math.deg(vector.z);
-
-	print(vector:ToString());
-
-	self.transform.rotation = vector;
-
-	local mover = C_Timer.After(0.15, function()
-		SendChatMessage(".gobject rotate " .. vector.x .. " " .. vector.y .. " " .. vector.z, "GUILD");
-	end)
-end
---]]
-
 function GameObjectMeta:Pitch(val, exact)
+	if not self:CanEdit(true) then return end
+
 	if not val then error("Cannot pitch by nothing.") end
 	if exact then
 		local cur = self.transform.rotation.y
@@ -504,6 +503,8 @@ function GameObjectMeta:Pitch(val, exact)
 end
 
 function GameObjectMeta:Roll(val, exact)
+	if not self:CanEdit(true) then return end
+
 	if not val then error("Cannot roll by nothing.") end
 	if exact then
 		local cur = self.transform.rotation.x
@@ -516,6 +517,8 @@ function GameObjectMeta:Roll(val, exact)
 end
 
 function GameObjectMeta:Turn(val, exact)
+	if not self:CanEdit(true) then return end
+
 	if not val then error("Cannot turn by nothing (use Face instead).") end
 	if exact then
 		self:Face(val)
@@ -526,6 +529,8 @@ function GameObjectMeta:Turn(val, exact)
 end
 
 function GameObjectMeta:Face(val)
+	if not self:CanEdit(true) then return end
+
 	if val == 0 or val == "0" then val = "north" end -- face 0 doesn't work? Stupid.
 	if type(val) == "number" then
 		EpsiLib.AddonCommands._SendAddonCommand("gobject face " .. val)
@@ -543,36 +548,56 @@ function GameObjectMeta:GetPosString()
 end
 
 function GameObjectMeta:Tint(r, g, b, a, s)
+	if not self:CanEdit(true) then return end
+
 	if not self:IsSelected() then
-		print("You must select the GameObject before applying a tint.");
+		sysMsg("You must select the GameObject before applying a tint.");
 		return;
 	end
+
 	local command = (("gobject tint %s %s %s %s %s"):format(r, g, b, s, a))
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
-			print("Failed to tint GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to tint GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			--print("Tinted GameObject: " .. self.guid)
+			--sysMsg("Tinted GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
 function GameObjectMeta:Overlay(r, g, b, a, s)
+	if not self:CanEdit(true) then return end
+
 	if not self:IsSelected() then
-		print("You must select the GameObject before applying an overlay.");
+		sysMsg("You must select the GameObject before applying an overlay.");
 		return;
 	end
 	local command = (("gobject overlay %s %s %s %s %s"):format(r, g, b, s, a))
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
-			print("Failed to apply overlay to GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to apply overlay to GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			--print("Applied overlay to GameObject: " .. self.guid)
+			--sysMsg("Applied overlay to GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
+function GameObjectMeta:SetColor(type, r, g, b, a, s)
+	if not type then error("Must provide a type for gob:SetColor(type, r, g, b, a, s)") end
+	type = type:lower()
+
+	if type == "tint" then
+		self:Tint(r, g, b, a, s)
+	elseif type == "overlay" then
+		self:Overlay(r, g, b, a, s)
+	else
+		error("Invalid type for gob:SetColor(type, r, g, b, a, s). Must be 'tint' or 'overlay'.")
+	end
+end
+
 function GameObjectMeta:Copy(dir, val, count, entry)
+	if not canSpawn(true) then return end
+
 	local command
 	if not dir or val then
 		command = "gobject copy"
@@ -581,24 +606,28 @@ function GameObjectMeta:Copy(dir, val, count, entry)
 	end
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
-			print("Failed to copy GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to copy GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			--print("Copied GameObject: " .. self.guid)
+			--sysMsg("Copied GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
 function GameObjectMeta:SpawnDuplicate()
+	if not canSpawn(true) then return end
+
 	EpsiLib.AddonCommands._SendAddonCommand("gobject spawn " .. self.entry, function(success, messages)
 		if not success then
-			print("Failed to spawn duplicate GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to spawn duplicate GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
-			--print("Spawned duplicate GameObject: " .. self.guid)
+			--sysMsg("Spawned duplicate GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
 function GameObjectMeta:DeepCopy(samePos)
+	if not canSpawn(true) then return end
+
 	local gobData = self
 
 	if samePos and select(4, C_Epsilon.GetPosition()) ~= gobData.map then
@@ -643,29 +672,33 @@ function GameObjectMeta:DeepCopy(samePos)
 
 	EpsiLib.AddonCommands._SendAddonChain(commands, function(success, messages)
 		if not success then
-			print("Failed to copy GameObject: " .. gobData.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to copy GameObject: " .. gobData.guid .. " with message: " .. messages[1])
 		else
 			gobData.isRestored = true
-			print("Deep-Copied GameObject: " .. gobData.guid)
+			sysMsg("Deep-Copied GameObject: " .. gobData.guid)
 		end
 	end, false)
 end
 
 function GameObjectMeta:Delete()
+	if not self:CanEdit(true) then return end
+
 	EpsiLib.AddonCommands._SendAddonCommand("gobject delete " .. self.guid, function(success, messages)
 		if not success then
-			print("Failed to delete GameObject: " .. self.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to delete GameObject: " .. self.guid .. " with message: " .. messages[1])
 		else
 			self.isDeleted = true
-			print("Deleted GameObject: " .. self.guid)
+			sysMsg("Deleted GameObject: " .. self.guid)
 		end
 	end, false)
 end
 
 function GameObjectMeta:Restore()
+	if not canSpawn(true) then return end
+
 	local gobData = self
 	if not self.isDeleted then
-		print("GameObject: " .. self.guid .. " is not deleted, cannot restore.");
+		sysMsg("GameObject: " .. self.guid .. " is not deleted, cannot restore.");
 		return;
 	end
 	if select(4, C_Epsilon.GetPosition()) ~= gobData.map then
@@ -704,12 +737,195 @@ function GameObjectMeta:Restore()
 
 	EpsiLib.AddonCommands._SendAddonChain(commands, function(success, messages)
 		if not success then
-			print("Failed to restore GameObject: " .. gobData.guid .. " with message: " .. messages[1])
+			sysMsg("Failed to restore GameObject: " .. gobData.guid .. " with message: " .. messages[1])
 		else
 			gobData.isRestored = true
-			print("Restored GameObject: " .. gobData.guid)
+			sysMsg("Restored GameObject: " .. gobData.guid)
 		end
 	end, false)
+end
+
+--#endregion
+--#region GameObject Group Meta
+--      overlay           scale      spell     tint     turn         visibility     zcopy
+local GameObjectGroupMeta = {}
+
+function GameObjectGroupMeta:SetLeader(gob) -- promote
+	-- select the object to set as leader
+	-- promote it
+end
+
+function GameObjectGroupMeta:GetLeader()
+	return self.leaderObject or EpsiLib.GameObject._gobs[getFullPhaseGobGUID(self.leaderGUID, self.phase)]
+end
+
+function GameObjectGroupMeta:Select()
+
+end
+
+function GameObjectGroupMeta:Unselect()
+	EpsiLib.GameObject:Unselect(true)
+end
+
+GameObjectGroupMeta.IsSelected = GameObjectMeta.IsSelected
+
+function GameObjectGroupMeta:CanEdit(vocal)
+	local leader = self.leaderObject
+	local hasPerm = C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() or (C_Epsilon.IsMember() and (leader and leader.canEdit))
+	if vocal and not hasPerm then
+		sysMsg(EpsiSystemOrange:WrapTextInColorCode("You do not have permission to edit the leader object of this group."))
+	end
+	return hasPerm
+end
+
+function GameObjectGroupMeta:GetName(short)
+	local leader = self:GetLeader()
+	if leader then
+		return "<GRP>" .. leader:GetName(short)
+	end
+	return "<GRP> " .. (self.leaderGUID or "Unknown")
+end
+
+function GameObjectGroupMeta:Add(gob)
+	-- remember our group leader,
+	-- select the gob we want to add
+	-- '.gob group add <leaderGUID>' to add it
+end
+
+function GameObjectGroupMeta:Remove(gob)
+	-- select the gob to remove
+	-- '.gob group remove' to remove it
+end
+
+function GameObjectGroupMeta:Activate()
+	if not _isSelected(self, "You must select the GameObject Group before activating it.") then return end
+end
+
+function GameObjectGroupMeta:AddNear(dist)
+	if not _isSelected(self, "You must select the GameObject Group before adding nearby objects to it.") then return end
+end
+
+function GameObjectGroupMeta:Clear(confirm)
+	if not _isSelected(self, "You must select the GameObject Group before clearing it.") then return end
+	if not confirm then
+		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
+			text = "Are you sure you want to clear the GameObject Group? This will remove all GameObjects from the group.",
+			acceptText = "Clear",
+			showAlert = true,
+			callback = function()
+				self:Clear(true)
+			end
+		})
+		return
+	end
+end
+
+function GameObjectGroupMeta:Copy(dir, dist) -- dir, value
+	if not _isSelected(self, "You must select the GameObject Group before copying it.") then return end
+end
+
+function GameObjectGroupMeta:Delete(confirm)
+	if not _isSelected(self, "You must select the GameObject Group before deleting it.") then return end
+	if not confirm then
+		EpsiLib.Utils.GenericDialogs.CustomConfirmation({
+			text = "Are you sure you want to delete the GameObject Group? This will delete all GameObjects in the group.",
+			acceptText = "Delete",
+			showAlert = true,
+			callback = function()
+				self:Delete(true)
+			end
+		})
+		return
+	end
+end
+
+function GameObjectGroupMeta:GoTo()
+	-- accepts ID
+end
+
+function GameObjectGroupMeta:MergeInto(group)
+	-- merge our current group into the given group
+	-- '.gob group merge <leaderGUID>'
+end
+
+function GameObjectGroupMeta:Move(dir, dist)
+	if not _isSelected(self, "You must select the GameObject Group before moving it.") then return end
+end
+
+function GameObjectGroupMeta:MoveRelative(dir, dist)
+	if not _isSelected(self, "You must select the GameObject Group before moving it.") then return end
+end
+
+function GameObjectGroupMeta:Overlay(r, g, b, a, s)
+	if not _isSelected(self, "You must select the GameObject Group before applying an overlay.") then return end
+	if not self:CanEdit(true) then return end
+
+	local command = (("gobject overlay %s %s %s %s %s"):format(r, g, b, s, a))
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			sysMsg("Failed to apply overlay to GameObject: " .. self.guid .. " with message: " .. messages[1])
+		else
+			--sysMsg("Applied overlay to GameObject: " .. self.guid)
+		end
+	end, false)
+end
+
+function GameObjectGroupMeta:Tint(r, g, b, a, s)
+	if not _isSelected(self, "You must select the GameObject Group before applying a tint.") then return end
+	if not self:CanEdit(true) then return end
+
+	local command = (("gobject group tint %s %s %s %s %s"):format(r, g, b, s, a))
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			sysMsg("Failed to tint GameObject Group: " .. self.guid .. " with message: " .. messages[1])
+		end
+	end, false)
+end
+
+function GameObjectGroupMeta:SetColor(type, r, g, b, a, s)
+	if not type then error("Must provide a type for group:SetColor(type, r, g, b, a, s)") end
+	type = type:lower()
+
+	if type == "tint" then
+		self:Tint(r, g, b, a, s)
+	elseif type == "overlay" then
+		self:Overlay(r, g, b, a, s)
+	else
+		error("Invalid type for group:SetColor(type, r, g, b, a, s). Must be 'tint' or 'overlay'.")
+	end
+end
+
+function GameObjectGroupMeta:SetScale(value)
+	if not _isSelected(self, "You must select the GameObject Group before scaling it.") then return end
+	local command = ("gobject group scale %s"):format(value)
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			sysMsg("Failed to set scale for GameObject Group with message: " .. messages[1])
+		else
+			--sysMsg("Set scale for GameObject Group to " .. value)
+		end
+	end, false)
+end
+
+function GameObjectGroupMeta:GetScale()
+	return self.scale or 1
+end
+
+function GameObjectGroupMeta:Turn(dir)
+	if not _isSelected(self, "You must select the GameObject Group before turning it.") then return end
+	local command = ("gobject group turn %s"):format(dir)
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			sysMsg("Failed to turn GameObject Group with message: " .. messages[1])
+		else
+			--sysMsg("Set scale for GameObject Group to " .. value)
+		end
+	end, false)
+end
+
+function GameObjectGroupMeta:Rotate(_, _, z)
+	if not _isSelected(self, "You must select the GameObject Group before turning it.") then return end
+	self:Turn(z)
 end
 
 --#region GameObject API
@@ -725,17 +941,23 @@ function EpsiLib.GameObject:Select(name, id)
 
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
-			print(("Failed to select GameObject (%s) with message: " .. messages[1]):format(name or id or "nearest"))
+			sysMsg(("Failed to select GameObject (%s) with message: " .. messages[1]):format(name or id or "nearest"))
 		else
-			--print("Selected GameObject: " .. (name or guid or entry))
+			--sysMsg("Selected GameObject: " .. (name or guid or entry))
 		end
 	end)
 end
 
-function EpsiLib.GameObject:Unselect()
-	EpsiLib.AddonCommands._SendAddonCommand("gobject unselect", function(success, messages)
+function EpsiLib.GameObject:Unselect(group)
+	if group == nil then
+		-- double check if we have a selected group, and if so, unselect it instead of the object
+		if self._log._selected and self._log._selected.isGroup then
+			group = true
+		end
+	end
+	EpsiLib.AddonCommands._SendAddonCommand(getCommandByContext(group) .. " unselect", function(success, messages)
 		if not success then
-			print("Failed to unselect GameObject with message: " .. messages[1])
+			sysMsg("Failed to unselect GameObject with message: " .. messages[1])
 		else
 			-- Clear the selected object
 			self._log._selected = nil
@@ -745,13 +967,10 @@ function EpsiLib.GameObject:Unselect()
 end
 
 function EpsiLib.GameObject:Get(id)
-
+	-- forgot to ever implement this?
 end
 
 function EpsiLib.GameObject:GetSelected()
-	if self._log._selected == group_holder then
-		return nil -- If the selected object is the group holder, return nil
-	end
 	return self._log._selected
 end
 
@@ -759,19 +978,37 @@ function EpsiLib.GameObject:GetLast()
 	return self._log._last
 end
 
+function EpsiLib.GameObject:SelectGroup()
+	local command = "gobject group select"
+	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
+		if not success then
+			sysMsg("Failed to select GameObject Group with message: " .. messages[1])
+		else
+			--sysMsg("Selected GameObject Group")
+		end
+	end)
+end
+
+function EpsiLib.GameObject:SetGroupSelected(group)
+	if not group or type(group) ~= "table" then
+		return error("SetGroupSelected must be called with a valid group object.")
+	end
+	self._log._selected = group
+end
+
 function EpsiLib.GameObject:IsGroupSelected()
-	return self._log._selected == group_holder
+	return self._log._selected and self._log._selected.isGroup
 end
 
 function EpsiLib.GameObject:_addToLog(obj, selected)
 	--Check if this gob already exists in our gobs list, and be sure to remove it from the log if so
-	if self._gobs[obj.guid] then
-		tDeleteItem(self._log, self._gobs[obj.guid])
+	if self._gobs[obj.phaseGUID] then
+		tDeleteItem(self._log, self._gobs[obj.phaseGUID])
 	end
 
 	-- Add the object to the log, along with updating it's gobs entry just to be sure it's recorded there
 	table.insert(self._log, obj)
-	self._gobs[obj.guid] = obj
+	self._gobs[obj.phaseGUID] = obj
 	self._log._last = obj
 
 	if selected then
@@ -781,14 +1018,51 @@ function EpsiLib.GameObject:_addToLog(obj, selected)
 	EpsiLib.GameObject.GobLogFrame.Update()
 end
 
-function EpsiLib.GameObject._create(id)
+local function forceLoadLeaderGob(group, leader)
+	EpsiLib.AddonCommands._SendAddonChain({ "gobject select " .. leader, "gobject group select " .. leader }, function()
+		group.leaderObject = EpsiLib.GameObject._gobs[getFullPhaseGobGUID(leader, group.phase)]
+	end)
+end
+
+function EpsiLib.GameObject._createGroup(leader, phase)
+	if not leader then error("_createGroup requires leader.") end
+	if not phase then phase = tonumber(C_Epsilon.GetPhaseId()) end
+	local fullGUID = getFullPhaseGobGUID(leader, phase)
+	local leaderGob = EpsiLib.GameObject._gobs[fullGUID]
+
+	local group = {}
+	setmetatable(group, { __index = GameObjectGroupMeta })
+
+	group.isGroup = true
+	group.phase = phase
+	group.leaderGUID = leader
+	group.leaderObject = leaderGob
+
+	EpsiLib.GameObject._groups[fullGUID] = group
+
+	if not leaderGob then
+		forceLoadLeaderGob(group, leader)
+	end
+	return group --[[@as GameObjectGroupClass]]
+end
+
+function EpsiLib.GameObject._newGroup(leader)
+	local phase = tonumber(C_Epsilon.GetPhaseId())
+	local group = EpsiLib.GameObject._groups[getFullPhaseGobGUID(leader, phase)] or EpsiLib.GameObject._createGroup(leader)
+
+	return group --[[@as GameObjectGroupClass]]
+end
+
+function EpsiLib.GameObject._create(id, phase)
 	local object = {}
 	-- Add meta for default function handlers to function as a class
 	setmetatable(object, { __index = GameObjectMeta })
 
 	if id then
+		if not phase then phase = C_Epsilon.GetPhaseId() end
 		object.guid = tonumber(id)
-		EpsiLib.GameObject._gobs[id] = object
+		object.phase = tonumber(phase)
+		EpsiLib.GameObject._gobs[getFullPhaseGobGUID(id, phase)] = object
 	end
 
 	return object --[[@as GameObjectClass]]
@@ -798,10 +1072,14 @@ end
 function EpsiLib.GameObject._new(guid, entry, name, fileID, x, y, z, orientation, rx, ry, rz, HasTint, red, green, blue, alpha, spell, scale, groupLeader, objType, saturation, rGUIDLow, rGUIDHigh,
 								 canEdit)
 	guid = tonumber(guid)
+	local phase = tonumber(C_Epsilon.GetPhaseId())
+	local full_guid = getFullPhaseGobGUID(guid, phase)
 	if not guid then return error("_new must have GUID") end
-	local object = EpsiLib.GameObject._gobs[guid] or EpsiLib.GameObject._create() -- Re-use the object it it already exists, or generate a new one
+	local object = EpsiLib.GameObject._gobs[full_guid] or EpsiLib.GameObject._create(guid, phase) -- Re-use the object it it already exists, or generate a new one
 
+	object.phase = phase
 	object.guid = tonumber(guid)
+	object.phaseGUID = full_guid
 	object.entry = tonumber(entry)
 	object.name = name
 	object.sname = shortenFileName(name)
@@ -832,6 +1110,8 @@ function EpsiLib.GameObject._new(guid, entry, name, fileID, x, y, z, orientation
 
 	return object --[[@as GameObjectClass]]
 end
+
+EpsiLib.GameObject.CanSpawn = canSpawn
 
 -- Event Management
 local events = {
@@ -872,7 +1152,7 @@ local events = {
 					EpsiLib.EventManager:Fire("EPSILON_OBJ_UPDATE", prefix, obj)
 				end)
 			else
-				print("EpsiLib GobCMA: Illegal Sender (Got: " .. sender .. " | Expected:" .. playerSelf .. ")")
+				sysMsg("EpsiLib GobCMA: Illegal Sender (Got: " .. sender .. " | Expected:" .. playerSelf .. ")")
 			end
 		end
 	end,
@@ -900,7 +1180,7 @@ end
 
 --#region GameObject History Frame
 local frame = CreateFrame("Frame", "EpsilonLibGobHistoryFrame", UIParent, "ButtonFrameTemplateMinimizable")
-frame:SetSize(380, 416)
+frame:SetSize(440, 416)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:SetToplevel(true)
@@ -973,6 +1253,7 @@ local GAME_GOLD = CreateColorFromHexString("FFFFD700")
 local gobLogSTObject
 local gobLogSTColumns = {
 	{ name = "Time",   width = 70, defaultsort = "dsc", sortnext = 2,      hcolor = GAME_GOLD },
+	{ name = "Phase",  width = 60, defaultsort = "dsc", hcolor = GAME_GOLD },
 	{ name = "GUID",   width = 60, defaultsort = "dsc", hcolor = GAME_GOLD },
 	{ name = "Name",   width = 80, hcolor = GAME_GOLD },
 	{ name = "Entry",  width = 70, hcolor = GAME_GOLD },
@@ -1012,6 +1293,7 @@ gobLogSTObject:RegisterEvents({
 
 local tt_textFormat = [[
 GUID: %s / Entry: %s
+Phase: %s
 Name: %s
 %s
 Status: %s
@@ -1040,7 +1322,7 @@ local function getHistoryTooltip(object, status)
 		if res then extras = extras .. tt_fieldFormat:format(v.field, res) end
 	end
 
-	return tt_textFormat:format(object.guid, object.entry, object.sname, extras, status)
+	return tt_textFormat:format(object.guid, object.phase, object.entry, object.sname, extras, status)
 end
 
 EpsiLib.GameObject.GobLogFrame.Update = function()
@@ -1062,6 +1344,7 @@ EpsiLib.GameObject.GobLogFrame.Update = function()
 				gob = object,
 				cols = {
 					{ value = date("%H:%M:%S", object.time) },
+					{ value = object.phase },
 					{ value = object.guid },
 					{ value = object.sname },
 					{ value = object.entry },
@@ -1187,8 +1470,9 @@ end
 local function gobDelCheck(self, event, msg)
 	msg = msg:gsub("|cff......", ""):gsub("|r", "")
 	local dbGUID = tonumber(msg:match("DBGUID: (%d+)"))
+	local fullDbGuid = getFullPhaseGobGUID(dbGUID, C_Epsilon.GetPhaseId())
 
-	local gobData = EpsiLib.GameObject._gobs[dbGUID]
+	local gobData = EpsiLib.GameObject._gobs[fullDbGuid]
 	if gobData then
 		gobData.isDeleted = true
 		EpsiLib.GameObject._log._selected = nil
@@ -1197,3 +1481,80 @@ local function gobDelCheck(self, event, msg)
 	end
 end
 EpsiLib.EventManager:RegisterSimpleCommandWatcher("You have deleted |c", gobDelCheck)
+
+
+--- GROUP SELECTION HANDLE / DETECTION
+
+local gobGroupCommandMessages = {
+	"Selected gameobject group",
+	"Spawned gameobject group",
+	"Spawned blueprint",
+	"added %d+ objects to gameobject group",
+	"added the gameobject .* to gameobject group"
+}
+local function checkForGroupMessage(msg)
+	for _, pattern in ipairs(gobGroupCommandMessages) do
+		if msg:find(pattern) then
+			return true
+		end
+	end
+	return false
+end
+
+local groupLeaderPattern = "GUID:(%d+)"
+local groupLeaderPatternAlt = "with leader.*DBGUID: (%d+)%)"
+local isWaitingForGroupData
+local function groupMessageCheck(self, event, msg)
+	local clearmsg = gsub(msg, "|cff%x%x%x%x%x%x", "");
+	local clearmsg = clearmsg:gsub("|r", "");
+
+	-- ignore announce messages:
+	if clearmsg:find("^Epsilon") or msg:find("|cff00a2d7Epsilon|r") then
+		return
+	end
+
+	---------- Group Selection Detection ----------
+
+	if checkForGroupMessage(clearmsg) then
+		local groupID = nil
+
+		if clearmsg:find("Selected") or clearmsg:find("Spawned") then
+			-- selected & spawned always give the next group data messages or info in current message
+			groupID = clearmsg:match(groupLeaderPattern)
+			isWaitingForGroupData = EpsiLib.GameObject._newGroup(groupID)
+			EpsiLib.GameObject:SetGroupSelected(isWaitingForGroupData)
+			--print("Group Selected", groupID)
+			EpsiLib.EventManager:Fire("EPSILON_OBJ_UPDATE", "GROUP", isWaitingForGroupData)
+		else
+			-- otherwise the others don't, so need to re-select the group to get the group data
+			groupID = clearmsg:match(groupLeaderPatternAlt)
+			--print('reselecting group for data, leader:', groupID)
+			if groupID then
+				EpsiLib.AddonCommands._SendAddonCommand("gobject group sel " .. groupID)
+			else
+				sysMsg("ALERT: Objects added to group with Auto-Rotate enabled, but we couldn't get the group data. Please re-select the group.")
+			end
+		end
+	end
+
+	if isWaitingForGroupData then
+		local yaw = nil
+		local scale = tonumber(clearmsg:match("Scale: (%d*%.%d*)"))
+
+		if clearmsg:find("Yaw/Turn:") then
+			yaw = tonumber(clearmsg:match("Pitch: %-?%d*%.%d*, Roll: %-?%d*%.%d*, Yaw/Turn: (%-?%d*%.%d*)"))
+		elseif clearmsg:find("with orientation:") then
+			yaw = tonumber(clearmsg:match("orientation: (%-?%d*%.%d*)"))
+		end
+
+		if yaw or scale then
+			local group = isWaitingForGroupData
+
+			if yaw then group.orientation = yaw end
+			if scale then group.scale = scale end
+
+			isWaitingForGroupData = false
+		end
+	end
+end
+EpsiLib.EventManager:AddCommandFilter(groupMessageCheck)

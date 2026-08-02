@@ -553,6 +553,7 @@ local noNotificationPhases = { -- Epsi
 	[170] = true,
 	[201] = true,
 	[224] = true,
+	[9300] = true,
 }
 local autoSparksInRange = {}
 local CoordinateListener = CreateFrame("Frame")

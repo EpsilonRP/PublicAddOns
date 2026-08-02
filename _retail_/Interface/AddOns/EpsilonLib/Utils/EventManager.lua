@@ -266,7 +266,7 @@ function EventManager:HandleChatEvent(event, ...)
 end
 
 ---Helper Util to quickly create a command reply filter through all the possible command reply channels, with proper handling of AddOn Commands
----@param callback function The callback function to run on reply. You should pattern match first to make sure it's the reply you want.
+---@param callback fun(self, event, message, ...) The callback function to run on reply. You should pattern match first to make sure it's the reply you want.
 ---@return function reference The callback provided in the input is wrapped, so is no longer valid for using in removal - This reference is the new, wrapped callback
 function EventManager:AddCommandFilter(callback)
 	if not callback then error("AddCommandFilter Syntax Error: No Callback given. Are you calling with a : ?") end
@@ -302,7 +302,7 @@ local commandWatchers = {}
 
 ---Registers a simple pattern match to callback on command replies.
 ---@param pattern string The pattern that must be matched in order to run this callback
----@param callback fun(self, event, message) The callback function, with the same args as a standard MessageEventFilter, except self is always nil
+---@param callback fun(self, event, message) The callback function, with the same args as a standard MessageEventFilter, except self is the registered table object/reference
 ---@return table reference The table reference for this new entry, which is a table housing the pattern & callback, which can then technically be modified live as well.
 function EventManager:RegisterSimpleCommandWatcher(pattern, callback)
 	local new_table = { pattern = pattern, callback = callback }
@@ -320,7 +320,7 @@ local function simpleCommandReplyListener(_, event, message)
 	for i = 1, #commandWatchers do
 		local data = commandWatchers[i]
 		if message:find(data.pattern) then
-			return data.callback(nil, event, message)
+			return data.callback(data, event, message)
 		end
 	end
 end

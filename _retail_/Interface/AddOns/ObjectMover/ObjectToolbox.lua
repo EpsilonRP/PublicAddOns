@@ -22,6 +22,24 @@ local null = function() end
 
 OBJECT_TOOLBOX_API = {}
 
+local function canEditObject(object)
+	if C_Epsilon.IsOfficer() or C_Epsilon.IsOwner() then return true end
+	if object and object.isGroup then object = object.leaderObject end
+	if C_Epsilon.IsMember() and (object and object.canEdit) then return true end
+	return false
+end
+
+local baseCommand = "gobject"
+local groupCommand = "gobject group"
+
+local function getCommandByContext(isGroup)
+	if isGroup then
+		return groupCommand
+	else
+		return baseCommand
+	end
+end
+
 --#region Main Frame
 
 local f = CreateFrame("Frame", "ObjectToolboxFrame", UIParent, "PortraitFrameTemplateMinimizable")
@@ -88,6 +106,60 @@ end
 f.UpdateSize = f.ResizeToFitChildren -- Alias
 
 NineSliceUtil.ApplyLayoutByName(f.NineSlice, "EpsilonGoldBorderFrameDoubleButtonTemplateNoPortrait")
+
+-- Resizer
+local resizeDragger = CreateFrame("BUTTON", nil, f)
+resizeDragger:SetSize(16, 16)
+resizeDragger:SetPoint("BOTTOMRIGHT", -2, 2)
+resizeDragger.BottomEdge = true
+resizeDragger:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+resizeDragger:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+resizeDragger:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+resizeDragger:SetScript("OnMouseDown", function(self, button)
+	if button == "LeftButton" then
+		local parent = self:GetParent()
+		self.isScaling = true
+	elseif button == "RightButton" then
+		local parent = self:GetParent()
+		parent:SetScale(1)
+	end
+end)
+resizeDragger:SetScript("OnMouseUp", function(self, button)
+	if button == "LeftButton" then
+		self.isScaling = false
+	end
+end)
+resizeDragger:HookScript("OnUpdate", function(self)
+	if self.isScaling == true then
+		local parent = self:GetParent()
+
+		local cx, cy = GetCursorPosition()
+		cx = cx / self:GetEffectiveScale() - parent:GetLeft()
+		cy = parent:GetHeight() - (cy / self:GetEffectiveScale() - parent:GetBottom())
+
+		local tNewScale = cx / parent:GetWidth()
+		local pX, pY = parent:GetLeft(), parent:GetTop() - parent:GetHeight()
+		local tx, ty = pX / tNewScale, pY / tNewScale
+		local finalScale = parent:GetScale() * tNewScale
+
+		-- limits
+		if finalScale <= 0.5 then
+			parent:SetScale(0.5)
+			return
+		elseif finalScale >= 2.0 then
+			parent:SetScale(2.0)
+			return
+		end
+
+		parent:ClearAllPoints()
+		parent:SetScale(math.max(0.5, math.min(2.0, finalScale)))
+		parent:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", tx, ty)
+	end
+end)
+
+f.ResizeDragger = resizeDragger
+
+
 
 f:HookScript("OnUpdate", function(self)
 	if not OPMasterTable.Options["fadePanel"] then
@@ -274,7 +346,9 @@ local function editBoxNumberValidate(self)
 		self:SetText(text)
 	end
 
-	if tonumber(text) then
+	if text == "." then
+		-- do nothing, starting with a . is OK
+	elseif tonumber(text) then
 		self:SetTextColor(255, 255, 255, 1)
 		self.lastGoodText = text -- Store the last good text
 	elseif text == "" then
@@ -406,7 +480,7 @@ local function _getInfoPresetFunc(key)
 end
 
 local function savePreset(keyKey, contentKey, realKey, force, data)
-	if illegalPresetNames[realKey] then return print("YOU CAN'T DO THAT! WTF IS WRONG WITH YOU!") end -- this is a reserved name
+	if illegalPresetNames[realKey] then return sysMsg("YOU CAN'T DO THAT! WTF IS WRONG WITH YOU!") end -- this is a reserved name
 	local friendlyKeyKeyName = presetKeyKeyNameMap[keyKey] or keyKey
 	if not force and OPMasterTable[contentKey][realKey] then
 		EpsilonLib.Utils.GenericDialogs.GenericConfirmation(
@@ -424,10 +498,10 @@ local function savePreset(keyKey, contentKey, realKey, force, data)
 end
 
 local function deletePreset(keyKey, contentKey, realKey, force)
-	if realKey:find("Reset") then return print("Cannot delete Reset pre-sets.") end
-	if illegalPresetNames[realKey] then return print("YOU CAN'T DO THAT! WTF IS WRONG WITH YOU!") end -- this is a reserved key
+	if realKey:find("Reset") then return sysMsg("Cannot delete Reset pre-sets.") end
+	if illegalPresetNames[realKey] then return sysMsg("YOU CAN'T DO THAT! WTF IS WRONG WITH YOU!") end -- this is a reserved key
 	local friendlyKeyKeyName = presetKeyKeyNameMap[keyKey] or contentKey
-	if not OPMasterTable[contentKey][realKey] then return print(("OM2: '%s' does not exist as a preset. (Preset Type: %s)"):format(realKey, friendlyKeyKeyName)) end
+	if not OPMasterTable[contentKey][realKey] then return sysMsg(("'%s' does not exist as a preset. (Preset Type: %s)"):format(realKey, friendlyKeyKeyName)) end
 
 	if not force then
 		EpsilonLib.Utils.GenericDialogs.GenericConfirmation(("Are you sure you wish to delete %s preset:\n\r%s\n"):format(friendlyKeyKeyName, ContrastColor:WrapTextInColorCode(realKey)), function() deletePreset(keyKey, contentKey, realKey, true) end)
@@ -925,7 +999,7 @@ local function GenRotationSlider(parent, name, label, axis)
 		-- do full set here
 		local gob = EpsilonLib.GameObject:GetSelected()
 		if not gob then
-			print('no gob sel')
+			sysMsg('No Game Object Selected.')
 			return
 		end
 		gob:Rotate(axis == "X" and val, axis == "Y" and val, axis == "Z" and val, false)
@@ -956,19 +1030,43 @@ local function GenColorSlider(parent, color, group)
 
 	slider._lastValue = nil
 
-	slider:SetScript("OnValueChanged", function(self, value)
-		if slider._lastValue == value then return end
-		self.Label:SetText(string.format("%d", value))
 
+	local function doColor(value)
+		slider.Label:SetText(string.format("%d", value))
 		-- TODO: Need to smooth out how this interacts with the Color Selector Wheel
 		local info = group.GetColorInfo()
 		info[colMap[color]] = value
+		group.ColorSelect.isUpdating = true
 		group.SetColorInfo(info, true)
+		group.ColorSelect:SetColorRGB(info.r / 100, info.g / 100, info.b / 100)
+		group.ColorSelect.isUpdating = false
 
 		invalidatePresetSelected()
+	end
+
+	slider:SetScript("OnValueChanged", function(self, value, userInput)
+		if slider._lastValue == value then return end
+		if not userInput then return end
+		if self._updating then return end
+		self._updating = true
+		slider._lastValue = value
+
+		-- Rate limit now applied in SetColorInfo
+		-- rate limit: only allow running once every 0.1 second
+		--local now = GetTime()
+		--if slider._lastRun and (now - slider._lastRun) < 0.1 then return end
+		--slider._lastRun = now
+
+		doColor(value)
+		self._updating = false
+	end)
+	slider:SetScript("OnMouseDown", function()
+		group.ColorSelect.isSelecting = true
 	end)
 	slider:SetScript("OnMouseUp", function(self)
 		slider._lastValue = nil
+		--doColor(self:GetValue())
+		group.ColorSelect.isSelecting = false
 	end)
 
 	return slider
@@ -982,7 +1080,7 @@ end
 ---@param leftText? boolean -- use text anchored to the left
 ---@return CheckButton[] radios radios array, in order
 ---@return table<string, CheckButton|UIRadioButtonTemplate> parentTable sub-table added to the parent by the name, with each radio added as a named key inside
-local function CreateRadioButtons(parent, name, radioData, useCheckbox, leftText)
+local function CreateRadioButtons(parent, name, radioData, useCheckbox, leftText, forceClickOnUncheck)
 	local radios = {}
 
 	parent[name] = parent[name] or {} -- use current table or instantiate a new one if needed
@@ -1002,6 +1100,7 @@ local function CreateRadioButtons(parent, name, radioData, useCheckbox, leftText
 				if self:GetChecked() then
 					for _, checkbox in ipairs(radios) do
 						if checkbox ~= self then
+							if forceClickOnUncheck and checkbox:GetChecked() then checkbox:Click() end
 							checkbox:SetChecked(false)
 						end
 					end
@@ -1009,6 +1108,7 @@ local function CreateRadioButtons(parent, name, radioData, useCheckbox, leftText
 			else
 				-- For radio buttons: always set only this one checked, all others off
 				for _, checkbox in ipairs(radios) do
+					if checkbox ~= self then if forceClickOnUncheck and checkbox:GetChecked() then checkbox:Click() end end
 					checkbox:SetChecked(checkbox == self)
 				end
 			end
@@ -1066,9 +1166,10 @@ end
 ---@param label string The label for the edit box (e.g., "X:", "Y:", "Z:")
 ---@param offsetX number The horizontal offset from the parent frame
 ---@param offsetY number The vertical offset from the parent frame
+---@param linkedModifiers boolean? Optional flag if it should be linked with other vector edit boxes on this parent
 ---@return table|Frame
 ---@return table|EditBox|InputBoxTemplate
-local function CreateVectorEditBox(parent, name, label, offsetX, offsetY)
+local function CreateVectorEditBox(parent, name, label, offsetX, offsetY, linkedModifiers)
 	local group = CreateFrame("Frame", nil, parent)
 	group:SetSize(60, 38) -- increased height to fit buttons above
 	group:SetPoint("TOP", offsetX, offsetY)
@@ -1169,14 +1270,37 @@ local function CreateVectorEditBox(parent, name, label, offsetX, offsetY)
 		self:SetCursorPosition(0)
 	end)
 
+	if linkedModifiers then
+		parent["_linkedVectorBoxes"] = parent["_linkedVectorBoxes"] or {}
+		table.insert(parent["_linkedVectorBoxes"], eb)
+	end
+
 	doubleBtn:SetScript("OnClick", function()
 		local v = tonumber(eb:GetText()) or 1
 		eb:SetText(v * 2)
+
+		if linkedModifiers and parent["_linkedVectorBoxes"] and IsShiftKeyDown() then
+			for _, otherEb in ipairs(parent["_linkedVectorBoxes"]) do
+				if otherEb ~= eb then
+					local otherV = tonumber(otherEb:GetText()) or 1
+					otherEb:SetText(otherV * 2)
+				end
+			end
+		end
 	end)
 
 	halfBtn:SetScript("OnClick", function()
 		local v = tonumber(eb:GetText()) or 1
 		eb:SetText(v / 2)
+
+		if linkedModifiers and parent["_linkedVectorBoxes"] and IsShiftKeyDown() then
+			for _, otherEb in ipairs(parent["_linkedVectorBoxes"]) do
+				if otherEb ~= eb then
+					local otherV = tonumber(otherEb:GetText()) or 1
+					otherEb:SetText(otherV / 2)
+				end
+			end
+		end
 	end)
 
 	parent["_" .. name .. "Vector"] = group
@@ -1505,7 +1629,7 @@ local objectSpawnInfoControls = CreateControlGroup(f, "ObjectSpawnInfo", 0, 0, 2
 objectSpawnInfoControls:SetPoint("TOP", 0, -46) -- Manual override position for the first control group
 
 local objectSpawnIDEditBox = CreateSimpleNumberEditBox("ID", objectSpawnInfoControls, "TOPLEFT", "TOPLEFT", 24, 2)
-objectSpawnIDEditBox:SetSize(95, 20)
+objectSpawnIDEditBox:SetSize(80, 20)
 connectButtonWithSavedOption(objectSpawnIDEditBox, "ObjectID")
 
 local function GetCurrentObjectIDCallback()
@@ -1514,6 +1638,8 @@ local function GetCurrentObjectIDCallback()
 		sysMsg("No object selected. Select an Object First.")
 		return
 	end
+
+	if object.isGroup then return end -- don't update if it's a group
 
 	objectSpawnIDEditBox:SetText(object.entry)
 end
@@ -1531,10 +1657,21 @@ objectSpawnInfoControls.OpenViewerButton = ChainWrap(openViewerButton)
 	:SetScript("OnClick", function(self)
 		(SlashCmdList["EPSV"] or null)()
 	end)
-
 openViewerButton.tooltipText = "Open Viewer to find Objects"
 EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(openViewerButton, "common-search-magnifyingglass", true, Colors.game_gold)
 addTooltipHandlers(openViewerButton, true)
+
+
+local openGobHistoryButton = CreateFrame("Button", nil, objectSpawnInfoControls)
+objectSpawnInfoControls.OpenGobHistoryButton = ChainWrap(openGobHistoryButton)
+	:SetSize(22, 22)
+	:SetPoint("LEFT", objectSpawnInfoControls.OpenViewerButton:Unwrap(), "RIGHT", 2, 0)
+	:SetScript("OnClick", function(self)
+		EpsilonLibGobHistoryFrame:SetShown(not EpsilonLibGobHistoryFrame:IsShown())
+	end)
+openGobHistoryButton.tooltipText = "Open Gob History"
+EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(openGobHistoryButton, "unitframeicon-chromietime", true)
+addTooltipHandlers(openGobHistoryButton, true)
 
 
 local openObjectInfoPanelButton = CreateFrame("Button", nil, objectSpawnInfoControls)
@@ -1575,7 +1712,7 @@ addTooltipHandlers(openObjectInfoPanelButton, true)
 local function spawnObject_OnClick(self, btn)
 	local objectID = tonumber(objectSpawnIDEditBox:GetText())
 	if not objectID or objectID <= 0 then
-		print("Invalid Object ID. Please enter a valid number.")
+		sysMsg("Invalid Object ID. Please enter a valid number.")
 		return
 	end
 
@@ -1594,12 +1731,12 @@ OBJECT_TOOLBOX_API.SpawnGob = spawnObject_OnClick
 local function gobDelete_OnClick(self, btn)
 	local object = EpsilonLib.GameObject:GetSelected()
 	if not object then
-		print("No object selected.")
+		sysMsg("No object selected.")
 		return
 	end
 
 	if object.isDeleted then
-		print("Object Already Deleted!")
+		sysMsg("Object Already Deleted!")
 		return
 	end
 
@@ -1752,6 +1889,7 @@ gobBasicControlsGroup.buttons = gobBasicActionButtons
 --#region Object Movement Controls (Arrows)
 
 local objectMovementPullout, objectMovementControls = CreateControlGroup(f, "ObjectMovement", 0, 0, 262, "CONTROL / COPY / MOVE", nil, true)
+--f.ObjectMovementControls.Content
 
 -- Create directional arrow buttons using texture
 local function CreateArrowButton(parent, dir, texture, rotation, x, y, sizeX, sizeY, color)
@@ -1851,6 +1989,7 @@ arrowGroup.UpdateRotation = function(self, compassFacing, buttonFacing)
 		tex:SetRotation(-compassFacing)
 	end
 
+	if OPMasterTable.Options['LockArrowOrientation'] then return end
 	self.buttons:UpdateRotation(-(buttonFacing or 0))
 end
 -- On Update script is set later to update the rotation based on current movement mode
@@ -1924,6 +2063,7 @@ local arrowSizeOverride = {
 
 local moveObject = function(dir1, dist1, ...)
 	if not dir1 and not tonumber(dist1) then return error("Must provide at least one valid direction & distance") end
+	local object = EpsilonLib.GameObject:GetSelected()
 
 	if select("#", ...) % 2 == 1 then return error("Invalid Number of Arguments for MoveObject - Must provide equal number of dir & dist args") end
 
@@ -1943,12 +2083,18 @@ local moveObject = function(dir1, dist1, ...)
 		end
 	end
 
+	if f.MovePlayerCheck:GetChecked() then
+		-- Special Handler; need to move player using ".gps dir dist" command instead. GPS allows batch movement, even tho it's undocumented.
+		cmd("gps " .. table.concat(dirXdistStrs, " "))
+		return
+	end
+
 	if f.WorldCheck:GetChecked() then
 		-- Move as if facing north, using player's facing for math, outputting relative directions
 		local playerFacing = GetPlayerFacing() or 0
 		-- We'll convert all movement into a net X/Y vector, rotate it by -playerFacing, then decompose into relative directions
 
-		local dx, dy = 0, 0
+		local dx, dy, dz = 0, 0, 0
 		for i = 1, #directions do
 			local dir = directions[i]
 			local dist = distances[i]
@@ -1980,6 +2126,10 @@ local moveObject = function(dir1, dist1, ...)
 				local d = dist / math.sqrt(2)
 				dx = dx + d
 				dy = dy - d
+			elseif dir == "up" then
+				dz = dz + dist
+			elseif dir == "down" then
+				dz = dz - dist
 			end
 		end
 
@@ -2005,18 +2155,32 @@ local moveObject = function(dir1, dist1, ...)
 				table.insert(rel, ("left %.4f"):format(-rx))
 			end
 		end
+		if dz ~= 0 then
+			table.insert(rel, ("up %.4f"):format(dz))
+		end
+
 
 		local finalDist = table.concat(rel, " ")
 		if finalDist ~= "" then
-			op_cmd("gobject", ("%s %s"):format("relative", finalDist), true)
+			-- If both copy and relative are checked, we need to use "copy" first, then "relative" after it's done
+			if f.CopyCheck:GetChecked() then
+				op_cmd("gobject", ("%s %s"):format("copy", "up 0"), true,
+					function(success, msgs)
+						if not success then
+							Utils.eprint("Failed copy command before world-relative movement")
+							return false
+						end
+						op_cmd("gobject", ("%s %s"):format("relative", finalDist), true)
+						return nil
+					end
+				)
+			else
+				op_cmd("gobject", ("%s %s"):format("relative", finalDist), true)
+			end
 		end
 		return
 	end
-	if f.MovePlayerCheck:GetChecked() then
-		-- Special Handler; need to move player using ".gps dir dist" command instead. GPS allows batch movement, even tho it's undocumented.
-		cmd("gps " .. table.concat(dirXdistStrs, " "))
-		return
-	end
+
 
 	local moveCmd = "move"
 	local copyCheck = f.CopyCheck:GetChecked()
@@ -2028,8 +2192,8 @@ local moveObject = function(dir1, dist1, ...)
 	local finalCom = table.concat(dirXdistStrs, " ")
 	local secondCom
 
-	if copyCheck and relativeCheck then
-		-- If both copy and relative are checked, we need to use "copy" first, then "relative" after it's done
+	if copyCheck and (relativeCheck or select("#", ...) > 0) then
+		-- If both copy and relative are checked, or we have multiple movements to make, we need to use "copy" first, then "relative" after it's done
 		secondCom = finalCom
 		finalCom = "up 0"
 	end
@@ -2054,7 +2218,8 @@ local moveObject = function(dir1, dist1, ...)
 				end
 				return nil
 			end
-		end)
+		end
+	)
 end
 
 for dir, name in pairs(dirs) do
@@ -2129,10 +2294,50 @@ function arrowButtons:SetEnabledState(enabled)
 end
 
 function arrowButtons:CheckIfEnableValid()
-	local enabled = EpsilonLib.GameObject:GetSelected() and true or false
+	local obj = EpsilonLib.GameObject:GetSelected()
+	local enabled = obj and obj:CanEdit()
+
 	if f.MovePlayerCheck:GetChecked() then enabled = true end
 	self:SetEnabledState(enabled)
 end
+
+local arrowLockButton = CreateFrame("Button", nil, objectMovementControls)
+objectMovementControls.ArrowLockButton = ChainWrap(arrowLockButton)
+	:SetSize(16, 16)
+	:SetPoint("CENTER", arrowGroup, "TOPRIGHT", 11, 11)
+	:SetScript("OnClick", function(self, button)
+		if button == "LeftButton" then
+			OPMasterTable.Options['LockArrowOrientation'] = not OPMasterTable.Options['LockArrowOrientation']
+			self:UpdateIcon()
+			arrowGroup.bFacing = nil
+			arrowGroup.cFacing = nil
+		elseif button == "RightButton" then
+			arrowGroup.buttons:UpdateRotation(0)
+		end
+	end)
+	:SetScript("OnShow", function(self) self:UpdateIcon() end)
+	:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+local lockIcon = EpsilonLib.API.Resource("LockedTintable")
+local unlockIcon = EpsilonLib.API.Resource("UnlockedTintable")
+function arrowLockButton:UpdateIcon()
+	if OPMasterTable.Options['LockArrowOrientation'] then
+		EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(arrowLockButton, lockIcon, nil, Colors.game_gold, true)
+	else
+		EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(arrowLockButton, unlockIcon, nil, Colors.GAME_GREY, true)
+	end
+end
+
+arrowLockButton.tooltipTitle = "Lock Arrow Orientation"
+arrowLockButton.tooltipText = EpsilonLib.Utils.Tooltip.ReplaceTags(table.concat(
+	{
+		"{left-click-text-icon}: Lock to Current Orientation",
+		"{right-click-text-icon}: Reset Orientation (North)",
+	},
+	"\n")
+)
+addTooltipHandlers(arrowLockButton, true)
+
 
 --#endregion
 
@@ -2142,9 +2347,9 @@ local distanceControls = {}
 f.DistanceControls = distanceControls
 
 local moveDownDist = 134
-local editX, editXBox = CreateVectorEditBox(objectMovementControls, "Length", Colors.HYPER_GREEN:WrapTextInColorCode("L") .. ":", -65, -moveDownDist)
-local editY, editYBox = CreateVectorEditBox(objectMovementControls, "Width", Colors.FULL_RED:WrapTextInColorCode("W") .. ":", 0, -moveDownDist)
-local editZ, editZBox = CreateVectorEditBox(objectMovementControls, "Height", Colors.game_gold:WrapTextInColorCode("H") .. ":", 65, -moveDownDist)
+local editX, editXBox = CreateVectorEditBox(objectMovementControls, "Length", Colors.HYPER_GREEN:WrapTextInColorCode("L") .. ":", -65, -moveDownDist, true)
+local editY, editYBox = CreateVectorEditBox(objectMovementControls, "Width", Colors.FULL_RED:WrapTextInColorCode("W") .. ":", 0, -moveDownDist, true)
+local editZ, editZBox = CreateVectorEditBox(objectMovementControls, "Height", Colors.game_gold:WrapTextInColorCode("H") .. ":", 65, -moveDownDist, true)
 local editM, editMBox = CreateVectorEditBox(objectMovementControls, "Mult", Colors.game_gold:WrapTextInColorCode("MULT"), 0, 0)
 distanceControls.EditGroups = { X = editX, Y = editY, Z = editZ, M = editM }
 distanceControls.EditBox = { X = editXBox, Y = editYBox, Z = editZBox, M = editMBox }
@@ -2158,7 +2363,12 @@ local dirToAxis = { ["L"] = editXBox, ["W"] = editYBox, ["H"] = editZBox }
 function f:GetMoveDistance(dir)
 	if (not dir) or (type(dir) ~= "string") then return end
 	local box = dirToAxis[dir:upper()] or distanceControls.EditBox[dir:upper()]
-	if box then return tonumber(box:GetText()) end
+	local value = box and tonumber(box:GetText())
+	if not value or value <= 0 then
+		sysMsg(("Invalid distance value for %s. Please enter a valid, positive number."):format(dir))
+		return 0
+	end
+	return value
 end
 
 function distanceControls.SetDimensions(l, w, h, m)
@@ -2187,10 +2397,10 @@ editMBox.Label:SetPoint("TOP", editMBox, "BOTTOM", -2, 0)
 
 local function objSizeCallback(size)
 	if size == false then -- size is still loading
-		print("Object Size is still loading... You got quick fingers, kid.")
+		sysMsg("Object Size is still loading... You got quick fingers, kid.")
 		return
 	elseif not size then
-		print("Object does not have a size. Probably a WMO. Blizz ain't ever gonna add WMO support..")
+		--sysMsg("Object does not have a size. Probably a WMO. Blizz ain't ever gonna add WMO support..")
 		return
 	end
 
@@ -2200,13 +2410,16 @@ local function objSizeCallback(size)
 	--print(string.format("Updated sizes: Width: %.2f, Height: %.2f, Length: %.2f", width, height, length))
 end
 
-local function UpdateDistanceControlsWithSelectedObject(object)
+local function UpdateDistanceControlsWithSelectedObject(object, source)
+	if source == "EPSILON_OBJ_INFO" then return end -- no auto-update on INFO updates since these are the same object.
 	object = object or EpsilonLib.GameObject:GetSelected()
 	if not object then
 		-- TODO: Make this prettier?
 		sysMsg("No object selected. Select an object first.")
 		return
 	end
+
+	if object.isGroup then return end
 
 	local size = object:GetSize(objSizeCallback)
 end
@@ -2220,18 +2433,30 @@ distanceControls.GetCurrentObjectSizeButton = ChainWrap(createGetAutoUpdateHybri
 
 
 local function paramPresetCallback(content)
-	if not content then return print("No Preset Content Selected?") end
-	f.DistanceControls.SetDimensions(content.Length, content.Width, content.Height, content.Scale)
+	if not content then return sysMsg("No Preset Content Selected?") end
+	local currData = f.DistanceControls.GetDimensions(true)
+
+	for k, v in pairs(content) do
+		if v == "" then content[k] = nil end -- don't use blank data (old saves)
+	end
+
+	local length, width, height, scale = content.Length or currData.Length, content.Width or currData.Width, content.Height or currData.Height, content.Scale or currData.Scale
+
+	f.DistanceControls.SetDimensions(length, width, height, scale)
 end
 local function paramSaveCollector()
-	return f.DistanceControls.GetDimensions(true)
+	local params = f.DistanceControls.GetDimensions(true)
+	for k, v in pairs(params) do
+		if v == "" then params[k] = nil end -- don't save blank data
+	end
+	return params
 end
 objectMovementControls.SaveLoadObjectButton = CreatePresetSaveLoadButton("Param", objectMovementControls, "TOPLEFT", objectMovementControls, nil, 6, 0, paramPresetCallback,
 	paramSaveCollector)
 
 -- Radio-style checkboxes under arrows for movement mode (Relative or World)
 
-local _, moveRadios = CreateRadioButtons(objectMovementControls, "ModeToggles", { { name = "relative", label = "Relative" }, { name = "world", label = "World" } }, true)
+local _, moveRadios = CreateRadioButtons(objectMovementControls, "ModeToggles", { { name = "relative", label = "Relative" }, { name = "world", label = "World" } }, true, nil, true)
 
 moveRadios.relative:SetSize(20, 20)
 moveRadios.relative:SetPoint("BOTTOMLEFT", objectMovementControls, "TOPLEFT", 2, -208)
@@ -2257,6 +2482,7 @@ connectButtonWithSavedOption(f.WorldCheck, "RelativeToWorld")
 
 
 local altMoveRadios = {}
+--f.ObjectMovementControls.Content.AltModeToggles.player
 objectMovementControls.AltModeToggles = altMoveRadios
 altMoveRadios.player = CreateFrame("CheckButton", nil, objectMovementControls, "UICheckButtonTemplate")
 altMoveRadios.player:HookScript("OnDisable", _editcheckbox_OnDisable)
@@ -2361,7 +2587,7 @@ local function copyObjectButton_OnClick(self, button)
 
 	if IsShiftKeyDown() then
 		if not objectMemory then
-			print("No Object in Memory. Please select an object to copy.")
+			sysMsg("No Object in Memory. Please select an object to copy.")
 			return
 		end
 		objectMemory:DeepCopy(button ~= "RightButton")
@@ -2493,26 +2719,25 @@ gobEditControlsGroup.buttons = gobEditActionButtons
 
 --#endregion
 
---#region Game Object Rotation + Tint Tab Region Set-up
-
+--#region Game Object Rotation + Tint Tab Region Set-up -- KEPT AS EXAMPLE OF HOW TO USE TabControlGroup?
+--[[
 local gobTabData = {
 	{ name = "Rotation", label = "Rotation" },
 	{ name = "Tint",     label = "Tint" },
 }
---local gobTabControls = CreateTabControlGroup(f, "GobControls", 0, -6, 140, gobTabData)
+local gobTabControls = CreateTabControlGroup(f, "GobControls", 0, -6, 140, gobTabData)
+--]]
 
 --#region Game Object Rotation Controls
---local gobRotationControls = gobTabControls.RotationControls
---gobTabControls:ShowTab("Rotation") -- Show the Rotation tab by default
 local gobRotationPullout, gobRotationControls = CreateControlGroup(f, "Rotation", 0, 0, 140, "ROTATION", nil, true)
---gobRotationControls=f.RotationControls.Content
+--NOTE: gobRotationControls=f.RotationControls.Content
 
 local gobRotArrowsFrame = CreateFrame("Frame", nil, gobRotationControls)
 gobRotArrowsFrame:SetSize(120, 120)
 gobRotArrowsFrame:SetPoint("TOP", gobRotationControls, "TOP", 0, 0)
 gobRotationControls.ArrowsFrame = gobRotArrowsFrame
 
---[[ -- Position Helper
+--[[ -- Position Helper (DEBUG)
 gobRotArrowsFrame:SetScript("OnMouseDown", function(self, button)
 	if button == "LeftButton" then
 		-- print where in the frame the click happened
@@ -2663,7 +2888,7 @@ local function CreateAxisButton(parent, name, x, y, width, height)
 				)
 			end
 		else
-			print("No object selected to rotate.")
+			sysMsg("No object selected to rotate.")
 		end
 
 		holdStart, lastRepeat, isHolding = nil, nil, false
@@ -2722,6 +2947,7 @@ end
 
 -- create rotation value edit boxes
 gobRotationControls.RotEditBox = {}
+gobRotationControls.RotSlider = {}
 local rotationLabelNames = { X = "Roll", Y = "Pitch", Z = "Turn" } -- Use these names for the edit boxes
 local rotationLabelNamesColor = { X = CreateColorFromHexString("FFFF6060"), Y = CreateColorFromHexString("FF386EF7"), Z = CreateColorFromHexString("FF21FC8B") }
 local edgeScale = 24
@@ -2840,6 +3066,9 @@ for i, axis in ipairs({ "X", "Y", "Z" }) do
 		invalidatePresetSelected()
 	end)
 
+	-- rotSliderFrame.RollSlider / PitchSlider / TurnSlider, or...
+	gobRotationControls.RotSlider[axis] = slider
+
 	-- Sync Slider to EditBox
 	eb:HookScript("OnTextChanged", function(self)
 		local value = tonumber(self:GetText())
@@ -2847,42 +3076,58 @@ for i, axis in ipairs({ "X", "Y", "Z" }) do
 		slider:SetValue(value)
 		invalidatePresetSelected()
 	end)
+
+	eb:HookScript("OnEditFocusLost", function(self)
+		local value = tonumber(self:GetText())
+		if not value then return end
+
+		-- do rotate here
+
+		local gob = EpsilonLib.GameObject:GetSelected()
+		if not gob then
+			sysMsg('No Game Object Selected.')
+			return
+		end
+		gob:Rotate(axis == "X" and value, axis == "Y" and value, axis == "Z" and value, false)
+	end)
 end
 
+function gobRotationControls:SetAxisEnabled(axis, enabled)
+	if axis == "X" then
+		gobRotationControls.Arrows.Red1:SetEnabled(enabled)
+		gobRotationControls.Arrows.Red2:SetEnabled(enabled)
+		gobRotationControls.Arrows.Red3:SetEnabled(enabled)
+		gobRotationControls.Arrows.Red4:SetEnabled(enabled)
+		gobRotateRedAxis:SetDesaturated(not enabled)
+	elseif axis == "Y" then
+		gobRotationControls.Arrows.Blue1:SetEnabled(enabled)
+		gobRotationControls.Arrows.Blue2:SetEnabled(enabled)
+		gobRotationControls.Arrows.Blue3:SetEnabled(enabled)
+		gobRotationControls.Arrows.Blue4:SetEnabled(enabled)
+		gobRotateBlueAxis:SetDesaturated(not enabled)
+	elseif axis == "Z" then
+		gobRotationControls.Arrows.Green1:SetEnabled(enabled)
+		gobRotationControls.Arrows.Green2:SetEnabled(enabled)
+		gobRotationControls.Arrows.Green3:SetEnabled(enabled)
+		gobRotationControls.Arrows.Green4:SetEnabled(enabled)
+		gobRotateGreenAxis:SetDesaturated(not enabled)
+	end
 
-
-
-local rotSliderPopoutButton = CreateFrame("Button", nil, gobRotationControls)
-rotSliderPopoutButton:SetSize(16, 16)
-rotSliderPopoutButton:SetPoint("BOTTOMLEFT", gobRotationControls, "BOTTOMLEFT", 8, 36)
-rotSliderPopoutButton.tooltipText = "Open a pop-out for classic rotation sliders."
-rotSliderPopoutButton.tooltipTitle = "Rotation Sliders"
-EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(rotSliderPopoutButton, ASSET_PATH .. "OMSliders")
-addTooltipHandlers(rotSliderPopoutButton, true)
-rotSliderPopoutButton:SetScript("OnClick", function(self)
-	rotSliderFrame:Toggle()
-end)
-
---[[
-gobRotationControls.AutoUpdateCheckBox = createAutoUpdateCheckbox(gobRotationControls, "Object Rotation", "autoUpdateRot")
-local cb = gobRotationControls.AutoUpdateCheckBox
-cb:SetPoint("BOTTOMRIGHT", gobRotationControls, "TOPRIGHT", -4, -2)
---]]
-
-local function updateGobRotAutoStuff(gob)
-	local gob = gob or EpsilonLib.GameObject:GetSelected()
-	local x, y, z = gob.transform.rotation.x, gob.transform.rotation.y, gob.transform.rotation.z
-	gobRotationControls:SetRotationInfo(x, y, z)
+	gobRotationControls.RotEditBox[axis]:SetEnabled(enabled)
+	gobRotationControls.RotSlider[axis]:SetEnabled(enabled)
 end
 
-gobRotationControls.GetRotationButton = ChainWrap(createGetAutoUpdateHybridButton(gobRotationControls, "Object Rotation", "autoUpdateRot",
-		updateGobRotAutoStuff,
-		"Update the Rotation Values (Roll x Pitch x Turn) to that of the currently selected object.\n\rIf Auto-Update is enabled, this will automatically update the dimensions whenever an object is selected."
-	))
-	:SetPoint("TOPRIGHT", gobRotationControls, "TOPRIGHT", -4, -2)
-
-
-function gobRotationControls:SetEnabledState(enabled)
+function gobRotationControls:SetEnabledState(enabled, group)
+	if group then
+		self:SetAxisEnabled("X", false)
+		self:SetAxisEnabled("Y", false)
+		self:SetAxisEnabled("Z", enabled)
+	else
+		self:SetAxisEnabled("X", enabled)
+		self:SetAxisEnabled("Y", enabled)
+		self:SetAxisEnabled("Z", enabled)
+	end
+	--[[
 	for k, btn in ipairs(gobRotArrowsFrame.Arrows) do
 		btn:SetEnabled(enabled)
 	end
@@ -2898,7 +3143,62 @@ function gobRotationControls:SetEnabledState(enabled)
 	gobRotateBlueAxis:SetDesaturated(not enabled)
 	gobRotateGreenAxis:SetDesaturated(not enabled)
 	gobRotateRedAxis:SetDesaturated(not enabled)
+	--]]
 end
+
+local rotSliderPopoutButton = CreateFrame("Button", nil, gobRotationControls)
+rotSliderPopoutButton:SetSize(16, 16)
+rotSliderPopoutButton:SetPoint("BOTTOMLEFT", gobRotationControls, "BOTTOMLEFT", 8, 36)
+rotSliderPopoutButton.tooltipText = "Open a pop-out for classic rotation sliders."
+rotSliderPopoutButton.tooltipTitle = "Rotation Sliders"
+EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(rotSliderPopoutButton, ASSET_PATH .. "OMSliders")
+addTooltipHandlers(rotSliderPopoutButton, true)
+rotSliderPopoutButton:SetScript("OnClick", function(self)
+	rotSliderFrame:Toggle()
+end)
+
+local function updateGobRotAutoStuff(gob)
+	local gob = gob or EpsilonLib.GameObject:GetSelected()
+	if not gob then return end
+
+	local x, y, z = 0, 0, 0
+	if gob.isGroup then
+		z = gob.orientation or 0
+		--gobRotationControls:SetAxisEnabled("X", false)
+		--gobRotationControls:SetAxisEnabled("Y", false)
+		--gobRotationControls:SetAxisEnabled("Z", true)
+	else
+		--gobRotationControls:SetEnabledState(true, gob.isGroup)
+		x, y, z = gob.transform.rotation.x, gob.transform.rotation.y, gob.transform.rotation.z
+	end
+	gobRotationControls:SetEnabledState(true, gob.isGroup)
+	gobRotationControls:SetRotationInfo(x, y, z)
+end
+
+
+gobRotationControls.GetRotationButton = ChainWrap(createGetAutoUpdateHybridButton(gobRotationControls, "Object Rotation", "autoUpdateRot",
+		updateGobRotAutoStuff,
+		"Update the Rotation Values (Roll x Pitch x Turn) to that of the currently selected object.\n\rIf Auto-Update is enabled, this will automatically update the dimensions whenever an object is selected."
+	))
+	:SetPoint("TOPRIGHT", gobRotationControls, "TOPRIGHT", -4, -2)
+
+gobRotationControls.ApplyRotationButton = ChainWrap(CreateFrame("Button", nil, gobRotationControls, "UIPanelButtonTemplate"))
+	:SetSize(40, 20)
+	:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	:SetNormalFontObject("GameFontNormalSmall")
+	:SetDisabledFontObject("GameFontDisableSmall")
+	:SetHighlightFontObject("GameFontHighlightSmall")
+	:SetText("Apply")
+	:SetPoint("TOP", gobRotationControls.GetRotationButton:Unwrap(), "BOTTOM", 0, 0)
+
+gobRotationControls.ApplyRotationButton.tooltipTitle = "Apply Rotation"
+gobRotationControls.ApplyRotationButton.tooltip = EpsilonLib.Utils.Tooltip.ReplaceTags("{left-click-text-icon} : Apply Current Rotation to Selected Object")
+gobRotationControls.ApplyRotationButton.tooltipWrap = true
+addTooltipHandlers(gobRotationControls.ApplyRotationButton)
+
+gobRotationControls.ApplyRotationButton:SetScript("OnClick", function()
+	gobRotationControls:ApplyCurrentRotation()
+end)
 
 function gobRotationControls:SetRotationInfo(x, y, z, apply)
 	if x == "-0" then x = 0 end -- Fix for -0.0 showing up in the edit box
@@ -2927,9 +3227,22 @@ function gobRotationControls:GetRotationInfo(presetFormat)
 	end
 end
 
+function gobRotationControls:ApplyCurrentRotation()
+	local rots = gobRotationControls:GetRotationInfo()
+
+	local gob = EpsilonLib.GameObject:GetSelected()
+	if not gob then
+		sysMsg('No Object Selected. Cannot Apply Rotations.')
+		return
+	end
+	gob:Rotate(rots.x, rots.y, rots.z)
+end
+
 local function rotPresetCallback(content)
-	if not content then return print("No Rot Preset Content Selected?") end
-	gobRotationControls:SetRotationInfo(content.RotX, content.RotY, content.RotZ, true)
+	if not content then return sysMsg("No Rot Preset Content Selected?") end
+	local currData = gobRotationControls:GetRotationInfo(true)
+	local rotX, rotY, rotZ = (content.RotX or currData.RotX), (content.RotY or currData.RotY), (content.RotZ or currData.RotZ)
+	gobRotationControls:SetRotationInfo(rotX, rotY, rotZ, true)
 	--f.DistanceControls.SetDimensions(content.Length, content.Width, content.Height, content.Scale)
 end
 local function rotSaveCollector()
@@ -3200,7 +3513,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		end
 
 		if apply then
-			group.ApplyColorToGob()
+			group.ApplyColorToGobThrottled()
 		end
 	end
 
@@ -3212,7 +3525,8 @@ local function CreateColorPickerControlGroup(parent, name)
 
 	function group.ApplyColorToGob()
 		local colorInfo = group.GetColorInfo()
-		if EpsilonLib.GameObject:GetSelected() == nil then
+		local gob = EpsilonLib.GameObject:GetSelected()
+		if gob == nil then
 			return
 		end
 		--Syntax: .gobject tint #r #g #b [#s] [#t]
@@ -3222,7 +3536,8 @@ local function CreateColorPickerControlGroup(parent, name)
 			return -- Cannot handle Sat 0
 		end
 
-		cmd(("gobject %s %s %s %s %s %s"):format(colorInfo.mode, colorInfo.r, colorInfo.g, colorInfo.b, colorInfo.s, colorInfo.a))
+		gob:SetColor(colorInfo.mode, colorInfo.r, colorInfo.g, colorInfo.b, colorInfo.a, colorInfo.s)
+		--cmd(("gobject %s %s %s %s %s %s"):format(colorInfo.mode, colorInfo.r, colorInfo.g, colorInfo.b, colorInfo.s, colorInfo.a))
 	end
 
 	-- Create the ColorSelect widget
@@ -3266,7 +3581,29 @@ local function CreateColorPickerControlGroup(parent, name)
 	cs:SetColorRGB(1, 1, 1) -- Default red
 
 	cs.isUpdating = false
-	cs.Timer = C_Timer.After(0, function() end)
+	cs.lastApplyColor = 0
+	cs._ApplyColorThrottle = nil
+	local throttle_delay = 0.1
+
+	function group.ApplyColorToGobThrottled(self)
+		local self = self or cs
+		local now = GetTime()
+		local elapsed = now - self.lastApplyColor
+		if elapsed >= throttle_delay then
+			self.lastApplyColor = now
+			group.ApplyColorToGob()
+		else
+			if self._ApplyColorThrottle then
+				self._ApplyColorThrottle:Cancel() -- Cancel any existing throttle timer, trashing that scheduled set color
+			end
+			self._ApplyColorThrottle = C_Timer.NewTimer(throttle_delay - elapsed, function()
+				self.lastApplyColor = GetTime()
+				group.ApplyColorToGob()
+				self._ApplyColorThrottle = nil
+			end)
+		end
+	end
+
 	cs:SetScript("OnColorSelect", function(self, r, g, b)
 		if self.isUpdating then return end -- prevent recursion from the internal quantified values
 		self.isUpdating = true
@@ -3274,7 +3611,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		local r, g, b = roundToStep(r, 0.05), roundToStep(g, 0.05), roundToStep(b, 0.05)
 		self:SetColorRGB(r, g, b)
 		SetColorFields(r, g, b, nil, nil, true)
-		group.ApplyColorToGob()
+		group.ApplyColorToGobThrottled(self)
 
 		self.isUpdating = false
 	end)
@@ -3326,7 +3663,6 @@ local function CreateColorPickerControlGroup(parent, name)
 	end
 
 	alphaSlider:SetScript("OnValueChanged", function(self, val, userInput)
-		print(val)
 		if not userInput then return end
 		--val = 100 - val -- inverse for the slider direction.. ugh
 		group.ABox:SetText(100 - (val))
@@ -3336,7 +3672,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		end
 		self.lastVal = val
 		invalidatePresetSelected()
-		group.ApplyColorToGob()
+		group.ApplyColorToGobThrottled()
 	end)
 
 	local satSlider = CreateFrame("Slider", nil, cs, "OptionsSliderTemplate")
@@ -3370,7 +3706,7 @@ local function CreateColorPickerControlGroup(parent, name)
 		self.lastVal = val
 
 		invalidatePresetSelected()
-		group.ApplyColorToGob()
+		group.ApplyColorToGobThrottled()
 	end)
 
 	-- Hex box under the wheel
@@ -3496,7 +3832,7 @@ local function CreateColorPickerControlGroup(parent, name)
 
 
 	local function colorPresetCallback(content)
-		if not content then return print("No Color Preset Content Selected?") end
+		if not content then return sysMsg("No Color Preset Content Selected?") end
 		group.SetColorInfo(content, true)
 		-- TODO: FIX THAT THIS IS USING THE VALUES *100 WTF -- i tthink fixed?
 		--invalidatePresetSelected() -- Don't save this one, colors change too much
@@ -3511,10 +3847,19 @@ local function CreateColorPickerControlGroup(parent, name)
 		satSlider:SetEnabled(enabled)
 		hexBox:SetEnabled(enabled)
 
+		local color = gob and gob.color or { red = 1, green = 1, blue = 1, alpha = 100, saturation = 100 }
+
 		cs:EnableMouse(enabled)
-		cs:SetSaturation(enabled and (gob.color.saturation / 100) or 0.1)
+		cs:SetSaturation(enabled and (color.saturation / 100) or 0.1)
+
+		self.ColorModeRadio.tint:SetEnabled(enabled)
+		self.ColorModeRadio.overlay:SetEnabled(enabled)
 
 		for k, v in ipairs(group.ColorEditBoxes) do
+			v:SetEnabled(enabled)
+		end
+
+		for k, v in pairs(group.ColorSliders) do
 			v:SetEnabled(enabled)
 		end
 	end
@@ -3532,6 +3877,13 @@ gobTintControls.GetCurrentColorButton = ChainWrap(createGetAutoUpdateHybridButto
 			local object = EpsilonLib.GameObject:GetSelected()
 			if not object then
 				sysMsg("No object selected. Select an Object First.")
+				return
+			end
+
+			if object.isGroup then return end -- Groups don't have color info, skip without warning
+
+			if not object.color then
+				sysMsg("Selected object has no color information.")
 				return
 			end
 
@@ -3555,22 +3907,25 @@ gobTintControls.GetCurrentColorButton = ChainWrap(createGetAutoUpdateHybridButto
 	:SetPoint("TOP", colorGroup.SBox, "BOTTOM", -4, 0)
 	:SetSize(40, 16)
 
-
 --[[
-gobTintControls.AutoUpdateCheckBox = createAutoUpdateCheckbox(gobTintControls, "Object Tint", "autoUpdateTint")
-local cb = gobTintControls.AutoUpdateCheckBox
-cb:SetPoint("BOTTOMRIGHT", gobTintControls, "TOPRIGHT", -4, -2)
+gobTintControls.ApplyColorButton = ChainWrap(CreateFrame("Button", nil, gobTintControls, "UIPanelButtonTemplate"))
+	:SetSize(40, 20)
+	:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	:SetNormalFontObject("GameFontNormalSmall")
+	:SetDisabledFontObject("GameFontDisableSmall")
+	:SetHighlightFontObject("GameFontHighlightSmall")
+	:SetText("Apply")
+	:SetPoint("RIGHT", gobTintControls.GetCurrentColorButton:Unwrap(), "LEFT", 0, 0)
+
+gobTintControls.ApplyColorButton.tooltipTitle = "Apply Color"
+gobTintControls.ApplyColorButton.tooltip = EpsilonLib.Utils.Tooltip.ReplaceTags("{left-click-text-icon} : Apply Current Color to Selected Object")
+gobTintControls.ApplyColorButton.tooltipWrap = true
+addTooltipHandlers(gobTintControls.ApplyColorButton)
+
+gobTintControls.ApplyColorButton:SetScript("OnClick", function()
+	colorGroup.ApplyColorToGob()
+end)
 --]]
-
---[[
-local gobTintSliders = CreateFrame("Frame", nil, gobTintControls)
-gobTintSliders:SetSize(120, 60)
-gobTintSliders:SetPoint("CENTER", gobTintControls, "CENTER", 0, 0)
-
-local gobTintRedSlider = GenColorSlider(gobTintSliders, "red")
-gobTintRedSlider:SetPoint("TOP", gobTintSliders, "TOP", 0, -20)
---]]
-
 
 --#endregion
 
@@ -3623,30 +3978,16 @@ end)
 ---Updates the object control state based on whether an object is selected or not.
 ---@param enabled boolean
 ---@param gob? GameObjectClass
-function f:SetObjectSelected(enabled, gob)
+function f:SetObjectSelected(enabled, gob, source)
 	--gobBasicActionButtons._map.Select:SetEnabled(enabled)
 	gobBasicActionButtons._map.Unselect:SetEnabled(enabled)
-	gobBasicActionButtons._map.Delete:SetEnabled(enabled)
-
-	gobEditActionButtons._map.Replace:SetEnabled(enabled)
 	gobEditActionButtons._map.GoTo:SetEnabled(enabled)
 	gobEditActionButtons._map.Copy:SetEnabled(enabled)
-	gobEditActionButtons._map.Activate:SetEnabled(enabled)
-
-	--distanceControls.GetCurrentObjectSizeButton:SetEnabled(enabled)
-	--objectSpawnInfoControls.GetCurrentObjectIDButton:SetEnabled(enabled)
-
-	gobRotationControls:SetEnabledState(enabled)
-	scaleSlider:SetEnabled(enabled)
-
-	colorGroup:SetEnabledState(enabled, gob)
-
-	arrowButtons:CheckIfEnableValid()
 
 	if enabled and gob then
 		for btn, data in pairs(autoUpdateChecks) do
 			if OPMasterTable.Options[data.key] then
-				data.callback(gob)
+				data.callback(gob, source)
 			end
 		end
 
@@ -3654,6 +3995,19 @@ function f:SetObjectSelected(enabled, gob)
 	else
 		objectNameLabel:SetText()
 	end
+
+	-- anything that needs permissions should go under this check:
+	if not canEditObject(gob) then enabled = false end
+
+	gobBasicActionButtons._map.Delete:SetEnabled(enabled)
+	gobEditActionButtons._map.Replace:SetEnabled(enabled)
+	gobEditActionButtons._map.Activate:SetEnabled(enabled)
+
+	gobRotationControls:SetEnabledState(enabled, gob and gob.isGroup)
+	scaleSlider:SetEnabled(enabled)
+	colorGroup:SetEnabledState(enabled, gob)
+
+	arrowButtons:CheckIfEnableValid()
 end
 
 --#endregion
@@ -3726,7 +4080,7 @@ f:UpdateClamp(f:GetHeight())
 local event_handlers = {
 	EPSILON_OBJ_UPDATE = function(self, event, source, gob)
 		local enabled = gob and true or false
-		f:SetObjectSelected(enabled, gob)
+		f:SetObjectSelected(enabled, gob, source)
 	end,
 	ADDON_LOADED = function(_, event, addonName)
 		if addonName == ADDON_NAME then
