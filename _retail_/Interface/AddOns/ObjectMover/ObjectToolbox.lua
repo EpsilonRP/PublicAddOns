@@ -3304,7 +3304,6 @@ do
 		self:SetTextColor(Colors.disabled:GetRGB())
 	end)
 	eb:HookScript("OnEnable", function(self)
-		print('enabled')
 		self:SetTextColor(Colors.white:GetRGB())
 	end)
 	gobScaleControls.ScaleEditBox = eb
