@@ -159,35 +159,6 @@ end)
 
 f.ResizeDragger = resizeDragger
 
-
-
-f:HookScript("OnUpdate", function(self)
-	if not OPMasterTable.Options["fadePanel"] then
-		if self._FadeTimer then
-			self._FadeTimer:Cancel()
-			self._FadeTimer = nil
-		end
-		UIFrameFadeIn(self, 0.1, self:GetAlpha(), 1)
-	else
-		if self:IsMouseOver(6, -6, -6, 6) then
-			if self._FadeTimer then
-				self._FadeTimer:Cancel(); self._FadeTimer = nil
-			end
-			if self:GetAlpha() <= 0.3 then
-				UIFrameFadeIn(self, 0.2, self:GetAlpha(), 1)
-			end
-		elseif self:GetAlpha() == 1 then
-			if not self._FadeTimer then
-				self._FadeTimer = C_Timer.NewTicker(0.75, function()
-					UIFrameFadeOut(self, 0.5, self:GetAlpha(), 0.3)
-					self._FadeTimer = nil
-				end, 1)
-			end
-		end
-	end
-end)
-
-
 -- Create Title Bar Color & Modify Title Area
 local titleBgColor = f:CreateTexture(nil, "BACKGROUND")
 titleBgColor:SetPoint("TOPLEFT", f.TitleBg, 0, 1)
@@ -324,6 +295,16 @@ end
 local function genericTooltipOnLeave(self)
 	GameTooltip_Hide()
 	if self.ttTimer then self.ttTimer:Cancel() end
+end
+
+local function getSliderModifierText(base, shift, alt, both)
+	return EpsilonLib.Utils.Tooltip.ReplaceTags(([[
+
+Modifier Keys:
+{shift} : %s
+{alt} : %s
+{shift}+{alt} : %s
+]]):format(shift, alt, both))
 end
 
 ---Attaches tooltip handler scripts to the frame (OnEnter + OnLeave), optionally to overwrite current methods
@@ -3066,6 +3047,10 @@ for i, axis in ipairs({ "X", "Y", "Z" }) do
 		invalidatePresetSelected()
 	end)
 
+	slider.tooltipTitle = "Set " .. rotationFriendlyName
+	slider.tooltipText = getSliderModifierText(1, 0.1, 0.01, 5)
+	addTooltipHandlers(slider, true)
+
 	-- rotSliderFrame.RollSlider / PitchSlider / TurnSlider, or...
 	gobRotationControls.RotSlider[axis] = slider
 
@@ -3261,7 +3246,7 @@ local gobScalePullout, gobScaleControls = CreateControlGroup(f, "GobScale", 0, 0
 --gobScaleControls:SetPoint("BOTTOM")
 --gobScaleControls.bg = CreateControlGroupBG(gobScaleControls, 4)
 
-local scaleSlider = CreateSimpleSlider(gobScaleControls, "Scale", 0.1, 10, 0.1, 1, 130, 17, "Scale")
+local scaleSlider = CreateSimpleSlider(gobScaleControls, "Scale", 0, 10, 0.1, 1, 130, 17, "Scale")
 scaleSlider:SetPoint("TOPLEFT", 12, -10)
 scaleSlider.Text:ClearAllPoints()
 scaleSlider.Text:SetPoint("BOTTOM", scaleSlider, "TOP", 0, 0)
@@ -3270,6 +3255,10 @@ scaleSlider.High:ClearAllPoints()
 scaleSlider.High:SetPoint("BOTTOMRIGHT", scaleSlider, "TOPRIGHT", 4, 0)
 scaleSlider.Low:ClearAllPoints()
 scaleSlider.Low:SetPoint("BOTTOMLEFT", scaleSlider, "TOPLEFT", -4, 0)
+scaleSlider.tooltipTitle = "Scale Object"
+scaleSlider.tooltipText = getSliderModifierText(0.1, 1, 0.01, 0.5)
+addTooltipHandlers(scaleSlider, true)
+
 
 do
 	local eb = CreateFrame("EditBox", nil, gobScaleControls, "ObjectToolboxEditBoxNoLabelTemplate")
@@ -3281,6 +3270,7 @@ do
 		editBoxNumberValidate(...)
 		invalidatePresetSelected()
 	end)
+
 	eb:HookScript("OnEditFocusLost", function(self)
 		local value = tonumber(self:GetText())
 		if value then
@@ -3291,13 +3281,10 @@ do
 			self:SetText("1")      -- Reset to default if invalid input
 		end
 
-		if self.lastVal and self.lastVal == value then
-			return -- No change, skip applying scale
-		end
-		self.lastVal = value
-
 		local gob = EpsilonLib.GameObject:GetSelected()
-		if not gob then return end -- No object selected, skip applying scale
+		if not gob then return end           -- No object selected, skip applying scale
+		if gob:GetScale() == value then return end -- do not apply scale if already at that scale
+
 		gob:SetScale(value)
 	end)
 	eb:HookScript("OnDisable", function(self)
@@ -3310,18 +3297,21 @@ do
 end
 
 scaleSlider:SetScript("OnValueChanged", function(self, value, userInput)
-	if not userInput then return end -- Only update if the user is dragging the slider
-
+	if value == 0 then value = self:GetValueStep() end -- do not allow 0 scale, default to min of current step
 	-- Ignore if we didn't change the value
 	if self.lastVal and self.lastVal == value then
-		return -- No change, skip applying scale
+		return -- No change, skip applying scale // this is to prevent the slider triggering constantly when held in same spot
 	end
 	self.lastVal = value
+
+	if not userInput then return end -- Only update if the user is dragging the slider
 
 	-- Update the edit box when the slider value changes
 	gobScaleControls.ScaleEditBox:SetText(round(value, 4))
 	local gob = EpsilonLib.GameObject:GetSelected()
-	if not gob then return end -- No object selected, skip applying scale
+	if not gob then return end              -- No object selected, skip applying scale
+	if gob:GetScale() == value then return end -- do not apply scale if already at that scale
+
 	gob:SetScale(value)
 end)
 
@@ -3972,6 +3962,65 @@ end)
 --]]
 
 --#endregion
+
+---comment
+---@param slider slider
+---@param step number no sanity check here, just get it right
+local function setSliderToStep(slider, step)
+	if step == slider._step then return end -- already here, do nothing.
+	slider._step = step
+	slider:SetValueStep(step)
+end
+
+local function setRotSlidersToStep(step)
+	setSliderToStep(gobRotationControls.RotSlider.X, step)
+	setSliderToStep(gobRotationControls.RotSlider.Y, step)
+	setSliderToStep(gobRotationControls.RotSlider.Z, step)
+end
+
+f:HookScript("OnUpdate", function(self)
+	if not OPMasterTable.Options["fadePanel"] then
+		if self._FadeTimer then
+			self._FadeTimer:Cancel()
+			self._FadeTimer = nil
+		end
+		UIFrameFadeIn(self, 0.1, self:GetAlpha(), 1)
+	else
+		if self:IsMouseOver(6, -6, -6, 6) then
+			if self._FadeTimer then
+				self._FadeTimer:Cancel(); self._FadeTimer = nil
+			end
+			if self:GetAlpha() <= 0.3 then
+				UIFrameFadeIn(self, 0.2, self:GetAlpha(), 1)
+			end
+		elseif self:GetAlpha() == 1 then
+			if not self._FadeTimer then
+				self._FadeTimer = C_Timer.NewTicker(0.75, function()
+					UIFrameFadeOut(self, 0.5, self:GetAlpha(), 0.3)
+					self._FadeTimer = nil
+				end, 1)
+			end
+		end
+	end
+
+	-- slider fine movement modifiers
+	if IsShiftKeyDown() then
+		if IsAltKeyDown() then
+			setRotSlidersToStep(5)
+			setSliderToStep(scaleSlider, 0.5)
+		else
+			setRotSlidersToStep(0.1)
+			setSliderToStep(scaleSlider, 1)
+		end
+	elseif IsAltKeyDown() then
+		setRotSlidersToStep(0.01)
+		setSliderToStep(scaleSlider, 0.01)
+	else
+		setRotSlidersToStep(1)
+		setSliderToStep(scaleSlider, 0.1)
+	end
+end)
+
 
 --#region Mass Control of Controls based on Gob Selection Status
 
