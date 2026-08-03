@@ -1593,9 +1593,9 @@ local function groupMessageCheck(self, event, msg)
 		local scale = tonumber(clearmsg:match("Scale: (%d*%.%d*)"))
 
 		if clearmsg:find("Yaw/Turn:") then
-			yaw = tonumber(clearmsg:match("Pitch: %-?%d*%.%d*, Roll: %-?%d*%.%d*, Yaw/Turn: (%-?%d*%.%d*)"))
+			yaw = math.rad(tonumber(clearmsg:match("Pitch: %-?%d*%.%d*, Roll: %-?%d*%.%d*, Yaw/Turn: (%-?%d*%.%d*)")))
 		elseif clearmsg:find("with orientation:") then
-			yaw = tonumber(clearmsg:match("orientation: (%-?%d*%.%d*)"))
+			yaw = tonumber(clearmsg:match("orientation: (%-?%d*%.%d*)")) -- already a radian
 		end
 
 		if yaw or scale then
