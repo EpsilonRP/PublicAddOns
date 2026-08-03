@@ -295,7 +295,35 @@ function GameObjectMeta:GetName(short)
 	return short and self.sname or self.name
 end
 
-function GameObjectMeta:SetScale(val)
+-- Helper function to find the number of decimal places
+local function getDecimalDepth(numStr)
+	local _, decimalPos = numStr:find("%.")
+	if not decimalPos then
+		return 0
+	end
+	return #numStr - decimalPos
+end
+
+-- Main function to get a random value with matched precision
+local function getRandomVal(minStr, maxStr)
+	-- Determine maximum precision
+	local depthMin = getDecimalDepth(minStr)
+	local depthMax = getDecimalDepth(maxStr)
+	local precision = math.max(depthMin, depthMax)
+
+	-- Convert string bounds to numbers
+	local minNum = tonumber(minStr)
+	local maxNum = tonumber(maxStr)
+
+	-- Generate a random float between the two bounds
+	local randomFloat = minNum + (math.random() * (maxNum - minNum))
+
+	-- Format output string to match required decimal depth
+	local formatSpecifier = "%." .. precision .. "f"
+	return string.format(formatSpecifier, randomFloat)
+end
+
+function GameObjectMeta:SetScale(val, randomMax)
 	if not self:IsSelected() then
 		sysMsg("You must select the GameObject before changing its scale.");
 		return;
@@ -306,6 +334,14 @@ function GameObjectMeta:SetScale(val)
 	if not val or tonumber(val) <= 0 then
 		sysMsg("Invalid scale value. Must be a positive number.");
 		return;
+	end
+
+	if randomMax then -- calculate random
+		if tonumber(randomMax) <= 0 then
+			sysMsg("Invalid random scale max value. Must be a positive number.");
+			return;
+		end
+		val = getRandomVal(val, randomMax)
 	end
 
 	EpsiLib.AddonCommands._SendAddonCommand(("gobject scale %s"):format(val), function(success, messages)
@@ -895,9 +931,24 @@ function GameObjectGroupMeta:SetColor(type, r, g, b, a, s)
 	end
 end
 
-function GameObjectGroupMeta:SetScale(value)
+function GameObjectGroupMeta:SetScale(val, randomMax)
 	if not _isSelected(self, "You must select the GameObject Group before scaling it.") then return end
-	local command = ("gobject group scale %s"):format(value)
+
+	if not self:CanEdit(true) then return end
+
+	if not val or tonumber(val) <= 0 then
+		sysMsg("Invalid group scale value. Must be a positive number.");
+		return;
+	end
+
+	if randomMax then -- calculate random
+		if tonumber(randomMax) <= 0 then
+			sysMsg("Invalid group random scale max value. Must be a positive number.");
+			return;
+		end
+		val = getRandomVal(val, randomMax)
+	end
+	local command = ("gobject group scale %s"):format(val)
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
 			sysMsg("Failed to set scale for GameObject Group with message: " .. messages[1])

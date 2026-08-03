@@ -238,7 +238,7 @@ function objectNameLabel:SetText(text)
 	if text == "<No Object Selected>" then
 		self:SetTextColor(0.66, 0.66, 0.66, 1) -- Gray color for no object selected
 	else
-		self:SetTextColor(1, 1, 1, 1)    -- Gold color for valid object name
+		self:SetTextColor(1, 1, 1, 1)    -- White color for valid object name
 	end
 end
 
@@ -327,18 +327,21 @@ local function editBoxNumberValidate(self)
 		self:SetText(text)
 	end
 
+	local textColor = Colors.white
+
 	if text == "." then
 		-- do nothing, starting with a . is OK
 	elseif tonumber(text) then
-		self:SetTextColor(255, 255, 255, 1)
 		self.lastGoodText = text -- Store the last good text
 	elseif text == "" then
-		self:SetTextColor(255, 255, 255, 1)
 		self.lastGoodText = "" -- Reset last good text if empty
 	else
-		self:SetTextColor(1, 0, 0, 1)
+		textColor = Colors.red
 		self:SetText(lastGoodText) -- Revert to last good text
 	end
+
+	if (not self:IsEnabled()) then textColor = Colors.disabled end
+	self:SetTextColor(textColor:GetRGB())
 end
 
 local function round(num, numDecimalPlaces)
@@ -349,6 +352,15 @@ end
 local function roundToStep(value, step)
 	if not tonumber(value) then return 0 end
 	return math.floor((value + step / 2) / step) * step
+end
+
+-- Helper function to find the number of decimal places
+local function getDecimalDepth(numStr)
+	local _, decimalPos = numStr:find("%.")
+	if not decimalPos then
+		return 0
+	end
+	return #numStr - decimalPos
 end
 
 local function shortest_format(n)
@@ -3241,13 +3253,14 @@ gobRotationControls.SaveLoadPresetButton = CreatePresetSaveLoadButton("Rot", gob
 -- Create a control group for scale controls
 --local gobScaleControlsPullout, gobScaleControlsControls = CreateControlGroup(f, "Scale", 0, 0, 262, "SCALE", nil, true)
 
-local gobScalePullout, gobScaleControls = CreateControlGroup(f, "GobScale", 0, 0, 50, "SCALE", nil, true)
+local gobScalePullout, gobScaleControls = CreateControlGroup(f, "GobScale", 0, 0, 60, "SCALE", nil, true)
 --gobScaleControls:ClearAllPoints()
 --gobScaleControls:SetPoint("BOTTOM")
 --gobScaleControls.bg = CreateControlGroupBG(gobScaleControls, 4)
 
 local scaleSlider = CreateSimpleSlider(gobScaleControls, "Scale", 0, 10, 0.1, 1, 130, 17, "Scale")
 scaleSlider:SetPoint("TOPLEFT", 12, -10)
+scaleSlider:SetHitRectInsets(0, 0, -10, -2)
 scaleSlider.Text:ClearAllPoints()
 scaleSlider.Text:SetPoint("BOTTOM", scaleSlider, "TOP", 0, 0)
 scaleSlider.Text:SetFontObject("GameFontNormalSmall")
@@ -3291,6 +3304,7 @@ do
 		self:SetTextColor(Colors.disabled:GetRGB())
 	end)
 	eb:HookScript("OnEnable", function(self)
+		print('enabled')
 		self:SetTextColor(Colors.white:GetRGB())
 	end)
 	gobScaleControls.ScaleEditBox = eb
@@ -3324,27 +3338,163 @@ scaleSlider:SetScript("OnEnable", function(self)
 	gobScaleControls.ScaleEditBox:Enable()
 end)
 
-gobScaleControls.GetCurrentScaleButton = ChainWrap(createGetAutoUpdateHybridButton(gobScaleControls, "Scale", "autoUpdateScale",
-		function()
-			local object = EpsilonLib.GameObject:GetSelected()
-			if not object then
-				sysMsg("No object selected. Select an Object First.")
-				return
-			end
+local function updateScaleGetOrApplyButtonSwap(gob)
+	--gob = gob or EpsilonLib.GameObject:GetSelected()
+	local randomEnabled = gobScaleControls.RandomScaleCheckbutton:GetChecked()
 
-			local scale = object:GetScale()
-			scaleSlider:SetValue(scale)
-			gobScaleControls.ScaleEditBox:SetText(round(scale, 4))
-		end,
-		"Update the Scale slider to the values on the currently selected object.\n\rIf Auto-Update is enabled, this will automatically update the scale valuse whenever an object is selected.",
-		function()
-			local object = EpsilonLib.GameObject:GetSelected()
-			if not object then return end -- No object selected, skip applying scale
-			object:SetScale(scaleSlider:GetValue())
+	if randomEnabled then
+		gobScaleControls.ApplyRandomScaleButton:Show()
+		gobScaleControls.ApplyRandomScaleButton:SetEnabled(gob and true or false)
+		gobScaleControls.GetCurrentScaleButton:Hide()
+	else
+		gobScaleControls.ApplyRandomScaleButton:Hide()
+		gobScaleControls.GetCurrentScaleButton:Show()
+	end
+end
+
+gobScaleControls.GetCurrentScaleButton = createGetAutoUpdateHybridButton(gobScaleControls, "Scale", "autoUpdateScale",
+	function()
+		local object = EpsilonLib.GameObject:GetSelected()
+		if not object then
+			sysMsg("No object selected. Select an Object First.")
+			return
 		end
-	))
-	:SetPoint("TOP", gobScaleControls.ScaleEditBox, "BOTTOM", -3, 0)
+
+		local scale = object:GetScale()
+		scaleSlider:SetValue(scale)
+		gobScaleControls.ScaleEditBox:SetText(round(scale, 4))
+	end,
+	"Update the Scale slider to the values on the currently selected object.\n\rIf Auto-Update is enabled, this will automatically update the scale valuse whenever an object is selected.",
+	function()
+		local object = EpsilonLib.GameObject:GetSelected()
+		if not object then return end -- No object selected, skip applying scale
+		object:SetScale(scaleSlider:GetValue())
+	end
+)
+ChainWrap(gobScaleControls.GetCurrentScaleButton)
+	:SetPoint("TOP", gobScaleControls.ScaleEditBox, "BOTTOM", -3, -5)
 	:SetSize(40, 16)
+
+
+gobScaleControls.ApplyRandomScaleButton = CreateFrame("Button", nil, gobScaleControls, "UIPanelButtonTemplate")
+ChainWrap(gobScaleControls.ApplyRandomScaleButton)
+	:SetPoint("CENTER", gobScaleControls.GetCurrentScaleButton, "CENTER")
+	:SetSize(40, 16)
+	:SetText("Apply")
+	:SetScript("OnClick", function(self)
+		local object = EpsilonLib.GameObject:GetSelected()
+		if not object then return end -- No object selected, skip applying scale
+		object:SetScale(gobScaleControls.RandomScaleMinEditbox:GetText(), gobScaleControls.RandomScaleMaxEditbox:GetText())
+	end)
+	:Hide()
+gobScaleControls.ApplyRandomScaleButton.tooltipTitle = "Apply Random Scale"
+gobScaleControls.ApplyRandomScaleButton.tooltipText = "Applies a random scale between the Min & Max scale values.\n\rRandom number generated will follow the max number of decimal places of the two values given (i.e., Min: 1.00 and Max: 1.5 will generate numbers up to two decimal places)."
+gobScaleControls.ApplyRandomScaleButton.tooltipWrap = true
+addTooltipHandlers(gobScaleControls.ApplyRandomScaleButton, true)
+
+
+-- random scale assist
+do
+	local cb = CreateFrame("CheckButton", nil, gobScaleControls, "UICheckButtonTemplate")
+	cb:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -2)
+	cb:SetSize(24, 24)
+	cb.text:SetText("Random")
+	ChainWrap(cb.text):ClearAllPoints():SetPoint("TOP", cb, "BOTTOM", 0, 3)
+
+	cb:SetScript("OnClick", function(self, button)
+		gobScaleControls.GetCurrentScaleButton:RefreshText()
+		local gob = EpsilonLib.GameObject:GetSelected()
+		if self:GetChecked() then -- random mode
+			gobScaleControls.RandomScaleMinEditbox:Enable()
+			gobScaleControls.RandomScaleMaxEditbox:Enable()
+			scaleSlider:Disable()
+			updateScaleGetOrApplyButtonSwap(gob)
+		else
+			gobScaleControls.RandomScaleMinEditbox:Disable()
+			gobScaleControls.RandomScaleMaxEditbox:Disable()
+			scaleSlider:SetEnabled(gob and true or false)
+			updateScaleGetOrApplyButtonSwap(gob)
+		end
+	end)
+
+	gobScaleControls.RandomScaleCheckbutton = cb
+end
+
+do
+	local eb = CreateFrame("EditBox", nil, gobScaleControls, "ObjectToolboxEditBoxTemplate")
+	eb:SetSize(40, 20)
+	eb:SetPoint("LEFT", gobScaleControls.RandomScaleCheckbutton, "RIGHT", 12, 1)
+	eb:SetAutoFocus(false)
+	eb:SetText("1")
+	eb:SetScript("OnTextChanged", function(...)
+		editBoxNumberValidate(...)
+		invalidatePresetSelected()
+	end)
+
+	eb.Label:SetText("Min")
+	ChainWrap(eb.Label):ClearAllPoints():SetPoint("TOP", eb, "BOTTOM")
+
+	eb:HookScript("OnEditFocusLost", function(self)
+		local rawValue = self:GetText()
+		local value = tonumber(rawValue)
+
+		if value then
+			if value < 0 then -- no negatives allowed
+				self:SetText(0)
+			end
+		else
+			self:SetText("1") -- Reset to default if invalid input
+		end
+	end)
+	eb:HookScript("OnDisable", function(self)
+		self:SetTextColor(Colors.disabled:GetRGB())
+		self.Label:SetTextColor(Colors.disabled:GetRGB())
+	end)
+	eb:HookScript("OnEnable", function(self)
+		self:SetTextColor(Colors.white:GetRGB())
+		self.Label:SetTextColor(Colors.game_gold:GetRGB())
+	end)
+	eb:Disable()
+	gobScaleControls.RandomScaleMinEditbox = eb
+end
+
+do
+	local eb = CreateFrame("EditBox", nil, gobScaleControls, "ObjectToolboxEditBoxTemplate")
+	eb:SetSize(40, 20)
+	eb:SetPoint("LEFT", gobScaleControls.RandomScaleMinEditbox, "RIGHT", 12, 0)
+	eb:SetAutoFocus(false)
+	eb:SetText("10")
+	eb:SetScript("OnTextChanged", function(...)
+		editBoxNumberValidate(...)
+		invalidatePresetSelected()
+	end)
+
+	eb.Label:SetText("Max")
+	ChainWrap(eb.Label):ClearAllPoints():SetPoint("TOP", eb, "BOTTOM")
+
+	eb:HookScript("OnEditFocusLost", function(self)
+		local rawValue = self:GetText()
+		local value = tonumber(rawValue)
+
+		if value then
+			if value < 0 then -- no negatives allowed
+				self:SetText(0)
+			end
+		else
+			self:SetText("1") -- Reset to default if invalid input
+		end
+	end)
+	eb:HookScript("OnDisable", function(self)
+		self:SetTextColor(Colors.disabled:GetRGB())
+		self.Label:SetTextColor(Colors.disabled:GetRGB())
+	end)
+	eb:HookScript("OnEnable", function(self)
+		self:SetTextColor(Colors.white:GetRGB())
+		self.Label:SetTextColor(Colors.game_gold:GetRGB())
+	end)
+	eb:Disable()
+	gobScaleControls.RandomScaleMaxEditbox = eb
+end
 
 
 --#endregion
@@ -4053,7 +4203,8 @@ function f:SetObjectSelected(enabled, gob, source)
 	gobEditActionButtons._map.Activate:SetEnabled(enabled)
 
 	gobRotationControls:SetEnabledState(enabled, gob and gob.isGroup)
-	scaleSlider:SetEnabled(enabled)
+	scaleSlider:SetEnabled((not gobScaleControls.RandomScaleCheckbutton:GetChecked()) and enabled or false)
+	updateScaleGetOrApplyButtonSwap(gob)
 	colorGroup:SetEnabledState(enabled, gob)
 
 	arrowButtons:CheckIfEnableValid()
