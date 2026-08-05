@@ -99,3 +99,9 @@ EpsiLib.Classes = {}
 ---@field time integer
 ---@field isDeleted boolean
 ---@field isRestored boolean
+
+---@class GameObjectGroupClass
+---@field isGroup boolean
+---@field leaderGUID number
+---@field phase number
+---@field turn number

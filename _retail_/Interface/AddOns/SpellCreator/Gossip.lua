@@ -61,12 +61,14 @@ local function init(callbacks)
 			dprint("Adding AutoCast from Gossip: '" .. payLoad .. "'.")
 		end,
 		click_cast = function(payLoad)
+			local commID, inputs = strsplit(":", payLoad, 2)
+			if inputs then inputs = strsplittable(":", inputs) end
 			if phaseVault.isSavingOrLoadingAddonData then
 				eprint("Phase Vault was still loading. Casting when loaded..!")
-				table.insert(spellsToCast, payLoad)
+				table.insert(spellsToCast, { commID = commID, input = inputs })
 				return
 			end
-			executePhaseSpell(payLoad)
+			executePhaseSpell(commID, nil, unpack(inputs or {}))
 		end,
 		save = function(payLoad)
 			if phaseVault.isSavingOrLoadingAddonData then

@@ -12,6 +12,12 @@ local clearMsg = Utils.clearMsg
 
 
 --#region Vis Menu
+local function OPSetObjVis(_, num)
+	local cmdPref
+	if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject set" end
+	cmd(cmdPref .. " vis " .. num, true)
+end
+
 local staticList = {
 	{ text = "Select a Visibility", isTitle = true },
 	{ text = "Ultra Low (5)",       func = OPSetObjVis, arg1 = 5 },
@@ -50,11 +56,7 @@ local staticList = {
 	},
 }
 
-local function OPSetObjVis(_, num)
-	local cmdPref
-	if isGroupSelected then cmdPref = "gobject group" else cmdPref = "gobject set" end
-	cmd(cmdPref .. " vis " .. num, true)
-end
+
 
 local visOption = {
 	text = "Visibility",
@@ -69,16 +71,35 @@ ns.AddTool({ visOption })
 --#endregion
 
 --#region Anim Menu
+local function OPSetObjAnim(_, num)
+	cmd("gobject anim " .. num, true)
+end
+
 local staticList = {
-	{ text = "Select an Animation", isTitle = true },
-	{ text = "0 - Stand (Default)", func = OPSetObjAnim, arg1 = 0 },
-	{ text = "145 - Spawn",         func = OPSetObjAnim, arg1 = 145 },
-	{ text = "146 - Close",         func = OPSetObjAnim, arg1 = 146 },
-	{ text = "147 - Closed",        func = OPSetObjAnim, arg1 = 147 },
-	{ text = "148 - Open",          func = OPSetObjAnim, arg1 = 148 },
-	{ text = "149 - Opened",        func = OPSetObjAnim, arg1 = 149 },
-	{ text = "150 - Destroy",       func = OPSetObjAnim, arg1 = 150 },
-	{ text = "157 - Despawn",       func = OPSetObjAnim, arg1 = 157 },
+	{ text = "Select an Animation",    isTitle = true },
+	{ text = "0 - Stand (Default)",    func = OPSetObjAnim, arg1 = 0 },
+	{ text = "145 - Spawn",            func = OPSetObjAnim, arg1 = 145 },
+	{ text = "146 - Close",            func = OPSetObjAnim, arg1 = 146 },
+	{ text = "147 - Closed",           func = OPSetObjAnim, arg1 = 147 },
+	{ text = "148 - Open",             func = OPSetObjAnim, arg1 = 148 },
+	{ text = "149 - Opened",           func = OPSetObjAnim, arg1 = 149 },
+	{ text = "150 - Destroy",          func = OPSetObjAnim, arg1 = 150 },
+	{ text = "157 - Despawn",          func = OPSetObjAnim, arg1 = 157 },
+	{ text = "158 - Hold (Portal/FX)", func = OPSetObjAnim, arg1 = 158 },
+	{
+		text = "More...",
+		subMenu = {
+			{ text = "213 - CustomSpell01",           func = OPSetObjAnim, arg1 = 213 },
+			{ text = "214 - CustomSpell02",           func = OPSetObjAnim, arg1 = 214 },
+			{ text = "215 - CustomSpell03",           func = OPSetObjAnim, arg1 = 215 },
+			{ text = "0 - Cavelight: On",             func = OPSetObjAnim, arg1 = 0 },
+			{ text = "1 - Cavelight: On/Off Cycle",   func = OPSetObjAnim, arg1 = 1 },
+			{ text = "2 - Cavelight: Fade In/Out",    func = OPSetObjAnim, arg1 = 2 },
+			{ text = "3 - Cavelight: Candle Flicker", func = OPSetObjAnim, arg1 = 3 },
+			{ text = "145 - Cavelight: Color Rave",   func = OPSetObjAnim, arg1 = 145 },
+		},
+	},
+
 	{
 		text = "Custom",
 		func = function()
@@ -95,10 +116,6 @@ local staticList = {
 		end,
 	},
 }
-
-local function OPSetObjAnim(_, num)
-	cmd("gobject anim " .. num, true)
-end
 
 local animOption = {
 	text = "Animation",

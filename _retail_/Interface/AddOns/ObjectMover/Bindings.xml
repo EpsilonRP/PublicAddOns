@@ -20,11 +20,7 @@
 	<Binding category="Object Mover" name="Get Object ID">
 			OBJECT_TOOLBOX_API.GetObjectID()
 	</Binding>
-	<!--
-	<Binding category="Object Mover" name="Toggle Scale">
-			if OPScaleObjectToggle:IsEnabled() then OPScaleObjectToggle:SetChecked(not OPScaleObjectToggle:GetChecked()) end
-	</Binding>
-	-->
+
 	<Binding category="Object Mover" name="Teleport to Object">
 			OBJECT_TOOLBOX_API.Cmd("gobject go")
 	</Binding>
@@ -34,21 +30,28 @@
 	<Binding category="Object Mover" name="Spawn Object with Scale/Rot/Color">
 			OBJECT_TOOLBOX_API.SpawnGob(nil, "RightButton")
 	</Binding>
-	<!--
-	<Binding category="Object Mover" name="Toggle Move Player">
-		if not OPMovePlayerInstead:IsEnabled() then return; end
-			if OPMovePlayerInstead:GetChecked() == true then
-				OPMovePlayerInstead:SetChecked(false)
-				OPMasterTable.Options["MovePlayer"] = false
-				RelativeToPlayerToggle:Enable()
-				SpawnonMoveButton:Disable()
-			else
-				OPMovePlayerInstead:SetChecked(true)
-				OPMasterTable.Options["MovePlayer"] = true
-				RelativeToPlayerToggle:Disable()
-				SpawnonMoveButton:Enable()
-			end
+
+	<Binding category="Object Mover" name="Toggle Move: World">
+		ObjectToolboxFrame.ObjectMovementControls.Content.ModeToggles.world:Click()
 	</Binding>
+	<Binding category="Object Mover" name="Toggle Move: Relative">
+		ObjectToolboxFrame.ObjectMovementControls.Content.ModeToggles.relative:Click()
+	</Binding>
+	<Binding category="Object Mover" name="Toggle Move: Copy">
+		ObjectToolboxFrame.ObjectMovementControls.Content.AltModeToggles.copy:Click()
+	</Binding>
+	<Binding category="Object Mover" name="Toggle Move: Player">
+		ObjectToolboxFrame.ObjectMovementControls.Content.AltModeToggles.player:Click()
+	</Binding>
+
+
+	<!--
+	<Binding category="Object Mover" name="Toggle Scale">
+			if OPScaleObjectToggle:IsEnabled() then OPScaleObjectToggle:SetChecked(not OPScaleObjectToggle:GetChecked()) end
+	</Binding>
+	-->
+
+	<!---
 	<Binding category="Object Mover" name="Toggle Spawn on Move">
 		if not SpawnonMoveButton:IsEnabled() then return; end
 			if SpawnonMoveButton:GetChecked() == true then
@@ -59,19 +62,9 @@
 				OPMasterTable.Options["SpawnOnMove"] = true
 			end
 	</Binding>
+	-->
 
-	<Binding category="Object Mover" name="Toggle Move Relative to Player">
-		if not RelativeToPlayerToggle:IsEnabled() then return; end
-			if RelativeToPlayerToggle:GetChecked() == true then
-				RelativeToPlayerToggle:SetChecked(false)
-				OPMasterTable.Options["RelativeToPlayer"] = false
-			else
-				RelativeToPlayerToggle:SetChecked(true)
-				OPMasterTable.Options["RelativeToPlayer"] = true
-			end
-	</Binding>
 	<Binding category="Object Mover" name="Show ObjectMover">
 			SlashCmdList.OM_SHOWCLOSE()
 	</Binding>
-	-->
 </Bindings>
