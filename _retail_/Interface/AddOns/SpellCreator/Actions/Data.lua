@@ -36,6 +36,14 @@ local parseArgsWrapper = function(string, limit)
 	return argTable, numArgs
 end
 
+local function strSplitTableWithTrim(...)
+	local result = strsplittable(...)
+	for i = 1, #result do
+		result[i] = strtrim(result[i])
+	end
+	return result
+end
+
 ---@param string string CSV Delimited String of Args
 ---@param limit number Max number of args to grab
 ---@return ... All the args, capped at the limit or the max number found if no limit given, including nils
@@ -964,51 +972,71 @@ local actionTypeData = {
 		revertAlternative = "a series of unequip actions",
 	}),
 	[ACTION_TYPE.ArcSpell] = scriptAction("Cast ArcSpell (Personal)", {
-		command = function(commID)
+		command = function(data)
+			local commID, inputs = strsplit("+", data, 2)
+			if inputs then
+				inputs = strSplitTableWithTrim(":", inputs)
+			end
 			local spell = Vault.personal.findSpellByID(commID)
 			if not spell then
 				cprint("No spell with ArcID '" .. commID .. "' found in your Personal Vault.")
 				return
 			end
-			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
+			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell, unpack(inputs or {}))
 		end,
 		description = "Cast another Arcanum Spell from your Personal Vault.",
-		dataName = "ArcSpell ID",
-		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell",
-		example = "From " .. Tooltip.genContrastText('/sf MySpell') .. ", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.",
-		revert = nil,
-	}),
-	[ACTION_TYPE.ArcSpellCastImport] = scriptAction("Cast ArcSpell (Import)", {
-		command = function(importString)
-			local spell = ns.UI.ImportExport.getDataFromImportString(importString)
-			if not spell then
-				cprint("Import Error: Invalid ArcSpell data. Try again.")
-				return
-			end
-			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
-		end,
-		description = "Cast another exported Arcanum Spell.",
-		dataName = "Import Code",
-		inputDescription =
-		"The export/import code from exporting an ArcSpell in your vault.\n\rNote: ArcSpells exported are a snap-shot of that spell at that exact moment. Any edits you make to that spell later, will not be reflected in this export, and thus casting via import will not be updated either. You'd need to re-export the spell and update the input.",
-		example = "Right-Click an ArcSpell in your vault, then click 'Export'. Copy that code and paste it here.",
+		dataName = "ArcSpell ID [+input1:input2:...]",
+		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell; add '+' followed by input strings, separated by : if you need to pass additional input into the spell.",
+		example = "From " ..
+			Tooltip.genContrastText('/sf MySpell') ..
+			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell:test:example") ..
+			" to cast MySpell with the inputs 'test' and 'example'.",
 		revert = nil,
 	}),
 	[ACTION_TYPE.ArcSpellPhase] = scriptAction("Cast ArcSpell (Phase)", {
-		command = function(commID)
+		command = function(data)
+			local commID, inputs = strsplit("+", data, 2)
+			if inputs then
+				inputs = strSplitTableWithTrim(":", inputs)
+			end
 			local spell = Vault.phase.findSpellByID(commID)
 			if not spell then
 				cprint("No spell with ArcID '" .. commID .. "' found in your current phase's Phase Vault.")
 				return
 			end
-			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell)
+			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell, unpack(inputs or {}))
 		end,
 		description = "Cast another Arcanum Spell from your Personal Vault.",
-		dataName = "ArcSpell ID",
-		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell",
-		example = "From " .. Tooltip.genContrastText('/sf MySpell') .. ", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.",
+		dataName = "ArcSpell ID [+input1:input2:...]",
+		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell; add '+' followed by input strings, separated by : if you need to pass additional input into the spell.",
+		example = "From " ..
+			Tooltip.genContrastText('/sf MySpell') ..
+			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell:test:example") ..
+			" to cast MySpell with the inputs 'test' and 'example'.",
 		revert = nil,
 	}),
+	[ACTION_TYPE.ArcSpellCastImport] = scriptAction("Cast ArcSpell (Import)", {
+		command = function(data)
+			local importString, inputs = strsplit("+", data, 2)
+			if inputs then
+				inputs = strSplitTableWithTrim(":", inputs)
+			end
+
+			local spell = ns.UI.ImportExport.getDataFromImportString(importString)
+			if not spell then
+				cprint("Import Error: Invalid ArcSpell data. Try again.")
+				return
+			end
+			ns.Actions.Execute.executeSpell(spell.actions, nil, spell.fullName, spell, unpack(inputs or {}))
+		end,
+		description = "Cast another exported Arcanum Spell.",
+		dataName = "Import Code [+input1:input2:...]",
+		inputDescription =
+		"The export/import code from exporting an ArcSpell in your vault.\n\rNote: ArcSpells exported are a snap-shot of that spell at that exact moment. Any edits you make to that spell later, will not be reflected in this export, and thus casting via import will not be updated either. You'd need to re-export the spell and update the input.",
+		example = "Right-Click an ArcSpell in your vault, then click 'Export'. Copy that code and paste it here.",
+		revert = nil,
+	}),
+
 	[ACTION_TYPE.ArcSaveFromPhase] = scriptAction("Save ArcSpell (Phase)", {
 		command = function(data)
 			--local commID, vocal = strsplit(",", data, 2)
