@@ -111,7 +111,7 @@ local function shortenFileName(path)
 	-- Extract the file name from the full path
 	local fileName = path:match("([^\\/]+)$")
 	fileName = fileName:gsub("%[.*%]", "") -- Remove any brackets and their contents
-	return fileName and strtrim(fileName:match("(.+)%..+$")) or strtrim(fileName)
+	return fileName and strtrim(fileName:match("(.+)%..+$") or fileName) or path
 end
 
 local function getFullPhaseGobGUID(guid, phase)
@@ -250,7 +250,16 @@ function GameObjectMeta:Unselect()
 end
 
 function GameObjectMeta:SelectGroup()
-	EpsiLib.AddonCommands._SendAddonCommand("gobject group select")
+	--[[
+	local groupLeader = self.groupLeader
+	if groupLeader == true then groupLeader = self.guid end
+	local command = "gobject group select " .. self.groupLeader
+	print(command)
+	EpsiLib.AddonCommands._SendAddonCommand(command, nil, true)
+	--]]
+	local groupLeader = self.groupLeader
+	if self:IsSelected() then groupLeader = nil end
+	EpsiLib.GameObject:SelectGroup(groupLeader)
 end
 
 function GameObjectMeta:IsSelected()
@@ -1029,8 +1038,10 @@ function EpsiLib.GameObject:GetLast()
 	return self._log._last
 end
 
-function EpsiLib.GameObject:SelectGroup()
+function EpsiLib.GameObject:SelectGroup(guid)
 	local command = "gobject group select"
+	if guid and ((type(guid) == "string") or (type(guid) == "number")) then command = command .. " " .. guid end
+
 	EpsiLib.AddonCommands._SendAddonCommand(command, function(success, messages)
 		if not success then
 			sysMsg("Failed to select GameObject Group with message: " .. messages[1])
@@ -1554,6 +1565,7 @@ end
 
 local groupLeaderPattern = "GUID:(%d+)"
 local groupLeaderPatternAlt = "with leader.*DBGUID: (%d+)%)"
+
 local isWaitingForGroupData
 local function groupMessageCheck(self, event, msg)
 	local clearmsg = gsub(msg, "|cff%x%x%x%x%x%x", "");
@@ -1569,7 +1581,11 @@ local function groupMessageCheck(self, event, msg)
 	if checkForGroupMessage(clearmsg) then
 		local groupID = nil
 
-		if clearmsg:find("Selected") or clearmsg:find("Spawned") then
+		if clearmsg:find("Spawned blueprint") then
+			-- case handler for spawned blueprint -- it doesn't have GUID in the initial message because system admins hate us
+			isWaitingForGroupData = true
+			return -- ignore the rest of this message
+		elseif clearmsg:find("Selected") or clearmsg:find("Spawned gameobject") then
 			-- selected & spawned always give the next group data messages or info in current message
 			groupID = clearmsg:match(groupLeaderPattern)
 			isWaitingForGroupData = EpsiLib.GameObject._newGroup(groupID)
@@ -1583,12 +1599,20 @@ local function groupMessageCheck(self, event, msg)
 			if groupID then
 				EpsiLib.AddonCommands._SendAddonCommand("gobject group sel " .. groupID)
 			else
-				sysMsg("ALERT: Objects added to group with Auto-Rotate enabled, but we couldn't get the group data. Please re-select the group.")
+				sysMsg("ALERT: Couldn't get the group data. Please re-select the group.")
 			end
 		end
 	end
 
 	if isWaitingForGroupData then
+		if isWaitingForGroupData == true then
+			-- this is a BP Spawned edge case, need to grab group GUID & reselect
+			local groupID = clearmsg:match(groupLeaderPattern)
+			EpsiLib.AddonCommands._SendAddonCommand("gobject group sel " .. groupID)
+			isWaitingForGroupData = false
+			return
+		end
+
 		local yaw = nil
 		local scale = tonumber(clearmsg:match("Scale: (%d*%.%d*)"))
 
