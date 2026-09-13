@@ -67,4 +67,14 @@
 	<Binding category="Object Mover" name="Show ObjectMover">
 			SlashCmdList.OM_SHOWCLOSE()
 	</Binding>
+
+	<Binding category="Object Mover" name="Fence Builder: Mark Point">
+			OBJECT_TOOLBOX_API.FenceBuilder.MarkPoint()
+	</Binding>
+	<Binding category="Object Mover" name="Fence Builder: Undo Last Point">
+			OBJECT_TOOLBOX_API.FenceBuilder.UndoPoint()
+	</Binding>
+	<Binding category="Object Mover" name="Fence Builder: Toggle Window">
+			OBJECT_TOOLBOX_API.FenceBuilder.Toggle()
+	</Binding>
 </Bindings>

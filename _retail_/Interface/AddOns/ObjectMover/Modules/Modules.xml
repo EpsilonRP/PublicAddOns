@@ -7,5 +7,6 @@
 
 	<Script file="Modules/Basic.lua"/>
 	<Script file="Modules/TextGen.lua"/>
+	<Script file="Modules/FenceBuilder.lua"/>
 
 </Ui>

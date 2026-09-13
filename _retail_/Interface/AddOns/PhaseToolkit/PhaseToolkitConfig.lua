@@ -321,6 +321,9 @@ local LangFR = {
 	["Appearance ID Tooltip"] = "ID d'apparence\nEntrez un ID d'apparence et appuyez sur Entrée pour l'appliquer à votre objet.\n\nNon nécessaire si vous avez déposé un objet dans l'emplacement ci-dessus.",
 	["Add character to whitelist"] = "Ajouter un personnage à la liste blanche",
 	["Add phase ID to whitelist"] = "Ajouter un ID de phase à la liste blanche",
+	["NPC Forge"] = "Forge de PNJ",
+	["Teleport List"] = "Liste de téléportation",
+	["Item Forge"] = "Forge d'objets",
 }
 setmetatable(LangFR, translation_fallback_meta)
 
@@ -681,6 +684,9 @@ local LangES = {
 	["Appearance ID Tooltip"] = "ID de apariencia\nIntroduce un ID de apariencia y pulsa Enter para aplicarlo a tu objeto.\n\nNo es necesario si has colocado un objeto en la ranura de arriba.",
 	["Add character to whitelist"] = "Añadir un personaje a la lista blanca",
 	["Add phase ID to whitelist"] = "Añadir un ID de fase a la lista blanca",
+	["NPC Forge"] = "Forja de NPC",
+	["Teleport List"] = "Lista de teletransporte",
+	["Item Forge"] = "Forja de objetos",
 
 }
 setmetatable(LangES, translation_fallback_meta)
@@ -983,6 +989,9 @@ local LangDE = {
 	["Appearance ID Tooltip"] = "Erscheinungs-ID\nGib eine Erscheinungs-ID ein und drücke Enter, um sie auf deinen Gegenstand anzuwenden.\n\nNicht nötig, wenn du oben bereits einen Gegenstand platziert hast.",
 	["Add character to whitelist"] = "Charakter zur Whitelist hinzufügen",
 	["Add phase ID to whitelist"] = "Phasen-ID zur Whitelist hinzufügen",
+	["NPC Forge"] = "NPC-Schmiede",
+	["Teleport List"] = "Teleportliste",
+	["Item Forge"] = "Gegenstandsschmiede",
 }
 setmetatable(LangDE, translation_fallback_meta)
 
@@ -1283,6 +1292,9 @@ local LangEN = {
 	["Appearance ID Tooltip"] = "Appearance ID\nEnter an appearance ID and press enter to use this appearance on your item.\n\nNot needed if you put an item on the slot above.",
 	["Add character to whitelist"] = "Add character to whitelist",
 	["Add phase ID to whitelist"] = "Add phase ID to whitelist",
+	["NPC Forge"] = "NPC Forge",
+	["Teleport List"] = "Teleport List",
+	["Item Forge"] = "Item Forge",
 }
 
 -- Thanks Gobatto for translating into Portuguese!
@@ -1646,6 +1658,9 @@ local LangPT = {
 	["Appearance ID Tooltip"] = "ID de aparência\nDigite um ID de aparência e pressione Enter para aplicá-lo ao seu item.\n\nNão é necessário se você colocou um item no slot acima.",
 	["Add character to whitelist"] = "Adicionar personagem à lista branca",
 	["Add phase ID to whitelist"] = "Adicionar ID de fase à lista branca",
+	["NPC Forge"] = "Forja de NPC",
+	["Teleport List"] = "Lista de teleporte",
+	["Item Forge"] = "Forja de itens",
 
 }
 setmetatable(LangPT, translation_fallback_meta)
@@ -2006,6 +2021,9 @@ local LangRU = {
 	["Appearance ID Tooltip"] = "ID внешнего вида\nВведите ID внешнего вида и нажмите Enter, чтобы применить его к предмету.\n\nНе требуется, если вы поместили предмет в слот выше.",
 	["Add character to whitelist"] = "Добавить персонажа в белый список",
 	["Add phase ID to whitelist"] = "Добавить ID фазы в белый список",
+	["NPC Forge"] = "Кузница НИП",
+	["Teleport List"] = "Список телепортации",
+	["Item Forge"] = "Кузница предметов",
 
 
 

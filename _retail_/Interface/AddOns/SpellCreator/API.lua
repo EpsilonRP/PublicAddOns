@@ -629,6 +629,9 @@ do
 
 	-- Spark Cooldowns Sub Category (Shared Functions with Sparks API Table)
 	ARC.XAPI.sparks.Cooldowns = sparkCDFuncs
+
+	-- Auto-populated by the current spark Data when being checked.
+	ARC.XAPI.Sparks.currentSparkData = nil;
 end
 
 ARC.XAPI.UI = {}

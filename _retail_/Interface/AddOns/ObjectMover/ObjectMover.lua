@@ -458,8 +458,6 @@ end
 --]]
 
 local function getSpellVisualKitByValues(tintType, r, g, b, a, s)
-	local useNewSystem = true
-
 	local colorIncrement = 5
 	local transparencyIncrement = 20
 	local saturationIncrement = 20
@@ -474,16 +472,11 @@ local function getSpellVisualKitByValues(tintType, r, g, b, a, s)
 	local ColourSteps = (100 / colorIncrement) + 1;
 	local SaturationSteps = (100 / saturationIncrement);
 
-	-- local startingID = 100000 -- // 830
-	local startingID = 100000 + 22000 -- // 927
-	if useNewSystem then
-		-- startingID = 100001 -- Tint SpellVisual Start ID // 830
-		startingID = 100001 + 22000 -- Tint SpellVisual Start ID // 927
-	end
+	local startingID = 122001 -- Tint SpellVisual Start ID // 927
+
 	if tonumber(tintType) == 2 then
 		-- adjust starting ID if Overlay
-		-- startingID = 331526; -- Overlay SpellVisual Start ID // 830
-		startingID = 331526 + 22000; -- Overlay SpellVisual Start ID // 927
+		startingID = 353526; -- Overlay SpellVisual Start ID // 927
 	end
 
 	local spellVisualID = startingID

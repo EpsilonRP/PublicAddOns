@@ -89,8 +89,10 @@ local function showContext(context)
 end
 
 function PhaseToolkit.changeContext(newcontext)
+	local oldContext = PhaseToolkit.context
 	PhaseToolkit.context = newcontext
-	hideContext(PhaseToolkit.context)
+	hideContext(oldContext)
+	PhaseToolkit.DeployingFrame.activeDeployingContext = oldContext
 	PhaseToolkit.DeployingFrame:handleDeployingFrameState()
 end
 
@@ -473,39 +475,43 @@ PhaseToolkit.MapIconInfo = {
 		["minimapPos"] = 207
 	},
 }
-PhaseToolkit.AutoRefreshNPC = false
-PhaseToolkit.itemCreatorData={
-	itemLink=nil,
-	itemDisplaySourceLink = nil,
-	itemAppearanceID= nil,
-	selectedItemSubClass=nil,
-	selectedInventoryType=nil,
-	selectedItemClass=nil,
-	selectedItemSheath=nil,
-	selectedItemQuality=nil,
-	selectedItemBonding=nil,
-	itemName=nil,
-	itemDescription=nil,
-	selectedIcon=nil,
-	characterWhitelist = {},
-	phaseWhitelistForMember = {},
-	phaseWhitelistForOfficer = {},
-	itemProperty={
-		["adder"]=false,
-		["additem"]={
-			["anyone"]=false,
-			["character"]=false,
-			["member"]=false,
-			["officer"]=false
+--PhaseToolkit.AutoRefreshNPC = false
+PhaseToolkit.debugMode = false
+function PhaseToolkit.GetDefaultItemCreatorData()
+	return {
+		itemLink=nil,
+		itemDisplaySourceLink = nil,
+		itemAppearanceID= nil,
+		selectedItemSubClass=nil,
+		selectedInventoryType=nil,
+		selectedItemClass=nil,
+		selectedItemSheath=nil,
+		selectedItemQuality=nil,
+		selectedItemBonding=nil,
+		itemName=nil,
+		itemDescription=nil,
+		selectedIcon=nil,
+		characterWhitelist = {},
+		phaseWhitelistForMember = {},
+		phaseWhitelistForOfficer = {},
+		itemProperty={
+			["adder"]=false,
+			["additem"]={
+				["anyone"]=false,
+				["character"]=false,
+				["member"]=false,
+				["officer"]=false
+			},
+			["copy"]=false,
+			["creator"]=false,
+			["info"]=false,
+			["lookup"]=false
 		},
-		["copy"]=false,
-		["creator"]=false,
-		["info"]=false,
-		["lookup"]=false
+		selectedRows = {}
 	}
-}
+end
 
-PhaseToolkit.itemCreatorData.selectedRows = {}
+PhaseToolkit.itemCreatorData = PhaseToolkit.GetDefaultItemCreatorData()
 
 
 PhaseToolkit.CommandToSend={}
@@ -5142,7 +5148,6 @@ local function getSubClassFromSubClassString(subclassString,classID)
 	local compTable = getSubClassCompTableFromClassId(classID)
 	if compTable then
 		for compString,value in pairs(compTable) do
-			print("Comparing: "..compString.." with "..subclassString)
 			if compString == subclassString then
 				return value
 			end
@@ -5387,6 +5392,85 @@ local function createDeployRetractAnimsForFrame(frame, offsetX, offsetY, scripts
 
 end
 
+-- shared deploy/retract for the whitelist/item side panels, replacing 6 copies that each recreated their AnimationGroup on every call
+local function createSidePanelAnimations(panel, openedKey, scaleOrigin)
+	panel.deployAnimation = function()
+		if(panel.animGroupDeploy and panel.animGroupDeploy:IsPlaying()) then
+			return
+		end
+		if(not panel.animGroupDeploy) then
+			local AnimationGroup = panel:CreateAnimationGroup("DeploySidePanel");
+
+			local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+			fadeIn:SetOrder(1);
+			fadeIn:SetFromAlpha(0);
+			fadeIn:SetToAlpha(1);
+			fadeIn:SetDuration(baseAnimTime);
+			fadeIn:SetSmoothing("OUT")
+
+			local scaleUp= AnimationGroup:CreateAnimation("Scale");
+			scaleUp:SetOrder(1);
+			scaleUp:SetFromScale(0.0,1.0);
+			scaleUp:SetToScale(1.0,1.0);
+			scaleUp:SetDuration(baseAnimTime);
+			scaleUp:SetSmoothing("OUT")
+			scaleUp:SetOrigin(scaleOrigin,0,0)
+
+			AnimationGroup:SetScript("OnPlay", function()
+				stopAnimIfPlaying(panel.animGroupRetract)
+				if(PhaseToolkit.DeployingFrame[openedKey]) then
+					PhaseToolkit.DeployingFrame[openedKey].retractAnimation()
+				end
+				panel:Show()
+				PhaseToolkit.DeployingFrame[openedKey] = panel
+			end);
+
+			panel.animGroupDeploy = AnimationGroup
+		end
+
+		panel.animGroupDeploy:Play();
+	end
+
+	panel.retractAnimation = function()
+		if(panel.animGroupRetract and panel.animGroupRetract:IsPlaying()) then
+			return
+		end
+		if(not panel.animGroupRetract) then
+			local AnimationGroup = panel:CreateAnimationGroup("RetractSidePanel");
+
+			local fadeOut = AnimationGroup:CreateAnimation("Alpha");
+			fadeOut:SetOrder(1);
+			fadeOut:SetFromAlpha(1);
+			fadeOut:SetToAlpha(0);
+			fadeOut:SetDuration(baseAnimTime);
+			fadeOut:SetSmoothing("OUT")
+
+			local scaleDown= AnimationGroup:CreateAnimation("Scale");
+			scaleDown:SetOrder(1);
+			scaleDown:SetFromScale(1.0,1.0);
+			scaleDown:SetToScale(0.0,1.0);
+			scaleDown:SetDuration(baseAnimTime);
+			scaleDown:SetSmoothing("OUT")
+			scaleDown:SetOrigin(scaleOrigin,0,0)
+
+			AnimationGroup:SetScript("OnPlay", function()
+				stopAnimIfPlaying(panel.animGroupDeploy)
+			end);
+
+			AnimationGroup:SetScript("OnFinished", function()
+				panel:Hide()
+				if(PhaseToolkit.DeployingFrame[openedKey] == panel) then
+					PhaseToolkit.DeployingFrame[openedKey] = nil
+				end
+			end);
+
+			panel.animGroupRetract = AnimationGroup
+		end
+
+		panel.animGroupRetract:Play();
+	end
+end
+
 createDeployRetractAnimsForFrame(PhaseToolkit.DeployingFrame, 0, 60, {
 	onPlayDeploy = function()
 		animClipFrame:SetClipsChildren(true)
@@ -5469,6 +5553,12 @@ local function activateNpcCustomHighlights()
 end
 
 local function getSelectedGender()
+	-- SelectedGender (real NPC identity) takes priority over the slider's visual position
+	if(PhaseToolkit.SelectedGender == "male") then
+		return "MALE"
+	elseif(PhaseToolkit.SelectedGender == "female") then
+		return "FEMALE"
+	end
 	local gender = "MALE"
 	if (PhaseToolkit.DeployingFrame.NpcGenderSlider:GetValue() == 1) then
         gender = "FEMALE"
@@ -5525,6 +5615,43 @@ local function CustomizeNpc(fieldName,value)
 	end
 end
 
+-- Refreshes GeneralStat with the target's real values (via "ph f n out info"), like CopyNpcCustomisation does
+function PhaseToolkit.RefreshGeneralStatFromTarget(callback)
+	if not (UnitExists("target") and not UnitIsPlayer("target")) then
+		if(callback) then callback(false) end
+		return
+	end
+	sendAddonCmd("ph f n out info", function(isSuccessful, responses)
+		if not isSuccessful or not responses then
+			if(callback) then callback(false) end
+			return
+		end
+		local newStats = {}
+		for _, line in ipairs(responses) do
+			local cleanLine = line:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
+			if string.find(cleanLine, "%(Character Select IDs%)") then
+				local optionName, choiceValue = string.match(cleanLine, "Option:%s*([^,]+),%s*Choice%(s%):%s*(%d+)")
+				if optionName and choiceValue then
+					optionName = optionName:gsub("^%s+", ""):gsub("%s+$", ""):gsub("_", ""):gsub(" ", ""):lower()
+					local numValue = tonumber(choiceValue)
+					if numValue then
+						if numValue > 200 then
+							newStats[optionName] = 1
+						else
+							newStats[optionName] = numValue
+						end
+					end
+				end
+			end
+		end
+		wipe(PhaseToolkit.GeneralStat)
+		for k, v in pairs(newStats) do
+			PhaseToolkit.GeneralStat[k] = v
+		end
+		if(callback) then callback(true) end
+	end, false)
+end
+
 local function isCategoryExistingOnRace()
 	if(PhaseToolkit.SelectedRace and PhaseToolkit.SelectedCategory)then
 		local raceName= PhaseToolkit.SelectedRace.name
@@ -5535,69 +5662,90 @@ local function isCategoryExistingOnRace()
 	end
 end
 
+-- Reuses one persistent AnimationGroup per panel and ignores re-entrant calls, instead of spam-clicks stacking overlapping ones
 local function deployCustomPanel()
-	local AnimationGroup = PhaseToolkit.customPanel:CreateAnimationGroup("DeployRacePanelAnimation");
+	local panel = PhaseToolkit.customPanel
+	if(panel.isAnimating) then
+		return
+	end
+	if(not panel.deployAnimGroup) then
+		local AnimationGroup = panel:CreateAnimationGroup("DeployRacePanelAnimation");
 
-	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-	fadeIn:SetOrder(1);
-	fadeIn:SetFromAlpha(0);
-	fadeIn:SetToAlpha(1);
-	fadeIn:SetDuration(baseAnimTime);
-	fadeIn:SetSmoothing("OUT")
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(0);
+		fadeIn:SetToAlpha(1);
+		fadeIn:SetDuration(baseAnimTime);
+		fadeIn:SetSmoothing("OUT")
 
-	local scaleUp= AnimationGroup:CreateAnimation("Scale");
-	scaleUp:SetOrder(1);
-	scaleUp:SetFromScale(0.0,1.0);
-	scaleUp:SetToScale(1.0,1.0);
-	scaleUp:SetDuration(baseAnimTime);
-	scaleUp:SetSmoothing("OUT")
-	scaleUp:SetOrigin("LEFT",0,0)
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(0.0,1.0);
+		scaleUp:SetToScale(1.0,1.0);
+		scaleUp:SetDuration(baseAnimTime);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("LEFT",0,0)
 
-	AnimationGroup:SetScript("OnPlay", function()
-		hideContent(PhaseToolkit.customPanel.contentToManage)
-		hideContent(PhaseToolkit.customPanel.activeCells)
-		PhaseToolkit.customPanel:Show()
-	end);
+		AnimationGroup:SetScript("OnPlay", function()
+			panel.isAnimating = true
+			hideContent(panel.contentToManage)
+			hideContent(panel.activeCells)
+			panel:Show()
+		end);
 
-	AnimationGroup:SetScript("OnFinished", function()
-		showContent(PhaseToolkit.customPanel.contentToManage)
-		-- FIX: on ne montre QUE les cellules actives du dataset courant,
-		-- pas toutes les cellules jamais créées (sinon des cellules d'un
-		-- dataset précédent, plus grand, réapparaissent à la réouverture).
-		showContent(PhaseToolkit.customPanel.activeCells)
-	end);
+		AnimationGroup:SetScript("OnFinished", function()
+			panel.isAnimating = false
+			showContent(panel.contentToManage)
+			-- FIX: on ne montre QUE les cellules actives du dataset courant,
+			-- pas toutes les cellules jamais créées (sinon des cellules d'un
+			-- dataset précédent, plus grand, réapparaissent à la réouverture).
+			showContent(panel.activeCells)
+		end);
 
-	AnimationGroup:Play();
+		panel.deployAnimGroup = AnimationGroup
+	end
+
+	panel.deployAnimGroup:Play();
 end
 
 local function retractCustomPanel()
-	local AnimationGroup = PhaseToolkit.customPanel:CreateAnimationGroup("DeployRacePanelAnimation");
+	local panel = PhaseToolkit.customPanel
+	if(panel.isAnimating) then
+		return
+	end
+	if(not panel.retractAnimGroup) then
+		local AnimationGroup = panel:CreateAnimationGroup("RetractRacePanelAnimation");
 
-	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-	fadeIn:SetOrder(1);
-	fadeIn:SetFromAlpha(1);
-	fadeIn:SetToAlpha(0);
-	fadeIn:SetDuration(baseAnimTime);
-	fadeIn:SetSmoothing("OUT")
+		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
+		fadeIn:SetOrder(1);
+		fadeIn:SetFromAlpha(1);
+		fadeIn:SetToAlpha(0);
+		fadeIn:SetDuration(baseAnimTime);
+		fadeIn:SetSmoothing("OUT")
 
-	local scaleUp= AnimationGroup:CreateAnimation("Scale");
-	scaleUp:SetOrder(1);
-	scaleUp:SetFromScale(1.0,1.0);
-	scaleUp:SetToScale(0.0,1.0);
-	scaleUp:SetDuration(baseAnimTime);
-	scaleUp:SetSmoothing("OUT")
-	scaleUp:SetOrigin("LEFT",0,0)
+		local scaleUp= AnimationGroup:CreateAnimation("Scale");
+		scaleUp:SetOrder(1);
+		scaleUp:SetFromScale(1.0,1.0);
+		scaleUp:SetToScale(0.0,1.0);
+		scaleUp:SetDuration(baseAnimTime);
+		scaleUp:SetSmoothing("OUT")
+		scaleUp:SetOrigin("LEFT",0,0)
 
-	AnimationGroup:SetScript("OnPlay", function()
-		hideContent(PhaseToolkit.customPanel.contentToManage)
-		hideContent(PhaseToolkit.customPanel.activeCells)
-	end);
+		AnimationGroup:SetScript("OnPlay", function()
+			panel.isAnimating = true
+			hideContent(panel.contentToManage)
+			hideContent(panel.activeCells)
+		end);
 
-	AnimationGroup:SetScript("OnFinished", function()
-		PhaseToolkit.customPanel:Hide()
-	end);
+		AnimationGroup:SetScript("OnFinished", function()
+			panel.isAnimating = false
+			panel:Hide()
+		end);
 
-	AnimationGroup:Play();
+		panel.retractAnimGroup = AnimationGroup
+	end
+
+	panel.retractAnimGroup:Play();
 end
 
 
@@ -5611,6 +5759,7 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 		if(not PhaseToolkit.customPanel) then
 			local Panel = CreateFrame("Frame", nil, PhaseToolkit.DeployingFrame, "PortraitFrameTemplate");
 			Panel:SetSize(PhaseToolkit.DeployingFrame:GetWidth()+200, 245);
+			Panel.baseHeight = 245 -- height that comfortably fits up to 3 rows (9 fields); grown below for categories with more
 			Panel:SetPoint("LEFT", PhaseToolkit.DeployingFrame, "RIGHT", 0, -27.5);
 			ButtonFrameTemplateMinimizable_HidePortrait(Panel)
 			NineSliceUtil.ApplyLayoutByName(Panel.NineSlice, "EpsilonGoldBorderFrameTemplateNoPortrait")
@@ -5647,6 +5796,7 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 					local maxNumericValue = tonumber(maxValue)
 					if(maxNumericValue and maxNumericValue >= 1 and not PhaseToolkit.CustomFieldLocks[fieldName]) then
 						local randomValue = math.random(1, maxNumericValue)
+						PhaseToolkit.GeneralStat[fieldName] = randomValue
 						CustomizeNpc(fieldName, randomValue)
 						if(parentPanel.fieldCellByName and parentPanel.fieldCellByName[fieldName] and parentPanel.fieldCellByName[fieldName].modifyPart and parentPanel.fieldCellByName[fieldName].modifyPart.editBox) then
 							parentPanel.fieldCellByName[fieldName].modifyPart.editBox:SetNumber(randomValue)
@@ -5688,6 +5838,11 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 		end
 		local numColumns = math.min(3, datasetSize)
 		local numRows = math.ceil(datasetSize/numColumns)
+
+		-- grow the panel for categories with more than 3 rows (e.g. Tauren Head has 10 fields)
+		local extraRows = math.max(0, numRows - 3)
+		PhaseToolkit.customPanel:SetHeight(PhaseToolkit.customPanel.baseHeight + extraRows * 80)
+
 		local cellWidth = (PhaseToolkit.customPanel.gridMaster:GetWidth() - (numColumns -1)*5) / numColumns
 		local cellHeight = (PhaseToolkit.customPanel.gridMaster:GetHeight() - (numRows -1)*5) / numRows
 		local index = 0
@@ -5794,7 +5949,8 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 		end
 
 		--We need to create the cell if it doesn't exist, else we just update cell content, to avoid creating new frames every time we click on a category
-		for i = 0, 8 do
+		-- hide every cell ever created, not just a hardcoded max of 9
+		for i = 0, (PhaseToolkit.customPanel.createdCellCount or 0) - 1 do
 			local cellName = "Cell"..i
 			local cell = PhaseToolkit.customPanel.gridMaster[cellName]
 			if(cell)then
@@ -5826,6 +5982,7 @@ local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 				cell.Text = cell:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 				cell.Text:SetPoint("CENTER", cell, "CENTER", 0, 0)
 				PhaseToolkit.customPanel.gridMaster[cellName]=cell
+				PhaseToolkit.customPanel.createdCellCount = math.max(PhaseToolkit.customPanel.createdCellCount or 0, index + 1)
 				cell.modifyPart={}
 				cell.modifyPart.background = cell:CreateTexture(nil, "BACKGROUND")
 				cell.modifyPart.background:SetPoint("TOP",cell.Text,"BOTTOM",0,-2)
@@ -5944,21 +6101,20 @@ local function updateCustomCategoryButtons()
 				for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
 					if(categoriesForRace and categoriesForRace[button.LinkedCategory])then
 						button:Show()
+						button:Enable()
 						visiblebutton=visiblebutton+1
 						button:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -50*visiblebutton);
 					else
 						button:Hide()
+						button:Disable()
 					end
 					if(PhaseToolkit.SelectedCategory and button.LinkedCategory == PhaseToolkit.SelectedCategory.LinkedCategory)then
-						button.EnabledIcon:Show()
-						button.DisabledIcon:Hide()
+						button:SetChecked(true)
 					else
-						button.EnabledIcon:Hide()
-						button.DisabledIcon:Show()
+						button:SetChecked(false)
 					end
 					if(PhaseToolkit.customPanel and  not PhaseToolkit.customPanel:IsShown()) then
-						button.EnabledIcon:Hide()
-						button.DisabledIcon:Show()
+						button:SetChecked(false)
 					end
 				end
 			end
@@ -6241,6 +6397,50 @@ local function clearRaceButton()
 		raceButton:SetScript("OnClick", function() end)
 	end
 end
+
+local function updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething(gender)
+	if tonumber(gender) then -- convert number to text for consistency
+		gender = (gender == 0) and "male" or "female"
+	end
+	gender = gender:lower() -- normalize
+	if gender=="male" and (PhaseToolkit.SelectedRace.name=="Orc")then -- why?
+		sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
+	end
+	if(PhaseToolkit.DeployingFrame.raceRingBackground) then
+		clearRaceButton()
+		populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
+	end
+
+	if(type(PhaseToolkit.SelectedRace) == "table")then
+		local race = PhaseToolkit.SelectedRace
+
+		local texGender = race["texture"..gender]
+		local atlasGender = race["atlas"..gender]
+
+		if(texGender and texGender ~= "")then
+			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(texGender)
+		elseif(atlasGender and atlasGender ~= "")then
+			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(atlasGender)
+		else
+			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+		end
+	else
+		PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
+	end
+	if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+		local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+		if( not isCategoryExistingOnRace()) then
+			categoryToOpen = "Head"
+			PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+		end
+		if(PhaseToolkit.customPanel:IsShown()) then
+			buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+		end
+	end
+	updateCustomCategoryButtons()
+end
+
+
 
 local function deployRacePanel()
 	local panel = PhaseToolkit.DeployingFrame.createRaceSelectionHalfPie
@@ -6955,7 +7155,7 @@ local function createNpcToolkitButtons(context)
 	local autoUpdateCheckbox = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame)
 	autoUpdateCheckbox:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 120, -60)
 	autoUpdateCheckbox:SetSize(30, 30)
-	autoUpdateCheckbox.checked= PhaseToolkit.AutoRefreshNPC
+	autoUpdateCheckbox.checked = PhaseToolKitConfig.AutoRefreshNPC
 	autoUpdateCheckbox.enabledIcon = autoUpdateCheckbox:CreateTexture(nil, "OVERLAY")
 	autoUpdateCheckbox.enabledIcon:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\autoRefresh_enabled.blp")
 	autoUpdateCheckbox.enabledIcon:SetSize(30, 30)
@@ -6965,32 +7165,33 @@ local function createNpcToolkitButtons(context)
 	autoUpdateCheckbox.disabledIcon:SetSize(30, 30)
 	autoUpdateCheckbox.disabledIcon:SetPoint("CENTER", autoUpdateCheckbox, "CENTER", 0, 0)
 
-	if(autoUpdateCheckbox.checked)then
-		autoUpdateCheckbox.enabledIcon:Show()
-		autoUpdateCheckbox.disabledIcon:Hide()
-	else
-		autoUpdateCheckbox.enabledIcon:Hide()
-		autoUpdateCheckbox.disabledIcon:Show()
-	end
-
-	autoUpdateCheckbox:SetScript("OnClick", function()
-		if(autoUpdateCheckbox.checked)then
-			autoUpdateCheckbox.checked = false
-			autoUpdateCheckbox.enabledIcon:Hide()
-			autoUpdateCheckbox.disabledIcon:Show()
-			PhaseToolkit.DeployingFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
-		else
+	local function toggleAutoUpdate(status)
+		if status then
 			autoUpdateCheckbox.checked = true
 			autoUpdateCheckbox.enabledIcon:Show()
 			autoUpdateCheckbox.disabledIcon:Hide()
 			PhaseToolkit.DeployingFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+		else
+			autoUpdateCheckbox.checked = false
+			autoUpdateCheckbox.enabledIcon:Hide()
+			autoUpdateCheckbox.disabledIcon:Show()
+			PhaseToolkit.DeployingFrame:UnregisterEvent("PLAYER_TARGET_CHANGED")
 		end
-		PhaseToolkit.AutoRefreshNPC = autoUpdateCheckbox.checked
+		PhaseToolKitConfig.AutoRefreshNPC = status
+	end
+
+	autoUpdateCheckbox:SetScript("OnShow", function()
+		toggleAutoUpdate(PhaseToolKitConfig.AutoRefreshNPC)
+	end)
+
+	autoUpdateCheckbox:SetScript("OnClick", function()
+		toggleAutoUpdate(not autoUpdateCheckbox.checked)
 	end)
 
 	PhaseToolkit.DeployingFrame:SetScript("OnEvent", function(self, event)
 		-- If we change target while Phase toolkit is opened, and it's a npc we take data
-		if (event == "PLAYER_TARGET_CHANGED" and not UnitIsPlayer("target") and UnitExists("target")) then
+		if event ~= "PLAYER_TARGET_CHANGED" then return end
+		if (not UnitIsPlayer("target")) and UnitExists("target") then
 			sendAddonCmd("npc info", PhaseToolkit.parseForDisplayId, false)
 			if PhaseToolkit.DeployingFrame.npcNameEditBox then
 				PhaseToolkit.DeployingFrame.npcNameEditBox:SetText(UnitName("target"))
@@ -6998,6 +7199,13 @@ local function createNpcToolkitButtons(context)
 			end
 			if(PhaseToolkit.DisplayListFrame and PhaseToolkit.DisplayListFrame:IsShown()) then
 				createDatasetForDisplaysList()
+			end
+		else
+			if PhaseToolkit.DeployingFrame.DisableCustomCategoryButtons then
+				if PhaseToolkit.customPanel and PhaseToolkit.customPanel:IsShown() then
+					retractCustomPanel()
+				end
+				PhaseToolkit.DeployingFrame.DisableCustomCategoryButtons()
 			end
 		end
 	end)
@@ -7399,35 +7607,12 @@ local function createGenderSlider(context)
 	AnimationGroupDown:SetScript("OnFinished", function()
 		NpcGenderSlider:SetValue(1)
 		NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-female-selected")
-
-		if(PhaseToolkit.DeployingFrame.raceRingBackground) then
-			clearRaceButton()
-			populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
+		PhaseToolkit.SelectedGender = "female"
+		if not AnimationGroupDown.doNotSendCommand then
+			PhaseToolkit.ChangeNpcGender("female")
 		end
-		PhaseToolkit.ChangeNpcGender("female")
-		if(type(PhaseToolkit.SelectedRace) == "table")then
-			local race = PhaseToolkit.SelectedRace
-			if(race.texturefemale and race.texturefemale ~= "")then
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(race.texturefemale)
-			elseif(race.atlasfemale and race.atlasfemale ~= "")then
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(race.atlasfemale)
-			else
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
-			end
-		else
-			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
-		end
-		if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
-			local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
-			if( not isCategoryExistingOnRace()) then
-				categoryToOpen = "Head"
-				PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
-			end
-			if(PhaseToolkit.customPanel:IsShown()) then
-				buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
-			end
-		end
-		updateCustomCategoryButtons()
+		AnimationGroupDown.doNotSendCommand = nil
+		updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething("female")
 	end);
 
 	local AnimationGroupUp = thumb:CreateAnimationGroup("GenderSliderAnim");
@@ -7439,39 +7624,13 @@ local function createGenderSlider(context)
 
 	AnimationGroupUp:SetScript("OnFinished", function()
 		NpcGenderSlider:SetValue(0)
+		PhaseToolkit.SelectedGender = "male"
 		NpcGenderSlider.CustomIcon:SetAtlas("charactercreate-gendericon-male-selected")
-		PhaseToolkit.ChangeNpcGender("male")
-		if (PhaseToolkit.SelectedRace.name=="Orc")then
-				sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
-			end
-		if(PhaseToolkit.DeployingFrame.raceRingBackground) then
-			clearRaceButton()
-			populateRowsOfRaceIcons(PhaseToolkit.DeployingFrame.raceRingBackground,PhaseToolkit.DeployingFrame.currentRacePage)
+		if not AnimationGroupUp.doNotSendCommand then
+			PhaseToolkit.ChangeNpcGender("male")
 		end
-		-- Same logic for male.
-		if(type(PhaseToolkit.SelectedRace) == "table")then
-			local race = PhaseToolkit.SelectedRace
-			if(race.texturemale and race.texturemale ~= "")then
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(race.texturemale)
-			elseif(race.atlasmale and race.atlasmale ~= "")then
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(race.atlasmale)
-			else
-				PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
-			end
-		else
-			PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture("Interface\\AddOns\\"..addonName.."\\assets\\CustomBiGenderIcon256.blp")
-		end
-		if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
-			local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
-			if( not isCategoryExistingOnRace()) then
-				categoryToOpen = "Head"
-				PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
-			end
-			if(PhaseToolkit.customPanel:IsShown()) then
-				buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
-			end
-		end
-		updateCustomCategoryButtons()
+		AnimationGroupUp.doNotSendCommand = nil
+		updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething("male")
 	end);
 
 
@@ -7493,135 +7652,76 @@ end
 local function handleIconBehavior(button)
 	if( PhaseToolkit.SelectedCategory) then
 		if( PhaseToolkit.SelectedCategory.LinkedCategory ~= button.LinkedCategory) then
-			PhaseToolkit.SelectedCategory.EnabledIcon:Hide()
-			PhaseToolkit.SelectedCategory.DisabledIcon:Show()
-			button.EnabledIcon:Show()
-			button.DisabledIcon:Hide()
+			PhaseToolkit.SelectedCategory:SetChecked(false)
+			button:SetChecked(true)
 		end
 		if(PhaseToolkit.SelectedCategory.LinkedCategory == button.LinkedCategory )then
 			if(PhaseToolkit.customPanel and PhaseToolkit.customPanel:IsShown())then
-				button.EnabledIcon:Hide()
-				button.DisabledIcon:Show()
+				button:SetChecked(false)
 			else
-				button.EnabledIcon:Show()
-				button.DisabledIcon:Hide()
+				button:SetChecked(true)
 			end
 
 		end
 	else
-		button.EnabledIcon:Show()
-		button.DisabledIcon:Hide()
+		button:SetChecked(true)
 	end
+end
+
+local highlightOffsets = { x = 6, y = 6 }
+local function setupCategoryButtonTextures(button, textureBase)
+	local atlas = textureBase
+	button:SetNormalAtlas(atlas.."-selected")
+	button:SetDisabledAtlas(atlas)
+	button:SetHighlightAtlas("charactercreate-ring-select")
+	ChainWrap(button:GetHighlightTexture()):ClearAllPoints()
+		:SetPoint("TOPLEFT", button, "TOPLEFT", highlightOffsets.x, -highlightOffsets.y)
+		:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -highlightOffsets.x, highlightOffsets.y)
+	button:SetCheckedTexture("charactercreate-ring-select")
+	ChainWrap(button:GetCheckedTexture()):SetAtlas("charactercreate-ring-select")
+		:ClearAllPoints()
+		:SetPoint("TOPLEFT", button, "TOPLEFT", highlightOffsets.x, -highlightOffsets.y)
+		:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -highlightOffsets.x, highlightOffsets.y)
 end
 
 local function createCustomCategoryButton(context)
 	local Buttons ={}
-	local firstCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	local firstCategoryButton = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame);
 	firstCategoryButton:SetSize(60, 60);
 	firstCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -50);
-	firstCategoryButton.EnabledIcon = firstCategoryButton:CreateTexture(nil, "OVERLAY");
-	firstCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-head-selected")
-	firstCategoryButton.EnabledIcon:SetSize(60, 60);
-	firstCategoryButton.EnabledIcon:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
-	firstCategoryButton.EnabledIcon:Hide();
-
-	firstCategoryButton.DisabledIcon = firstCategoryButton:CreateTexture(nil, "OVERLAY");
-	firstCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-head")
-	firstCategoryButton.DisabledIcon:SetSize(60, 60);
-	firstCategoryButton.DisabledIcon:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
-
-	firstCategoryButton.Highlight = firstCategoryButton:CreateTexture(nil, "HIGHLIGHT")
-	firstCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
-	firstCategoryButton.Highlight:SetSize(65, 65);
-	firstCategoryButton.Highlight:SetPoint("CENTER", firstCategoryButton, "CENTER", 0, 0);
-	firstCategoryButton.Highlight:Hide()
+	setupCategoryButtonTextures(firstCategoryButton, "charactercreate-icon-customize-head")
 	firstCategoryButton.LinkedCategory="Head"
+	firstCategoryButton:Disable()
 
-	local secondCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	local secondCategoryButton = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame);
 	secondCategoryButton:SetSize(60, 60);
 	secondCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -100);
-	secondCategoryButton.EnabledIcon = secondCategoryButton:CreateTexture(nil, "OVERLAY");
-	secondCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-hair-selected")
-	secondCategoryButton.EnabledIcon:SetSize(60, 60);
-	secondCategoryButton.EnabledIcon:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
-	secondCategoryButton.EnabledIcon:Hide();
-
-	secondCategoryButton.DisabledIcon = secondCategoryButton:CreateTexture(nil, "OVERLAY");
-	secondCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-hair")
-	secondCategoryButton.DisabledIcon:SetSize(60, 60);
-	secondCategoryButton.DisabledIcon:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
-
-	secondCategoryButton.Highlight = secondCategoryButton:CreateTexture(nil, "HIGHLIGHT")
-	secondCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
-	secondCategoryButton.Highlight:SetSize(55, 55);
-	secondCategoryButton.Highlight:SetPoint("CENTER", secondCategoryButton, "CENTER", 0, 0);
-	secondCategoryButton.Highlight:Hide()
+	setupCategoryButtonTextures(secondCategoryButton, "charactercreate-icon-customize-hair")
 	secondCategoryButton.LinkedCategory="Hair"
+	secondCategoryButton:Disable()
 
-	local thirdCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	local thirdCategoryButton = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame);
 	thirdCategoryButton:SetSize(60, 60);
 	thirdCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -150);
-	thirdCategoryButton.EnabledIcon = thirdCategoryButton:CreateTexture(nil, "OVERLAY");
-	thirdCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-body-selected")
-	thirdCategoryButton.EnabledIcon:SetSize(60, 60);
-	thirdCategoryButton.EnabledIcon:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
-	thirdCategoryButton.EnabledIcon:Hide();
-
-	thirdCategoryButton.DisabledIcon = thirdCategoryButton:CreateTexture(nil, "OVERLAY");
-	thirdCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-body")
-	thirdCategoryButton.DisabledIcon:SetSize(60, 60);
-	thirdCategoryButton.DisabledIcon:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
-
-	thirdCategoryButton.Highlight = thirdCategoryButton:CreateTexture(nil, "HIGHLIGHT")
-	thirdCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
-	thirdCategoryButton.Highlight:SetSize(55, 55);
-	thirdCategoryButton.Highlight:SetPoint("CENTER", thirdCategoryButton, "CENTER", 0, 0);
-	thirdCategoryButton.Highlight:Hide()
+	setupCategoryButtonTextures(thirdCategoryButton, "charactercreate-icon-customize-body")
 	thirdCategoryButton.LinkedCategory="Body"
+	thirdCategoryButton:Disable()
 
-	local fourthCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	local fourthCategoryButton = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame);
 	fourthCategoryButton:SetSize(60, 60);
 	fourthCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -250);
-	fourthCategoryButton.EnabledIcon = fourthCategoryButton:CreateTexture(nil, "OVERLAY");
-	fourthCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-accessories-selected")
-	fourthCategoryButton.EnabledIcon:SetSize(60, 60);
-	fourthCategoryButton.EnabledIcon:SetPoint("CENTER", fourthCategoryButton,	 "CENTER", 0, 0);
-	fourthCategoryButton.EnabledIcon:Hide();
-
-	fourthCategoryButton.DisabledIcon = fourthCategoryButton:CreateTexture(nil, "OVERLAY");
-	fourthCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-accessories")
-	fourthCategoryButton.DisabledIcon:SetSize(60, 60);
-	fourthCategoryButton.DisabledIcon:SetPoint("CENTER", fourthCategoryButton, "CENTER", 0, 0);
-
-	fourthCategoryButton.Highlight = fourthCategoryButton:CreateTexture(nil, "HIGHLIGHT")
-	fourthCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
-	fourthCategoryButton.Highlight:SetSize(55, 55);
-	fourthCategoryButton.Highlight:SetPoint("CENTER", fourthCategoryButton, "CENTER", 0, 0);
-	fourthCategoryButton.Highlight:Hide()
+	setupCategoryButtonTextures(fourthCategoryButton, "charactercreate-icon-customize-accessories")
 	fourthCategoryButton.LinkedCategory="Jewelry"
+	fourthCategoryButton:Disable()
 
-	local fifthCategoryButton = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame);
+	local fifthCategoryButton = CreateFrame("CheckButton", nil, PhaseToolkit.DeployingFrame);
 	fifthCategoryButton:SetSize(60, 60);
 	fifthCategoryButton:SetPoint("TOPRIGHT", PhaseToolkit.DeployingFrame, "TOPRIGHT", 5, -200);
-	fifthCategoryButton.EnabledIcon = fifthCategoryButton:CreateTexture(nil, "OVERLAY");
-	fifthCategoryButton.EnabledIcon:SetAtlas("charactercreate-icon-customize-torso-selected")
-	fifthCategoryButton.EnabledIcon:SetSize(60, 60);
-	fifthCategoryButton.EnabledIcon:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
-	fifthCategoryButton.EnabledIcon:Hide();
-
-	fifthCategoryButton.DisabledIcon = fifthCategoryButton:CreateTexture(nil, "OVERLAY");
-	fifthCategoryButton.DisabledIcon:SetAtlas("charactercreate-icon-customize-torso")
-	fifthCategoryButton.DisabledIcon:SetSize(60, 60);
-	fifthCategoryButton.DisabledIcon:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
-
-	fifthCategoryButton.Highlight = fifthCategoryButton:CreateTexture(nil, "HIGHLIGHT")
-	fifthCategoryButton.Highlight:SetAtlas("charactercreate-ring-select");
-	fifthCategoryButton.Highlight:SetSize(55, 55);
-	fifthCategoryButton.Highlight:SetPoint("CENTER", fifthCategoryButton, "CENTER", 0, 0);
-	fifthCategoryButton.Highlight:Hide()
+	setupCategoryButtonTextures(fifthCategoryButton, "charactercreate-icon-customize-torso")
 	fifthCategoryButton.LinkedCategory="BodyMark"
+	fifthCategoryButton:Disable()
 
-
+	--[[
 	if(type(PhaseToolkit.SelectedRace)=="table") then
 		firstCategoryButton:SetScript("OnEnter", function()
 			firstCategoryButton.Highlight:Show()
@@ -7639,6 +7739,7 @@ local function createCustomCategoryButton(context)
 			fifthCategoryButton.Highlight:Show()
 		end)
 	end
+	--]]
 
 	firstCategoryButton:SetScript("OnClick", function(self)
 		if(PhaseToolkit.SelectedRace) then
@@ -7692,6 +7793,13 @@ local function createCustomCategoryButton(context)
 	tinsert(context, fifthCategoryButton)
 
 	PhaseToolkit.DeployingFrame.CustomCategoryButtons=Buttons
+
+	PhaseToolkit.DeployingFrame.DisableCustomCategoryButtons = function()
+		for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
+			button:Disable()
+			button:SetChecked(false)
+		end
+	end
 end
 
 function PhaseToolkit.gatherPhaseInfo(isCommandSuccessful, replies)
@@ -10508,8 +10616,10 @@ end
 
 local function createItemSlotButton(context)
 	local itemDropSlot = CreateFrame("Button", nil, PhaseToolkit.DeployingFrame, "BackdropTemplate")
+	itemDropSlot:EnableMouse(true)
 	itemDropSlot:SetSize(36,36)
 	itemDropSlot:SetPoint("TOPLEFT", PhaseToolkit.DeployingFrame, "TOPLEFT", 8, PhaseToolkit.DeployingFrame.OffsetFromTop - 25)
+	itemDropSlot:SetFrameLevel(PhaseToolkit.DeployingFrame:GetFrameLevel() + 50)
 	itemDropSlot:SetBackdrop({
 		bgFile = "Interface\\Buttons\\UI-Quickslot2",
 		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -10523,20 +10633,42 @@ local function createItemSlotButton(context)
 	itemDropSlot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 
 
-	itemDropSlot:SetScript("OnReceiveDrag", function(self)
+	local function acceptCursorItemOnSlot(self)
 		local cursorType, itemID, itemLink = GetCursorInfo()
 		if cursorType == "item" and itemLink then
-			self.icon:SetTexture(GetItemIcon(itemID) or "Interface\\Icons\\INV_Misc_QuestionMark")
-			PhaseToolkit.itemCreatorData.itemLink = itemLink
-			GameTooltip:Hide()
-			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-			GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemLink)
-			GameTooltip:Show()
-			updateFields(PhaseToolkit.itemCreatorData.itemLink)
-			local maxDescriptionSize=238-(string.len("f i s de ")+string.len(PhaseToolkit.itemCreatorData.itemLink or ""))
-			PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame.ScrollFrame.EditBox:SetMaxLetters(maxDescriptionSize)
+			local ok, err = pcall(function()
+				self.icon:SetTexture(GetItemIcon(itemID) or "Interface\\Icons\\INV_Misc_QuestionMark")
+				PhaseToolkit.itemCreatorData.itemLink = itemLink
+				GameTooltip:Hide()
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+				GameTooltip:SetHyperlink(PhaseToolkit.itemCreatorData.itemLink)
+				GameTooltip:Show()
+				updateFields(PhaseToolkit.itemCreatorData.itemLink)
+				-- No hard cap here: descriptions over the addon-message limit are sent in
+				-- chunks via chat instead (see OnEditFocusLost below), same as forgeItem().
+				PhaseToolkit.DeployingFrame.itemForgeDescriptionFrame.ScrollFrame.EditBox:SetMaxLetters(0)
+			end)
+			if not ok then
+				print("[ItemDropSlot] Error while processing dropped item: "..tostring(err))
+			end
+			ClearCursor()
+			return true
 		end
+		return false
+	end
+
+	itemDropSlot:SetScript("OnReceiveDrag", function(self)
+		acceptCursorItemOnSlot(self)
 		ClearCursor()
+	end)
+
+	itemDropSlot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	itemDropSlot:SetScript("OnClick", function(self, button)
+		if button == "LeftButton" then
+			-- Fallback for the "click item to pick up, click slot to place" flow,
+			-- in case the client doesn't fire OnReceiveDrag on a plain click.
+			acceptCursorItemOnSlot(self)
+		end
 	end)
 
 	itemDropSlot:SetScript("OnEnter", function(self)
@@ -10633,14 +10765,29 @@ local function createItemForgeDescriptionEditbox(context)
 	descriptionFrame.ScrollFrame.EditBox:SetScript("OnTextChanged", function(self)
 		local maxDescriptionSize=238-(string.len("f i s de ")+string.len(PhaseToolkit.itemCreatorData.itemLink or ""))
 		PhaseToolkit.itemCreatorData.itemDescription = self:GetText()
+		if PhaseToolkit.debugMode then
+			print("[ItemDescription] OnTextChanged len="..tostring(string.len(self:GetText())).." maxDescriptionSize="..tostring(maxDescriptionSize).." itemLink="..tostring(PhaseToolkit.itemCreatorData.itemLink))
+		end
 		if((string.len(self:GetText())<maxDescriptionSize)) then
 			if PhaseToolkit.itemCreatorData.itemLink then
-				sendAddonCmd(buildItemForgeCommand("description",{PhaseToolkit.itemCreatorData.itemLink},self:GetText()),nil,false)
+				local command = buildItemForgeCommand("description",{PhaseToolkit.itemCreatorData.itemLink},self:GetText())
+				if PhaseToolkit.debugMode then
+					print("[ItemDescription] sending command (len="..tostring(command and #command or -1)..") : "..tostring(command))
+				end
+				local ok, err = pcall(sendAddonCmd, command, nil, false)
+				if not ok then
+					print("[ItemDescription] Error while sending description: "..tostring(err))
+				end
 				PhaseToolkit.HideTooltip()
 				self:SetScript("OnEnter",nil)
 				self:SetScript("OnLeave",nil)
+			elseif PhaseToolkit.debugMode then
+				print("[ItemDescription] not sent: itemCreatorData.itemLink is nil")
 			end
 		else
+			if PhaseToolkit.debugMode then
+				print("[ItemDescription] too long for a single addon message, will be sent as a single auto-split chat message when you're done editing")
+			end
 			local border = descriptionFrame:CreateTexture(nil, "BACKGROUND")
 			border:SetPoint("TOPLEFT", -2, 2)
 			border:SetPoint("BOTTOMRIGHT", 2, -2)
@@ -10649,6 +10796,24 @@ local function createItemForgeDescriptionEditbox(context)
 			C_Timer.After(1.5, function()
 				border:SetColorTexture(1, 0, 0, 0)
 			end)
+		end
+	end)
+
+	-- Long descriptions can't fit in a single addon message (see sendAddonCmd's 250-char limit).
+	-- Same technique Arcanum's "Server .Command" action uses (Cmd.lua's cmd()): a single
+	-- SendChatMessage call with the full text, letting the WoW client auto-split it at the
+	-- native 255-byte boundary. Manually pre-splitting (word by word) does NOT work, since the
+	-- server only recognizes the client's own native split, not arbitrary separate messages.
+	descriptionFrame.ScrollFrame.EditBox:SetScript("OnEditFocusLost", function(self)
+		local itemLink = PhaseToolkit.itemCreatorData.itemLink
+		if not itemLink then return end
+		local maxDescriptionSize=238-(string.len("f i s de ")+string.len(itemLink))
+		local text = self:GetText()
+		if text ~= "" and string.len(text) >= maxDescriptionSize then
+			if PhaseToolkit.debugMode then
+				print("[ItemDescription] OnEditFocusLost: sending long description ("..string.len(text).." chars) as a single auto-split message")
+			end
+			SendChatMessage("."..("f i s de "..itemLink.." "..text), "GUILD")
 		end
 	end)
 
@@ -10848,62 +11013,7 @@ local function createCharacterWhitelistPanel(context)
 	tinsert(context, panel)
 	PhaseToolkit.DeployingFrame.characterWhitelistPanel = panel
 	PhaseToolkit.DeployingFrame.characterWhitelistPanel.updateScrollFrame = updateScrollFrame
-	PhaseToolkit.DeployingFrame.characterWhitelistPanel.deployAnimation = function()
-	local AnimationGroup = PhaseToolkit.DeployingFrame.characterWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-	local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-	fadeIn:SetOrder(1);
-	fadeIn:SetFromAlpha(0);
-	fadeIn:SetToAlpha(1);
-	fadeIn:SetDuration(baseAnimTime);
-	fadeIn:SetSmoothing("OUT")
-
-	local scaleUp= AnimationGroup:CreateAnimation("Scale");
-	scaleUp:SetOrder(1);
-	scaleUp:SetFromScale(0.0,1.0);
-	scaleUp:SetToScale(1.0,1.0);
-	scaleUp:SetDuration(baseAnimTime);
-	scaleUp:SetSmoothing("OUT")
-	scaleUp:SetOrigin("LEFT",0,0)
-
-	AnimationGroup:SetScript("OnPlay", function()
-		if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.characterWhitelistPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.characterWhitelistPanel
-	end);
-
-	AnimationGroup:Play();
-	end
-
-	PhaseToolkit.DeployingFrame.characterWhitelistPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.characterWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("LEFT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.characterWhitelistPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.characterWhitelistPanel then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.characterWhitelistPanel, "itemForgeRightPanelOpened", "LEFT")
 end
 
 local function createPhaseMemberWhitelistPanel(context)
@@ -11091,62 +11201,7 @@ local function createPhaseMemberWhitelistPanel(context)
 	tinsert(context, panel)
 	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel = panel
 	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.updateScrollFrame = updateScrollFrame
-	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.deployAnimation = function()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-		fadeIn:SetOrder(1);
-		fadeIn:SetFromAlpha(0);
-		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(baseAnimTime);
-		fadeIn:SetSmoothing("OUT")
-
-		local scaleUp= AnimationGroup:CreateAnimation("Scale");
-		scaleUp:SetOrder(1);
-		scaleUp:SetFromScale(0.0,1.0);
-		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(baseAnimTime);
-		scaleUp:SetSmoothing("OUT")
-		scaleUp:SetOrigin("LEFT",0,0)
-
-		AnimationGroup:SetScript("OnPlay", function()
-			if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel
-		end);
-
-		AnimationGroup:Play();
-	end
-
-	PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("LEFT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.phaseMemberWhitelistPanel, "itemForgeRightPanelOpened", "LEFT")
 end
 
 local function createPhaseOfficerWhitelistPanel(context)
@@ -11334,62 +11389,7 @@ local function createPhaseOfficerWhitelistPanel(context)
 	tinsert(context, panel)
 	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel = panel
 	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.updateScrollFrame = updateScrollFrame
-	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.deployAnimation = function()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-		fadeIn:SetOrder(1);
-		fadeIn:SetFromAlpha(0);
-		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(baseAnimTime);
-		fadeIn:SetSmoothing("OUT")
-
-		local scaleUp= AnimationGroup:CreateAnimation("Scale");
-		scaleUp:SetOrder(1);
-		scaleUp:SetFromScale(0.0,1.0);
-		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(baseAnimTime);
-		scaleUp:SetSmoothing("OUT")
-		scaleUp:SetOrigin("LEFT",0,0)
-
-		AnimationGroup:SetScript("OnPlay", function()
-			if(PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel
-		end);
-
-		AnimationGroup:Play();
-	end
-
-	PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("LEFT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened == PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel then
-				PhaseToolkit.DeployingFrame.itemForgeRightPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.phaseOfficerWhitelistPanel, "itemForgeRightPanelOpened", "LEFT")
 end
 
 local function createItemPropertyPanel(context)
@@ -11551,62 +11551,7 @@ local function createItemPropertyPanel(context)
 
 	tinsert(context, panel)
 	PhaseToolkit.DeployingFrame.itemPropertyPanel = panel
-	PhaseToolkit.DeployingFrame.itemPropertyPanel.deployAnimation = function()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemPropertyPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-		fadeIn:SetOrder(1);
-		fadeIn:SetFromAlpha(0);
-		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(baseAnimTime);
-		fadeIn:SetSmoothing("OUT")
-
-		local scaleUp= AnimationGroup:CreateAnimation("Scale");
-		scaleUp:SetOrder(1);
-		scaleUp:SetFromScale(0.0,1.0);
-		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(baseAnimTime);
-		scaleUp:SetSmoothing("OUT")
-		scaleUp:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnPlay", function()
-			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.itemPropertyPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemPropertyPanel
-		end);
-
-		AnimationGroup:Play();
-	end
-
-	PhaseToolkit.DeployingFrame.itemPropertyPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemPropertyPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.itemPropertyPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemPropertyPanel then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.itemPropertyPanel, "itemForgeLeftPanelOpened", "RIGHT")
 end
 
 local function getItemClassObjectFromId(itemClassId)
@@ -12081,62 +12026,7 @@ local function createItemMainConfigurationPanel(context)
 	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemSubClassScrollFrame = updateRightScrollFrame
 	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.updateItemInventoryTypeScrollFrame = updateBottomScrollFrame
 
-	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.deployAnimation = function()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-		fadeIn:SetOrder(1);
-		fadeIn:SetFromAlpha(0);
-		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(baseAnimTime);
-		fadeIn:SetSmoothing("OUT")
-
-		local scaleUp= AnimationGroup:CreateAnimation("Scale");
-		scaleUp:SetOrder(1);
-		scaleUp:SetFromScale(0.0,1.0);
-		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(baseAnimTime);
-		scaleUp:SetSmoothing("OUT")
-		scaleUp:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnPlay", function()
-			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel
-		end);
-
-		AnimationGroup:Play();
-	end
-
-	PhaseToolkit.DeployingFrame.itemMainConfigurationPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.itemMainConfigurationPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemMainConfigurationPanel then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.itemMainConfigurationPanel, "itemForgeLeftPanelOpened", "RIGHT")
 end
 
 local function createItemSubConfigurationPanel(context)
@@ -12409,71 +12299,12 @@ local function createItemSubConfigurationPanel(context)
 	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemQualityScrollFrame = updateItemQualityScrollFrame
 	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.updateItemSheathScrollFrame = updateItemSheathScrollFrame
 
-	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.deployAnimation = function()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:CreateAnimationGroup("deployCharacterWhitelistPanel");
-
-		local fadeIn = AnimationGroup:CreateAnimation("Alpha");
-		fadeIn:SetOrder(1);
-		fadeIn:SetFromAlpha(0);
-		fadeIn:SetToAlpha(1);
-		fadeIn:SetDuration(baseAnimTime);
-		fadeIn:SetSmoothing("OUT")
-
-		local scaleUp= AnimationGroup:CreateAnimation("Scale");
-		scaleUp:SetOrder(1);
-		scaleUp:SetFromScale(0.0,1.0);
-		scaleUp:SetToScale(1.0,1.0);
-		scaleUp:SetDuration(baseAnimTime);
-		scaleUp:SetSmoothing("OUT")
-		scaleUp:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnPlay", function()
-			if(PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened) then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened.retractAnimation()
-			end
-			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:Show()
-			PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel
-		end);
-		AnimationGroup:Play()
-	end
-	PhaseToolkit.DeployingFrame.itemSubConfigurationPanel.retractAnimation = function ()
-		local AnimationGroup = PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:CreateAnimationGroup("retractCharacterWhitelistPanel");
-
-		local fadeOut = AnimationGroup:CreateAnimation("Alpha");
-		fadeOut:SetOrder(1);
-		fadeOut:SetFromAlpha(1);
-		fadeOut:SetToAlpha(0);
-		fadeOut:SetDuration(baseAnimTime);
-		fadeOut:SetSmoothing("OUT")
-
-		local scaleDown= AnimationGroup:CreateAnimation("Scale");
-		scaleDown:SetOrder(1);
-		scaleDown:SetFromScale(1.0,1.0);
-		scaleDown:SetToScale(0.0,1.0);
-		scaleDown:SetDuration(baseAnimTime);
-		scaleDown:SetSmoothing("OUT")
-		scaleDown:SetOrigin("RIGHT",0,0)
-
-		AnimationGroup:SetScript("OnFinished", function()
-			PhaseToolkit.DeployingFrame.itemSubConfigurationPanel:Hide()
-			if PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened == PhaseToolkit.DeployingFrame.itemSubConfigurationPanel then
-				PhaseToolkit.DeployingFrame.itemForgeLeftPanelOpened = nil
-			end
-		end);
-
-		AnimationGroup:Play();
-	end
+	createSidePanelAnimations(PhaseToolkit.DeployingFrame.itemSubConfigurationPanel, "itemForgeLeftPanelOpened", "RIGHT")
 end
 
 
 local function wipeForgeData()
-	for key in pairs(PhaseToolkit.itemCreatorData) do
-		if type(PhaseToolkit.itemCreatorData[key]) == "table" then
-			wipe(PhaseToolkit.itemCreatorData[key])
-		else
-			PhaseToolkit.itemCreatorData[key] = nil
-		end
-	end
+	PhaseToolkit.itemCreatorData = PhaseToolkit.GetDefaultItemCreatorData()
 end
 
 local function forgeItem()
@@ -12487,7 +12318,7 @@ local function forgeItem()
 			tinsert(commands, buildItemForgeCommand("subclass", {PhaseToolkit.itemCreatorData.itemLink}, PhaseToolkit.itemCreatorData.selectedItemSubClass))
 		end
 
-		if PhaseToolkit.itemCreatorData.selectedInventoryType then
+		if PhaseToolkit.itemCreatorData.selectedInventoryType and (PhaseToolkit.itemCreatorData.selectedItemClass == 2 or PhaseToolkit.itemCreatorData.selectedItemClass == 4) then
 			tinsert(commands, buildItemForgeCommand("inventorytype", {PhaseToolkit.itemCreatorData.itemLink}, PhaseToolkit.itemCreatorData.selectedInventoryType))
 		end
 
@@ -12525,31 +12356,31 @@ local function forgeItem()
 		end
 
 		if PhaseToolkit.itemCreatorData.itemProperty then
-			for _,property in ipairs(PhaseToolkit.itemCreatorData.itemProperty) do
-				if type(PhaseToolkit.itemCreatorData.itemProperty[property]) == "boolean" then
-					tinsert(commands, buildItemForgeCommand("property "..property, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty[property])))
+			for property, propertyValue in pairs(PhaseToolkit.itemCreatorData.itemProperty) do
+				if type(propertyValue) == "boolean" then
+					tinsert(commands, buildItemForgeCommand("property "..property, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(propertyValue)))
 				else
-					for _,value in ipairs(PhaseToolkit.itemCreatorData.itemProperty[property]) do
-						tinsert(commands, buildItemForgeCommand("property "..property.." "..value, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(PhaseToolkit.itemCreatorData.itemProperty[property][value])))
+					for subProperty, subValue in pairs(propertyValue) do
+						tinsert(commands, buildItemForgeCommand("property "..property.." "..subProperty, {PhaseToolkit.itemCreatorData.itemLink},transformBoolToOnOff(subValue)))
 					end
 				end
 
 			end
 		end
 
-		if #PhaseToolkit.itemCreatorData.characterWhitelist > 0 then
+		if PhaseToolkit.itemCreatorData.characterWhitelist and #PhaseToolkit.itemCreatorData.characterWhitelist > 0 then
 			for i, characterName in ipairs(PhaseToolkit.itemCreatorData.characterWhitelist) do
 				tinsert(commands, buildItemForgeCommand("whitelist character add", {PhaseToolkit.itemCreatorData.itemLink},characterName))
 			end
 		end
 
-		if #PhaseToolkit.itemCreatorData.phaseWhitelistForMember > 0 then
+		if PhaseToolkit.itemCreatorData.phaseWhitelistForMember and #PhaseToolkit.itemCreatorData.phaseWhitelistForMember > 0 then
 			for i, phaseId in ipairs(PhaseToolkit.itemCreatorData.phaseWhitelistForMember) do
 				tinsert(commands, buildItemForgeCommand("whitelist member add", {PhaseToolkit.itemCreatorData.itemLink},phaseId))
 			end
 		end
 
-		if #PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer > 0 then
+		if PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer and #PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer > 0 then
 			for i, phaseId in ipairs(PhaseToolkit.itemCreatorData.phaseWhitelistForOfficer) do
 				tinsert(commands, buildItemForgeCommand("whitelist officer add", {PhaseToolkit.itemCreatorData.itemLink},phaseId))
 			end
@@ -12562,12 +12393,8 @@ local function forgeItem()
 		if #commands > 0 then
 			sendAddonCommandChain(commands, function(success, allReturnMessages)
 				-- Command chain completed
-				PhaseToolkit.itemCreatorData.itemLink=nil
-
 				-- Reset everything after all commands are done
-				for key in pairs(PhaseToolkit.itemCreatorData) do
-					PhaseToolkit.itemCreatorData[key] = nil
-				end
+				PhaseToolkit.itemCreatorData = PhaseToolkit.GetDefaultItemCreatorData()
 
 				if success then
 					print("Item Forging done !\nyou can use your item !")
@@ -12622,7 +12449,7 @@ local function createItemAndContinue()
 end
 
 
-local function forgeItem()
+local function startItemForge()
 	print("Forging your item...")
 	createItemAndContinue()
 end
@@ -12658,7 +12485,7 @@ local function createItemForgeUtilityButtons(context)
 	createAndForgeItemButton.icon:SetTexture("Interface\\Icons\\trade_blacksmithing")
 	createAndForgeItemButton.icon:SetAllPoints()
 	createAndForgeItemButton:SetScript("OnClick", function()
-		forgeItem()
+		startItemForge()
 	end)
 
 	PhaseToolkit.RegisterTooltip(createAndForgeItemButton, "Forge Item (This may take some time)")
@@ -13046,10 +12873,34 @@ function PhaseToolkit.parseForDisplayId(isCommandSuccessful, repliesList)
 
 			--we somehow need to update the UI
 			if PhaseToolkit.SelectedGender == "male"  then
+				if PhaseToolkit.DeployingFrame.NpcGenderSlider:GetValue() == 0 then -- // already male, just update the UI
+					updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething("male")
+					return
+				end
+				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoMaleAnimation.doNotSendCommand = true
 				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoMaleAnimation:Play()
 			else
+				if PhaseToolkit.DeployingFrame.NpcGenderSlider:GetValue() == 1 then  -- // already female, just update the UI
+					updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething("female")
+					return
+				end
+				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoFemaleAnimation.doNotSendCommand = true
 				PhaseToolkit.DeployingFrame.NpcGenderSlider.GoFemaleAnimation:Play()
+
 			end
+
+			PhaseToolkit.RefreshGeneralStatFromTarget(function()
+				if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
+					local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
+					if( not isCategoryExistingOnRace()) then
+						categoryToOpen = "Head"
+						PhaseToolkit.SelectedCategory = getCategoryFromLinkedCategory(categoryToOpen)
+					end
+					if(PhaseToolkit.customPanel:IsShown()) then
+						buildCustomPanelForDataset(buildCustomDatasetForCategory(categoryToOpen),categoryToOpen,true)
+					end
+				end
+			end)
 		end
 	end
 end
@@ -14009,7 +13860,7 @@ PhaseToolkit.NPCCustomiserMainFrame:SetScript("OnEvent", function(self, event, a
 		PhaseToolkit.itemsPerPageNPC = PhaseToolKitConfig["itemsPerPageNPC"]
 		PhaseToolkit.itemsPerPageTELE = PhaseToolKitConfig["itemsPerPageTELE"]
 		PhaseToolkit.CurrentLang = ns.getLangTabByString(PhaseToolKitConfig["CurrentLang"]) -- pull the language table
-		PhaseToolkit.AutoRefreshNPC = PhaseToolKitConfig["AutoRefreshNPC"]
+		--PhaseToolkit.AutoRefreshNPC = PhaseToolKitConfig["AutoRefreshNPC"] -- this makes it so we never actually SAVE this status
 		PhaseToolkit:CreateAdditionalButtonFrame()
 	end
 end)
