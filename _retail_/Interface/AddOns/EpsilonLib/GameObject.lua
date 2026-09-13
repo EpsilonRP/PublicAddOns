@@ -985,7 +985,9 @@ end
 
 function GameObjectGroupMeta:Rotate(_, _, z)
 	if not _isSelected(self, "You must select the GameObject Group before turning it.") then return end
-	self:Turn(z)
+	local curZ = self.orientation
+ local newZ = z - curZ
+ self:Turn(newZ)
 end
 
 --#region GameObject API
