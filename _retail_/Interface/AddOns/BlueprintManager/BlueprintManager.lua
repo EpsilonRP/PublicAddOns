@@ -359,7 +359,7 @@ local function UpdateBlueprint(BlueprintToLoad)
         local newDescription = BlueprintManager.editionPanel.descriptionField:GetText()
 
         if newDescription ~= BlueprintToLoad.description then
-            sendAddonCmd("gobject blueprint description "..originalName.." "..newDescription,function(success, replies)
+            sendAddonCmd("gobject blueprint description "..BlueprintToLoad.blueprintId.." "..newDescription,function(success, replies)
                 BlueprintToLoad.description = newDescription;
                 if success then
                     BlueprintManager.RefreshLeftPanelKeepOffset()
@@ -370,7 +370,7 @@ local function UpdateBlueprint(BlueprintToLoad)
         end
         print("Renaming blueprint to "..newName)
         if newName ~= originalName then
-            sendAddonCmd("gobject blueprint rename "..originalName.." "..newName, function(success, replies)
+            sendAddonCmd("gobject blueprint rename "..BlueprintToLoad.blueprintId.." "..newName, function(success, replies)
             BlueprintToLoad.blueprintName = newName;
             BlueprintManager.currentBlueprintFullNameUntruncated = newName; -- Update stored name
             if success then
@@ -421,7 +421,7 @@ local function createTechnicalButton(BlueprintToLoad)
         enableInteraction(BlueprintManager.editionPanel.SpawnButton);
         
         BlueprintManager.editionPanel.SpawnButton:SetScript("OnClick", function()
-            sendAddonCmd("gobject blueprint spawn "..BlueprintToLoad.blueprintName)
+            sendAddonCmd("gobject blueprint spawn "..BlueprintToLoad.blueprintId)
         end)
     end
 
@@ -748,7 +748,7 @@ local function createTagListForRightPanel(lineTexture,BlueprintToLoad)
     BlueprintManager.editionPanel.tagSection.tagList.scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", BlueprintManager.editionPanel.tagSection.tagList.scrollFrame, "BOTTOMRIGHT", 18, 18)
 end
 
-function BlueprintManager.RefreshLeftPanelKeepOffset()
+function BlueprintManager.RefreshLeftPanelKeepOffset(fetchAgain)
     -- Throttle re-entrant calls to avoid rapid repeated recreation loops
     -- If a refresh is already in progress, ignore subsequent calls for a short window.
     if BlueprintManager._isRefreshingLeftPanel then
@@ -783,15 +783,26 @@ function BlueprintManager.RefreshLeftPanelKeepOffset()
 
     local scrollBar = BlueprintManager.mainFrame.leftPannel.scrollFrame.ScrollBar
     local currentOffset = scrollBar:GetValue()
-    BlueprintManager.createLeftPanelForMainFrame(true, true, false, isFilteringTags)
-    C_Timer.After(0.25, function()
+    BlueprintManager.createLeftPanelForMainFrame(true, fetchAgain, false, isFilteringTags)
+    if fetchAgain then
+        -- Rebuild happens asynchronously once the server responds; wait for it before restoring.
+        C_Timer.After(0.25, function()
+            if BlueprintManager.mainFrame and BlueprintManager.mainFrame.leftPannel and BlueprintManager.mainFrame.leftPannel.scrollFrame then
+                BlueprintManager.mainFrame.leftPannel.scrollFrame.ScrollBar:SetValue(currentOffset)
+                if BlueprintManager.mainFrame.leftPannel.UpdateScrollFrame then
+                    BlueprintManager.mainFrame.leftPannel.UpdateScrollFrame(isFilteringTags)
+                end
+            end
+        end)
+    else
+        -- Rebuild from local data is synchronous, so restore immediately (no snap-to-top flash).
         if BlueprintManager.mainFrame and BlueprintManager.mainFrame.leftPannel and BlueprintManager.mainFrame.leftPannel.scrollFrame then
             BlueprintManager.mainFrame.leftPannel.scrollFrame.ScrollBar:SetValue(currentOffset)
             if BlueprintManager.mainFrame.leftPannel.UpdateScrollFrame then
                 BlueprintManager.mainFrame.leftPannel.UpdateScrollFrame(isFilteringTags)
             end
         end
-    end)
+    end
 end
 
 local function createTagAddingThing(lineTexture,BlueprintToLoad)
@@ -1431,7 +1442,7 @@ function BlueprintManager.createLeftPanelForMainFrame(regen,fetchAgain,Updating,
                     end
 
                     if string.sub(blueprint.description, -3) == "..." then
-                        sendAddonCmd("gobject blueprint info " .. blueprint.blueprintName, function(success, replies)
+                        sendAddonCmd("gobject blueprint info " .. blueprint.blueprintId, function(success, replies)
                             if success then
                                 for replyIndex, reply in ipairs(replies) do
                                     reply = reply:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
@@ -1541,8 +1552,10 @@ local function createBlueprintObject(_blueprintId, blueprintName, blueprintObjec
         }
 end
 
-local function parseBlueprintResponse(IsCommandSuccessful,replies,isUpdating)
+local function parseBlueprintResponse(IsCommandSuccessful,replies,isUpdating,seenBlueprintIds)
     if IsCommandSuccessful then
+        seenBlueprintIds = seenBlueprintIds or {}
+        local needsContinuation = false
         for i,reply in ipairs(replies) do
             reply = reply:gsub("|cff%x%x%x%x%x%x", ""):gsub("|r", "")
             local isCallingAgainNeeded = string.find(reply, "Enter .lookup next") ~= nil
@@ -1554,6 +1567,10 @@ local function parseBlueprintResponse(IsCommandSuccessful,replies,isUpdating)
                 print("Please check your alias and ensure that you don't have something like :")
                 print(" '.lo blueprint = XXXXXXXXX' => this would cause the error please remove it and try again.")
                 return
+            end
+
+            if isCallingAgainNeeded then
+                needsContinuation = true
             end
 
             if(not isFirstMessage) then
@@ -1569,18 +1586,33 @@ local function parseBlueprintResponse(IsCommandSuccessful,replies,isUpdating)
                     description = ""
                 end
 
+                if blueprintId then
+                    seenBlueprintIds[blueprintId] = true
+                end
 
                 if(not BlueprintManagerData.blueprint[blueprintId] and not isCallingAgainNeeded and blueprintId) then
                     if (createBlueprintObject(blueprintId, blueprintName, blueprintObjectCount, creator, dateOfCreation, description,isUpdating)) then
                         table.insert(BlueprintManagerData.blueprint, createBlueprintObject(blueprintId, blueprintName, blueprintObjectCount, creator, dateOfCreation, description,isUpdating))
                     end
                 end
-                
+
                 if isCallingAgainNeeded then
-                    sendAddonCmd("lookup next ", function(success, replies) parseBlueprintResponse(success, replies) end, false)
+                    sendAddonCmd("lookup next ", function(success, replies) parseBlueprintResponse(success, replies, isUpdating, seenBlueprintIds) end, false)
                 end
             end
         end
+
+        if not needsContinuation then
+            -- Full listing received: drop local blueprints the server no longer knows about
+            -- (e.g. deleted long ago through another means), so they can't be spawned anymore.
+            for index = #BlueprintManagerData.blueprint, 1, -1 do
+                local blueprint = BlueprintManagerData.blueprint[index]
+                if not seenBlueprintIds[blueprint.blueprintId] then
+                    table.remove(BlueprintManagerData.blueprint, index)
+                end
+            end
+        end
+
         BlueprintManager.createLeftPanelForMainFrame(true)
     else
         print("Failed to fetch blueprints")
@@ -2494,7 +2526,7 @@ StaticPopupDialogs["CONFIRM_DELETE_BLUEPRINT"] = {
     button1 = "Yes",
     button2 = "No",
     OnAccept = function(self, data)
-        sendAddonCmd("gobject blueprint delete "..data.blueprintName)
+        sendAddonCmd("gobject blueprint delete "..data.blueprintId)
         for index, blueprint in ipairs(BlueprintManagerData.blueprint) do
             if blueprint.blueprintId == data.blueprintId then
                 table.remove(BlueprintManagerData.blueprint, index)
@@ -2519,9 +2551,9 @@ StaticPopupDialogs["CONFIRM_UPDATE_BLUEPRINT"] = {
     button1 = "Yes",
     button2 = "No",
     OnAccept = function(self, data)
-        sendAddonCmd("gobject blueprint update "..data.blueprintName,function(success,replies)
+        sendAddonCmd("gobject blueprint update "..data.blueprintId,function(success,replies)
             if(success) then
-                BlueprintManager.RefreshLeftPanelKeepOffset()
+                BlueprintManager.RefreshLeftPanelKeepOffset(true)
                 BlueprintManager.createRightPanelForMainFrame(data)
             end
         end)

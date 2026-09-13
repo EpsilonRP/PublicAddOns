@@ -14,9 +14,23 @@ local searchEnabled = false
 local updateRows
 
 ---@param spell VaultSpell
----@return boolean
+---@return boolean isFiltered true if should be filtered out, false if should still be shown
 local function isFilteredBySearch(spell)
-	return searchEnabled and spell.fullName:lower():find(searchText) == nil
+	if not searchEnabled then
+		return false
+	end
+
+	local nameMatch = false
+	if spell.fullName then
+		nameMatch = spell.fullName:lower():find(searchText) ~= nil
+	end
+
+	local commIDMatch = false
+	if spell.commID ~= nil then
+		commIDMatch = tostring(spell.commID):lower():find(searchText) ~= nil
+	end
+
+	return not (nameMatch or commIDMatch)
 end
 
 ---@param spell VaultSpell

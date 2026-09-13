@@ -989,7 +989,7 @@ local actionTypeData = {
 		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell; add '+' followed by input strings, separated by : if you need to pass additional input into the spell.",
 		example = "From " ..
 			Tooltip.genContrastText('/sf MySpell') ..
-			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell:test:example") ..
+			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell+test:example") ..
 			" to cast MySpell with the inputs 'test' and 'example'.",
 		revert = nil,
 	}),
@@ -1011,7 +1011,7 @@ local actionTypeData = {
 		inputDescription = "The ArcSpell ID (ArcID) used to cast the ArcSpell; add '+' followed by input strings, separated by : if you need to pass additional input into the spell.",
 		example = "From " ..
 			Tooltip.genContrastText('/sf MySpell') ..
-			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell:test:example") ..
+			", input just " .. Tooltip.genContrastText("MySpell") .. " as this input.\nOr use " .. Tooltip.genContrastText("MySpell+test:example") ..
 			" to cast MySpell with the inputs 'test' and 'example'.",
 		revert = nil,
 	}),

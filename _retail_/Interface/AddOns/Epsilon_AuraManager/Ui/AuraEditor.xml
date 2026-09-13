@@ -914,9 +914,11 @@
       	</DisabledTexture>
 		<HighlightTexture
                     parentKey="highlight"
-                    file="Interface/Addons/DiceMaster/Texture/trait-select"
+					setAllPoints="true"
+                    file="Interface/BUTTONS/ButtonHilight-Square"
+					alphaMode="ADD"
                 >
-		    <Size x="60" y="60" />
+		    <Size x="42" y="42" />
           	<Anchors>
             	<Anchor point="CENTER" />
 			</Anchors>

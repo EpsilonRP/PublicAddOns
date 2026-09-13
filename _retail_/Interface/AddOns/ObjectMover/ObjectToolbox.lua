@@ -1805,14 +1805,18 @@ local gobBasicControls = {
 			if IsModifierKeyDown() then -- group select
 				local selectedObject = EpsilonLib.GameObject:GetSelected()
 				if not selectedObject then
-					sysMsg("Must select a single object first, in order to select it's group.")
+					-- no object, select whatever group instead.
+					EpsilonLib.GameObject:SelectGroup()
 					return
 				end
+
+				if selectedObject.isGroup then return sysMsg("You already have a group selected.") end -- no select group of group
+				if not selectedObject.groupLeader then return sysMsg("Object is not part of a group.") end -- object is not part of a group; cannot select a group from it
+
 				selectedObject:SelectGroup()
 			end
 
 			if btn == "RightButton" then
-				--EpsilonLib.GameObject:SelectByName()
 				EpsilonLib.Utils.GenericDialogs.CustomInput({
 					text = "Select Object by Name, GUID, or Entry:",
 					callback = function(text)
@@ -3394,11 +3398,40 @@ addTooltipHandlers(gobScaleControls.ApplyRandomScaleButton, true)
 
 -- random scale assist
 do
-	local cb = CreateFrame("CheckButton", nil, gobScaleControls, "UICheckButtonTemplate")
+	local cb = CreateFrame("CheckButton", nil, gobScaleControls)
 	cb:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -2)
 	cb:SetSize(24, 24)
-	cb.text:SetText("Random")
-	ChainWrap(cb.text):ClearAllPoints():SetPoint("TOP", cb, "BOTTOM", 0, 3)
+	--cb.text:SetText("Random")
+	--ChainWrap(cb.text):ClearAllPoints():SetPoint("TOP", cb, "BOTTOM", 0, 3)
+	EpsilonLib.Utils.Misc.SetupCoherentButtonTextures(cb, "charactercreate-icon-dice", true)
+	cb.NormalTexture:SetDesaturated(true) -- match unchecked state by default
+	cb.NormalTexture:SetVertexColor(Colors.MID_GREY:GetRGB())
+	cb.GlowTexture = cb:CreateTexture()
+	cb.GlowTexture:SetAllPoints()
+	cb.GlowTexture:SetAtlas("charactercreate-icon-dice")
+	cb.GlowTexture:SetBlendMode("ADD")
+	cb.GlowTexture:Hide()
+	addTooltipHandlers(cb)
+	cb.tooltipTitle = "Toggle Random Mode"
+	cb.tooltipText = ("Enable Random Mode to apply a randomized scale.\n\r" ..
+		"%s & %s Scale follow the precision of the value with the most decimal points.\n\r" ..
+		"For example, setting a %s of %s and a %s of %s will generate a random number with two decimals of precision (i.e., %s)."):format(
+		Colors.game_gold:WrapTextInColorCode("Min"),
+		Colors.game_gold:WrapTextInColorCode("Max"),
+		Colors.game_gold:WrapTextInColorCode("Min"),
+		Colors.pastel_red:WrapTextInColorCode("1.0"),
+		Colors.game_gold:WrapTextInColorCode("Max"),
+		Colors.pastel_red:WrapTextInColorCode("2.00"),
+		Colors.pastel_red:WrapTextInColorCode("1.58"))
+	cb.tooltipWrap = true
+
+	--[[
+	cb:SetCheckedTexture("Interface\Buttons\UI-CheckBox-Check")
+	cb.CheckedTexture = cb:GetCheckedTexture()
+	cb.CheckedTexture:SetAtlas("charactercreate-icon-dice")
+	cb.CheckedTexture:SetVertexColor(Colors.BRILLIANT_GREEN:GetRGB())
+	cb.CheckedTexture:SetBlendMode("BLEND")
+	--]]
 
 	cb:SetScript("OnClick", function(self, button)
 		gobScaleControls.GetCurrentScaleButton:RefreshText()
@@ -3408,11 +3441,17 @@ do
 			gobScaleControls.RandomScaleMaxEditbox:Enable()
 			scaleSlider:Disable()
 			updateScaleGetOrApplyButtonSwap(gob)
+			self.NormalTexture:SetDesaturated(false)
+			self.NormalTexture:SetVertexColor(Colors.white:GetRGB())
+			self.GlowTexture:Show()
 		else
 			gobScaleControls.RandomScaleMinEditbox:Disable()
 			gobScaleControls.RandomScaleMaxEditbox:Disable()
 			scaleSlider:SetEnabled(gob and true or false)
 			updateScaleGetOrApplyButtonSwap(gob)
+			self.NormalTexture:SetDesaturated(true)
+			self.NormalTexture:SetVertexColor(Colors.MID_GREY:GetRGB())
+			self.GlowTexture:Hide()
 		end
 	end)
 
