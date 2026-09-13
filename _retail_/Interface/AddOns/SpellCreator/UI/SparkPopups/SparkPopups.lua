@@ -589,6 +589,20 @@ CoordinateListener:SetScript("OnUpdate", function(self, elapsed)
 			local _sparkOptions = sparkData[8]
 			local _sparkType = sparkData[9]
 
+			-- Ensure CD data is available for condition scripts that may need it even if the spark
+			-- UI/button hasn't been created yet. Mirror the shape used by buttons' cdData.
+			local sparkDataSafe = CopyTable(sparkData)
+			local sparkOptionsSafe = sparkDataSafe[8] or {}
+			sparkDataSafe.cdData = {
+				sparkOptionsSafe.cooldownTime,
+				sparkOptionsSafe.trigSpellCooldown,
+				sparkOptionsSafe.broadcastCooldown,
+				loc = { sparkDataSafe[2], sparkDataSafe[3], sparkDataSafe[4] },
+				inputs = (sparkOptionsSafe.inputs or nil),
+			}
+			ARC.XAPI.Sparks.currentSparkData = sparkDataSafe
+
+
 			if not _sparkType or _sparkType == TYPE_STANDARD then -- no type = legacy spark, spark type 1 = single spark; both should show
 				if commID and sX and sY and sZ and sR and barTex then
 					if isSparkInRange(sparkData, x, y, z) and isSparkConditionsMet(sparkData) then

@@ -436,6 +436,7 @@ local function createBook(index, name, indexFromStorage)
 				return "Add Arcanum Spells to your Quickcast Books by " ..
 					Tooltip.genContrastText("right-clicking") .. Tooltip.tag("right-click") ..
 					" them in your vault!\n\r" ..
+					(self:GetNumPages() > 0 and Tooltip.genTooltipText("lpurple", "Use " .. Tooltip.genContrastText("mouse wheel") .. Tooltip.tag("mouse-wheel") .. " to switch pages.\n") or "") ..
 					Tooltip.genTooltipText("lpurple", "Click & Drag to move the book anywhere, " .. Tooltip.genContrastText("right-click") .. Tooltip.tag("right-click") .. " to configure.")
 			end
 		end,
