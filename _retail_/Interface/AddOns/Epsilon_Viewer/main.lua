@@ -21,7 +21,7 @@ Brikabrok was an all-in-one addon created by BinarySpace for Kuretar, a french G
 ]]
 
 local addonName, utils = ...
-local StdUi = LibStub('StdUi');
+local StdUi = LibStub('StdUi'):NewInstance();
 StdUi.config = utils.config
 print("\124cFF4594C1[Epsilon_Viewer]\124r | /epsilonviewer - /viewer")
 local gobs = true
