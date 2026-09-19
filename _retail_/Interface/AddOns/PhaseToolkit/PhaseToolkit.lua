@@ -5542,16 +5542,6 @@ local function SetAtlasVerticalHalf(tex, atlasName, side) -- "LEFT" ou "RIGHT"
     end
 end
 
-local function activateNpcCustomHighlights()
-	if PhaseToolkit.DeployingFrame.CustomCategoryButtons then
-		for _, button in ipairs(PhaseToolkit.DeployingFrame.CustomCategoryButtons) do
-			button:SetScript("OnEnter",function()
-				button.Highlight:Show()
-			end)
-		end
-	end
-end
-
 local function getSelectedGender()
 	-- SelectedGender (real NPC identity) takes priority over the slider's visual position
 	if(PhaseToolkit.SelectedGender == "male") then
@@ -5751,7 +5741,7 @@ end
 
 local function buildCustomPanelForDataset(dataset,category,refreshOnly)
 	local paddingForLangageReason=getPaddingForLanguage()
-	if (PhaseToolkit.SelectedRace.name=="Orc")then
+	if (type(PhaseToolkit.SelectedRace) == "table" and PhaseToolkit.SelectedRace.name=="Orc")then
 		sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
 	end
 	if(PhaseToolkit.DeployingFrame )then
@@ -6189,7 +6179,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 				else
 					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
 				end
-				activateNpcCustomHighlights()
 				if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 					local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
 					if( not isCategoryExistingOnRace()) then
@@ -6255,7 +6244,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 				else
 					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
 				end
-				activateNpcCustomHighlights()
 
 				if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 					local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
@@ -6295,7 +6283,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 					PhaseToolkit.ChangeNpcRace(raceData.raceid)
 					PhaseToolkit.SelectedRace=raceData
 					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
-					activateNpcCustomHighlights()
 					if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 						local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
 						if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
@@ -6318,7 +6305,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 						PhaseToolkit.ChangeNpcRace(raceData.raceid)
 						PhaseToolkit.SelectedRace=raceData
 						PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
-						activateNpcCustomHighlights()
 						if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 							local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
 							if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
@@ -6346,7 +6332,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 					PhaseToolkit.ChangeNpcRace(raceData.raceid)
 					PhaseToolkit.SelectedRace=raceData
 					PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetAtlas(raceData["atlas" .. gender])
-					activateNpcCustomHighlights()
 					if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 						local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
 						if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
@@ -6369,7 +6354,6 @@ local function populateRowsOfRaceIcons(_RingBackground,racePage)
 						PhaseToolkit.ChangeNpcRace(raceData.raceid)
 						PhaseToolkit.SelectedRace=raceData
 						PhaseToolkit.DeployingFrame.NpcPortraitButton.Content:SetTexture(raceData["texture" .. gender])
-						activateNpcCustomHighlights()
 						if(PhaseToolkit.customPanel and PhaseToolkit.SelectedCategory and PhaseToolkit.SelectedCategory.LinkedCategory)then
 							local categoryToOpen = PhaseToolkit.SelectedCategory.LinkedCategory
 							if( not isCategoryExistingOnRace() and PhaseToolkit.customPanel) then
@@ -6403,7 +6387,8 @@ local function updateNPCForgePanelBasedOnRaceAndGenderChangeOrSomething(gender)
 		gender = (gender == 0) and "male" or "female"
 	end
 	gender = gender:lower() -- normalize
-	if gender=="male" and (PhaseToolkit.SelectedRace.name=="Orc")then -- why?
+	-- need to check this, or else the posture get reset,cause the 
+	if gender=="male" and (type(PhaseToolkit.SelectedRace) == "table" and PhaseToolkit.SelectedRace.name=="Orc")then -- why?
 		sendAddonCmd("phase forge npc out custom posture "..PhaseToolkit.GeneralStat["posture"], nil)
 	end
 	if(PhaseToolkit.DeployingFrame.raceRingBackground) then
