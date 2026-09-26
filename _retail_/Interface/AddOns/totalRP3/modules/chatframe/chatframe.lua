@@ -632,7 +632,7 @@ local function cleanChatName(name)
 		"|T([^:|]+):([^:|]*):?([^:|]*)([^|]*)|t",
 		function(path, height, width, rest)
 			-- Force height/width to 0 (width is optional but we normalize it)
-			if width ~= "" then
+			if width and width ~= "" then
 				return "|T" .. path .. ":0:" .. width .. rest .. "|t"
 			else
 				return "|T" .. path .. ":0" .. rest .. "|t"
@@ -644,7 +644,7 @@ local function cleanChatName(name)
 	name = name:gsub(
 		"|A([^:|]+):([^:|]*):?([^:|]*)([^|]*)|a",
 		function(atlas, height, width, rest)
-			if width ~= "" then
+			if width and width ~= "" then
 				return "|A" .. atlas .. ":0:" .. width .. rest .. "|a"
 			else
 				return "|A" .. atlas .. ":0" .. rest .. "|a"
@@ -667,23 +667,23 @@ local function getFullnameUsingChatMethod(info)
 
 		if characteristics.FN then
 			-- Use custom name if defined
-			characterName = cleanChatName(characteristics.FN);
+			characterName = (characteristics.FN);
 		end
 
 		if nameMethod == 4 and characteristics.TI then
 			-- With short title in front of the name
-			characterName = characteristics.TI .. " " .. characterName;
+			characterName = (characteristics.TI) .. " " .. characterName;
 			cropSize = cropSize + 25;
 		end
 
 		if (nameMethod == 3 or nameMethod == 4) and characteristics.LN then
 			-- With last name
-			characterName = characterName .. " " .. characteristics.LN;
+			characterName = characterName .. " " .. (characteristics.LN);
 		end
 	end
 
 	if characterName then
-		characterName = TRP3_API.utils.str.crop(characterName, cropSize);
+		characterName = TRP3_API.utils.str.crop(cleanChatName(characterName), cropSize);
 	end
 
 	return characterName;
